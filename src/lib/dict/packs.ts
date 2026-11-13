@@ -38,12 +38,38 @@ interface Candidate {
 	kind: CardKind;
 }
 
+/**
+ * Lower is better. JMdict's rank alone favours newspaper words (価格, 改革), so it is log-scaled
+ * and combined with how basic the kanji are and how short the word is:
+ *   ln(rank)                       250 → 5.5, 12,000 (ichi1 only) → 9.4, unranked → 10.3
+ *   + 0.5 per school grade above 1 of the hardest kanji (secondary/unlisted count as 8–10)
+ *   + 0 / 0.3 / 0.6 for 2 / 3 / 4 kana, + 2 for 5–6
+ *   − 0.5 if usually written in kana (what a kana-stage learner actually sees)
+ *   − 0.4 if in a basic-vocabulary list (ichi1, spec1, spec2)
+ */
+function scoreOf(w: Word, len: number, grade: (k: string) => number | null, kanjiIn: (t: string) => string[]): number {
+	let score = Math.log(w.rank >= 100000 ? 30000 : w.rank);
+	const kanji = w.written === w.reading ? [] : kanjiIn(w.written);
+	const hardest = kanji.reduce((g, k) => Math.max(g, grade(k) ?? 10), 1);
+	score += 0.5 * (hardest - 1);
+	score += len <= 2 ? 0 : len === 3 ? 0.3 : len === 4 ? 0.6 : 2;
+	if (w.written === w.reading) score -= 0.5;
+	if (w.priority.some((p) => p === 'ichi1' || p === 'spec1' || p === 'spec2')) score -= 0.4;
+	return score;
+}
+
 let candidatesP: Promise<Candidate[]> | null = null;
 
 /** Every common word that could ever go in a pack, best first (known-kana filter applied later). */
 function candidates(): Promise<Candidate[]> {
 	return (candidatesP ??= (async () => {
-		const [j, c, m] = await Promise.all([jisho(), commonWords(), meta()]);
+		const [j, c, m, idx, { GRADES }] = await Promise.all([
+			jisho(),
+			commonWords(),
+			meta(),
+			import('@johnmorrisdotca/jisho'),
+			import('@johnmorrisdotca/jisho/grades')
+		]);
 		const best = new Map<string, Candidate>();
 		for (const w of j.allWords(c)) {
 			if (typeof w.id !== 'number' || !w.meaning) continue;
@@ -55,10 +81,7 @@ function candidates(): Promise<Candidate[]> {
 			const first = w.senses[0]?.marks ?? [];
 			if (first.some((x) => BAD_FIRST.includes(x))) continue;
 			if (w.senses.length && w.senses.every((s) => s.marks.some((x) => BAD_ALL.includes(x)))) continue;
-			// rank: 250…24,000 (lower = commoner); unranked → 30,000.
-			let score = w.rank >= 100000 ? 30000 : w.rank;
-			if (len > 4) score += 8000; // prefer 2–4 kana
-			if (w.written === w.reading) score *= 0.75; // usually written in kana: what a kana-stage learner actually sees
+			const score = scoreOf(w, len, (k) => idx.gradeOf(GRADES, k), idx.kanjiIn);
 			const cand: Candidate = { word: w as Word & { id: number }, score, kind: m.phrase.has(id) ? 'phrase' : 'word' };
 			// one word per reading (two cards both fronted あか would be ambiguous)
 			const key = fold(w.reading);

@@ -6,6 +6,7 @@
 	Grades are inferred by the parent from correctness + time (PLAN §5.2).
 -->
 <script lang="ts">
+	import { onMount, untrack } from 'svelte';
 	import { fly, scale } from 'svelte/transition';
 	import { romajiToKana } from '@johnmorrisdotca/jisho/words';
 	import type { UserCard } from '#lib/ai/contract.ts';
@@ -28,7 +29,10 @@
 	const FALLBACK = ['water', 'red', 'mountain', 'to eat', 'cat', 'tomorrow', 'pond', 'face', 'here', 'thank you', 'station', 'big'];
 
 	type Mode = 'study' | 'choose' | 'type';
-	let mode = $state<Mode>(isNew ? 'study' : !fsrs || fsrs.state !== 'review' || fsrs.stability < 3 ? 'choose' : 'type');
+	// The parent re-creates this component per card ({#key}), so the initial props are all we need.
+	let mode = $state<Mode>(
+		untrack(() => (isNew ? 'study' : !fsrs || fsrs.state !== 'review' || fsrs.stability < 3 ? 'choose' : 'type'))
+	);
 	let options = $state<string[]>([]);
 	let answer = $state('');
 	let picked = $state<string | null>(null);
@@ -41,8 +45,10 @@
 		const extra = FALLBACK.filter((g) => g !== card.gloss && !pool.includes(g));
 		options = shuffle([card.gloss, ...shuffle([...pool, ...extra]).slice(0, 3)]);
 	}
-	if (mode === 'choose') makeOptions();
-	if (mode !== 'type') speak(card.front);
+	onMount(() => {
+		if (mode === 'choose') makeOptions();
+		if (mode !== 'type') speak(card.front);
+	});
 
 	function startQuiz() {
 		mode = 'choose';

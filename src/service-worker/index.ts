@@ -1,6 +1,7 @@
 /**
  * Offline strategy (docs/PLAN.md §8.3)
- *   app shell + build output + static files → precached per deploy (cache-first)
+ *   app shell + build output + static files → precached per deploy (cache-first),
+ *                                             except the dictionary's per-piece chunks (below)
  *   navigations                             → network, falling back to cached index.html
  *   /api/*                                  → network only (sync retries from the app)
  *   /audio/*                                → cache-first, kept across deploys
@@ -14,9 +15,30 @@ const SHELL = `shell-${version}`;
 const RUNTIME = 'runtime-v1';
 const AUDIO = 'audio-v1';
 
-const PRECACHE = ['/', ...immutable.map((f) => f.path), ...assets.map((f) => f.path)].map((p) =>
-	p.startsWith('/') ? p : `/${p}`
+/**
+ * Dictionary data (@johnmorrisdotca/jisho, src/lib/dict): ~1,000 small chunks, ~60 MB in all.
+ * SvelteKit names every chunk by hash only, so they are told apart with Vite's client manifest,
+ * which the client build writes just before this service worker is built (absent in dev, where
+ * `immutable` is empty anyway). The numbered pieces (r012.data.js, e123.data.js…) are NOT
+ * precached: the stale-while-revalidate runtime cache keeps each one after its first use. The
+ * common-words table, the manifests and the other small tables stay precached, so packs,
+ * lookups of common words and example checks work offline right after install.
+ */
+type ViteManifest = Record<string, { file: string; src?: string }>;
+const viteManifest: ViteManifest =
+	Object.values(
+		import.meta.glob<ViteManifest>('/.svelte-kit/output/client/.vite/manifest.json', { eager: true, import: 'default' })
+	)[0] ?? {};
+const DICT_PIECE = /@johnmorrisdotca\/jisho\/dist\/data\/.*\/[a-z]+\d+\.data\.js$/;
+const DICT_PIECES = new Set(
+	Object.entries(viteManifest)
+		.filter(([src]) => DICT_PIECE.test(src))
+		.map(([, chunk]) => `/${chunk.file}`)
 );
+
+const PRECACHE = ['/', ...immutable.map((f) => f.path), ...assets.map((f) => f.path)]
+	.map((p) => (p.startsWith('/') ? p : `/${p}`))
+	.filter((p) => !DICT_PIECES.has(p));
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(

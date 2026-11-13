@@ -192,7 +192,10 @@ The card is `word:<jmdict id>`, or `word:custom:<uuid>` for unverified words.
 - Settings has **Explanation language: English + [second language]**. The
   second language is a free choice, stored as a BCP-47 code such as `de`,
   `es` or `th`.
-- **Glosses.** JMdict has native glosses for a handful of languages (German,
+- **Glosses.** *(Wave 1 finding: the bundled dictionary package ships English
+  glosses only, because JMdict's other-language glosses aren't under CC BY-SA.
+  So second-language meanings are always the "AI-translated" path below.)*
+  JMdict has native glosses for a handful of languages (German,
   French, Russian, Spanish, Dutch, Hungarian, Swedish, Slovenian).
   - Where the bundled or D1 dictionary has a gloss in your second language,
     that is used: verified and free.

@@ -304,53 +304,78 @@ interface RawToken {
 	alt: string[];
 }
 
-/** Longest-match segmentation over the common words (offline fallback for readText). */
+/**
+ * Segmentation over the common words (offline fallback for readText, and a second opinion when
+ * readText's greedy longest match leaves a gap, e.g. いけがあります → い|けが|あります).
+ * Dynamic programming: fewest unknown characters, then the cheapest tokens (a word costs 1, a
+ * lone kana particle 0.7, any other lone kana 1.5).
+ */
 async function segmentCommon(text: string): Promise<RawToken[]> {
 	const j = await jisho();
 	const c = await commonWords();
+	const m = await metaOrNull();
 	const chars = [...text.normalize('NFKC')];
-	const out: RawToken[] = [];
-	let i = 0;
-	const pushUnknown = (ch: string, kind: 'unknown' | 'other') => {
-		const last = out[out.length - 1];
-		if (last && last.kind === kind) last.text += ch;
-		else out.push({ text: ch, kind, word: null, form: ch, path: [], reading: '', alt: [] });
+	const n = chars.length;
+	type Step = { cost: number; from: number; tok: RawToken | null; kind: 'word' | 'unknown' | 'other' };
+	const best: (Step | null)[] = new Array(n + 1).fill(null);
+	best[0] = { cost: 0, from: -1, tok: null, kind: 'other' };
+	const relax = (to: number, cost: number, from: number, tok: RawToken | null, kind: Step['kind']) => {
+		const cur = best[to];
+		if (!cur || cost < cur.cost - 1e-9) best[to] = { cost, from, tok, kind };
 	};
-	while (i < chars.length) {
+	const wordCost = (s: string) => ([...s].length > 1 ? 1 : PARTICLES.has(s) ? 0.7 : 1.5);
+	for (let i = 0; i < n; i++) {
+		const here = best[i];
+		if (!here) continue;
 		if (!JAPANESE.test(chars[i])) {
-			pushUnknown(chars[i], 'other');
-			i++;
+			relax(i + 1, here.cost, i, null, 'other');
 			continue;
 		}
-		let best: RawToken | null = null;
-		for (let len = Math.min(12, chars.length - i); len >= 1 && !best; len--) {
+		relax(i + 1, here.cost + 100, i, null, 'unknown');
+		for (let len = 1; len <= Math.min(12, n - i); len++) {
 			const s = chars.slice(i, i + len).join('');
-			if (![...s].every((ch) => JAPANESE.test(ch))) continue;
+			if (!JAPANESE.test(chars[i + len - 1])) break;
 			const exact = j.wordsOf(c, s);
 			if (exact.length) {
-				const w = exact[0];
-				best = { text: s, kind: 'word', word: w, form: s, path: [], reading: isKanaText(s) ? fold(s) : fold(w.reading), alt: exact.slice(1).map((x) => fold(x.reading)) };
-				break;
+				// prefer a grammar reading of a lone kana (が the particle, not 蛾)
+				const w = exact.find((x) => typeof x.id === 'number' && m?.grammar.has(x.id)) ?? exact[0];
+				const tok: RawToken = { text: s, kind: 'word', word: w, form: s, path: [], reading: isKanaText(s) ? fold(s) : fold(w.reading), alt: exact.filter((x) => x !== w).map((x) => fold(x.reading)) };
+				relax(i + len, here.cost + wordCost(s), i, tok, 'word');
 			}
 			for (const d of j.deinflect(s)) {
 				const w = j.wordsOf(c, d.base).find((x) => x.kinds.includes(d.kind));
-				if (w) {
-					const reading = isKanaText(s) ? fold(s) : surfaceReading(s, d.base, w.reading);
-					best = { text: s, kind: 'word', word: w, form: d.base, path: d.path, reading, alt: [] };
-					break;
-				}
+				if (!w) continue;
+				const reading = isKanaText(s) ? fold(s) : surfaceReading(s, d.base, w.reading);
+				relax(i + len, here.cost + 1, i, { text: s, kind: 'word', word: w, form: d.base, path: d.path, reading, alt: [] }, 'word');
+				break;
 			}
 		}
-		if (best) {
-			out.push(best);
-			i += [...best.text].length;
-		} else {
-			pushUnknown(chars[i], 'unknown');
-			i++;
+	}
+	const steps: Step[] = [];
+	for (let at = n; at > 0; ) {
+		const st = best[at]!;
+		steps.push(st);
+		at = st.from;
+	}
+	steps.reverse();
+	const out: RawToken[] = [];
+	let pos = 0;
+	for (const st of steps) {
+		const end = st.tok ? pos + [...st.tok.text].length : pos + 1;
+		if (st.tok) out.push(st.tok);
+		else {
+			const ch = chars[pos];
+			const last = out[out.length - 1];
+			if (last && last.kind === st.kind) last.text += ch;
+			else out.push({ text: ch, kind: st.kind, word: null, form: ch, path: [], reading: '', alt: [] });
 		}
+		pos = end;
 	}
 	return out;
 }
+
+const PARTICLES = new Set([...'がのはをにへとでもやかねよなわぞさ']);
+const unknownChars = (ts: RawToken[]) => ts.filter((t) => t.kind === 'unknown').reduce((n, t) => n + t.text.length, 0);
 
 /** Reading of a conjugated surface: the base's reading with the base's okurigana swapped for the surface's. */
 function surfaceReading(surface: string, base: string, baseReading: string): string {
@@ -383,6 +408,19 @@ async function rawTokens(jp: string): Promise<{ tokens: RawToken[]; full: boolea
 	}
 }
 
+/** readText, with the common-words segmentation as a second opinion when it leaves gaps. */
+async function bestTokens(jp: string): Promise<{ tokens: RawToken[]; full: boolean }> {
+	const first = await rawTokens(jp);
+	if (!first.full || unknownChars(first.tokens) === 0) return first;
+	try {
+		const second = await segmentCommon(jp);
+		if (unknownChars(second) < unknownChars(first.tokens)) return { full: true, tokens: second };
+	} catch {
+		/* keep readText's answer */
+	}
+	return first;
+}
+
 /** Can the per-token readings be chosen so they spell `target`? */
 function readingAligns(tokens: RawToken[], target: string): boolean {
 	const goal = fold(KANA_ONLY(target.normalize('NFKC')));
@@ -411,7 +449,7 @@ function readingAligns(tokens: RawToken[], target: string): boolean {
 export async function verifyText(jp: string, reading?: string): Promise<VerifyTextResult> {
 	let raw: { tokens: RawToken[]; full: boolean };
 	try {
-		raw = await rawTokens(jp);
+		raw = await bestTokens(jp);
 	} catch {
 		return { ok: false, available: false, tokens: [], unknown: [], readingMatches: null };
 	}

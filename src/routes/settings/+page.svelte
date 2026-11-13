@@ -8,6 +8,7 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import AiSettings from '#lib/components/AiSettings.svelte';
+	import { DICT_ATTRIBUTION } from '#lib/dict/attribution.ts';
 
 	ui.hue = 260;
 	let key = $state<string | undefined>();
@@ -154,6 +155,7 @@
 			Stroke order data from <a href="https://kanjivg.tagaini.net" target="_blank" rel="noreferrer">KanjiVG</a>
 			by Ulrich Apel, CC BY-SA 3.0.
 		</div>
+		<div class="item caption">{DICT_ATTRIBUTION}</div>
 		<div class="item"><button class="btn ghost block danger" onclick={reset}>Erase progress on this device</button></div>
 	</div>
 </main>
