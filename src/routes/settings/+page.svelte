@@ -8,6 +8,8 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import AiSettings from '#lib/components/AiSettings.svelte';
+	import { version } from '$app/env';
+	import { updater } from '#lib/pwa/update.svelte.ts';
 	import { DICT_ATTRIBUTION } from '#lib/dict/attribution.ts';
 
 	ui.hue = 260;
@@ -158,6 +160,7 @@
 	<h2 class="eyebrow section">About</h2>
 	<div class="glass group rise" style:--i="3">
 		<div class="item"><span>Handwriting engine</span><span class="spacer"></span><span class="caption">{engine}</span></div>
+		<div class="item"><span>Version</span><span class="spacer"></span><span class="caption">{new Date(Number(version) || Date.now()).toLocaleString()}{#if updater.ready} · <button class="link" onclick={() => updater.restart()}>update ready, restart</button>{/if}</span></div>
 		<div class="item"><span>Scheduler</span><span class="spacer"></span><span class="caption">FSRS-5</span></div>
 		<div class="item caption">
 			<span>Stroke order data from <a href="https://kanjivg.tagaini.net" target="_blank" rel="noreferrer">KanjiVG</a>
@@ -250,6 +253,14 @@
 	}
 	a {
 		color: var(--accent-2);
+	}
+	.link {
+		border: 0;
+		background: none;
+		color: var(--accent-2);
+		font: inherit;
+		cursor: pointer;
+		padding: 0;
 	}
 	.danger {
 		color: var(--danger);

@@ -45,8 +45,16 @@ self.addEventListener('install', (event) => {
 		caches
 			.open(SHELL)
 			.then((c) => c.addAll(PRECACHE))
-			.then(() => self.skipWaiting())
+			// First install activates at once; updates wait until the user taps
+			// "Restart" (or every tab is closed), so a page never changes underneath them.
+			.then(() => {
+				if (!self.registration.active) return self.skipWaiting();
+			})
 	);
+});
+
+self.addEventListener('message', (event) => {
+	if (event.data?.type === 'SKIP_WAITING') void self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
