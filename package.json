@@ -15,7 +15,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply benkyo --remote",
     "deploy": "npm run build && wrangler deploy",
     "cf:deploy": "wrangler d1 migrations apply benkyo --remote && wrangler deploy",
-    "cf:preview": "wrangler versions upload"
+    "cf:preview": "wrangler versions upload",
+    "cf:deploy:embedded": "npm run build && node scripts/embed-assets.mjs && wrangler deploy -c wrangler.embedded.jsonc"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261113.1",

@@ -1,0 +1,21 @@
+{
+	// Script-only deploy: the PWA is bundled into the Worker (worker/embedded.ts).
+	// Use this where Wrangler's asset upload can't run; see worker/embedded.ts.
+	// Same Worker name, bindings and domain as wrangler.jsonc.
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "benkyo-ne",
+	"account_id": "6a39e1996771186d5fdbb420ba3046e1",
+	"main": "worker/embedded.ts",
+	"compatibility_date": "2026-11-01",
+	"routes": [{ "pattern": "benkyo.jirachai.me", "custom_domain": true }],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "benkyo",
+			"database_id": "2d2d6a80-5708-4e90-8e1f-fbe38802d31a",
+			"migrations_dir": "worker/migrations"
+		}
+	],
+	"kv_namespaces": [{ "binding": "CONTENT", "id": "f6d21a3071e54dff95ecd4034e0fe1a7" }],
+	"observability": { "enabled": true }
+}

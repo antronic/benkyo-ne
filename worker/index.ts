@@ -11,7 +11,7 @@
  */
 
 export interface Env {
-	ASSETS: Fetcher;
+	ASSETS?: Fetcher;
 	DB: D1Database;
 	CONTENT: KVNamespace;
 }
@@ -113,19 +113,24 @@ async function handleContent(req: Request, env: Env, ctx: ExecutionContext): Pro
 	return res;
 }
 
+/** Handle /api/* requests. Shared by both deploy modes. */
+export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+	const url = new URL(req.url);
+	try {
+		if (url.pathname === '/api/sync' && req.method === 'POST') return await handleSync(req, env);
+		if (url.pathname === '/api/content' && req.method === 'GET') return await handleContent(req, env, ctx);
+		if (url.pathname === '/api/health') return json({ ok: true });
+		return json({ error: 'not found' }, { status: 404 });
+	} catch (e) {
+		console.error(e);
+		return json({ error: 'server' }, { status: 500 });
+	}
+}
+
 export default {
 	async fetch(req, env, ctx): Promise<Response> {
 		const url = new URL(req.url);
-		if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
-
-		try {
-			if (url.pathname === '/api/sync' && req.method === 'POST') return await handleSync(req, env);
-			if (url.pathname === '/api/content' && req.method === 'GET') return await handleContent(req, env, ctx);
-			if (url.pathname === '/api/health') return json({ ok: true });
-			return json({ error: 'not found' }, { status: 404 });
-		} catch (e) {
-			console.error(e);
-			return json({ error: 'server' }, { status: 500 });
-		}
+		if (!url.pathname.startsWith('/api/')) return env.ASSETS!.fetch(req);
+		return handleApi(req, env, ctx);
 	}
 } satisfies ExportedHandler<Env>;

@@ -60,6 +60,18 @@ Cloudflare builds and deploys on every push. No secrets live in GitHub.
    - **Non-production branch deploy command:** `npm run cf:preview` (uploads a preview version with its own URL, without touching production)
 4. Save. Every push to `main` goes live. Other branches get preview URLs.
 
+Live at **https://benkyo.jirachai.me** (Workers custom domain, configured in
+both wrangler configs).
+
+### Script-only deploy (no asset upload)
+
+`npm run cf:deploy:embedded` bundles `build/` into the Worker script
+(`worker/embedded.ts`, `wrangler.embedded.jsonc`) and deploys that. Use it where
+Wrangler's asset upload can't run, for example behind a proxy that rewrites the
+`Authorization` header. Static files then count as Worker requests (free plan:
+100k/day). The next normal deploy (`npm run cf:deploy` or Workers Builds)
+switches back to free Static Assets under the same Worker name and domain.
+
 ### Manual deploy from your machine
 
 ```bash

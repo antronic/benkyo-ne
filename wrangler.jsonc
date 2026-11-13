@@ -6,6 +6,7 @@
 	"account_id": "6a39e1996771186d5fdbb420ba3046e1",
 	"main": "worker/index.ts",
 	"compatibility_date": "2026-11-01",
+	"routes": [{ "pattern": "benkyo.jirachai.me", "custom_domain": true }],
 	"assets": {
 		"directory": "./build",
 		"binding": "ASSETS",
