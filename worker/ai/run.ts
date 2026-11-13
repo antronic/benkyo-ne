@@ -24,7 +24,7 @@ import { sumUsage, usageCost, worstCaseForCall } from './cost.ts';
 import { decryptKey } from './credentials.ts';
 import { getUsage, rateLimit, reserve, settle } from './ledger.ts';
 import { priceFor, resolveFeature } from './models.ts';
-import { callOpenAi } from './openai.ts';
+import { callOpenAi, type OpenAiFormat } from './openai.ts';
 import type { AdapterResult, UsageEntry } from './types.ts';
 
 const MAX_BODY = 8 * 1024 * 1024; // screenshots
@@ -38,7 +38,7 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 	if (!parsed.ok) return aiError(400, 'bad_request', parsed.error);
 
 	if (!(await rateLimit(env, session.tokenHash)))
-		return aiError(429, 'bad_request', 'Too many AI calls; wait a minute and try again.', { 'retry-after': '60' });
+		return aiError(429, 'rate_limited', 'Too many AI calls; wait a minute and try again.', { 'retry-after': '60' });
 
 	const parts: PromptParts =
 		kind === 'propose' ? buildProposePrompt(parsed.value as ProposeRequest) : buildFillPrompt(parsed.value as FillRequest);
@@ -60,7 +60,7 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 		return aiError(
 			402,
 			'cap_reached',
-			`Monthly AI cap reached ($${u.spentUsd.toFixed(2)} of $${u.capUsd.toFixed(2)} used; this call could cost up to $${worst.toFixed(3)}).`
+			`Monthly AI cap reached ($${u.spentUsd.toFixed(3)} of $${u.capUsd.toFixed(2)} used; this call could cost up to $${worst.toFixed(3)}).`
 		);
 	}
 	reservations.push(first);
@@ -68,15 +68,19 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 	const usage: UsageEntry[] = [];
 	let billedUnknown = false;
 	const finish = async (status: 'done' | 'failed') => {
-		const cost = billedUnknown && !usage.length ? null : usageCost(usage, model, priced.price);
+		// Outcome unknown (dropped connection/timeout): keep every reserved worst case.
+		const cost = billedUnknown ? null : usageCost(usage, model, priced.price);
 		await settle(env, reservations, { status, usage: sumUsage(usage), cost });
 	};
 
 	try {
-		const call = (retry: boolean): Promise<AdapterResult> =>
-			cred.provider === 'anthropic'
-				? callAnthropic(parts, model, apiKey)
-				: callOpenAi(parts, model, cred.base_url!, apiKey, { retry });
+		let format: OpenAiFormat | undefined; // remembered so the retry skips a rejected json_schema
+		const call = async (retry: boolean): Promise<AdapterResult> => {
+			if (cred.provider === 'anthropic') return callAnthropic(parts, model, apiKey);
+			const r = await callOpenAi(parts, model, cred.base_url!, apiKey, { retry, format });
+			format = r.format ?? format;
+			return r;
+		};
 		const check = (text: string) => {
 			const raw = parseModelJson(text);
 			return kind === 'propose'

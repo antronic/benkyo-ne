@@ -10,7 +10,7 @@ import { pickPackWords, type PackPick } from '#lib/dict/packs.ts';
 import { getGlosses } from '#lib/dict/dict.ts';
 import * as api from '#lib/ai/client.ts';
 import type { Bi, FilledItem } from '#lib/ai/contract.ts';
-import { del, getAll, put } from '#lib/db/idb.ts';
+import { del, get, getAll, put } from '#lib/db/idb.ts';
 import { ai } from '#lib/state/ai.svelte.ts';
 import { progress } from '#lib/state/progress.svelte.ts';
 import { words } from '#lib/state/words.svelte.ts';
@@ -45,6 +45,7 @@ async function usedIds(): Promise<number[]> {
 	const packs = await getAll<Pack>('packs');
 	const ids = new Set<number>();
 	for (const p of packs) for (const i of p.items) ids.add(i.id);
+	for (const id of (await get<number[]>('meta', 'packSkip')) ?? []) ids.add(id);
 	for (const c of words.list) {
 		const m = /^(?:word|phrase):(\d+)$/.exec(c.id);
 		if (m) ids.add(Number(m[1]));
@@ -109,6 +110,18 @@ export async function ensurePacks(): Promise<void> {
 	const ready = (await listPacks()).filter((p) => p.status === 'ready');
 	for (const p of ready) if (!p.enriched) await enrichPack(p);
 	for (let i = ready.length; i < PREFETCH; i++) if (!(await createPack())) break;
+}
+
+/** "Skip this word": drop it from the pack and never pick it again. */
+export async function skipPackWord(packId: string, key: string): Promise<Pack | null> {
+	const pack = (await getAll<Pack>('packs')).find((p) => p.id === packId);
+	const item = pack?.items.find((i) => i.key === key);
+	if (!pack || !item) return pack ?? null;
+	const skipped = (await get<number[]>('meta', 'packSkip')) ?? [];
+	await put('meta', [...new Set([...skipped, item.id])], 'packSkip');
+	pack.items = pack.items.filter((i) => i.key !== key);
+	await put('packs', pack);
+	return pack;
 }
 
 /** Finishing a pack turns its words into cards (D10). */

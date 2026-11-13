@@ -60,7 +60,12 @@ describe('callOpenAi', () => {
 			});
 		}) as unknown as typeof fetch;
 		const r = await callOpenAi(parts, 'm', 'https://x.test/v1', 'sk', { fetch: f });
-		expect(r).toEqual({ ok: true, text: '{"theme":null,"items":[]}', usage: [{ model: 'm', input: 10, cacheRead: 0, output: 5 }] });
+		expect(r).toEqual({
+			ok: true,
+			text: '{"theme":null,"items":[]}',
+			usage: [{ model: 'm', input: 10, cacheRead: 0, output: 5 }],
+			format: 'json_object'
+		});
 		expect(bodies.map((b) => b.response_format.type)).toEqual(['json_schema', 'json_object']);
 	});
 	it('reports cut-off replies and auth failures', async () => {

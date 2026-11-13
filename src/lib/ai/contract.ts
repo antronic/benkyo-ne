@@ -142,7 +142,7 @@ export interface FillResponse {
 }
 
 export interface AiError {
-	error: 'unauthorized' | 'cap_reached' | 'no_model' | 'no_price' | 'provider' | 'invalid_output' | 'bad_request';
+	error: 'unauthorized' | 'cap_reached' | 'rate_limited' | 'no_model' | 'no_price' | 'provider' | 'invalid_output' | 'bad_request';
 	message: string;
 }
 

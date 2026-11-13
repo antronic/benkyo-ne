@@ -9,6 +9,7 @@ import { estimateInputTokens, parsePerTokenPricing } from '../../src/lib/ai/pric
 import type { AdapterResult, ProviderModel, UsageEntry } from './types.ts';
 
 type FetchLike = typeof fetch;
+export type OpenAiFormat = 'json_schema' | 'json_object';
 const TIMEOUT_MS = 90_000;
 
 const headers = (apiKey: string) => ({
@@ -55,10 +56,10 @@ export async function callOpenAi(
 	model: string,
 	baseUrl: string,
 	apiKey: string,
-	opts: { retry?: boolean; fetch?: FetchLike } = {}
-): Promise<AdapterResult> {
+	opts: { retry?: boolean; fetch?: FetchLike; format?: OpenAiFormat } = {}
+): Promise<AdapterResult & { format?: OpenAiFormat }> {
 	const f = opts.fetch ?? fetch;
-	let format: 'json_schema' | 'json_object' = 'json_schema';
+	let format: OpenAiFormat = opts.format ?? 'json_schema';
 	let maxTokensKey: 'max_tokens' | 'max_completion_tokens' = 'max_tokens';
 	for (let attempt = 0; attempt < 3; attempt++) {
 		const body = openAiChatBody(parts, model, format, opts.retry);
@@ -120,7 +121,7 @@ export async function callOpenAi(
 		if (choice?.finish_reason === 'length')
 			return { ok: false, status: 502, error: 'invalid_output', message: 'The reply was cut off (max_tokens).', usage };
 		if (!text.trim()) return { ok: false, status: 502, error: 'invalid_output', message: 'Empty reply.', usage };
-		return { ok: true, text, usage };
+		return { ok: true, text, usage, format };
 	}
 	return { ok: false, status: 502, error: 'provider', message: 'Provider rejected the request format.', usage: [] };
 }

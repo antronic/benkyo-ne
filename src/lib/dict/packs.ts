@@ -47,7 +47,18 @@ interface Candidate {
  *   − 0.5 if usually written in kana (what a kana-stage learner actually sees)
  *   − 0.4 if in a basic-vocabulary list (ichi1, spec1, spec2)
  */
-function scoreOf(w: Word, len: number, grade: (k: string) => number | null, kanjiIn: (t: string) => string[]): number {
+/** Newspaper/institution vocabulary is common but not beginner-friendly (e.g. 大手, 国会, 計画). */
+const ADULT_TOPICS =
+	/\b(compan(y|ies)|corporat|parliament|diet\b|nation(al)?|state\b|govern|politic|econom|industr|business|financ|militar|legislat|administrat|enterprise|municipal|metropol|project|plan\b)/i;
+const JLPT_PENALTY: Record<string, number> = { N5: 0, N4: 0.3, N3: 1.5, N2: 2.5, N1: 3.5 };
+
+function scoreOf(
+	w: Word,
+	len: number,
+	grade: (k: string) => number | null,
+	kanjiIn: (t: string) => string[],
+	level: (k: string) => string | null = () => 'N5'
+): number {
 	let score = Math.log(w.rank >= 100000 ? 30000 : w.rank);
 	const kanji = w.written === w.reading ? [] : kanjiIn(w.written);
 	const hardest = kanji.reduce((g, k) => Math.max(g, grade(k) ?? 10), 1);
@@ -55,6 +66,9 @@ function scoreOf(w: Word, len: number, grade: (k: string) => number | null, kanj
 	score += len <= 2 ? 0 : len === 3 ? 0.3 : len === 4 ? 0.6 : 2;
 	if (w.written === w.reading) score -= 0.5;
 	if (w.priority.some((p) => p === 'ichi1' || p === 'spec1' || p === 'spec2')) score -= 0.4;
+	// beginner-friendliness: kanji above JLPT N4 and institutional topics sink
+	score += kanji.reduce((m, k) => Math.max(m, JLPT_PENALTY[level(k) ?? 'N1'] ?? 3.5), 0);
+	if (ADULT_TOPICS.test(w.meaning)) score += 3;
 	return score;
 }
 
@@ -63,12 +77,13 @@ let candidatesP: Promise<Candidate[]> | null = null;
 /** Every common word that could ever go in a pack, best first (known-kana filter applied later). */
 function candidates(): Promise<Candidate[]> {
 	return (candidatesP ??= (async () => {
-		const [j, c, m, idx, { GRADES }] = await Promise.all([
+		const [j, c, m, idx, { GRADES }, { JLPT }] = await Promise.all([
 			jisho(),
 			commonWords(),
 			meta(),
 			import('@johnmorrisdotca/jisho'),
-			import('@johnmorrisdotca/jisho/grades')
+			import('@johnmorrisdotca/jisho/grades'),
+			import('@johnmorrisdotca/jisho/jlpt')
 		]);
 		const best = new Map<string, Candidate>();
 		for (const w of j.allWords(c)) {
@@ -81,7 +96,7 @@ function candidates(): Promise<Candidate[]> {
 			const first = w.senses[0]?.marks ?? [];
 			if (first.some((x) => BAD_FIRST.includes(x))) continue;
 			if (w.senses.length && w.senses.every((s) => s.marks.some((x) => BAD_ALL.includes(x)))) continue;
-			const score = scoreOf(w, len, (k) => idx.gradeOf(GRADES, k), idx.kanjiIn);
+			const score = scoreOf(w, len, (k) => idx.gradeOf(GRADES, k), idx.kanjiIn, (k) => idx.levelOf(JLPT, k));
 			const cand: Candidate = { word: w as Word & { id: number }, score, kind: m.phrase.has(id) ? 'phrase' : 'word' };
 			// one word per reading (two cards both fronted あか would be ambiguous)
 			const key = fold(w.reading);

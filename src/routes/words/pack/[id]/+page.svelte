@@ -9,7 +9,7 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import WordCardView from '#lib/components/WordCardView.svelte';
-	import { listPacks, finishPack, type Pack } from '#lib/words/packs.ts';
+	import { listPacks, finishPack, skipPackWord, type Pack } from '#lib/words/packs.ts';
 	import { speak } from '#lib/content/kana.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
@@ -34,6 +34,22 @@
 		revealed = true;
 		haptic('selection');
 	}
+	async function skip() {
+		if (!pack || !item) return;
+		const updated = await skipPackWord(pack.id, item.key);
+		haptic('selection');
+		toast('Skipped · it won’t come back', '↷');
+		if (!updated || !updated.items.length) return goto('/words');
+		pack = updated;
+		if (i >= pack.items.length) {
+			i = pack.items.length - 1;
+			revealed = true; // last word was skipped; show Finish
+			return;
+		}
+		revealed = false;
+		if (progress.settings.autoplayAudio) speak(pack.items[i].reading);
+	}
+
 	async function next() {
 		if (!pack) return;
 		if (i < pack.items.length - 1) {
@@ -98,6 +114,7 @@
 						{:else}
 							<button class="btn block" onclick={reveal}>Reveal meaning</button>
 						{/if}
+						<button class="btn ghost small" onclick={skip}>↷ Skip this word</button>
 					</div>
 				</div>
 			</section>

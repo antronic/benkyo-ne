@@ -412,6 +412,17 @@
 		align-items: center;
 		gap: 8px;
 	}
+	.model > .stack {
+		flex: 1;
+		min-width: 0;
+	}
+	.model .mono {
+		word-break: normal;
+		overflow-wrap: anywhere;
+	}
+	.price {
+		flex: none;
+	}
 	.price {
 		border: 0.5px solid var(--hairline);
 		background: var(--glass-strong);
