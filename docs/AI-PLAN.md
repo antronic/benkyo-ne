@@ -389,3 +389,97 @@ CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
 None. All decisions are recorded in §1 (D1–D24). Remaining unknowns are
 implementation details, to settle while building: the exact JMdict subset
 size, the deinflector rules, and passkey UX on iOS Safari.
+
+---
+
+# Wave 2: Multi-user & subscriptions (planned)
+
+Decided 2026-11-13. Phase A ships first; Phase B follows when billing is set up.
+
+## Decisions
+
+| # | Question | Decision |
+|---|---|---|
+| M1 | Sign-up | **Open sign-up**, with a public landing page and a registration flow |
+| M2 | Sign-in methods | **Passkey + email magic link + Sign in with Apple**; one account can link several |
+| M3 | Payments | **Web only**: Stripe plus a local payment gateway (gateway still to choose) |
+| M4 | Managed models | **Not decided yet.** The routing table is configurable, so a provider and model can be chosen later without code changes |
+| M5 | Pricing | Proposal below; not decided yet |
+
+## Phase A: multi-user BYOK
+
+- **Accounts.** A `users` table becomes the identity root. `auth_methods`
+  links passkeys, verified email (magic link) and Apple `sub` to one user.
+  Every AI table gets a real `user_id`: credentials, prices, feature models,
+  ledger, rate, sessions. Sync moves from the sync key to the signed-in
+  account; the old sync key can be linked once and then retired.
+- **Email magic link.** A single-use, 15-minute token (stored hashed) sent
+  through a transactional email API: Resend or Postmark, both with free
+  tiers. Cloudflare Email Routing can't send to arbitrary addresses. Signing
+  in by link from another device needs a short confirmation code to stop
+  link-forwarding attacks.
+- **Sign in with Apple.** Web flow (Services ID + private key as Worker
+  secrets) with ID-token verification in the Worker. Needs an Apple Developer
+  account ($99/yr). Handle the "hide my email" relay addresses.
+- **Isolation.**
+  - Every query is scoped by `user_id` from the session, never from the
+    request body.
+  - Key encryption AAD includes `user_id`, so a key row can't be used for
+    another user.
+  - Tests assert that user B can't read, use or delete user A's keys, cards
+    or ledger.
+- **Abuse limits.**
+  - Per-user AI rate limit, plus a global one.
+  - Per-IP sign-up throttle and Cloudflare Turnstile (free) on registration
+    and magic-link requests.
+  - Disposable-email blocklist.
+- **Admin role:** users, disable/enable, usage totals, plan overrides.
+- **Account controls:** delete my account (keys deleted immediately, data
+  within 30 days), export my data (JSON).
+- **Public pages:** landing page (`/welcome`), privacy policy and terms. The
+  app shell stays offline-first after sign-in.
+
+## Phase B: subscriptions with a managed key
+
+- **Plans and entitlements.** `plans`, `subscriptions` and `entitlements`
+  tables. The webhook from Stripe (and from the local gateway) is the only
+  writer. Checkout and the customer portal are hosted by the provider, so no
+  card data reaches the app.
+- **Allowance, not "unlimited".** Each paid plan includes a monthly AI cost
+  allowance, enforced by the same worst-case reservation used for the BYOK
+  cap. A user can always switch to BYOK.
+- **Routing.** Managed users use the operator's key (a Worker secret, never
+  D1) and an operator-chosen model per feature (M4). The model picker is shown
+  only to BYOK users.
+- **Shared content cache.** Dictionary-verified fill output (hooks,
+  examples, translations) is cached across users per
+  `(word id, kind, language)`, so popular words cost almost nothing after
+  the first request. This is the main margin lever.
+- **Infra.** Move to Workers Paid ($5/mo) before charging money: higher D1
+  write limits, and the normal assets deploy with the full dictionary.
+
+## Pricing proposal (to validate)
+
+The rule: AI cost stays at or below about 35 % of net revenue after payment
+fees.
+
+| Plan | Price | What's included |
+|---|---|---|
+| **Free** | $0 | All lessons, kana, reviews, dictionary card maker (Japanese / romaji / English lookups), packs without AI extras, sync, **BYOK for all AI features** |
+| **Plus** | $4.99 / month, or $39 / year | Managed AI with about $1.50 of model cost a month: hooks, examples, bilingual content, scenario mode, a few hundred AI cards a month (given caching) |
+| **Pro** | $9.99 / month, or $79 / year | About $3.50 of model cost a month; photo mode, mistake tutor, and the conversation partner when it ships; priority access to new features |
+
+**Notes:**
+- A 7-day Plus trial with no card required, using the trial allowance.
+- Annual plans are about 35 % off; they help cash flow and retention.
+- Local currency prices come from the local gateway; round them to local
+  price points instead of converting exactly.
+- Figures are placeholders until the managed models are chosen (M4) and real
+  per-card cost is measured from the ledger.
+
+## Open questions for wave 2
+
+- Which country and which local payment gateway?
+- Company/legal entity for billing, tax (VAT/GST) and invoices.
+- Email sending provider (Resend vs Postmark) and the sending domain
+  (e.g. `mail.jirachai.me`).
