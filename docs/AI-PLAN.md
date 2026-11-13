@@ -23,6 +23,11 @@ revisited later on purpose rather than by accident.
 | D11 | Offline | **Pre-generate packs** while online and cache them in IndexedDB | On demand only: nothing to read on the train |
 | D12 | Spend guard | **$5 / month hard cap enforced by the Worker**, with a meter in Settings | No cap: a loop bug or leaked session could burn money |
 | D13 | Default model | **Claude Sonnet 5.5** (`claude-sonnet-5-5`), changeable per feature | Opus 5.5 (2× the cost); Haiku 5.5 (cheapest, weaker on how natural the Japanese sounds) |
+| D14 | Model list | **Fetched live from each provider's `/models` API**; nothing hard-coded in the picker | Hard-coded list: goes stale with every model release |
+| D15 | Model prices (for the cap) | **Use prices from the provider's `/models` response when it has them** (e.g. OpenRouter). Otherwise a built-in price table; otherwise you enter the price once; otherwise the model is blocked under the cap | Manual price for every model: tedious |
+| D16 | Card maker input | **All modes, switchable**: English, Japanese (kana/kanji), romaji, screenshot, scenario | A single input mode |
+| D17 | Kanji on cards | **Kana on the front, kanji shown on the back** ("also written 池"); switch to a kanji front once you're at the kanji stage | Kanji with furigana from day one; kana only |
+| D18 | Word not in dictionary | **Allowed, marked "unverified"**, then checked against the full JMdict online; if still unknown, you decide | Reject (blocks slang and names); trust the AI (risky) |
 
 ---
 
@@ -115,6 +120,81 @@ cache breakpoint.
 
 ---
 
+## 4b. Feature 2: Card maker ("Make a card from…")
+
+You give it something; it proposes cards; **you approve before anything
+enters the deck.** A segmented control switches between input modes:
+
+| Mode | Example | Pipeline |
+|---|---|---|
+| English | "pond" | Dictionary lookup by English gloss gives candidates; the AI ranks them for everyday use and explains the differences (池 vs 沼). You pick one or more |
+| Japanese | いけ / 池 / 食べた | Exact dictionary lookup. Inflected forms are reduced to the dictionary form (食べた → 食べる) by a small deinflector, so the AI isn't needed for that step |
+| Romaji | ike / taberu | Converted to kana on the device (deterministic), then handled like Japanese input |
+| Screenshot | photo of a menu or sign | Vision model extracts the words, with the original span highlighted on the image; you tick the ones you want. Needs a model whose `/models` capabilities list image input |
+| Scenario | "ordering at a ramen shop" | The AI proposes 6–10 high-value words or phrases for that situation, each dictionary-checked; you tick the ones you want |
+
+**For each accepted item the AI writes the card back:**
+- gloss, checked against JMdict
+- memory hook
+- one example sentence, with a translation; dictionary-tokenised, and any
+  unverified token is flagged
+- part of speech and politeness note (e.g. です/ます vs plain)
+
+The card is `word:<jmdict id>`, or `word:custom:<uuid>` for unverified words.
+
+**Rules:**
+- **Readings you can't read yet.** If a card's reading uses kana you haven't
+  learned, the card is saved but **parked**. It's added to reviews
+  automatically once all its kana are learned, so the kana-front rule (D17)
+  never shows you an unreadable prompt.
+- **Daily budget.** Approved cards still respect the new-card cap.
+  User-made cards and generated pack words share the 30 % allowance (§7.3);
+  overflow is queued.
+- **Unverified (D18).** A gold "unverified" badge, plus a second check against
+  the full JMdict that the Worker keeps in D1 (too large to bundle).
+  Confirmed words lose the badge. Unknown words stay badged until you edit
+  them or delete them.
+- **Offline.** Typed inputs go into an outbox. Dictionary-only work (lookups,
+  romaji conversion) happens immediately; the AI part runs on reconnect.
+- **Cost.** Per item roughly the same as a pack word (≈$0.004 on Sonnet 5.5).
+  Screenshot mode adds one image call (≈$0.01–0.03 depending on the image).
+  All of it goes through the same $5 cap.
+
+---
+
+## 4c. Model list from the providers' `/models` APIs
+
+`GET /api/ai/models?credential=<id>` (Worker, behind the passkey session):
+
+1. Calls the provider's model list with the stored key:
+   - **Anthropic:** `GET /v1/models` (paginated). Each entry has `id`,
+     `display_name`, `max_input_tokens`, `max_tokens` and `capabilities`.
+     That's enough to show context size, mark vision-capable models for
+     screenshot mode, and hide models that lack structured outputs.
+   - **OpenAI-compatible:** `GET {base_url}/models`. OpenRouter-style entries
+     also include `pricing` and `context_length`. Entries with only `id` are
+     listed with capability "unknown".
+   - **Local (browser-direct):** the browser calls `{local}/v1/models` itself.
+2. Normalises the entries to
+   `{ id, label, provider, contextTokens, maxOutput, vision, structured, price? }`.
+3. Caches the result for 1 hour (Cache API, plus a KV copy for cold
+   starts; well within the free-tier write limits).
+
+**Price resolution for the cap (D15), first match wins:**
+1. Price in the provider's `/models` response
+2. Built-in price table (`worker/ai/prices.ts`, Claude models; updated with
+   releases)
+3. Price you entered for that model in Settings
+4. **No price: the model shows a 🔒 "set a price to use under the cap"**
+
+The picker in Settings lists every model per credential, grouped by provider,
+with context size, vision and structured-output badges and $/M tokens. Each
+feature (packs, card maker, tutor, …) stores its own model choice. Defaults:
+Sonnet 5.5 for text, and for screenshot mode the first vision-capable model in
+your list.
+
+---
+
 ## 5. Data model additions (D1)
 
 ```sql
@@ -130,6 +210,16 @@ CREATE TABLE ai_credentials (           -- write-only from the app
 );
 CREATE TABLE passkeys (id TEXT PRIMARY KEY, public_key BLOB NOT NULL, sign_count INTEGER NOT NULL, created_at INTEGER NOT NULL);
 CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, passkey_id TEXT NOT NULL, expires_at INTEGER NOT NULL);
+CREATE TABLE ai_model_prices (         -- your manual prices (D15 step 3)
+  provider TEXT NOT NULL, model TEXT NOT NULL,
+  input_per_m REAL NOT NULL, output_per_m REAL NOT NULL, PRIMARY KEY (provider, model)
+);
+CREATE TABLE ai_feature_models (feature TEXT PRIMARY KEY, credential_id INTEGER NOT NULL, model TEXT NOT NULL);
+CREATE TABLE jmdict (                  -- full dictionary for online verification of rare words (D18)
+  id INTEGER PRIMARY KEY, kanji TEXT, reading TEXT NOT NULL, gloss TEXT NOT NULL, common INTEGER NOT NULL
+);
+CREATE INDEX jmdict_reading ON jmdict (reading);
+CREATE INDEX jmdict_kanji ON jmdict (kanji);
 CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
   id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, feature TEXT NOT NULL,
   provider TEXT NOT NULL, model TEXT NOT NULL,
@@ -142,7 +232,12 @@ CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
 - `POST /api/auth/login`
 - `POST /api/ai/keys` (write-only)
 - `GET /api/ai/keys` (labels and last4 only)
-- `POST /api/ai/generate`
+- `GET /api/ai/models?credential=<id>`
+- `PUT /api/ai/models/price` (manual price)
+- `PUT /api/ai/features/<feature>/model`
+- `POST /api/ai/generate` (packs)
+- `POST /api/ai/cards` (card maker: `{mode, input, image?}` returns proposals)
+- `GET /api/dict/lookup?q=` (full-JMdict verification)
 - `GET /api/ai/usage`
 
 ---
@@ -188,7 +283,8 @@ CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
 | Phase | Scope |
 |---|---|
 | **1a** | JMdict common-word subset (build script, like `strokes.json`); deterministic "Words you can read" packs; `word:` cards with the auto-add rule (D10); offline |
-| **1b** | Passkey auth, encrypted key store, `/api/ai/generate` (Sonnet 5.5, structured outputs, caching, fallback), $5 cap and usage meter, pack enrichment, prefetch |
+| **1b** | Passkey auth, encrypted key store, **live model list from `/models` + price resolution**, `/api/ai/generate` (structured outputs, caching, fallback), $5 cap and usage meter, pack enrichment, prefetch |
+| **1c** | **Card maker**: Japanese / romaji / English modes first (they mostly use the dictionary), then scenario, then screenshot (vision). Parked cards, unverified badge, full JMdict in D1, offline outbox |
 | 2 | Mistake tutor: one call after a wrong answer, using the confusable pair and your card history; cached explanations per pair |
 | 3 | OpenAI-compatible adapter (Worker) and browser-direct local endpoint (experimental) |
 | 4 | Conversation partner (needs Stage 1 vocabulary), with an i+1 vocabulary guard via the dictionary |
@@ -202,5 +298,11 @@ CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
   language as well?
 - Should review history be sent to the provider for the mistake tutor
   (privacy), or only the single wrong answer?
-- Is the 30 % budget share in §7.3 acceptable?
+- Is the 30 % budget share in §7.3 acceptable, and should it apply to cards
+  you make yourself? (You chose those words, so maybe they deserve
+  priority over generated pack words.)
+- Phrases (いただきます, おねがいします): should they be cards too, or
+  single words only?
+- Should a scenario be saved as a deck tag, so you can review "ramen shop"
+  words before you go?
 - Keep the full passkey plan (§7.2), or start with Cloudflare Access?
