@@ -4,6 +4,7 @@
 	import { retrievability } from '#lib/srs/fsrs.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
+	import LargeTitle from '#lib/components/LargeTitle.svelte';
 
 	ui.hue = 30;
 	const nextId = $derived(LESSONS.find((l) => !progress.completed.includes(l.id))?.id);
@@ -19,10 +20,12 @@
 </script>
 
 <main class="page stack" style:--gap="10px">
-	<h1 class="large-title rise">Learn</h1>
+	<LargeTitle title="Learn" />
 	<p class="subhead rise" style="margin:0 0 10px">One row at a time, up to five new characters a lesson.</p>
 
+	<div class="columns">
 	{#each ['hiragana', 'katakana'] as script, si}
+		<section>
 		<h2 class="eyebrow section rise" style:--i={si * 8}>{script} · <span class="jp">{script === 'hiragana' ? 'ひらがな' : 'カタカナ'}</span></h2>
 		<ol class="path">
 			{#each LESSONS.filter((l) => l.script === script) as l, i}
@@ -45,10 +48,24 @@
 				</li>
 			{/each}
 		</ol>
+		</section>
 	{/each}
+	</div>
 </main>
 
 <style>
+	/* Unfolded: hiragana and katakana paths side by side */
+	@media (min-width: 600px) {
+		.columns {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 24px;
+			align-items: start;
+		}
+	}
+	.lesson {
+		min-height: 56px;
+	}
 	.section {
 		margin: 18px 4px 4px;
 	}

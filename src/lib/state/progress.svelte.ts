@@ -1,4 +1,5 @@
 import { browser } from '$app/env';
+import { haptic as iosHaptic, type HapticKind } from '#lib/ios/haptics.ts';
 import { clearAll, get, getAll, put, putMany } from '#lib/db/idb.ts';
 import { defaultParams, newCard, replay, review, type Card, type Grade, type ReviewLog } from '#lib/srs/fsrs.ts';
 
@@ -133,6 +134,7 @@ class Progress {
 
 export const progress = new Progress();
 
-export function haptic(pattern: number | number[] = 8) {
-	if (progress.settings.haptics && 'vibrate' in navigator) navigator.vibrate(pattern);
+/** Haptic feedback, respecting the user's setting (iOS-capable, see lib/ios/haptics.ts). */
+export function haptic(kind: HapticKind = 'selection') {
+	if (progress.settings.haptics) iosHaptic(kind);
 }

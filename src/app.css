@@ -45,6 +45,20 @@
 	--safe-top: env(safe-area-inset-top, 0px);
 	--safe-bottom: env(safe-area-inset-bottom, 0px);
 	--tabbar-h: 64px;
+	--rail-w: 76px;
+	--rail: 0px; /* horizontal space taken by the side rail */
+	--kb: 0px; /* on-screen keyboard height (lib/ios/gestures.ts) */
+	--gutter-l: max(16px, env(safe-area-inset-left, 0px));
+	--gutter-r: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* Regular width (unfolded iPhone Duo ≥ ~600 CSS px): nav moves to a side rail. */
+@media (min-width: 600px) {
+	:root {
+		--rail: calc(var(--rail-w) + 20px + env(safe-area-inset-left, 0px));
+		--gutter-l: 24px;
+		--gutter-r: max(24px, env(safe-area-inset-right, 0px));
+	}
 }
 
 @media (prefers-color-scheme: dark) {
@@ -93,6 +107,22 @@ body {
 button {
 	font: inherit;
 	color: inherit;
+}
+
+/* iOS touch behaviour: no double-tap zoom delay, no callout/selection on controls */
+a,
+button,
+input,
+label,
+[role='button'] {
+	touch-action: manipulation;
+	-webkit-touch-callout: none;
+}
+button,
+.btn,
+.icon-btn {
+	-webkit-user-select: none;
+	user-select: none;
 }
 
 .jp {
@@ -260,7 +290,59 @@ input[type='text']:focus {
 .page {
 	max-width: 720px;
 	margin: 0 auto;
-	padding: calc(var(--safe-top) + 20px) 16px calc(var(--tabbar-h) + var(--safe-bottom) + 40px);
+	padding: calc(var(--safe-top) + 20px) var(--gutter-r) calc(var(--tabbar-h) + var(--safe-bottom) + 40px)
+		var(--gutter-l);
+}
+@media (min-width: 600px) {
+	.page {
+		max-width: none;
+		margin: 0 0 0 var(--rail);
+		padding-bottom: calc(var(--safe-bottom) + 32px);
+	}
+	.page > * {
+		max-width: 1040px;
+	}
+}
+
+/*
+ * Two-pane layout for unfolded iPhone Duo. Compact: stacked. Regular: the
+ * visual pane on the left, the interaction pane on the right. When the
+ * browser reports two viewport segments (open across the hinge), each pane
+ * snaps to one side so nothing sits on the fold.
+ */
+.split {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+	width: 100%;
+}
+.split > .pane {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+}
+@media (min-width: 600px) {
+	.split {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		align-items: center;
+		column-gap: 32px;
+	}
+}
+@media (horizontal-viewport-segments: 2) {
+	.split {
+		grid-template-columns: env(viewport-segment-width 0 0) env(viewport-segment-width 1 0);
+		column-gap: calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0));
+	}
+}
+/* Book posture (half-folded, hinge vertical): same idea via Device Posture. */
+@media (device-posture: folded) and (min-width: 600px) {
+	.split {
+		column-gap: 48px;
+	}
 }
 
 .stack {
@@ -360,6 +442,21 @@ input[type='text']:focus {
 ::view-transition-old(tabbar),
 ::view-transition-new(tabbar) {
 	animation: none;
+}
+
+/* Edge swipe-back: the page casts a shadow over the dimmed previous layer */
+.swiping-back {
+	box-shadow: -20px 0 40px rgb(0 0 0 / calc(0.25 * (1 - var(--swipe, 0))));
+	will-change: transform;
+}
+
+/* Accessibility → Reduce Transparency: solid surfaces instead of glass */
+@media (prefers-reduced-transparency: reduce) {
+	.glass {
+		background: var(--bg-2);
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {

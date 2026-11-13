@@ -1,7 +1,16 @@
-<!-- Floating Liquid-Glass tab bar with a spring-animated selection pill. -->
+<!--
+	Navigation, adaptive:
+	  compact (folded iPhone Duo / regular iPhones): floating Liquid-Glass tab
+	    bar at the bottom. It shrinks while you scroll down, comes back when you
+	    scroll up, and tapping the active tab scrolls to top (iOS behaviour).
+	  regular (unfolded iPhone Duo, ≥600 px): a glass side rail, following
+	    iOS 27's move of controls to the side to free vertical space.
+-->
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { progress } from '#lib/state/progress.svelte.ts';
+	import { haptic } from '#lib/ios/haptics.ts';
 
 	const tabs = [
 		{ href: '/', label: 'Today', icon: 'M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z' },
@@ -17,20 +26,42 @@
 			tabs.findIndex((t) => (t.href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(t.href)))
 		)
 	);
+
+	let minimized = $state(false);
+	onMount(() => {
+		let lastY = scrollY;
+		const onScroll = () => {
+			const y = scrollY;
+			if (Math.abs(y - lastY) < 6) return;
+			minimized = y > lastY && y > 80;
+			lastY = y;
+		};
+		addEventListener('scroll', onScroll, { passive: true });
+		return () => removeEventListener('scroll', onScroll);
+	});
+
+	function tap(e: MouseEvent, i: number) {
+		haptic('selection');
+		if (i === activeIndex) {
+			e.preventDefault();
+			scrollTo({ top: 0, behavior: 'smooth' });
+		}
+		minimized = false;
+	}
 </script>
 
-<nav class="tabbar glass sheen" style:--i={activeIndex} style:--n={tabs.length}>
+<nav class="tabbar glass sheen" class:minimized style:--i={activeIndex} style:--n={tabs.length} aria-label="Main">
 	<span class="pill" aria-hidden="true"></span>
 	{#each tabs as t, i}
-		<a href={t.href} class:active={i === activeIndex} aria-current={i === activeIndex ? 'page' : undefined}>
+		<a href={t.href} class:active={i === activeIndex} aria-current={i === activeIndex ? 'page' : undefined} onclick={(e) => tap(e, i)}>
 			<span class="icon">
 				{#if t.icon}
-					<svg viewBox="0 0 24 24" width="24" height="24"><path d={t.icon} /></svg>
+					<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d={t.icon} /></svg>
 				{:else}
-					<span class="jp kana-icon">あ</span>
+					<span class="jp kana-icon" aria-hidden="true">あ</span>
 				{/if}
 				{#if t.href === '/review' && progress.due.length > 0}
-					<span class="badge">{progress.due.length > 99 ? '99+' : progress.due.length}</span>
+					<span class="badge" aria-label="{progress.due.length} due">{progress.due.length > 99 ? '99+' : progress.due.length}</span>
 				{/if}
 			</span>
 			<span class="label">{t.label}</span>
@@ -52,6 +83,19 @@
 		grid-template-columns: repeat(var(--n), 1fr);
 		padding: 5px;
 		view-transition-name: tabbar;
+		transition:
+			width 520ms var(--spring),
+			height 520ms var(--spring),
+			transform 520ms var(--spring);
+	}
+	/* iOS 26/27 style: tab bar shrinks while scrolling content */
+	.tabbar.minimized {
+		height: 50px;
+		width: min(300px, calc(100% - 96px));
+	}
+	.tabbar.minimized .label {
+		opacity: 0;
+		height: 0;
 	}
 	.pill {
 		position: absolute;
@@ -71,15 +115,17 @@
 		align-items: center;
 		justify-content: center;
 		gap: 2px;
+		min-height: 44px;
 		text-decoration: none;
 		color: var(--ink-2);
 		border-radius: 999px;
+		-webkit-touch-callout: none;
 		transition:
 			color 250ms,
 			transform 380ms var(--spring);
 	}
 	a:active {
-		transform: scale(0.92);
+		transform: scale(0.9);
 	}
 	a.active {
 		color: var(--accent);
@@ -106,6 +152,8 @@
 		font-size: 10.5px;
 		font-weight: 600;
 		letter-spacing: 0.01em;
+		transition: opacity 200ms;
+		overflow: hidden;
 	}
 	.badge {
 		position: absolute;
@@ -122,5 +170,39 @@
 		display: grid;
 		place-items: center;
 		box-shadow: 0 0 0 2px var(--bg);
+	}
+
+	/* ---- regular width: side rail (unfolded iPhone Duo, landscape, iPad) ---- */
+	@media (min-width: 600px) {
+		.tabbar,
+		.tabbar.minimized {
+			left: calc(env(safe-area-inset-left, 0px) + 10px);
+			top: 50%;
+			bottom: auto;
+			transform: translateY(-50%);
+			width: var(--rail-w);
+			height: auto;
+			border-radius: 26px;
+			grid-template-columns: 1fr;
+			grid-auto-rows: 62px;
+			padding: 6px;
+		}
+		.tabbar.minimized .label {
+			opacity: 1;
+			height: auto;
+		}
+		.pill {
+			top: 6px;
+			left: 6px;
+			right: 6px;
+			bottom: auto;
+			width: auto;
+			height: 62px;
+			border-radius: 20px;
+			transform: translateY(calc(var(--i) * 100%));
+		}
+		a {
+			border-radius: 20px;
+		}
 	}
 </style>

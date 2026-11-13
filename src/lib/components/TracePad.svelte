@@ -80,7 +80,7 @@
 		if (d >= 0 && d < STROKE_OK) {
 			strokes = [...strokes, s];
 			pulse('ok');
-			haptic(6);
+			haptic('selection');
 			if (strokes.length === data.d.length) {
 				done = true;
 				setTimeout(() => oncomplete?.({ correct: mistakes < 3, mistakes }), 450);
@@ -88,7 +88,7 @@
 		} else {
 			mistakes++;
 			pulse('bad');
-			haptic([12, 40, 12]);
+			haptic('error');
 			hintIndex = i; // demonstrate the expected stroke
 		}
 	}

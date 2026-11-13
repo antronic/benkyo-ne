@@ -14,6 +14,7 @@
 	import { choicesFor, shuffle } from '#lib/quiz.ts';
 	import { progress, haptic } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
+	import { confirmDestructive } from '#lib/ios/overlay.svelte.ts';
 	import StrokeAnimator from '#lib/components/StrokeAnimator.svelte';
 	import TracePad from '#lib/components/TracePad.svelte';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
@@ -96,12 +97,12 @@
 		stats[target.char].ms.push(performance.now() - qStart);
 		lastCorrect = k.romaji === target.romaji;
 		if (lastCorrect) {
-			haptic(8);
+			haptic('success');
 			speak(target.char);
 			setTimeout(advance, 650);
 		} else {
 			stats[target.char].wrong++;
-			haptic([14, 50, 14]);
+			haptic('error');
 			shaking = true;
 			setTimeout(() => (shaking = false), 480);
 		}
@@ -126,10 +127,10 @@
 		stats[target.char].ms.push(performance.now() - qStart);
 		if (r.correct) {
 			stats[target.char].recallOk = true;
-			haptic(8);
+			haptic('success');
 		} else {
 			stats[target.char].wrong++;
-			haptic([14, 50, 14]);
+			haptic('error');
 			animKey++;
 		}
 	}
@@ -147,10 +148,26 @@
 		}
 		await progress.completeLesson(lesson!.id);
 		phase = 'done';
-		haptic([10, 60, 10, 60, 20]);
+		haptic('success');
 	}
 
 	const nextLesson = $derived(LESSONS.find((l) => !progress.completed.includes(l.id)));
+
+	// Leaving mid-lesson loses it (cards are only scheduled at the end), so ask
+	// first, with an iOS action sheet, for both swipe-back and the close button.
+	const inProgress = $derived(phase !== 'intro' && phase !== 'done');
+	$effect(() => {
+		ui.backGuard = inProgress
+			? () => confirmDestructive('Leave this lesson?', 'Progress in this lesson won’t be saved.', 'Leave Lesson')
+			: null;
+		return () => (ui.backGuard = null);
+	});
+
+	async function close() {
+		if (ui.backGuard && !(await ui.backGuard())) return;
+		ui.backGuard = null;
+		goto('/learn');
+	}
 </script>
 
 {#if !lesson}
@@ -158,113 +175,139 @@
 {:else}
 	<main class="lesson" style:--h={lesson.hue}>
 		<header class="top">
-			<button class="icon-btn" aria-label="Close lesson" onclick={() => goto('/learn')}>
+			<button class="icon-btn" aria-label="Close lesson" onclick={close}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
 			</button>
-			<div class="bar"><span style:width="{(stepNow / steps) * 100}%"></span></div>
+			<div class="bar" role="progressbar" aria-valuemin={0} aria-valuemax={steps} aria-valuenow={stepNow}><span style:width="{(stepNow / steps) * 100}%"></span></div>
 			<div class="caption phase-label">{phase === 'intro' || phase === 'done' ? '' : phase}</div>
 		</header>
 
 		{#key phase + idx + (queue[0]?.char ?? '')}
 			<section class="stage" in:fly={{ x: 40, duration: 420, easing: cubicOut, opacity: 0 }}>
 				{#if phase === 'intro'}
-					<div class="stack center" style:--gap="18px">
-						<div class="hero-chars jp">
-							{#each chars as k, i}
-								<span class="rise" style:--i={i}><KanaGlyph char={k.char} size={64} /></span>
-							{/each}
+					<div class="split">
+						<div class="pane">
+							<div class="hero-chars jp">
+								{#each chars as k, i}
+									<span class="rise" style:--i={i}><KanaGlyph char={k.char} size={64} /></span>
+								{/each}
+							</div>
 						</div>
-						<div class="eyebrow">{lesson.script} · lesson {lesson.id.slice(1)}</div>
-						<h1 class="large-title">{lesson.title}</h1>
-						{#if lesson.note}<p class="subhead note">{lesson.note}</p>{/if}
-						<p class="subhead">{chars.length} new characters · about 4 minutes</p>
+						<div class="pane text">
+							<div class="eyebrow">{lesson.script} · lesson {lesson.id.slice(1)}</div>
+							<h1 class="large-title">{lesson.title}</h1>
+							{#if lesson.note}<p class="subhead note">{lesson.note}</p>{/if}
+							<p class="subhead">{chars.length} new characters · about 4 minutes</p>
+						</div>
 					</div>
 				{:else if phase === 'meet' && current}
 					{@const m = mnemonicFor(current.char)}
-					<div class="stack center" style:--gap="10px">
-						<div class="eyebrow">New · {idx + 1} of {chars.length}</div>
-						<div class="glass sheen canvas">
-							{#key animKey}
-								<StrokeAnimator char={current.char} size="100%" scene={m.scene ? 1 : 0} />
-							{/key}
+					<div class="split">
+						<div class="pane">
+							<div class="eyebrow">New · {idx + 1} of {chars.length}</div>
+							<div class="glass sheen canvas">
+								{#key animKey}
+									<StrokeAnimator char={current.char} size="100%" scene={m.scene ? 1 : 0} />
+								{/key}
+							</div>
 						</div>
-						<div class="romaji">{current.romaji}</div>
-						<p class="story">{m.story}</p>
-						<div class="row" style="justify-content:center">
-							<button class="btn ghost small" onclick={() => speak(current.char)}>🔊 Listen</button>
-							<button class="btn ghost small" onclick={() => animKey++}>↻ Replay strokes</button>
+						<div class="pane text">
+							<div class="romaji">{current.romaji}</div>
+							<p class="story">{m.story}</p>
+							<div class="row" style="justify-content:center">
+								<button class="btn ghost small" onclick={() => speak(current.char)}>🔊 Listen</button>
+								<button class="btn ghost small" onclick={() => animKey++}>↻ Replay strokes</button>
+							</div>
 						</div>
 					</div>
 				{:else if phase === 'trace' && current}
-					<div class="stack center" style:--gap="12px">
-						<div class="eyebrow">Trace · follow the numbered dots</div>
-						<TracePad char={current.char} mode="trace" size="min(78vw, 340px)" oncomplete={nextFromTrace} />
-						<div class="romaji small">{current.romaji}</div>
-						<p class="caption">Each stroke is checked as you lift your finger: position, shape and direction.</p>
+					<div class="split">
+						<div class="pane">
+							<TracePad char={current.char} mode="trace" size="var(--pad)" oncomplete={nextFromTrace} />
+						</div>
+						<div class="pane text">
+							<div class="eyebrow">Trace · follow the numbered dots</div>
+							<div class="romaji small">{current.romaji}</div>
+							<p class="caption">Each stroke is checked as you lift your finger: position, shape and direction.</p>
+						</div>
 					</div>
 				{:else if phase === 'recognize' && current}
-					<div class="stack center" style:--gap="18px">
-						<div class="eyebrow">Which sound is this?</div>
-						<div class="glass sheen big" class:shake={shaking}>
-							<KanaGlyph char={current.char} size={150} />
-						</div>
-						<div class="choices">
-							{#each options as o (o.char)}
-								<button
-									class="glass choice"
-									class:right={choice && o.romaji === current.romaji}
-									class:wrong={choice === o.char && o.romaji !== current.romaji}
-									onclick={() => pick(o)}
-									disabled={!!choice && choice !== o.char && o.romaji !== current.romaji}
-								>
-									{o.romaji}
-								</button>
-							{/each}
-						</div>
-						{#if choice && options.find((o) => o.char === choice)?.romaji !== current.romaji}
-							<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
-								<div class="row">
-									<KanaGlyph char={current.char} size={56} />
-									<div class="stack" style:--gap="2px">
-										<b>{current.romaji}</b>
-										<span class="caption">{mnemonicFor(current.char).story}</span>
-									</div>
-								</div>
-								<button class="btn block" onclick={advance}>Got it</button>
+					<div class="split">
+						<div class="pane">
+							<div class="eyebrow">Which sound is this?</div>
+							<div class="glass sheen big" class:shake={shaking}>
+								<KanaGlyph char={current.char} size={150} />
 							</div>
-						{/if}
+						</div>
+						<div class="pane">
+							<div class="choices">
+								{#each options as o (o.char)}
+									<button
+										class="glass choice"
+										class:right={choice && o.romaji === current.romaji}
+										class:wrong={choice === o.char && o.romaji !== current.romaji}
+										onclick={() => pick(o)}
+										disabled={!!choice && choice !== o.char && o.romaji !== current.romaji}
+									>
+										{o.romaji}
+									</button>
+								{/each}
+							</div>
+							{#if choice && options.find((o) => o.char === choice)?.romaji !== current.romaji}
+								<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
+									<div class="row">
+										<KanaGlyph char={current.char} size={56} />
+										<div class="stack" style:--gap="2px">
+											<b>{current.romaji}</b>
+											<span class="caption">{mnemonicFor(current.char).story}</span>
+										</div>
+									</div>
+									<button class="btn block" onclick={advance}>Got it</button>
+								</div>
+							{/if}
+						</div>
 					</div>
 				{:else if phase === 'recall' && current}
-					<div class="stack center" style:--gap="12px">
-						<div class="eyebrow">Write it from memory</div>
-						<div class="row" style="justify-content:center">
-							<div class="romaji">{current.romaji}</div>
-							<button class="icon-btn" aria-label="Listen" onclick={() => speak(current.char)}>🔊</button>
+					<div class="split">
+						<div class="pane">
+							{#if !recallResult}
+								<RecallPad char={current.char} size="var(--pad)" oncomplete={onRecall} />
+							{:else}
+								<div class="glass sheen canvas" in:scale={{ start: 0.92, duration: 350 }}>
+									{#key animKey}<StrokeAnimator char={current.char} size="100%" speed={140} />{/key}
+								</div>
+							{/if}
 						</div>
-						{#if !recallResult}
-							<RecallPad char={current.char} oncomplete={onRecall} />
-						{:else}
-							<div class="glass sheen canvas" in:scale={{ start: 0.92, duration: 350 }}>
-								{#key animKey}<StrokeAnimator char={current.char} size="100%" speed={140} />{/key}
+						<div class="pane text">
+							<div class="eyebrow">Write it from memory</div>
+							<div class="row" style="justify-content:center">
+								<div class="romaji">{current.romaji}</div>
+								<button class="icon-btn" aria-label="Listen" onclick={() => speak(current.char)}>🔊</button>
 							</div>
-							<p class="headline" style:color={recallResult.correct ? 'var(--success)' : 'var(--danger)'}>
-								{recallResult.correct ? 'Nice, that’s it.' : recallResult.guess ? `That looked like ${recallResult.guess}. Watch the strokes.` : 'Not quite. Watch the strokes.'}
-							</p>
-							<button class="btn block" onclick={advance}>Continue</button>
-						{/if}
+							{#if recallResult}
+								<p class="headline" style:color={recallResult.correct ? 'var(--success)' : 'var(--danger)'}>
+									{recallResult.correct ? 'Nice, that’s it.' : recallResult.guess ? `That looked like ${recallResult.guess}. Watch the strokes.` : 'Not quite. Watch the strokes.'}
+								</p>
+								<button class="btn block" onclick={advance}>Continue</button>
+							{/if}
+						</div>
 					</div>
 				{:else if phase === 'done'}
-					<div class="stack center" style:--gap="16px">
-						<div class="celebrate">
-							{#each chars as k, i}
-								<span style:--i={i} class="pop-in"><KanaGlyph char={k.char} size={54} color="var(--success)" /></span>
-							{/each}
+					<div class="split">
+						<div class="pane">
+							<div class="celebrate">
+								{#each chars as k, i}
+									<span style:--i={i} class="pop-in"><KanaGlyph char={k.char} size={54} color="var(--success)" /></span>
+								{/each}
+							</div>
 						</div>
-						<h1 class="large-title">Lesson complete</h1>
-						<p class="subhead">
-							{chars.length} kana added to your deck. The first review comes up in about ten minutes,
-							then again over the next few days. Spacing the reviews out is what makes them stick.
-						</p>
+						<div class="pane text">
+							<h1 class="large-title">Lesson complete</h1>
+							<p class="subhead">
+								{chars.length} kana added to your deck. The first review comes up in about ten minutes,
+								then again over the next few days. Spacing the reviews out is what makes them stick.
+							</p>
+						</div>
 					</div>
 				{/if}
 			</section>
@@ -292,12 +335,32 @@
 
 <style>
 	.lesson {
+		--pad: min(78vw, 340px);
 		min-height: 100dvh;
 		display: flex;
 		flex-direction: column;
 		max-width: 560px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) 16px calc(var(--safe-bottom) + 16px);
+		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 16px) var(--gutter-l);
+	}
+	/* Unfolded iPhone Duo: visual left, interaction right */
+	@media (min-width: 600px) {
+		.lesson {
+			--pad: min(42vw, 60dvh, 420px);
+			max-width: 1040px;
+		}
+		.text {
+			align-items: flex-start !important;
+			text-align: left;
+		}
+		.bottom {
+			width: 50%;
+			margin-left: auto;
+			padding-left: 16px;
+		}
+		.canvas {
+			width: var(--pad) !important;
+		}
 	}
 	.top {
 		display: flex;
@@ -330,11 +393,6 @@
 		justify-content: center;
 		padding: 20px 0;
 	}
-	.center {
-		align-items: center;
-		text-align: center;
-		width: 100%;
-	}
 	.hero-chars {
 		display: flex;
 		gap: 6px;
@@ -343,6 +401,9 @@
 	}
 	.note {
 		max-width: 34ch;
+	}
+	.text {
+		text-align: center;
 	}
 	.canvas {
 		width: min(72vw, 300px);

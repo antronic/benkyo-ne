@@ -3,6 +3,7 @@
 	// All services used here are on the Workers free plan (see docs/PLAN.md §8.1).
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "benkyo-ne",
+	"account_id": "6a39e1996771186d5fdbb420ba3046e1",
 	"main": "worker/index.ts",
 	"compatibility_date": "2026-11-01",
 	"assets": {
@@ -17,16 +18,16 @@
 		{
 			"binding": "DB",
 			"database_name": "benkyo",
-			// Replace with the id printed by: npx wrangler d1 create benkyo
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			// Created with: npx wrangler d1 create benkyo
+			"database_id": "2d2d6a80-5708-4e90-8e1f-fbe38802d31a",
 			"migrations_dir": "worker/migrations"
 		}
 	],
 	"kv_namespaces": [
 		{
 			"binding": "CONTENT",
-			// Replace with the id printed by: npx wrangler kv namespace create CONTENT
-			"id": "00000000000000000000000000000000"
+			// Created with: npx wrangler kv namespace create CONTENT
+			"id": "f6d21a3071e54dff95ecd4034e0fe1a7"
 		}
 	],
 	"observability": { "enabled": true }

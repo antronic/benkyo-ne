@@ -62,10 +62,10 @@
 		result = { correct, guess };
 		if (correct) {
 			correctCount++;
-			haptic(8);
+			haptic('success');
 			speak(kana.char);
 		} else {
-			haptic([14, 50, 14]);
+			haptic('error');
 			shaking = true;
 			setTimeout(() => (shaking = false), 480);
 		}
@@ -122,7 +122,8 @@
 	{:else}
 		{#key card.id + done}
 			<section class="stage" in:fly={{ y: 30, duration: 450, easing: cubicOut, opacity: 0 }}>
-				<div class="stack center" style:--gap="16px">
+				<div class="split">
+				<div class="pane">
 					<div class="eyebrow">
 						{mode === 'choose' ? 'Which sound?' : mode === 'type' ? 'Type the reading' : 'Write this sound'}
 						· {kana.script}
@@ -133,7 +134,7 @@
 							<div class="romaji">{kana.romaji}</div>
 							<button class="icon-btn" aria-label="Listen" onclick={() => speak(kana.char)}>🔊</button>
 						</div>
-						<RecallPad char={kana.char} oncomplete={(r) => submit(r.correct, r.guess)} />
+						<RecallPad char={kana.char} size="var(--pad)" oncomplete={(r) => submit(r.correct, r.guess)} />
 					{:else}
 						<div class="flip" class:flipped={!!result}>
 							<div class="face front glass sheen" class:shake={shaking}>
@@ -149,7 +150,8 @@
 							</div>
 						</div>
 					{/if}
-
+				</div>
+				<div class="pane answer">
 					{#if usedHint && !result}
 						<p class="story" in:fly={{ y: 10, duration: 300 }}>{mnemonicFor(kana.char).story}</p>
 					{/if}
@@ -167,9 +169,14 @@
 								type="text"
 								bind:value={answer}
 								placeholder="romaji…"
+								aria-label="Reading in romaji"
 								autocomplete="off"
 								autocapitalize="off"
+								autocorrect="off"
 								spellcheck="false"
+								inputmode="text"
+								enterkeyhint="done"
+								onfocus={(e) => setTimeout(() => e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300)}
 								autofocus
 							/>
 							<button class="btn block" disabled={!answer.trim()} onclick={() => submit(romajiMatches(kana, answer))}>Check</button>
@@ -197,19 +204,34 @@
 						{/if}
 					{/if}
 				</div>
+				</div>
 			</section>
 		{/key}
 	{/if}
 </main>
 
 <style>
+	.answer {
+		max-width: 440px;
+	}
+	/* Keep the answer field above the iOS keyboard */
+	:global(html.keyboard) .review {
+		padding-bottom: calc(var(--kb) + 12px);
+	}
+	@media (min-width: 600px) {
+		.review {
+			--pad: min(42vw, 60dvh, 400px);
+			max-width: 1040px !important;
+		}
+	}
 	.review {
+		--pad: min(78vw, 320px);
 		min-height: 100dvh;
 		display: flex;
 		flex-direction: column;
 		max-width: 560px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) 16px calc(var(--safe-bottom) + 16px);
+		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 16px) var(--gutter-l);
 	}
 	.top {
 		display: flex;

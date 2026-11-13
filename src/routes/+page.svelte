@@ -2,6 +2,7 @@
 	import { LESSONS } from '#lib/content/lessons.ts';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import ProgressRing from '#lib/components/ProgressRing.svelte';
+	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 
@@ -22,12 +23,12 @@
 	});
 </script>
 
-<main class="page stack" style:--gap="18px">
+<main class="page stack dash" style:--gap="18px">
 	<header class="rise">
 		<div class="eyebrow">
 			{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
 		</div>
-		<h1 class="large-title"><span class="jp">{greeting.jp}</span></h1>
+		<LargeTitle title={greeting.jp} jp />
 		<p class="subhead" style="margin:4px 0 0">
 			{greeting.en}. Ten focused minutes beat an hour of cramming.
 		</p>
@@ -100,6 +101,22 @@
 </main>
 
 <style>
+	/* Unfolded: dashboard in two columns */
+	@media (min-width: 600px) {
+		.dash {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			align-items: start;
+		}
+		.dash > header,
+		.dash > .tip {
+			grid-column: 1 / -1;
+		}
+		.dash > .lesson {
+			grid-row: span 2;
+			min-height: 100%;
+		}
+	}
 	.hero {
 		display: flex;
 		align-items: center;

@@ -254,7 +254,50 @@ in `src/app.css`.
 | Tab bar | floating glass capsule; the active pill moves between tabs on a spring |
 | Background | slow-drifting blurred colour fields (CSS only, paused when the tab is hidden) |
 
-### 6.4 SVG as a learning tool
+### 6.4 iOS behaviour (UX, not just looks)
+
+Looking like iOS isn't enough; the app has to *behave* like iOS. Implemented in
+`src/lib/ios/` and `src/lib/components/`:
+
+| iOS convention | How Benkyo does it |
+|---|---|
+| Swipe from the left edge to go back | `edgeSwipeBack`: the page follows your finger with a shadow, completes on distance or flick velocity, otherwise springs back. Installed app only; in Safari the browser keeps its own gesture |
+| Don't lose work silently | Leaving a lesson part-way (swipe or ✕) shows an action sheet: *Leave Lesson* / *Cancel* |
+| Sheets you can drag | `Sheet`: drag the grabber down; it rubber-bands upward, the dimmed backdrop fades with the drag, and it dismisses on distance or velocity |
+| Large titles | `LargeTitle`: collapses into a glass inline nav bar as you scroll |
+| Tab bar | shrinks while you scroll down and comes back when you scroll up; tapping the active tab scrolls to top; selection haptic |
+| Action sheets & alerts | `actionSheet()` / `confirmDestructive()` replace `window.confirm()`. Bottom sheet when folded, centred alert when unfolded |
+| HUD toasts | `toast()` for sync results, copy-to-clipboard and resets |
+| Haptics | iOS Safari has no Vibration API, so `haptics.ts` clicks a hidden native `switch` (iOS 18+), which plays the system haptic. Android uses `navigator.vibrate` |
+| Keyboard | romaji field uses `autocorrect=off`, `enterkeyhint=done`; the visual viewport is tracked (`--kb`) so the field stays above the keyboard |
+| Touch | 44 pt minimum targets, no double-tap-zoom delay, no long-press callouts on controls, press-down scale on every control |
+| Accessibility | Reduce Motion, Reduce Transparency (solid surfaces), Dark Mode, VoiceOver labels; backdrops are hidden from assistive tech |
+
+### 6.5 iPhone Duo (foldable)
+
+The app adapts to the available space rather than detecting the device model.
+Apple hasn't published official web viewport numbers, and third-party
+measurements disagree, so the breakpoints are deliberately loose:
+
+| Posture | Approx. CSS width | Size class | Layout |
+|---|---|---|---|
+| Folded (5.4″ outer) | ~380–470 | compact | floating tab bar, single column, bottom sheets |
+| Unfolded portrait (7.6″) | ~600–670 | regular | **side rail** (iOS 27 moves controls to the side), two-pane lesson/review, kana chart + detail pane, two-column Learn and Today |
+| Unfolded landscape | ~950 | regular + wide | same, roomier; panes align to the hinge when the browser exposes it |
+
+- **Continuity:** folding or unfolding is just a resize. All lesson state lives
+  in stores and drawn strokes are stored in normalised coordinates, so a
+  lesson continues from the same step with the same strokes. This is tested by
+  folding mid-trace.
+- **The hinge:** where Safari exposes the Viewport Segments API, `.split`
+  panes snap to `env(viewport-segment-*)` so nothing sits on the crease.
+  Device Posture (`device-posture: folded`) widens the gutter in book
+  posture. Both are progressive enhancement: without them the layout is
+  still correct.
+- **Breakpoint:** 600 px, not the frameworks' default 640 px, because the
+  unfolded inner screen can be narrower than 640 CSS px.
+
+### 6.6 SVG as a learning tool
 
 - **Stroke-order SVGs** come from **KanjiVG** (CC BY-SA 3.0), extracted at
   build time into `src/lib/content/strokes.json` by `scripts/build-strokes.mjs`.
@@ -312,6 +355,7 @@ below are the free allowances at the time of writing.
 
 | Service | Free allowance | How we stay inside it |
 |---|---|---|
+| Workers Builds (CI/CD) | free build minutes each month | Git push → build → migrate → deploy |
 | Workers static assets | requests free & unlimited | the whole app shell is static assets; most traffic never touches a Worker |
 | Workers | 100k requests/day, 10 ms CPU | only `/api/*` runs code; sync is batched (1 request per session, not per review) |
 | D1 | 5 GB, 5M rows read / 100k rows written per day | review logs are batched; one sync of a 50-card session writes about 51 rows |

@@ -43,12 +43,28 @@ NODE_PATH=$(npm root -g) node scripts/build-icons.mjs   # PNG icons (needs Playw
 
 ## Deploy to Cloudflare (free plan)
 
+The Cloudflare resources already exist and their IDs are in `wrangler.jsonc`:
+D1 `benkyo` (migrated) and KV `CONTENT`.
+
+### Automatic deploys (recommended): Workers Builds
+
+Cloudflare builds and deploys on every push. No secrets live in GitHub.
+
+1. Cloudflare dashboard → **Workers & Pages → Create → Import a repository**
+   (or open an existing `benkyo-ne` Worker → **Settings → Builds → Connect**).
+2. Pick GitHub → `antronic/benkyo-ne`.
+3. Settings:
+   - **Production branch:** `main`
+   - **Build command:** `npm run build`
+   - **Deploy command:** `npm run cf:deploy` (applies D1 migrations, then deploys)
+   - **Non-production branch deploy command:** `npm run cf:preview` (uploads a preview version with its own URL, without touching production)
+4. Save. Every push to `main` goes live. Other branches get preview URLs.
+
+### Manual deploy from your machine
+
 ```bash
 npx wrangler login
-npx wrangler d1 create benkyo            # copy database_id into wrangler.jsonc
-npx wrangler kv namespace create CONTENT # copy id into wrangler.jsonc
-npm run db:migrate:remote
-npm run deploy                           # build + wrangler deploy
+npm run build && npm run cf:deploy
 ```
 
 Static assets are served without invoking the Worker. Only `/api/*` runs
@@ -65,6 +81,7 @@ src/lib/content/             kana, lessons, mnemonics (+ SVG scenes), confusable
 src/lib/srs/fsrs.ts          scheduler
 src/lib/handwriting/match.ts WASM loader + JS fallback
 src/lib/state/               progress (IndexedDB-backed runes store)
+src/lib/ios/                 haptics, swipe-back, keyboard, action sheets/toasts, size classes
 src/lib/sync.ts              append-only review-log sync
 src/service-worker/          offline caching
 wasm/stroke/                 Rust handwriting matcher

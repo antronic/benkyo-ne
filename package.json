@@ -13,7 +13,9 @@
     "build:strokes": "node scripts/build-strokes.mjs",
     "db:migrate:local": "wrangler d1 migrations apply benkyo --local",
     "db:migrate:remote": "wrangler d1 migrations apply benkyo --remote",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "cf:deploy": "wrangler d1 migrations apply benkyo --remote && wrangler deploy",
+    "cf:preview": "wrangler versions upload"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261113.1",

@@ -4,6 +4,9 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { createSyncKey, getSyncKey, setSyncKey, sync, type SyncResult } from '#lib/sync.ts';
 	import { getMatcher } from '#lib/handwriting/match.ts';
+	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
+	import { haptic } from '#lib/ios/haptics.ts';
+	import LargeTitle from '#lib/components/LargeTitle.svelte';
 
 	ui.hue = 260;
 	let key = $state<string | undefined>();
@@ -20,24 +23,52 @@
 	const describe = (r: SyncResult) =>
 		'error' in r ? `Sync failed: ${r.error}` : `Synced: ${r.pushed} sent, ${r.pulled} received`;
 
+	function report(r: SyncResult) {
+		status = describe(r);
+		if ('error' in r) {
+			haptic('error');
+			toast(r.error === 'offline' ? 'You’re offline' : 'Sync failed', '⚠️');
+		} else {
+			haptic('success');
+			toast('Synced', '✓');
+		}
+	}
 	async function enable() {
 		key = await createSyncKey();
-		status = describe(await sync());
+		report(await sync());
+	}
+	async function copyKey() {
+		if (!key) return;
+		try {
+			await navigator.clipboard.writeText(key);
+			haptic('success');
+			toast('Sync key copied', '📋');
+		} catch {
+			showKey = true;
+		}
 	}
 	async function link() {
 		if (!keyInput.trim()) return;
 		await setSyncKey(keyInput);
 		key = keyInput.trim();
 		keyInput = '';
-		status = describe(await sync());
+		report(await sync());
 	}
 	async function reset() {
-		if (confirm('Erase all progress on this device? This cannot be undone.')) await progress.reset();
+		const ok = await confirmDestructive(
+			'Erase all progress?',
+			'Cards, history and settings on this device will be deleted. Synced copies are kept.',
+			'Erase Progress'
+		);
+		if (ok) {
+			await progress.reset();
+			toast('Progress erased');
+		}
 	}
 </script>
 
-<main class="page stack" style:--gap="10px">
-	<h1 class="large-title rise">Settings</h1>
+<main class="page stack settings" style:--gap="10px">
+	<LargeTitle title="Settings" />
 
 	<h2 class="eyebrow section">Learning</h2>
 	<div class="glass group rise" style:--i="1">
@@ -92,11 +123,12 @@
 				</span>
 				<span class="spacer"></span>
 				<button class="btn ghost small" onclick={() => (showKey = !showKey)}>{showKey ? 'Hide' : 'Show'}</button>
+				<button class="btn ghost small" onclick={copyKey}>Copy</button>
 			</div>
 			<div class="item">
 				<span class="caption">To sync another device, enter this key on it. Keep the key private.</span>
 				<span class="spacer"></span>
-				<button class="btn small" onclick={async () => (status = describe(await sync()))}>Sync now</button>
+				<button class="btn small" onclick={async () => report(await sync())}>Sync now</button>
 			</div>
 		{:else}
 			<div class="item">
@@ -124,6 +156,11 @@
 </main>
 
 <style>
+	@media (min-width: 600px) {
+		.settings > :global(*) {
+			max-width: 680px;
+		}
+	}
 	.section {
 		margin: 16px 6px 2px;
 	}
