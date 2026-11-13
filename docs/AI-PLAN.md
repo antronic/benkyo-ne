@@ -477,9 +477,12 @@ fees.
 - Figures are placeholders until the managed models are chosen (M4) and real
   per-card cost is measured from the ledger.
 
-## Open questions for wave 2
+## Wave 2 answers (2026-11-13)
 
-- Which country and which local payment gateway?
-- Company/legal entity for billing, tax (VAT/GST) and invoices.
-- Email sending provider (Resend vs Postmark) and the sending domain
-  (e.g. `mail.jirachai.me`).
+| Question | Answer | Notes captured |
+|---|---|---|
+| Country / gateway | **Thailand** | Local gateway options to evaluate: **Omise (Opn Payments)** or **2C2P** for PromptPay QR, Thai cards and mobile banking; Stripe also supports PromptPay in Thailand, so a Stripe-only start may be enough. Price in THB as well as USD. |
+| Billing entity | **Personal** (individual) | Check Stripe/Omise eligibility for individual sellers in Thailand. Thai VAT registration is needed only above the revenue threshold (currently 1.8M THB/year). Personal income tax applies to the income. Get confirmation from a Thai tax advisor before charging. |
+| Sending email | **mail@jirachai.me** | Verify `jirachai.me` with the email provider (SPF, DKIM and DMARC records on the Cloudflare zone). Use a dedicated sending address; replies can go to `mail@jirachai.me` via Cloudflare Email Routing. |
+
+Status: **captured only; nothing in wave 2 is being built yet.**
