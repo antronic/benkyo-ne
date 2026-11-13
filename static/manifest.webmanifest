@@ -1,0 +1,24 @@
+{
+	"name": "Benkyo — Learn Japanese",
+	"short_name": "Benkyo",
+	"description": "Learn Japanese with spaced repetition, mnemonics and stroke order. Works offline.",
+	"id": "/",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"orientation": "portrait",
+	"background_color": "#f6f4ef",
+	"theme_color": "#e8432e",
+	"categories": ["education"],
+	"lang": "en",
+	"icons": [
+		{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+		{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+		{ "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+		{ "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+	],
+	"shortcuts": [
+		{ "name": "Review", "url": "/review", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+		{ "name": "Kana chart", "url": "/kana", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+	]
+}

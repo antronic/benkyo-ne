@@ -1,0 +1,378 @@
+/*
+ * Benkyo design system: an "iOS 27" interpretation built on the Liquid Glass
+ * language. See docs/PLAN.md §6.
+ */
+
+:root {
+	color-scheme: light dark;
+
+	--bg: #f6f4ef;
+	--bg-2: #ecE8df;
+	--ink: #1d1d1f;
+	--ink-2: rgb(29 29 31 / 0.62);
+	--ink-3: rgb(29 29 31 / 0.38);
+	--hairline: rgb(0 0 0 / 0.08);
+
+	--glass: rgb(255 255 255 / 0.55);
+	--glass-strong: rgb(255 255 255 / 0.78);
+	--glass-edge: rgb(255 255 255 / 0.9);
+	--glass-shadow: 0 1px 0 rgb(255 255 255 / 0.7) inset, 0 -1px 0 rgb(0 0 0 / 0.04) inset,
+		0 10px 30px -10px rgb(30 20 10 / 0.18), 0 2px 6px rgb(30 20 10 / 0.06);
+
+	--accent: #e8432e; /* 朱 vermilion */
+	--accent-2: #3b5bdb; /* 藍 indigo */
+	--success: #34a853; /* 抹茶 matcha */
+	--warn: #f2a900;
+	--danger: #e5484d;
+
+	--r-s: 14px;
+	--r-m: 22px;
+	--r-l: 32px;
+
+	--font: -apple-system, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+	--font-display: -apple-system, 'SF Pro Display', system-ui, sans-serif;
+	--font-jp: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif;
+
+	/* Spring curves as CSS linear() approximations (stiff / bouncy / gentle). */
+	--spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%,
+			0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001 85.3%, 1);
+	--spring-bouncy: linear(0, 0.009, 0.037 1.7%, 0.153 3.6%, 0.776 10.3%, 1.001, 1.142 16%,
+			1.185, 1.209 19%, 1.196 20.6%, 1.151 22.5%, 0.989 29.2%, 0.942 32.2%, 0.931 34.8%, 0.95 38.3%,
+			1.003 45.4%, 1.019 49.1%, 1.017 54.3%, 0.998 66.2%, 1);
+	--ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
+	--dur: 520ms;
+
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+	--tabbar-h: 64px;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #0b0b0f;
+		--bg-2: #15151b;
+		--ink: #f5f5f7;
+		--ink-2: rgb(245 245 247 / 0.66);
+		--ink-3: rgb(245 245 247 / 0.36);
+		--hairline: rgb(255 255 255 / 0.09);
+		--glass: rgb(40 40 48 / 0.45);
+		--glass-strong: rgb(44 44 54 / 0.72);
+		--glass-edge: rgb(255 255 255 / 0.16);
+		--glass-shadow: 0 1px 0 rgb(255 255 255 / 0.1) inset, 0 -1px 0 rgb(0 0 0 / 0.3) inset,
+			0 14px 34px -12px rgb(0 0 0 / 0.7);
+		--accent: #ff6a55;
+		--accent-2: #7b93ff;
+		--success: #5fd17a;
+	}
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	-webkit-tap-highlight-color: transparent;
+	background: var(--bg);
+}
+
+body {
+	margin: 0;
+	min-height: 100dvh;
+	background: var(--bg);
+	color: var(--ink);
+	font-family: var(--font);
+	font-size: 1.0625rem; /* 17px, iOS body */
+	line-height: 1.4;
+	-webkit-font-smoothing: antialiased;
+	overscroll-behavior-y: none;
+}
+
+button {
+	font: inherit;
+	color: inherit;
+}
+
+.jp {
+	font-family: var(--font-jp);
+	font-feature-settings: 'palt';
+}
+
+/* ---------------------------------------------------------- material ---- */
+
+.glass {
+	background: var(--glass);
+	-webkit-backdrop-filter: blur(28px) saturate(180%);
+	backdrop-filter: blur(28px) saturate(180%);
+	border: 0.5px solid var(--glass-edge);
+	box-shadow: var(--glass-shadow);
+	border-radius: var(--r-m);
+}
+
+.glass-strong {
+	background: var(--glass-strong);
+}
+
+/* specular sheen across the top of glass surfaces */
+.sheen {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+}
+.sheen::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background: linear-gradient(180deg, rgb(255 255 255 / 0.35), transparent 40%);
+	pointer-events: none;
+	z-index: -1;
+	mix-blend-mode: soft-light;
+}
+
+/* ---------------------------------------------------------- type ---- */
+
+.large-title {
+	font-family: var(--font-display);
+	font-size: 2.125rem;
+	line-height: 1.1;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	margin: 0;
+}
+.title-2 {
+	font-family: var(--font-display);
+	font-size: 1.375rem;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	margin: 0;
+}
+.headline {
+	font-weight: 600;
+}
+.subhead {
+	font-size: 0.9375rem;
+	color: var(--ink-2);
+}
+.caption {
+	font-size: 0.75rem;
+	color: var(--ink-2);
+	letter-spacing: 0.01em;
+}
+.eyebrow {
+	font-size: 0.8125rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-3);
+}
+
+/* ---------------------------------------------------------- controls ---- */
+
+.btn {
+	appearance: none;
+	border: 0;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 50px;
+	padding: 0 22px;
+	border-radius: 999px;
+	font-weight: 600;
+	font-size: 1.0625rem;
+	background: var(--ink);
+	color: var(--bg);
+	transition:
+		transform 380ms var(--spring),
+		opacity 200ms,
+		background 200ms;
+	user-select: none;
+	-webkit-user-select: none;
+}
+.btn:active {
+	transform: scale(0.96);
+}
+.btn:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+.btn.accent {
+	background: var(--accent);
+	color: #fff;
+	box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.btn.ghost {
+	background: var(--glass);
+	color: var(--ink);
+	-webkit-backdrop-filter: blur(20px) saturate(180%);
+	backdrop-filter: blur(20px) saturate(180%);
+	border: 0.5px solid var(--glass-edge);
+}
+.btn.block {
+	width: 100%;
+}
+.btn.small {
+	min-height: 36px;
+	padding: 0 14px;
+	font-size: 0.9375rem;
+}
+
+.icon-btn {
+	appearance: none;
+	border: 0.5px solid var(--glass-edge);
+	background: var(--glass);
+	-webkit-backdrop-filter: blur(20px);
+	backdrop-filter: blur(20px);
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	cursor: pointer;
+	transition: transform 380ms var(--spring);
+}
+.icon-btn:active {
+	transform: scale(0.9);
+}
+
+input[type='text'] {
+	font: inherit;
+	width: 100%;
+	min-height: 54px;
+	padding: 0 18px;
+	border-radius: var(--r-s);
+	border: 0.5px solid var(--hairline);
+	background: var(--glass-strong);
+	color: var(--ink);
+	outline: none;
+	transition: box-shadow 200ms;
+}
+input[type='text']:focus {
+	box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-2) 30%, transparent);
+}
+
+/* ---------------------------------------------------------- layout ---- */
+
+.page {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: calc(var(--safe-top) + 20px) 16px calc(var(--tabbar-h) + var(--safe-bottom) + 40px);
+}
+
+.stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap, 12px);
+}
+.row {
+	display: flex;
+	align-items: center;
+	gap: var(--gap, 12px);
+}
+.spacer {
+	flex: 1;
+}
+
+/* ---------------------------------------------------------- motion ---- */
+
+@keyframes rise {
+	from {
+		opacity: 0;
+		transform: translateY(18px) scale(0.98);
+		filter: blur(6px);
+	}
+}
+.rise {
+	animation: rise 700ms var(--spring) both;
+	animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+@keyframes shake {
+	10%,
+	90% {
+		transform: translateX(-2px);
+	}
+	20%,
+	80% {
+		transform: translateX(4px);
+	}
+	30%,
+	50%,
+	70% {
+		transform: translateX(-8px);
+	}
+	40%,
+	60% {
+		transform: translateX(8px);
+	}
+}
+.shake {
+	animation: shake 480ms var(--ease-out);
+}
+
+@keyframes pop {
+	0% {
+		transform: scale(1);
+	}
+	40% {
+		transform: scale(1.06);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+/* View Transitions — page morphs */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 420ms;
+	animation-timing-function: var(--ease-out);
+}
+::view-transition-old(root) {
+	animation-name: vt-out;
+}
+::view-transition-new(root) {
+	animation-name: vt-in;
+}
+@keyframes vt-out {
+	to {
+		opacity: 0;
+		transform: scale(0.97);
+		filter: blur(4px);
+	}
+}
+@keyframes vt-in {
+	from {
+		opacity: 0;
+		transform: scale(1.02);
+		filter: blur(4px);
+	}
+}
+::view-transition-group(*) {
+	animation-duration: 560ms;
+	animation-timing-function: var(--spring);
+}
+/* the tab bar stays put while pages change */
+::view-transition-old(tabbar),
+::view-transition-new(tabbar) {
+	animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 1ms !important;
+		animation-delay: 0ms !important;
+		transition-duration: 1ms !important;
+	}
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none !important;
+	}
+}
