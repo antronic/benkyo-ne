@@ -30,6 +30,9 @@ revisited later on purpose rather than by accident.
 | D19 | Cards you make vs the 30 % share | **Cards you make yourself do *not* count toward the 30 % share** for AI-picked pack words; they still use the overall daily new-card limit, with overflow queued | Sharing the 30 % with pack words |
 | D20 | Phrases | **Phrases are cards too** (いただきます, おねがいします, すみません) | Single words only |
 | D21 | Scenario tags | **Scenarios become deck tags** ("ramen shop") you can review on their own before you go | Untagged |
+| D22 | Explanation language | **English plus a second language you pick in Settings**, shown under the English | English only |
+| D23 | Mistake tutor context | **Your review history may be sent to the provider**, scoped to what the explanation needs (§4d) | Only the single wrong answer |
+| D24 | Auth | **Keep the full passkey setup** (D3), not Cloudflare Access | Cloudflare Access + `wrangler secret` as a faster start |
 | D18 | Word not in dictionary | **Allowed, marked "unverified"**, then checked against the full JMdict online; if still unknown, you decide | Reject (blocks slang and names); trust the AI (risky) |
 
 ---
@@ -183,6 +186,44 @@ The card is `word:<jmdict id>`, or `word:custom:<uuid>` for unverified words.
 
 ---
 
+## 4d. Explanation language & tutor context
+
+### Second language (D22)
+- Settings has **Explanation language: English + [second language]**. The
+  second language is a free choice, stored as a BCP-47 code such as `de`,
+  `es` or `th`.
+- **Glosses.** JMdict has native glosses for a handful of languages (German,
+  French, Russian, Spanish, Dutch, Hungarian, Swedish, Slovenian).
+  - Where the bundled or D1 dictionary has a gloss in your second language,
+    that is used: verified and free.
+  - Otherwise the model translates the *English JMdict gloss*, not the
+    Japanese word directly. That way the meaning is anchored to verified
+    data, and the translation gets a small "AI-translated" marker.
+- **Hooks, usage notes and tutor explanations** are written in both languages
+  in the same call (a structured-output field per language), so it costs a
+  little more output but no extra call.
+- **The UI itself stays English.** Only learning content is bilingual.
+- **Cache key** for packs and cards includes the language pair, so changing
+  the second language regenerates content gradually instead of mixing
+  languages.
+
+### Mistake tutor context (D23)
+Sending history is allowed, but only the data the explanation needs:
+
+| Sent | Not sent |
+|---|---|
+| the wrong answer and the expected answer | your sync key, passkeys, other credentials |
+| that card's review history (grades, intervals, lapses) | the full review log across all cards |
+| stats for its confusable pair (e.g. how often you mix ぬ/め) | device or location data |
+| the card's mnemonic and your known-kana set | |
+
+- Settings gets a line saying what the tutor sends, and a switch to fall back
+  to "only the wrong answer".
+- The tutor caches its explanation per confusable pair, so repeated mistakes
+  don't cost repeated calls.
+
+---
+
 ## 4c. Model list from the providers' `/models` APIs
 
 `GET /api/ai/models?credential=<id>` (Worker, behind the passkey session):
@@ -297,7 +338,7 @@ CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
    deterministic "Words you can read" packs as **phase 1a** (no AI at all) and
    adding enrichment as **1b** gets you value even before the passkey and
    proxy work is done.
-2. **Passkey + encrypted D1 keys + proxy is a lot of security plumbing for a
+2. *(Resolved: keep passkeys, D24.)* **Passkey + encrypted D1 keys + proxy is a lot of security plumbing for a
    single user.** It's the right shape if this ever goes public, but it
    roughly doubles phase 1. If speed matters more, Cloudflare Access in front
    of `/api/ai/*` plus a `wrangler secret` key is about one hour of work and
@@ -330,10 +371,8 @@ CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
 
 ---
 
-## 9. Still open (next questions)
+## 9. Open questions
 
-- Explanation language for glosses and hooks: English only, or a second
-  language as well?
-- Should review history be sent to the provider for the mistake tutor
-  (privacy), or only the single wrong answer?
-- Keep the full passkey plan (§7.2), or start with Cloudflare Access?
+None. All decisions are recorded in §1 (D1–D24). Remaining unknowns are
+implementation details, to settle while building: the exact JMdict subset
+size, the deinflector rules, and passkey UX on iOS Safari.
