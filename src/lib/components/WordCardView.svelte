@@ -9,7 +9,7 @@
 
 <div class="wc" class:compact>
 	<div class="row head">
-		<span class="jp front">{card.front}</span>
+		<span class="jp front" class:long={card.front.length > 8} class:xlong={card.front.length > 14}>{card.front}</span>
 		<button class="icon-btn" aria-label="Listen" onclick={() => speak(card.front)}>🔊</button>
 		{#if !card.verified}<span class="badge unverified" title="Not found in the dictionary">unverified</span>{/if}
 		{#if card.kind === 'phrase'}<span class="badge">phrase</span>{/if}
@@ -49,6 +49,18 @@
 		font-size: 2rem;
 		font-weight: 600;
 		line-height: 1.1;
+	}
+	.front {
+		overflow-wrap: anywhere;
+		word-break: keep-all;
+		line-break: strict;
+		flex: 1 1 100%;
+	}
+	.front.long {
+		font-size: 1.5rem;
+	}
+	.front.xlong {
+		font-size: 1.25rem;
 	}
 	.compact .front {
 		font-size: 1.375rem;

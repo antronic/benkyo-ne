@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { onMount } from 'svelte';
-	import { goto, onNavigate } from '$app/navigation';
+	import { afterNavigate, goto, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import Backdrop from '#lib/components/Backdrop.svelte';
 	import TabBar from '#lib/components/TabBar.svelte';
@@ -39,11 +39,31 @@
 		const vis = () => document.documentElement.classList.toggle('hidden', document.hidden);
 		document.addEventListener('visibilitychange', vis);
 		const stopKb = trackKeyboard();
+		watchForUpdates();
 		return () => {
 			document.removeEventListener('visibilitychange', vis);
 			stopKb();
 		};
 	});
+
+	// New deploys: the service worker installs the update in the background.
+	// Reload into it automatically, but never mid-lesson or mid-review.
+	let updatePending = false;
+	function applyUpdate() {
+		if (immersive || ui.backGuard) updatePending = true;
+		else location.reload();
+	}
+	afterNavigate(() => {
+		if (updatePending && !immersive && !ui.backGuard) location.reload();
+	});
+	function watchForUpdates() {
+		if (!('serviceWorker' in navigator)) return;
+		const hadController = !!navigator.serviceWorker.controller; // skip the very first install
+		navigator.serviceWorker.addEventListener('controllerchange', () => hadController && applyUpdate());
+		document.addEventListener('visibilitychange', () => {
+			if (!document.hidden) navigator.serviceWorker.getRegistration().then((r) => r?.update());
+		});
+	}
 
 	// Page morphs with the View Transitions API (falls back to instant swap).
 	onNavigate((navigation) => {

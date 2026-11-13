@@ -40,7 +40,7 @@
 		left: var(--rail, 0px);
 		right: 0;
 		height: calc(var(--safe-top) + 48px);
-		padding: var(--safe-top) 16px 0;
+		padding: var(--safe-top) max(16px, var(--safe-right)) 0 max(16px, var(--safe-left));
 		display: grid;
 		place-items: center;
 		border-radius: 0;
@@ -63,7 +63,7 @@
 	}
 	.trailing {
 		position: absolute;
-		right: 12px;
+		right: max(12px, var(--safe-right));
 		bottom: 6px;
 	}
 </style>

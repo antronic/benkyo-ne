@@ -54,8 +54,8 @@
 	.action-sheet {
 		position: fixed;
 		z-index: 91;
-		left: 8px;
-		right: 8px;
+		left: max(8px, var(--safe-left));
+		right: max(8px, var(--safe-right));
 		bottom: calc(var(--safe-bottom) + 8px);
 		max-width: 420px;
 		margin: 0 auto;
@@ -110,7 +110,7 @@
 		position: fixed;
 		z-index: 95;
 		top: calc(var(--safe-top) + 12px);
-		left: 50%;
+		left: calc(var(--safe-left) + (100% - var(--safe-left) - var(--safe-right)) / 2);
 		translate: -50% 0;
 		padding: 10px 18px;
 		border-radius: 999px;

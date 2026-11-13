@@ -43,6 +43,9 @@
 	--dur: 520ms;
 
 	--safe-top: env(safe-area-inset-top, 0px);
+	/* iOS 27 can put the status bar on a side edge (e.g. folded iPhone Duo) */
+	--safe-left: env(safe-area-inset-left, 0px);
+	--safe-right: env(safe-area-inset-right, 0px);
 	--safe-bottom: env(safe-area-inset-bottom, 0px);
 	--tabbar-h: 64px;
 	--rail-w: 76px;

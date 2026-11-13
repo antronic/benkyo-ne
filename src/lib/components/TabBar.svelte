@@ -74,10 +74,11 @@
 	.tabbar {
 		position: fixed;
 		z-index: 50;
-		left: 50%;
+		/* centred in the area left free by side status bars */
+		left: calc(var(--safe-left) + (100% - var(--safe-left) - var(--safe-right)) / 2);
 		bottom: calc(var(--safe-bottom) + 12px);
 		transform: translateX(-50%);
-		width: min(440px, calc(100% - 32px));
+		width: min(440px, calc(100% - 32px - var(--safe-left) - var(--safe-right)));
 		height: var(--tabbar-h);
 		border-radius: 999px;
 		display: grid;

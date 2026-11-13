@@ -102,7 +102,7 @@
 		bottom: 0;
 		margin: 0 auto;
 		max-width: 560px;
-		padding: 0 18px calc(var(--safe-bottom) + 18px);
+		padding: 0 max(18px, var(--safe-right)) calc(var(--safe-bottom) + 18px) max(18px, var(--safe-left));
 		border-radius: 34px 34px 0 0;
 		max-height: 94dvh;
 		display: flex;

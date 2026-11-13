@@ -11,6 +11,7 @@
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
+	import { unknownKanaIn } from '#lib/dict/readable.ts';
 	import { ensurePacks, listPacks, MIN_KANA, type Pack } from '#lib/words/packs.ts';
 	import { processOutbox } from '#lib/words/maker.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
@@ -143,7 +144,9 @@
 				{@const st = status(c)}
 				<button class="item" onclick={() => (open = c)}>
 					<span class="stack" style:--gap="0">
-						<span><span class="jp">{c.front}</span>{#if c.kanji}<span class="jp kanji"> {c.kanji}</span>{/if}<Romaji text={c.front} inline /></span>
+						<span class="jp">{c.front}</span>
+						<Romaji text={c.front} />
+						{#if c.kanji}<span class="jp kanji">{c.kanji}</span>{/if}
 						<span class="caption">{c.gloss}</span>
 					</span>
 					<span class="spacer"></span>
@@ -161,7 +164,12 @@
 	{#if open}
 		<WordCardView card={open} />
 		{#if words.isParked(open) && !progress.cards[open.id]}
-			<p class="caption">⏸ Parked: it joins your reviews once you’ve learned all the kana in <span class="jp">{open.front}</span><Romaji text={open.front} inline />.</p>
+			{@const missing = unknownKanaIn(open.front, progress.knownKana)}
+			<p class="caption parked">
+				⏸ Parked until you learn
+				{#each missing as k}<span class="jp need">{k}<Romaji text={k} /></span>{/each}
+				Then it joins your reviews automatically.
+			</p>
 		{/if}
 		<div class="chips">
 			{#each open.tags as t}<button class="chip on" onclick={() => removeTag(t)}>{t} ✕</button>{/each}
@@ -263,8 +271,12 @@
 	.item .jp {
 		font-size: 1.125rem;
 	}
-	.kanji {
+	.item .kanji {
 		color: var(--ink-2);
+		font-size: 0.9375rem;
+	}
+	.item > .stack {
+		min-width: 0;
 	}
 	.pill {
 		font-size: 0.75rem;
@@ -276,6 +288,24 @@
 	}
 	.pill.warn {
 		background: color-mix(in srgb, var(--warn) 35%, transparent);
+		color: var(--ink);
+	}
+	.parked {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+	}
+	.need {
+		display: inline-flex;
+		flex-direction: column;
+		align-items: center;
+		min-width: 34px;
+		padding: 4px 6px;
+		border-radius: 10px;
+		background: var(--glass-strong);
+		border: 0.5px solid var(--hairline);
+		font-size: 1.125rem;
 		color: var(--ink);
 	}
 	.danger {

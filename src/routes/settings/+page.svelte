@@ -160,8 +160,8 @@
 		<div class="item"><span>Handwriting engine</span><span class="spacer"></span><span class="caption">{engine}</span></div>
 		<div class="item"><span>Scheduler</span><span class="spacer"></span><span class="caption">FSRS-5</span></div>
 		<div class="item caption">
-			Stroke order data from <a href="https://kanjivg.tagaini.net" target="_blank" rel="noreferrer">KanjiVG</a>
-			by Ulrich Apel, CC BY-SA 3.0.
+			<span>Stroke order data from <a href="https://kanjivg.tagaini.net" target="_blank" rel="noreferrer">KanjiVG</a>
+			by Ulrich Apel, CC BY-SA 3.0.</span>
 		</div>
 		<div class="item caption">{DICT_ATTRIBUTION}</div>
 		<div class="item"><button class="btn ghost block danger" onclick={reset}>Erase progress on this device</button></div>
