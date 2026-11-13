@@ -1,5 +1,6 @@
 <!-- Words hub: reading packs, card maker, tags, and your word/phrase cards. -->
 <script lang="ts">
+	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
@@ -98,7 +99,7 @@
 			<div class="packs">
 				{#each ready as p, i (p.id)}
 					<a class="pack glass sheen rise" style:--i={i} href="/words/pack/{p.id}">
-						<span class="jp words">{p.items.slice(0, 3).map((x) => x.reading).join(' · ')}</span>
+						<span class="jp words">{p.items.slice(0, 3).map((x) => x.reading).join(' · ')}<Romaji text={p.items.slice(0, 3).map((x) => x.reading).join(' · ')} /></span>
 						<span class="headline">{p.theme?.en ?? `${p.items.length} words`}</span>
 						{#if p.theme?.second}<span class="caption">{p.theme.second}</span>{/if}
 						{#if !p.enriched}<span class="caption">dictionary only</span>{/if}
@@ -142,7 +143,7 @@
 				{@const st = status(c)}
 				<button class="item" onclick={() => (open = c)}>
 					<span class="stack" style:--gap="0">
-						<span><span class="jp">{c.front}</span>{#if c.kanji}<span class="jp kanji"> {c.kanji}</span>{/if}</span>
+						<span><span class="jp">{c.front}</span>{#if c.kanji}<span class="jp kanji"> {c.kanji}</span>{/if}<Romaji text={c.front} inline /></span>
 						<span class="caption">{c.gloss}</span>
 					</span>
 					<span class="spacer"></span>
@@ -160,7 +161,7 @@
 	{#if open}
 		<WordCardView card={open} />
 		{#if words.isParked(open) && !progress.cards[open.id]}
-			<p class="caption">⏸ Parked: it joins your reviews once you’ve learned all the kana in <span class="jp">{open.front}</span>.</p>
+			<p class="caption">⏸ Parked: it joins your reviews once you’ve learned all the kana in <span class="jp">{open.front}</span><Romaji text={open.front} inline />.</p>
 		{/if}
 		<div class="chips">
 			{#each open.tags as t}<button class="chip on" onclick={() => removeTag(t)}>{t} ✕</button>{/each}

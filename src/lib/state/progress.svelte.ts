@@ -10,6 +10,8 @@ export interface Settings {
 	autoplayAudio: boolean;
 	/** Second explanation language (BCP-47, e.g. 'de', 'th'); null = English only (D22). */
 	secondLang: string | null;
+	/** Small romaji under Japanese text (hidden on quiz prompts whose answer is the reading). */
+	showRomaji: boolean;
 }
 
 interface Today {
@@ -26,7 +28,7 @@ class Progress {
 	ready = $state(false);
 	cards = $state<Record<string, Card>>({});
 	completed = $state<string[]>([]);
-	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null });
+	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true });
 	streak = $state({ days: 0, last: '' });
 	today = $state<Today>({ date: dayKey(), reviews: 0, learned: 0 });
 	now = $state(Date.now());

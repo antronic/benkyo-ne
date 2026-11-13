@@ -3,6 +3,7 @@
 	deck until you tick items and tap Save.
 -->
 <script lang="ts">
+	import Romaji from '#lib/components/Romaji.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { fly } from 'svelte/transition';
@@ -176,10 +177,11 @@
 										{#if c.kind === 'phrase'}<span class="tag">phrase</span>{/if}
 										{#if !c.verified}<span class="tag warn">unverified</span>{/if}
 									</span>
+									<Romaji text={c.reading} />
 									<span class="gloss">{c.gloss}</span>
 									{#if c.inflection}<span class="caption">from your input: {c.inflection}</span>{/if}
 									{#if c.note}<span class="caption">✨ {c.note.en}{c.note.second ? ` · ${c.note.second}` : ''}</span>{/if}
-									{#if missing.length}<span class="caption">⏸ parked until you learn <span class="jp">{missing.join(' ')}</span></span>{/if}
+									{#if missing.length}<span class="caption">⏸ parked until you learn <span class="jp">{missing.join(' ')}</span><Romaji text={missing.join(' ')} inline /></span>{/if}
 								</span>
 								<span class="listen" role="presentation" onclick={(e) => (e.stopPropagation(), speak(c.reading))}>🔊</span>
 							</button>

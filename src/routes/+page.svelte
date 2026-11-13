@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Romaji from '#lib/components/Romaji.svelte';
 	import { LESSONS } from '#lib/content/lessons.ts';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import ProgressRing from '#lib/components/ProgressRing.svelte';
@@ -69,7 +70,7 @@
 			<div class="stack" style:--gap="2px">
 				<div class="eyebrow" style="color:#8b5cf6">Words</div>
 				<div class="title-2">
-					{words.newQueue.length ? `${words.newQueue.length} new word${words.newQueue.length === 1 ? '' : 's'} ready` : `${words.list.length} cards`}
+					{words.newQueue.length ? `${words.newQueue.length} new word${words.newQueue.length === 1 ? '' : 's'} ready` : `${words.list.length} card${words.list.length === 1 ? "" : "s"}`}
 				</div>
 				<div class="subhead">{words.newQueue.length ? 'Your own cards come first, then reading-pack words.' : 'Make cards from anything you meet, or read a pack.'}</div>
 			</div>
@@ -90,6 +91,7 @@
 				</div>
 				<div class="title-2">{next.title}</div>
 				<div class="jp" style="opacity:.85">{next.subtitle}</div>
+				<div class="hero-rmj"><Romaji text={next.subtitle} /></div>
 			</div>
 			{#if progress.newBudgetLeft === 0}
 				<div class="caption" style="color:#fff;opacity:.9">
@@ -198,6 +200,10 @@
 		width: 92px;
 		height: 92px;
 		transform: rotate(calc(-8deg + var(--j) * 8deg)) translateY(calc(var(--j) * 16px));
+	}
+	.hero-rmj :global(.rmj) {
+		color: rgb(255 255 255 / 0.75);
+		font-size: 0.8125rem;
 	}
 	.tip p {
 		color: var(--ink-2);

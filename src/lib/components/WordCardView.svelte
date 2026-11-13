@@ -1,5 +1,6 @@
 <!-- The back of a word/phrase card: reading, kanji, meanings, hook, usage, example. -->
 <script lang="ts">
+	import Romaji from './Romaji.svelte';
 	import type { UserCard } from '#lib/ai/contract.ts';
 	import { speak } from '#lib/content/kana.ts';
 
@@ -13,6 +14,7 @@
 		{#if !card.verified}<span class="badge unverified" title="Not found in the dictionary">unverified</span>{/if}
 		{#if card.kind === 'phrase'}<span class="badge">phrase</span>{/if}
 	</div>
+	<Romaji text={card.front} />
 	{#if card.kanji}<div class="also">also written <span class="jp">{card.kanji}</span></div>{/if}
 	<div class="gloss">{card.gloss}</div>
 	{#if card.gloss2}<div class="gloss2">{card.gloss2}</div>{/if}
@@ -24,7 +26,7 @@
 	{/if}
 	{#if card.example && !compact}
 		<button class="example" onclick={() => speak(card.example!.jp.replace(/\n/g, '。'))}>
-			<span class="jp">{#each card.example.jp.split('\n') as line}<span class="line">{line}</span>{/each}</span>
+			<span class="jp">{#each card.example.jp.split('\n') as line, li}<span class="line">{line}<Romaji text={card.example.reading.split('\n')[li] ?? ''} /></span>{/each}</span>
 			<span class="caption">{card.example.en}</span>
 			{#if card.example.second}<span class="caption second">{card.example.second}</span>{/if}
 		</button>

@@ -3,6 +3,7 @@
 	  MEET → TRACE (per kana) → RECOGNISE (pick 1 of 4) → RECALL (draw from memory) → SCHEDULE
 -->
 <script lang="ts">
+	import Romaji from '#lib/components/Romaji.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { fly, scale } from 'svelte/transition';
@@ -189,7 +190,7 @@
 						<div class="pane">
 							<div class="hero-chars jp">
 								{#each chars as k, i}
-									<span class="rise" style:--i={i}><KanaGlyph char={k.char} size={64} /></span>
+									<span class="rise hero-k" style:--i={i}><KanaGlyph char={k.char} size={64} /><Romaji text={k.char} /></span>
 								{/each}
 							</div>
 						</div>
@@ -237,6 +238,7 @@
 							<div class="eyebrow">Which sound is this?</div>
 							<div class="glass sheen big" class:shake={shaking}>
 								<KanaGlyph char={current.char} size={150} />
+								<Romaji text={current.char} hide={!choice} />
 							</div>
 						</div>
 						<div class="pane">
@@ -297,7 +299,7 @@
 						<div class="pane">
 							<div class="celebrate">
 								{#each chars as k, i}
-									<span style:--i={i} class="pop-in"><KanaGlyph char={k.char} size={54} color="var(--success)" /></span>
+									<span style:--i={i} class="pop-in hero-k"><KanaGlyph char={k.char} size={54} color="var(--success)" /><Romaji text={k.char} /></span>
 								{/each}
 							</div>
 						</div>
@@ -398,6 +400,12 @@
 		gap: 6px;
 		flex-wrap: wrap;
 		justify-content: center;
+	}
+	.hero-k {
+		display: inline-flex;
+		flex-direction: column;
+		align-items: center;
+		font-size: 1.25rem;
 	}
 	.note {
 		max-width: 34ch;

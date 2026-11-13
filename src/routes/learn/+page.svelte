@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Romaji from '#lib/components/Romaji.svelte';
 	import { LESSONS } from '#lib/content/lessons.ts';
 	import { cardId } from '#lib/content/lessons.ts';
 	import { retrievability } from '#lib/srs/fsrs.ts';
@@ -36,7 +37,7 @@
 						<span class="badge">{done ? '✓' : i + 1}</span>
 						<span class="stack" style:--gap="1px">
 							<span class="headline">{l.title}</span>
-							<span class="jp kana">{l.subtitle}</span>
+							<span class="jp kana">{l.subtitle}<Romaji text={l.subtitle} /></span>
 						</span>
 						<span class="spacer"></span>
 						{#if s !== null}

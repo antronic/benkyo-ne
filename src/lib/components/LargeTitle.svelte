@@ -3,6 +3,7 @@
 	bar with the inline title fades in, just like UINavigationBar.
 -->
 <script lang="ts">
+	import Romaji from './Romaji.svelte';
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 
@@ -26,7 +27,7 @@
 </div>
 
 <div class="large row" bind:this={el}>
-	<h1 class="large-title rise" class:jp>{title}</h1>
+	<h1 class="large-title rise" class:jp>{title}{#if jp}<Romaji text={title} />{/if}</h1>
 	<span class="spacer"></span>
 	{#if trailing}{@render trailing()}{/if}
 </div>

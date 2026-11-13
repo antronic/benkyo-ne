@@ -110,6 +110,14 @@
 			<input type="checkbox" class="switch" checked={progress.settings.haptics} onchange={(e) => progress.saveSettings({ haptics: e.currentTarget.checked })} />
 		</label>
 		<label class="item">
+			<span class="stack" style:--gap="0">
+				<span>Show romaji</span>
+				<span class="caption">Small romaji under Japanese text. Hidden on questions where it would give the answer away.</span>
+			</span>
+			<span class="spacer"></span>
+			<input type="checkbox" class="switch" checked={progress.settings.showRomaji} onchange={(e) => progress.saveSettings({ showRomaji: e.currentTarget.checked })} />
+		</label>
+		<label class="item">
 			<span>Play audio automatically</span><span class="spacer"></span>
 			<input type="checkbox" class="switch" checked={progress.settings.autoplayAudio} onchange={(e) => progress.saveSettings({ autoplayAudio: e.currentTarget.checked })} />
 		</label>

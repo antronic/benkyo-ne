@@ -6,6 +6,7 @@
 	Grades are inferred by the parent from correctness + time (PLAN §5.2).
 -->
 <script lang="ts">
+	import Romaji from './Romaji.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { fly, scale } from 'svelte/transition';
 	import { romajiToKana } from '@johnmorrisdotca/jisho/words';
@@ -97,6 +98,7 @@
 			{:else}
 				<button class="front glass sheen" onclick={() => speak(card.front)} aria-label="Listen to {card.front}">
 					<span class="jp">{card.front}</span>
+					<Romaji text={card.front} />
 				</button>
 			{/if}
 			{#if hint && card.hook && !result}

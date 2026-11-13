@@ -3,6 +3,7 @@
 	hook and example. Finishing adds the words as cards (D10).
 -->
 <script lang="ts">
+	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -89,7 +90,7 @@
 				<div class="split">
 					<div class="pane">
 						<button class="word glass sheen" onclick={() => speak(item.reading)} aria-label="Listen to {item.reading}">
-							<span class="jp">{item.reading}</span>
+							<span class="jp">{item.reading}<Romaji text={item.reading} /></span>
 						</button>
 						<p class="caption">Read it aloud first, then reveal.</p>
 					</div>

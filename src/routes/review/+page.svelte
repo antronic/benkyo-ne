@@ -6,6 +6,7 @@
 	Grades are inferred from correctness, time and hint use (PLAN §5.2).
 -->
 <script lang="ts">
+	import Romaji from '#lib/components/Romaji.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { fly, scale } from 'svelte/transition';
@@ -203,6 +204,7 @@
 						<div class="flip" class:flipped={!!result}>
 							<div class="face front glass sheen" class:shake={shaking}>
 								<KanaGlyph char={kana.char} size={150} scene={usedHint ? 0.9 : 0} />
+								<Romaji text={kana.char} hide={!result} />
 							</div>
 							<div class="face back glass sheen">
 								{#if result?.correct === false}
@@ -251,7 +253,7 @@
 							<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
 								<p style="margin:0">{mnemonicFor(kana.char).story}</p>
 								{#if result.guess && result.guess !== kana.char}
-									<p class="caption" style="margin:6px 0 0">You drew something closer to <span class="jp">{result.guess}</span>.</p>
+									<p class="caption" style="margin:6px 0 0">You drew something closer to <span class="jp">{result.guess}</span><Romaji text={result.guess} inline />.</p>
 								{/if}
 								{#if confusablesOf(kana.char).length}
 									<div class="row confuse">
