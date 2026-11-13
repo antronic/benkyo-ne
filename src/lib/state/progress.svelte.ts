@@ -8,6 +8,8 @@ export interface Settings {
 	newPerDay: number;
 	haptics: boolean;
 	autoplayAudio: boolean;
+	/** Second explanation language (BCP-47, e.g. 'de', 'th'); null = English only (D22). */
+	secondLang: string | null;
 }
 
 interface Today {
@@ -24,7 +26,7 @@ class Progress {
 	ready = $state(false);
 	cards = $state<Record<string, Card>>({});
 	completed = $state<string[]>([]);
-	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true });
+	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null });
 	streak = $state({ days: 0, last: '' });
 	today = $state<Today>({ date: dayKey(), reviews: 0, learned: 0 });
 	now = $state(Date.now());
@@ -37,6 +39,14 @@ class Progress {
 	);
 	learnedCount = $derived(Object.values(this.cards).filter((c) => c.state === 'review').length);
 	newBudgetLeft = $derived(Math.max(0, this.settings.newPerDay - this.today.learned));
+	/** Kana the learner has met (any FSRS state past 'new'). */
+	knownKana = $derived(
+		new Set(
+			Object.values(this.cards)
+				.filter((c) => c.id.startsWith('kana:') && c.state !== 'new')
+				.map((c) => c.id.slice(5))
+		)
+	);
 
 	async load() {
 		if (!browser || this.ready) return;

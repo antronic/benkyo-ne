@@ -3,21 +3,30 @@
  * the device (local-first); the server only stores a copy for sync.
  */
 const DB_NAME = 'benkyo';
-const VERSION = 1;
+const VERSION = 2;
 
-export type StoreName = 'cards' | 'logs' | 'meta';
+export type StoreName = 'cards' | 'logs' | 'meta' | 'userCards' | 'packs' | 'outbox';
 
 let dbp: Promise<IDBDatabase> | null = null;
 
 function open(): Promise<IDBDatabase> {
 	dbp ??= new Promise((resolve, reject) => {
 		const req = indexedDB.open(DB_NAME, VERSION);
-		req.onupgradeneeded = () => {
+		req.onupgradeneeded = (e) => {
 			const db = req.result;
-			db.createObjectStore('cards', { keyPath: 'id' });
-			const logs = db.createObjectStore('logs', { keyPath: 'id' });
-			logs.createIndex('synced', 'synced');
-			db.createObjectStore('meta');
+			const from = e.oldVersion;
+			if (from < 1) {
+				db.createObjectStore('cards', { keyPath: 'id' });
+				const logs = db.createObjectStore('logs', { keyPath: 'id' });
+				logs.createIndex('synced', 'synced');
+				db.createObjectStore('meta');
+			}
+			if (from < 2) {
+				// word/phrase card content (docs/AI-PLAN.md §4b), reading packs, offline AI outbox
+				db.createObjectStore('userCards', { keyPath: 'id' });
+				db.createObjectStore('packs', { keyPath: 'id' });
+				db.createObjectStore('outbox', { keyPath: 'id' });
+			}
 		};
 		req.onsuccess = () => resolve(req.result);
 		req.onerror = () => reject(req.error);
@@ -58,9 +67,16 @@ export async function putMany(store: StoreName, values: unknown[]) {
 	});
 }
 
+export async function del(store: StoreName, key: IDBValidKey) {
+	const db = await open();
+	return wrap(db.transaction(store, 'readwrite').objectStore(store).delete(key));
+}
+
+const ALL: StoreName[] = ['cards', 'logs', 'meta', 'userCards', 'packs', 'outbox'];
+
 export async function clearAll() {
 	const db = await open();
-	const tx = db.transaction(['cards', 'logs', 'meta'], 'readwrite');
-	for (const s of ['cards', 'logs', 'meta'] as const) tx.objectStore(s).clear();
+	const tx = db.transaction(ALL, 'readwrite');
+	for (const s of ALL) tx.objectStore(s).clear();
 	return new Promise<void>((resolve) => (tx.oncomplete = () => resolve()));
 }

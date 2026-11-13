@@ -1,0 +1,145 @@
+/**
+ * "Words you can read" (docs/AI-PLAN.md §4 step 1, D7/D8): real common JMdict words whose
+ * reading uses only kana the learner knows. Deterministic and offline (common-words table only).
+ */
+import type { Word } from '@johnmorrisdotca/jisho/words';
+import type { CardKind, FillRequest } from '#lib/ai/contract.ts';
+import { commonWords, fold, jisho, meta } from '#lib/dict/dict.ts';
+import { isReadable } from '#lib/dict/readable.ts';
+
+export interface PackPick {
+	/** `word:<id>` (or `phrase:<id>` for JMdict expressions, matching UserCard ids) */
+	key: string;
+	id: number;
+	/** written form when the word is usually written with kanji, else the reading */
+	text: string;
+	/** kana reading: the card front (D17) */
+	reading: string;
+	/** written forms for the back ("also written 池"); empty for kana-only words */
+	written: string[];
+	gloss: string;
+	kind: CardKind;
+	rank: number | null;
+}
+
+/** First-sense marks that keep a word out of packs: archaic, obsolete, rare, dated, vulgar/offensive. */
+const BAD_FIRST = ['arch', 'obs', 'rare', 'dated', 'vulg', 'X', 'sens', 'derog', 'hist'];
+/** If every sense carries one of these, the word is out. */
+const BAD_ALL = ['arch', 'obs', 'rare', 'dated'];
+
+/** Kana length that counts for "2–4 kana" (small ゃゅょ fold into the kana before them). */
+function moraLength(reading: string): number {
+	return [...reading].filter((c) => !/[ゃゅょゎぁぃぅぇぉャュョヮァィゥェォ]/u.test(c)).length;
+}
+
+interface Candidate {
+	word: Word & { id: number };
+	score: number;
+	kind: CardKind;
+}
+
+let candidatesP: Promise<Candidate[]> | null = null;
+
+/** Every common word that could ever go in a pack, best first (known-kana filter applied later). */
+function candidates(): Promise<Candidate[]> {
+	return (candidatesP ??= (async () => {
+		const [j, c, m] = await Promise.all([jisho(), commonWords(), meta()]);
+		const best = new Map<string, Candidate>();
+		for (const w of j.allWords(c)) {
+			if (typeof w.id !== 'number' || !w.meaning) continue;
+			const id = w.id;
+			const len = moraLength(w.reading);
+			if (len < 2 || len > 6) continue;
+			if (m.grammar.has(id)) continue;
+			if (m.secondary.get(id)?.has(fold(w.reading))) continue;
+			const first = w.senses[0]?.marks ?? [];
+			if (first.some((x) => BAD_FIRST.includes(x))) continue;
+			if (w.senses.length && w.senses.every((s) => s.marks.some((x) => BAD_ALL.includes(x)))) continue;
+			// rank: 250…24,000 (lower = commoner); unranked → 30,000.
+			let score = w.rank >= 100000 ? 30000 : w.rank;
+			if (len > 4) score += 8000; // prefer 2–4 kana
+			if (w.written === w.reading) score *= 0.75; // usually written in kana: what a kana-stage learner actually sees
+			const cand: Candidate = { word: w as Word & { id: number }, score, kind: m.phrase.has(id) ? 'phrase' : 'word' };
+			// one word per reading (two cards both fronted あか would be ambiguous)
+			const key = fold(w.reading);
+			const held = best.get(key);
+			if (!held || cand.score < held.score || (cand.score === held.score && id < held.word.id)) best.set(key, cand);
+		}
+		return [...best.values()].sort((a, b) => a.score - b.score || a.word.id - b.word.id);
+	})().catch((e) => {
+		candidatesP = null;
+		throw e;
+	}));
+}
+
+/** mulberry32 */
+function rng(seed: number): () => number {
+	let a = seed >>> 0;
+	return () => {
+		a = (a + 0x6d2b79f5) >>> 0;
+		let t = a;
+		t = Math.imul(t ^ (t >>> 15), t | 1);
+		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+}
+
+/**
+ * Pick `count` (default 6) common words the learner can read, commonest first, skipping
+ * `excludeIds` (already in the deck / shown recently). Without a seed: the top `count`.
+ * With a seed: a deterministic draw from the top `count × 3` readable words, returned in
+ * frequency order. Returns [] when nothing (or the dictionary) is available.
+ */
+export async function pickPackWords(opts: {
+	knownKana: Iterable<string>;
+	excludeIds?: Iterable<number>;
+	count?: number;
+	seed?: number;
+}): Promise<PackPick[]> {
+	const known = new Set(opts.knownKana);
+	const exclude = new Set(opts.excludeIds ?? []);
+	const count = Math.max(0, Math.floor(opts.count ?? 6));
+	if (!count || !known.size) return [];
+	let all: Candidate[];
+	try {
+		all = await candidates();
+	} catch (e) {
+		console.warn('[dict] common words unavailable', e);
+		return [];
+	}
+	const pool: Candidate[] = [];
+	const window = opts.seed === undefined ? count : count * 3;
+	for (const c of all) {
+		if (exclude.has(c.word.id) || !isReadable(c.word.reading, known)) continue;
+		pool.push(c);
+		if (pool.length >= window) break;
+	}
+	let chosen = pool;
+	if (opts.seed !== undefined && pool.length > count) {
+		const r = rng(opts.seed);
+		const idx = pool.map((_, i) => i);
+		for (let i = idx.length - 1; i > 0; i--) {
+			const k = Math.floor(r() * (i + 1));
+			[idx[i], idx[k]] = [idx[k], idx[i]];
+		}
+		chosen = idx
+			.slice(0, count)
+			.sort((a, b) => a - b)
+			.map((i) => pool[i]);
+	}
+	return chosen.slice(0, count).map(({ word: w, kind }) => ({
+		key: `${kind}:${w.id}`,
+		id: w.id,
+		text: w.written,
+		reading: w.reading,
+		written: [...w.forms],
+		gloss: w.meaning,
+		kind,
+		rank: w.rank >= 100000 ? null : w.rank
+	}));
+}
+
+/** PackPick[] → FillRequest['items'] for the AI enrich step. */
+export function toFillItems(picks: PackPick[]): FillRequest['items'] {
+	return picks.map(({ key, text, reading, kind, gloss }) => ({ key, text, reading, kind, gloss }));
+}

@@ -10,12 +10,17 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { startAutoSync } from '#lib/sync.ts';
 	import { edgeSwipeBack, trackKeyboard } from '#lib/ios/gestures.ts';
+	import { words } from '#lib/state/words.svelte.ts';
+	import { ai } from '#lib/state/ai.svelte.ts';
+	import { processOutbox } from '#lib/words/maker.ts';
 
 	let { children } = $props();
 
 	// Immersive screens hide the navigation and can be swiped back from.
-	const immersive = $derived(/^\/(learn\/[^/]+|review)/.test(page.url.pathname));
-	const parent = $derived(page.url.pathname.startsWith('/learn/') ? '/learn' : '/');
+	const immersive = $derived(/^\/(learn\/[^/]+|review|words\/.+)/.test(page.url.pathname));
+	const parent = $derived(
+		page.url.pathname.startsWith('/learn/') ? '/learn' : page.url.pathname.startsWith('/words/') ? '/words' : '/'
+	);
 
 	async function back() {
 		if (ui.backGuard && !(await ui.backGuard())) return false;
@@ -24,7 +29,13 @@
 	}
 
 	onMount(() => {
-		progress.load().then(startAutoSync);
+		progress
+			.load()
+			.then(() => words.load())
+			.then(startAutoSync);
+		ai.watch();
+		const onOnline = () => setTimeout(() => void processOutbox(), 1500);
+		addEventListener('online', onOnline);
 		const vis = () => document.documentElement.classList.toggle('hidden', document.hidden);
 		document.addEventListener('visibilitychange', vis);
 		const stopKb = trackKeyboard();
@@ -49,7 +60,7 @@
 <Backdrop hue={ui.hue} />
 
 <div class="app" use:edgeSwipeBack={{ enabled: immersive, onback: back }}>
-	{#if progress.ready}
+	{#if progress.ready && words.ready}
 		{@render children()}
 	{/if}
 </div>

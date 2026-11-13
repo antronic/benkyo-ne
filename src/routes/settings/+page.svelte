@@ -7,6 +7,7 @@
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import AiSettings from '#lib/components/AiSettings.svelte';
 
 	ui.hue = 260;
 	let key = $state<string | undefined>();
@@ -142,6 +143,8 @@
 		{/if}
 		{#if status}<div class="item caption">{status}</div>{/if}
 	</div>
+
+	<AiSettings />
 
 	<h2 class="eyebrow section">About</h2>
 	<div class="glass group rise" style:--i="3">

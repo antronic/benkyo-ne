@@ -8,6 +8,8 @@
 import { get, getAll, put, putMany } from '#lib/db/idb.ts';
 import { progress, type StoredLog } from '#lib/state/progress.svelte.ts';
 import type { ReviewLog } from '#lib/srs/fsrs.ts';
+import type { UserCard } from '#lib/ai/contract.ts';
+import { words } from '#lib/state/words.svelte.ts';
 
 const b64url = (bytes: Uint8Array) =>
 	btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -44,27 +46,42 @@ async function doSync(): Promise<SyncResult> {
 	const all = await getAll<StoredLog>('logs');
 	const pending = all.filter((l) => l.synced === 0).slice(0, 500);
 	const cursor = (await get<number>('meta', 'syncCursor')) ?? 0;
+	// Word/phrase card content: push what changed since the last push (LWW on the server).
+	const cardsCursor = (await get<number>('meta', 'cardsCursor')) ?? 0;
+	const pushedAt = (await get<number>('meta', 'cardsPushedAt')) ?? 0;
+	const changed = (await getAll<UserCard>('userCards')).filter((c) => c.updatedAt > pushedAt).slice(0, 500);
+	const startedAt = Date.now();
 
 	let res: Response;
 	try {
 		res = await fetch('/api/sync', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-			body: JSON.stringify({ cursor, logs: pending.map(({ synced: _s, ...l }) => l) })
+			body: JSON.stringify({ cursor, logs: pending.map(({ synced: _s, ...l }) => l), cards: changed, cardsCursor })
 		});
 	} catch {
 		return { error: 'network' };
 	}
 	if (!res.ok) return { error: `http-${res.status}` };
 
-	const body = (await res.json()) as { cursor: number; logs: ReviewLog[] };
+	const body = (await res.json()) as {
+		cursor: number;
+		logs: ReviewLog[];
+		cards?: UserCard[];
+		cardsCursor?: number;
+	};
 	await putMany(
 		'logs',
 		pending.map((l) => ({ ...l, synced: 1 }))
 	);
 	await progress.mergeLogs(body.logs);
 	await put('meta', body.cursor, 'syncCursor');
-	return { pushed: pending.length, pulled: body.logs.length };
+	if (body.cards) await words.merge(body.cards);
+	if (body.cardsCursor !== undefined) {
+		await put('meta', body.cardsCursor, 'cardsCursor');
+		if (changed.length < 500) await put('meta', startedAt, 'cardsPushedAt');
+	}
+	return { pushed: pending.length + changed.length, pulled: body.logs.length + (body.cards?.length ?? 0) };
 }
 
 /** Sync when the app opens, comes back online, or is hidden. */

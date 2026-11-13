@@ -361,15 +361,25 @@ CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
 
 | Phase | Scope |
 |---|---|
-| **1a** | JMdict common-word subset (build script, like `strokes.json`); deterministic "Words you can read" packs; `word:` cards with the auto-add rule (D10); offline |
-| **1b** | Passkey auth, encrypted key store, **live model list from `/models` + price resolution**, `/api/ai/generate` (structured outputs, caching, fallback), $5 cap and usage meter, pack enrichment, prefetch |
-| **1c** | **Card maker**: Japanese / romaji / English modes first (they mostly use the dictionary), then scenario, then screenshot (vision). Parked cards, unverified badge, full JMdict in D1, offline outbox |
-| 2 | Mistake tutor: one call after a wrong answer, using the confusable pair and your card history; cached explanations per pair |
-| 3 | OpenAI-compatible adapter (Worker) and browser-direct local endpoint (experimental) |
-| 4 | Conversation partner (needs Stage 1 vocabulary), with an i+1 vocabulary guard via the dictionary |
+| **Wave 1** (single delivery) | Everything previously split into 1a/1b/1c: dictionary on device (`@johnmorrisdotca/jisho`, JMdict), "Words you can read" packs (deterministic picks + AI context), passkey auth, encrypted key store, live `/models` list + price resolution, $5 cap + usage meter, card maker (English / 日本語 / romaji / photo / scenario), phrase cards, scenario tags + tag drills, bilingual content, word/phrase reviews, card sync, offline outbox |
+| 2 | Mistake tutor (D23 context scope) |
+| 3 | Browser-direct local models (experimental, see §6 caveat) |
+| 4 | Conversation partner (needs Stage 1 vocabulary) |
 | 5 | Handwriting coach (vision, on request only) |
 
----
+**Changes made while building wave 1:**
+- The dictionary comes from the npm package `@johnmorrisdotca/jisho` (JMdict
+  CC BY-SA 4.0, Tatoeba CC BY 2.0 FR, KanjiVG). Its data is split into about
+  1,700 lazily loaded chunks.
+- **Verification runs on the device only.** The device holds the whole
+  dictionary (lazily), so the Worker doesn't need a copy, and the planned D1
+  `jmdict` table is dropped. That also avoids D1's free-tier limit of 100k
+  writes a day, which a full import would exceed.
+- The common-word chunk (≈2.5 MB) is precached for offline use; the rest is
+  cached on first use.
+- The script-only deploy can't carry the full dictionary (3 MB limit). There,
+  rare words show as "unverified" until a normal assets deploy (Workers
+  Builds) serves the full set.
 
 ## 9. Open questions
 

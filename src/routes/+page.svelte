@@ -5,6 +5,7 @@
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
+	import { words } from '#lib/state/words.svelte.ts';
 
 	const hour = new Date().getHours();
 	const greeting =
@@ -58,6 +59,19 @@
 				<div class="eyebrow" style="color:var(--accent)">Reviews due</div>
 				<div class="title-2">{progress.due.length} card{progress.due.length === 1 ? '' : 's'}</div>
 				<div class="subhead">Timed to come up just before you'd forget them.</div>
+			</div>
+			<div class="go">›</div>
+		</a>
+	{/if}
+
+	{#if words.newQueue.length > 0 || words.list.length > 0}
+		<a href={words.newQueue.length ? '/review' : '/words'} class="glass sheen card review rise" style:--i="2">
+			<div class="stack" style:--gap="2px">
+				<div class="eyebrow" style="color:#8b5cf6">Words</div>
+				<div class="title-2">
+					{words.newQueue.length ? `${words.newQueue.length} new word${words.newQueue.length === 1 ? '' : 's'} ready` : `${words.list.length} cards`}
+				</div>
+				<div class="subhead">{words.newQueue.length ? 'Your own cards come first, then reading-pack words.' : 'Make cards from anything you meet, or read a pack.'}</div>
 			</div>
 			<div class="go">›</div>
 		</a>

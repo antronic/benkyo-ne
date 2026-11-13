@@ -7,31 +7,65 @@
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { fly, scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { byChar, romajiMatches, speak, type Kana } from '#lib/content/kana.ts';
 	import { mnemonicFor } from '#lib/content/mnemonics.ts';
 	import { confusablesOf } from '#lib/content/confusables.ts';
-	import { inferGrade, type Card } from '#lib/srs/fsrs.ts';
+	import { Good, inferGrade, type Grade } from '#lib/srs/fsrs.ts';
 	import { choicesFor } from '#lib/quiz.ts';
 	import { progress, haptic } from '#lib/state/progress.svelte.ts';
+	import { words } from '#lib/state/words.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import StrokeAnimator from '#lib/components/StrokeAnimator.svelte';
 	import RecallPad from '#lib/components/RecallPad.svelte';
 	import ProgressRing from '#lib/components/ProgressRing.svelte';
+	import WordQuiz from '#lib/components/WordQuiz.svelte';
 
 	ui.hue = 220;
 
 	type Mode = 'choose' | 'type' | 'draw';
 	const SESSION_MAX = 50;
 
-	const kanaOf = (c: Card) => byChar.get(c.id.replace(/^kana:/, ''))!;
-	const initial = progress.due.slice(0, SESSION_MAX);
+	/**
+	 * A session entry. Kana and word/phrase cards share the FSRS log by id.
+	 *   isNew: first introduction of a word card (grade capped at Good)
+	 *   drill: tag drill of a card that isn't due — practised, not rescheduled (D21)
+	 */
+	interface Entry {
+		id: string;
+		isNew: boolean;
+		drill: boolean;
+	}
+
+	const tag = page.url.searchParams.get('tag');
+	const now = Date.now();
+
+	function buildQueue(): Entry[] {
+		if (tag) {
+			return words
+				.byTag(tag)
+				.filter((c) => !words.isParked(c))
+				.map((c) => {
+					const s = progress.cards[c.id];
+					const due = !!s && s.state !== 'new' && s.due <= now;
+					return { id: c.id, isNew: !s || s.state === 'new', drill: !due && !!s && s.state !== 'new' };
+				})
+				.slice(0, SESSION_MAX);
+		}
+		const due = progress.due.slice(0, SESSION_MAX).map((c) => ({ id: c.id, isNew: false, drill: false }));
+		const fresh = words.newQueue.slice(0, Math.max(0, SESSION_MAX - due.length)).map((c) => ({ id: c.id, isNew: true, drill: false }));
+		return [...due, ...fresh];
+	}
+
+	const initial = buildQueue();
 	const total = initial.length;
-	let queue = $state<Card[]>(initial);
+	let queue = $state<Entry[]>(initial);
 	let done = $state(0);
 	let correctCount = $state(0);
+	let lastCorrect = true;
 
 	let answer = $state('');
 	let result = $state<null | { correct: boolean; guess?: string }>(null);
@@ -40,8 +74,10 @@
 	let shaking = $state(false);
 	let t0 = performance.now();
 
-	const card = $derived(queue[0]);
-	const kana = $derived(card ? kanaOf(card) : undefined);
+	const entry = $derived(queue[0]);
+	const card = $derived(entry ? progress.cards[entry.id] : undefined);
+	const kana = $derived(entry?.id.startsWith('kana:') ? byChar.get(entry.id.slice(5)) : undefined);
+	const wordCard = $derived(entry && !kana ? words.cards[entry.id] : undefined);
 	const mode = $derived<Mode>(
 		!card || card.state !== 'review' || card.stability < 3 ? 'choose' : card.stability < 21 ? 'type' : 'draw'
 	);
@@ -56,12 +92,24 @@
 	}
 	prep();
 
+	/** Record an answer for the current entry (shared by kana and word cards). */
+	async function record(correct: boolean, ms: number, scaledMs: number, hint: boolean) {
+		if (!entry) return;
+		lastCorrect = correct;
+		if (correct) correctCount++;
+		if (entry.drill) return; // practice only: don't reschedule a card that isn't due
+		let grade: Grade = inferGrade(correct, scaledMs, hint);
+		if (entry.isNew && grade > Good) grade = Good; // first exposure goes through learning steps
+		const wasNew = !progress.cards[entry.id] || progress.cards[entry.id].state === 'new';
+		await progress.record(entry.id, grade, ms);
+		if (wasNew && words.cards[entry.id]?.source === 'pack') await words.notePackIntroduced();
+	}
+
 	async function submit(correct: boolean, guess?: string) {
 		if (!card || !kana || result) return;
 		const ms = performance.now() - t0;
 		result = { correct, guess };
 		if (correct) {
-			correctCount++;
 			haptic('success');
 			speak(kana.char);
 		} else {
@@ -71,22 +119,28 @@
 		}
 		// drawing takes longer than tapping, so scale the time before grading
 		const scaled = mode === 'draw' ? ms / 3 : mode === 'type' ? ms / 1.5 : ms;
-		await progress.record(card.id, inferGrade(correct, scaled, usedHint), ms);
+		await record(correct, ms, scaled, usedHint);
 		if (correct && mode === 'choose') setTimeout(next, 700);
+	}
+
+	async function onWordAnswer(r: { correct: boolean; ms: number; hint: boolean }) {
+		haptic(r.correct ? 'success' : 'error');
+		await record(r.correct, r.ms, r.ms / 1.5, r.hint);
 	}
 
 	function next() {
 		const [head, ...rest] = queue;
 		done++;
-		// a lapsed card comes back once more at the end of this session
-		queue = result?.correct === false ? [...rest, progress.cards[head.id]] : rest;
+		// a missed card comes back once more at the end of this session
+		queue = lastCorrect ? rest : [...rest, { ...head, isNew: false }];
+		lastCorrect = true;
 		prep();
 	}
 
 	function onKey(e: KeyboardEvent) {
-		if (e.key !== 'Enter') return;
+		if (!kana || e.key !== 'Enter') return;
 		if (result) next();
-		else if (mode === 'type' && kana && answer.trim()) submit(romajiMatches(kana, answer));
+		else if (mode === 'type' && answer.trim()) submit(romajiMatches(kana, answer));
 	}
 </script>
 
@@ -101,7 +155,11 @@
 		<div class="caption count">{Math.min(done, total)}/{total}</div>
 	</header>
 
-	{#if !card || !kana}
+	{#if tag}
+		<div class="tagline caption">Drilling <b>{tag}</b>. Cards that aren’t due are practised without changing their schedule.</div>
+	{/if}
+
+	{#if !entry || (!kana && !wordCard)}
 		<section class="stage" in:scale={{ start: 0.94, duration: 400 }}>
 			<div class="stack center" style:--gap="16px">
 				<ProgressRing value={total ? correctCount / Math.max(done, 1) : 1} size={140} color="var(--success)">
@@ -110,7 +168,7 @@
 						<div class="caption">recalled</div>
 					</div>
 				</ProgressRing>
-				<h1 class="large-title">{total ? 'Session complete' : 'All caught up'}</h1>
+				<h1 class="large-title">{total ? 'Session complete' : tag ? 'Nothing to drill' : 'All caught up'}</h1>
 				<p class="subhead">
 					{total
 						? 'Each card is now scheduled for the day your memory of it is predicted to dip to your target.'
@@ -119,8 +177,14 @@
 				<button class="btn accent" onclick={() => goto('/')}>Done</button>
 			</div>
 		</section>
-	{:else}
-		{#key card.id + done}
+	{:else if wordCard}
+		{#key wordCard.id + done}
+			<section class="stage" in:fly={{ y: 30, duration: 450, easing: cubicOut, opacity: 0 }}>
+				<WordQuiz card={wordCard} fsrs={card} isNew={entry.isNew} drill={entry.drill} onanswer={onWordAnswer} onnext={next} />
+			</section>
+		{/key}
+	{:else if kana}
+		{#key entry.id + done}
 			<section class="stage" in:fly={{ y: 30, duration: 450, easing: cubicOut, opacity: 0 }}>
 				<div class="split">
 				<div class="pane">
@@ -223,6 +287,10 @@
 			--pad: min(42vw, 60dvh, 400px);
 			max-width: 1040px !important;
 		}
+	}
+	.tagline {
+		text-align: center;
+		margin-top: 8px;
 	}
 	.review {
 		--pad: min(78vw, 320px);
