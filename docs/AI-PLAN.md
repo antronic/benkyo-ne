@@ -27,6 +27,9 @@ revisited later on purpose rather than by accident.
 | D15 | Model prices (for the cap) | **Use prices from the provider's `/models` response when it has them** (e.g. OpenRouter). Otherwise a built-in price table; otherwise you enter the price once; otherwise the model is blocked under the cap | Manual price for every model: tedious |
 | D16 | Card maker input | **All modes, switchable**: English, Japanese (kana/kanji), romaji, screenshot, scenario | A single input mode |
 | D17 | Kanji on cards | **Kana on the front, kanji shown on the back** ("also written 池"); switch to a kanji front once you're at the kanji stage | Kanji with furigana from day one; kana only |
+| D19 | Cards you make vs the 30 % share | **Cards you make yourself do *not* count toward the 30 % share** for AI-picked pack words; they still use the overall daily new-card limit, with overflow queued | Sharing the 30 % with pack words |
+| D20 | Phrases | **Phrases are cards too** (いただきます, おねがいします, すみません) | Single words only |
+| D21 | Scenario tags | **Scenarios become deck tags** ("ramen shop") you can review on their own before you go | Untagged |
 | D18 | Word not in dictionary | **Allowed, marked "unverified"**, then checked against the full JMdict online; if still unknown, you decide | Reject (blocks slang and names); trust the AI (risky) |
 
 ---
@@ -147,9 +150,27 @@ The card is `word:<jmdict id>`, or `word:custom:<uuid>` for unverified words.
   learned, the card is saved but **parked**. It's added to reviews
   automatically once all its kana are learned, so the kana-front rule (D17)
   never shows you an unreadable prompt.
-- **Daily budget.** Approved cards still respect the new-card cap.
-  User-made cards and generated pack words share the 30 % allowance (§7.3);
-  overflow is queued.
+- **Daily budget (D19).** Cards you make yourself are exempt from the 30 %
+  share for generated pack words (§7.3). They still go through the overall
+  daily new-card limit, and overflow is queued for the next day. Priority
+  order for new cards each day:
+  1. curriculum lessons
+  2. cards you made
+  3. pack words (≤ 30 %)
+- **Phrases (D20).** A card can be a word **or a phrase** (`kind: word |
+  phrase`). Fixed expressions are verified as a whole where JMdict lists them
+  (いただきます and おねがいします are entries). Otherwise the phrase is
+  tokenised, and each part must verify (or is flagged), the same as example
+  sentences. Phrase cards add a "when to say it" usage line (e.g. before
+  eating; polite request), and their example is a mini-dialogue instead of a
+  sentence. Phrase cards are tested by meaning → say or type the phrase, not
+  by reading individual kana.
+- **Scenario tags (D21).** Every card from scenario mode gets the scenario as
+  a tag (`ramen shop`). You can also tag cards from other modes. The Review tab
+  gets a tag filter ("Review: ramen shop"), so you can drill a tag before a
+  real-life situation. These drills are **extra practice**: they don't
+  reschedule cards that aren't due, so FSRS intervals aren't distorted.
+  Reviews of cards that are due count normally.
 - **Unverified (D18).** A gold "unverified" badge, plus a second check against
   the full JMdict that the Worker keeps in D1 (too large to bundle).
   Confirmed words lose the badge. Unknown words stay badged until you edit
@@ -220,6 +241,22 @@ CREATE TABLE jmdict (                  -- full dictionary for online verificatio
 );
 CREATE INDEX jmdict_reading ON jmdict (reading);
 CREATE INDEX jmdict_kanji ON jmdict (kanji);
+-- Card content & tags (word/phrase cards). The review log stays the source of
+-- truth for scheduling; this is card *content*, synced alongside it
+-- (last-write-wins by updated_at).
+CREATE TABLE user_cards (
+  user_id INTEGER NOT NULL, card_id TEXT NOT NULL,   -- word:<jmdict id> | word:custom:<uuid> | phrase:<…>
+  kind TEXT NOT NULL CHECK (kind IN ('word','phrase')),
+  front TEXT NOT NULL, kanji TEXT, gloss TEXT NOT NULL, usage TEXT, hook TEXT,
+  example_json TEXT, verified INTEGER NOT NULL, parked INTEGER NOT NULL,
+  source TEXT NOT NULL,                              -- user | pack | scenario
+  updated_at INTEGER NOT NULL, deleted INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, card_id)
+);
+CREATE TABLE card_tags (
+  user_id INTEGER NOT NULL, card_id TEXT NOT NULL, tag TEXT NOT NULL,
+  PRIMARY KEY (user_id, card_id, tag)
+);
 CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
   id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, feature TEXT NOT NULL,
   provider TEXT NOT NULL, model TEXT NOT NULL,
@@ -266,8 +303,9 @@ CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
    of `/api/ai/*` plus a `wrangler secret` key is about one hour of work and
    can be swapped for passkeys later without touching the features.
 3. **Auto-add means AI-chosen vocabulary competes with the curriculum** for
-   the 10/day new-card budget. Proposal: generated words get at most 30 % of
-   the daily new-card budget, so lessons always come first.
+   the 10/day new-card budget. Decided: generated pack words get at most 30 %
+   of the daily new-card budget, so lessons always come first; cards you make
+   yourself are exempt from the 30 % (D19).
 4. **Handwriting coach**: the Rust/WASM matcher already checks stroke order,
    direction and shape for free. A vision call per attempt adds commentary on
    proportions and balance at real cost. Proposal: only on request ("Ask for
@@ -298,11 +336,4 @@ CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
   language as well?
 - Should review history be sent to the provider for the mistake tutor
   (privacy), or only the single wrong answer?
-- Is the 30 % budget share in §7.3 acceptable, and should it apply to cards
-  you make yourself? (You chose those words, so maybe they deserve
-  priority over generated pack words.)
-- Phrases (いただきます, おねがいします): should they be cards too, or
-  single words only?
-- Should a scenario be saved as a deck tag, so you can review "ramen shop"
-  words before you go?
 - Keep the full passkey plan (§7.2), or start with Cloudflare Access?
