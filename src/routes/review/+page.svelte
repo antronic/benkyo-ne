@@ -6,6 +6,7 @@
 	Grades are inferred from correctness, time and hint use (PLAN §5.2).
 -->
 <script lang="ts">
+	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -218,7 +219,9 @@
 					{/if}
 				</div>
 				<div class="pane answer">
-					{#if usedHint && !result}
+					{#if mode === 'draw' && !result}
+						<MnemonicHint char={kana.char} onuse={() => (usedHint = true)} />
+					{:else if usedHint && !result}
 						<p class="story" in:fly={{ y: 10, duration: 300 }}>{mnemonicFor(kana.char).story}</p>
 					{/if}
 
@@ -247,7 +250,9 @@
 							/>
 							<button class="btn block" disabled={!answer.trim()} onclick={() => submit(romajiMatches(kana, answer))}>Check</button>
 						{/if}
-						<button class="btn ghost small" onclick={() => (usedHint = true)} disabled={usedHint}>💡 Hint</button>
+						{#if mode !== 'draw'}
+							<button class="btn ghost small" onclick={() => (usedHint = true)} disabled={usedHint}>💡 Hint</button>
+						{/if}
 					{:else}
 						{#if !result.correct}
 							<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>

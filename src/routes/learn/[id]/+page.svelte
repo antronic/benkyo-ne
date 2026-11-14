@@ -3,6 +3,7 @@
 	  MEET → TRACE (per kana) → RECOGNISE (pick 1 of 4) → RECALL (draw from memory) → SCHEDULE
 -->
 <script lang="ts">
+	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -41,6 +42,7 @@
 
 	interface Stat {
 		wrong: number;
+		hinted?: boolean;
 		ms: number[];
 		recallOk: boolean;
 	}
@@ -144,7 +146,7 @@
 			// met minutes ago should go through the short learning steps, never
 			// jump straight to a multi-week interval. Drawing is slower than
 			// tapping, so the time is halved before grading.
-			const grade = s.wrong > 0 ? Again : (Math.min(inferGrade(true, avg / 2), Good) as Grade);
+			const grade = s.wrong > 0 ? Again : (Math.min(inferGrade(true, avg / 2, s.hinted), Good) as Grade);
 			await progress.record(cardId(k), grade, avg);
 		}
 		await progress.completeLesson(lesson!.id);
@@ -286,6 +288,9 @@
 								<div class="romaji">{current.romaji}</div>
 								<button class="icon-btn" aria-label="Listen" onclick={() => speak(current.char)}>🔊</button>
 							</div>
+							{#if !recallResult}
+								<MnemonicHint char={current.char} onuse={() => (stats[current.char].hinted = true)} />
+							{/if}
 							{#if recallResult}
 								<p class="headline" style:color={recallResult.correct ? 'var(--success)' : 'var(--danger)'}>
 									{recallResult.correct ? 'Nice, that’s it.' : recallResult.guess ? `That looked like ${recallResult.guess}. Watch the strokes.` : 'Not quite. Watch the strokes.'}
