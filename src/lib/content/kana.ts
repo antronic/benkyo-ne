@@ -68,13 +68,5 @@ export function romajiMatches(kana: Kana, input: string): boolean {
 	return v === kana.romaji || (ALT_ROMAJI[kana.romaji] ?? []).includes(v);
 }
 
-export function speak(text: string) {
-	if (typeof speechSynthesis === 'undefined') return;
-	const u = new SpeechSynthesisUtterance(text);
-	u.lang = 'ja-JP';
-	u.rate = 0.8;
-	const ja = speechSynthesis.getVoices().find((v) => v.lang.startsWith('ja'));
-	if (ja) u.voice = ja;
-	speechSynthesis.cancel();
-	speechSynthesis.speak(u);
-}
+/** Kept for existing imports; implementation lives in lib/audio/speech.ts. */
+export { speak } from '#lib/audio/speech.ts';
