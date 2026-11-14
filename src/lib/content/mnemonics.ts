@@ -6,6 +6,10 @@
  * Scenes use the KanjiVG 109×109 coordinate box.
  */
 
+import { SCENES as H_SCENES } from './scenes/hiragana.ts';
+import { SCENES as K1_SCENES } from './scenes/katakana1.ts';
+import { SCENES as K2_SCENES } from './scenes/katakana2.ts';
+
 export interface Mnemonic {
 	story: string;
 	/** Optional SVG fragment (no <svg> wrapper) drawn beneath the glyph. */
@@ -184,5 +188,5 @@ export function mnemonicFor(char: string): Mnemonic {
 			story: `${base} plus ${isP ? 'a small circle ゜ (h → p)' : 'two small strokes ゛ (voiced)'}.`
 		};
 	}
-	return { story: STORIES[char] ?? '', scene: SCENES[char] };
+	return { story: STORIES[char] ?? '', scene: SCENES[char] ?? H_SCENES[char] ?? K1_SCENES[char] ?? K2_SCENES[char] };
 }
