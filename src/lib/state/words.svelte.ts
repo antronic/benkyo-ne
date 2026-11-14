@@ -13,6 +13,7 @@ import { get, getAll, put } from '#lib/db/idb.ts';
 import type { UserCard } from '#lib/ai/contract.ts';
 import { progress } from '#lib/state/progress.svelte.ts';
 import { isReadable } from '#lib/dict/readable.ts';
+import { NOW_TAG, isSystemTag } from '#lib/content/courses.ts';
 
 export const PACK_SHARE = 0.3;
 
@@ -32,7 +33,7 @@ class Words {
 
 	tags = $derived.by(() => {
 		const m = new Map<string, number>();
-		for (const c of this.list) for (const t of c.tags) m.set(t, (m.get(t) ?? 0) + 1);
+		for (const c of this.list) for (const t of c.tags) if (!isSystemTag(t)) m.set(t, (m.get(t) ?? 0) + 1);
 		return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([tag, count]) => ({ tag, count }));
 	});
 
@@ -45,6 +46,8 @@ class Words {
 	}
 
 	isParked(c: UserCard): boolean {
+		// "Learn now with romaji" (course units) skips waiting for the kana lessons
+		if (c.tags.includes(NOW_TAG)) return false;
 		return !isReadable(c.front, progress.knownKana);
 	}
 

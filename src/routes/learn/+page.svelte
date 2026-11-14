@@ -6,6 +6,35 @@
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import { COURSES, courseTag } from '#lib/content/courses.ts';
+	import { words } from '#lib/state/words.svelte.ts';
+	import { haptic } from '#lib/ios/haptics.ts';
+
+	type Filter = 'all' | 'fundamentals' | (typeof COURSES)[number]['id'];
+	const FILTERS: { id: Filter; label: string }[] = [
+		{ id: 'all', label: 'All' },
+		{ id: 'fundamentals', label: '🔤 Fundamentals' },
+		...COURSES.map((c) => ({ id: c.id as Filter, label: `${c.emoji} ${c.title}` }))
+	];
+	const saved = (() => {
+		try {
+			return (localStorage.getItem('learn.filter') as Filter) || 'all';
+		} catch {
+			return 'all';
+		}
+	})();
+	let filter = $state<Filter>(FILTERS.some((f) => f.id === saved) ? saved : 'all');
+	function choose(f: Filter) {
+		filter = f;
+		haptic('selection');
+		try {
+			localStorage.setItem('learn.filter', f);
+		} catch {}
+	}
+	const shownCourses = $derived(COURSES.filter((c) => filter === 'all' || filter === c.id));
+
+	/** Cards added from a unit (by hidden course tag). */
+	const addedIn = (course: string, unit: string) => words.list.filter((c) => c.tags.includes(courseTag(course, unit))).length;
 
 	ui.hue = 30;
 	const nextId = $derived(LESSONS.find((l) => !progress.completed.includes(l.id))?.id);
@@ -22,8 +51,14 @@
 
 <main class="page stack" style:--gap="10px">
 	<LargeTitle title="Learn" />
-	<p class="subhead rise" style="margin:0 0 10px">One row at a time, up to five new characters a lesson.</p>
+	<div class="filters" role="tablist" aria-label="Filter lessons">
+		{#each FILTERS as f}
+			<button role="tab" aria-selected={filter === f.id} class="chip" class:on={filter === f.id} onclick={() => choose(f.id)}>{f.label}</button>
+		{/each}
+	</div>
 
+	{#if filter === 'all' || filter === 'fundamentals'}
+	<p class="subhead rise" style="margin:0 0 4px">Kana first: one row at a time, up to five new characters a lesson.</p>
 	<div class="columns">
 	{#each ['hiragana', 'katakana'] as script, si}
 		<section>
@@ -52,9 +87,103 @@
 		</section>
 	{/each}
 	</div>
+	{/if}
+
+	{#each shownCourses as c, ci (c.id)}
+		<section class="course rise" style:--i={ci + 1} style:--h={c.hue}>
+			<h2 class="eyebrow section">{c.emoji} {c.title}</h2>
+			<p class="caption blurb">{c.blurb}</p>
+			<div class="units">
+				{#each c.units as u, ui (u.id)}
+					{@const n = addedIn(c.id, u.id)}
+					<a class="unit glass sheen" href="/learn/course/{c.id}/{u.id}" class:done={n >= u.items.length}>
+						<span class="badge">{n >= u.items.length ? '✓' : ui + 1}</span>
+						<span class="stack" style:--gap="1px">
+							<span class="headline">{u.title}</span>
+							<span class="jp kana">{u.items.slice(0, 3).map((i) => i.reading).join('・')}…</span>
+						</span>
+						<span class="spacer"></span>
+						<span class="caption">{n}/{u.items.length}</span>
+					</a>
+				{/each}
+			</div>
+		</section>
+	{/each}
 </main>
 
 <style>
+	.filters {
+		display: flex;
+		gap: 8px;
+		overflow-x: auto;
+		margin: 0 calc(-1 * var(--gutter-r)) 6px calc(-1 * var(--gutter-l));
+		padding: 2px var(--gutter-r) 6px var(--gutter-l);
+		scrollbar-width: none;
+		-webkit-overflow-scrolling: touch;
+		scroll-snap-type: x proximity;
+	}
+	.filters::-webkit-scrollbar {
+		display: none;
+	}
+	.chip {
+		flex: none;
+		scroll-snap-align: start;
+		border: 0.5px solid var(--hairline);
+		background: var(--glass);
+		-webkit-backdrop-filter: blur(20px);
+		backdrop-filter: blur(20px);
+		border-radius: 999px;
+		padding: 0 16px;
+		min-height: 40px;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		color: var(--ink-2);
+		cursor: pointer;
+		white-space: nowrap;
+		transition:
+			background 220ms,
+			color 220ms,
+			transform 300ms var(--spring);
+	}
+	.chip:active {
+		transform: scale(0.95);
+	}
+	.chip.on {
+		background: var(--ink);
+		color: var(--bg);
+	}
+	.course {
+		margin-top: 8px;
+	}
+	.blurb {
+		margin: -2px 4px 8px;
+	}
+	.units {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 10px;
+	}
+	@media (min-width: 600px) {
+		.units {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+	.unit {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		padding: 14px 16px;
+		min-height: 56px;
+		text-decoration: none;
+		color: inherit;
+		transition: transform 450ms var(--spring);
+	}
+	.unit:active {
+		transform: scale(0.97);
+	}
+	.unit.done .badge {
+		background: var(--success);
+	}
 	/* Unfolded: hiragana and katakana paths side by side */
 	@media (min-width: 600px) {
 		.columns {

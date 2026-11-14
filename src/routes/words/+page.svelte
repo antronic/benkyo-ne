@@ -12,6 +12,7 @@
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { unknownKanaIn } from '#lib/dict/readable.ts';
+	import { NOW_TAG } from '#lib/content/courses.ts';
 	import { ensurePacks, listPacks, MIN_KANA, type Pack } from '#lib/words/packs.ts';
 	import { processOutbox } from '#lib/words/maker.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
@@ -72,7 +73,14 @@
 		await words.setTags(open.id, open.tags.filter((x) => x !== t));
 		open = words.cards[open.id];
 	}
-	async function removeCard() {
+	async function learnNow() {
+		if (!open) return;
+		await words.setTags(open.id, [...open.tags, NOW_TAG]);
+		open = words.cards[open.id];
+		haptic('success');
+		toast('Added to today’s new cards', '✓');
+	}
+		async function removeCard() {
 		if (!open) return;
 		if (!(await confirmDestructive('Delete this card?', `“${open.front}” and its review history stop appearing.`, 'Delete Card'))) return;
 		await words.remove(open.id);
@@ -170,9 +178,10 @@
 				{#each missing as k}<span class="jp need">{k}<Romaji text={k} /></span>{/each}
 				Then it joins your reviews automatically.
 			</p>
+			<button class="btn ghost small" onclick={learnNow}>Learn it now anyway (with romaji)</button>
 		{/if}
 		<div class="chips">
-			{#each open.tags as t}<button class="chip on" onclick={() => removeTag(t)}>{t} ✕</button>{/each}
+			{#each open.tags.filter((t) => !t.startsWith('~')) as t}<button class="chip on" onclick={() => removeTag(t)}>{t} ✕</button>{/each}
 		</div>
 		<div class="row">
 			<input type="text" placeholder="Add tag, e.g. ramen shop" bind:value={tagInput} onkeydown={(e) => e.key === 'Enter' && addTag()} />
