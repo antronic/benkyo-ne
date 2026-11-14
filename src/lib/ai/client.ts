@@ -106,4 +106,60 @@ export const fill = (r: FillRequest) => call<FillResponse>('/api/ai/fill', { met
 export const lesson = (r: LessonRequest) => call<LessonResponse>('/api/ai/lesson', { method: 'POST', json: r });
 export const ask = (r: AskRequest) => call<AskResponse>('/api/ai/ask', { method: 'POST', json: r });
 
+/**
+ * Ask AI, streamed: `ondelta` gets the reply text as the model writes it.
+ * Resolves with the final parsed reply. Abort with `signal` (Stop button).
+ */
+export async function askStream(r: AskRequest, ondelta: (text: string) => void, signal?: AbortSignal): Promise<AskResponse> {
+	if (typeof navigator !== 'undefined' && !navigator.onLine) throw new AiRequestError(0, 'offline', 'You’re offline');
+	let res: Response;
+	try {
+		res = await fetch('/api/ai/ask/stream', {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
+			body: JSON.stringify(r),
+			signal
+		});
+	} catch (e) {
+		if ((e as Error)?.name === 'AbortError') throw e;
+		throw new AiRequestError(0, 'network', 'Network error');
+	}
+	if (!res.ok || !res.body) {
+		const body = (await res.json().catch(() => null)) as Partial<AiError> | null;
+		throw new AiRequestError(res.status, (body?.error as AiError['error']) ?? 'provider', body?.message ?? `HTTP ${res.status}`);
+	}
+	const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+	let buf = '';
+	let event = 'message';
+	let data = '';
+	for (;;) {
+		let chunk: ReadableStreamReadResult<string>;
+		try {
+			chunk = await reader.read();
+		} catch (e) {
+			if ((e as Error)?.name === 'AbortError') throw e;
+			throw new AiRequestError(0, 'network', 'The connection dropped');
+		}
+		if (chunk.done) break;
+		buf += chunk.value;
+		let i: number;
+		while ((i = buf.indexOf('\n')) >= 0) {
+			const line = buf.slice(0, i).replace(/\r$/, '');
+			buf = buf.slice(i + 1);
+			if (line.startsWith('event:')) event = line.slice(6).trim();
+			else if (line.startsWith('data:')) data += line.slice(5).trimStart();
+			else if (line === '' && data) {
+				const payload = JSON.parse(data);
+				data = '';
+				if (event === 'delta') ondelta(payload.t as string);
+				else if (event === 'done') return payload as AskResponse;
+				else if (event === 'error') throw new AiRequestError(502, payload.error ?? 'provider', payload.message ?? 'AI call failed');
+				event = 'message';
+			}
+		}
+	}
+	throw new AiRequestError(0, 'network', 'The reply ended early');
+}
+
 export type { Feature };

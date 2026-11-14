@@ -189,7 +189,11 @@ All AI is optional; every feature still works without it.
   - **Lesson packs:** the AI designs a unit around any topic, and it
     appears in Learn under ✨ My packs.
   - **Ask AI:** a tutor chat that knows your level and answers in both
-    languages, with tappable examples.
+    languages, with tappable examples. Answers stream in as they are
+    written (server-sent events from the Worker; Stop keeps what was
+    written). Every conversation is saved on the device as a thread: the
+    History sheet groups them by day, searches titles and messages, and
+    rows swipe left to delete.
 - **Accuracy:**
   - **Everything the AI writes in Japanese is checked against JMdict on
     the device.**
@@ -215,7 +219,7 @@ SvelteKit 3 / Svelte 5 SPA                     Worker  (benkyo.jirachai.me)
 ├─ IndexedDB: cards, review log, user cards,   ├─ static app (assets, or embedded build)
 │  packs, outbox (local-first)                 ├─ /api/sync      D1: review log (append-only) + cards (LWW)
 ├─ Service worker: precache shell + common     ├─ /api/auth/*    passkeys, sessions, recovery
-│  dictionary; lazy-cache the rest; updates    ├─ /api/ai/*      keys, models, prices, cap, propose/fill/lesson/ask
+│  dictionary; lazy-cache the rest; updates    ├─ /api/ai/*      keys, models, prices, cap, propose/fill/lesson/ask(+stream)
 ├─ FSRS-5 scheduler (TS)                       └─ KV + Cache API: content manifest, model lists
 ├─ Handwriting matcher: Rust → WASM (22 KB), JS fallback
 └─ Dictionary: JMdict via @johnmorrisdotca/jisho (lazy chunks)

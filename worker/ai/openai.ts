@@ -176,3 +176,136 @@ export async function listOpenAiModels(baseUrl: string, apiKey: string, fetchImp
 		.map((m) => mapOpenAiModel(m as OaiModel))
 		.filter((m): m is ProviderModel => !!m);
 }
+
+// ------------------------------------------------------------- streaming ----
+
+interface ChatChunk {
+	choices?: { delta?: { content?: unknown; refusal?: string | null }; finish_reason?: string | null }[];
+	usage?: ChatResponse['usage'];
+}
+
+/** Server-sent events → the `data:` payloads, one at a time. */
+export async function* sseData(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
+	const reader = body.pipeThrough(new TextDecoderStream()).getReader();
+	let buf = '';
+	for (;;) {
+		const { value, done } = await reader.read();
+		if (done) break;
+		buf += value;
+		let i: number;
+		while ((i = buf.indexOf('\n')) >= 0) {
+			const line = buf.slice(0, i).replace(/\r$/, '');
+			buf = buf.slice(i + 1);
+			if (line.startsWith('data:')) yield line.slice(5).trimStart();
+		}
+	}
+	if (buf.startsWith('data:')) yield buf.slice(5).trimStart();
+}
+
+/** Streamed plain-text reply (Ask AI) from an OpenAI-compatible server. */
+export async function streamOpenAi(
+	parts: PromptParts,
+	model: string,
+	baseUrl: string,
+	apiKey: string,
+	onText: (t: string) => void,
+	opts: { signal?: AbortSignal; fetch?: FetchLike } = {}
+): Promise<AdapterResult> {
+	const f = opts.fetch ?? fetch;
+	let maxTokensKey: 'max_tokens' | 'max_completion_tokens' = 'max_tokens';
+	let includeUsage = true;
+	for (let attempt = 0; attempt < 3; attempt++) {
+		const body = openAiChatBody(parts, model, 'json_schema');
+		body.stream = true;
+		if (includeUsage) body.stream_options = { include_usage: true };
+		if (maxTokensKey === 'max_completion_tokens') {
+			body.max_completion_tokens = body.max_tokens;
+			delete body.max_tokens;
+		}
+		let res: Response;
+		try {
+			const signals = [AbortSignal.timeout(TIMEOUT_MS), ...(opts.signal ? [opts.signal] : [])];
+			res = await f(`${baseUrl}/chat/completions`, {
+				method: 'POST',
+				headers: { ...headers(apiKey), accept: 'text/event-stream' },
+				body: JSON.stringify(body),
+				signal: AbortSignal.any(signals)
+			});
+		} catch (e) {
+			return { ok: false, status: 502, error: 'provider', message: `Could not reach the provider: ${(e as Error).message}`, usage: [], billedUnknown: true };
+		}
+		if (res.status === 400 || res.status === 422) {
+			const errText = (await res.text()).slice(0, 2000);
+			if (includeUsage && /stream_options|include_usage/i.test(errText)) {
+				includeUsage = false;
+				continue;
+			}
+			if (maxTokensKey === 'max_tokens' && /max_tokens/i.test(errText) && /max_completion_tokens/i.test(errText)) {
+				maxTokensKey = 'max_completion_tokens';
+				continue;
+			}
+			return { ok: false, status: 502, error: 'provider', message: `Provider rejected the request: ${errText.slice(0, 300)}`, usage: [] };
+		}
+		if (!res.ok || !res.body) {
+			const why =
+				res.status === 401 || res.status === 403
+					? 'The provider rejected the API key.'
+					: res.status === 429
+						? 'Provider rate limit reached; try again shortly.'
+						: `Provider error ${res.status}.`;
+			return { ok: false, status: 502, error: 'provider', message: why, usage: [] };
+		}
+		let text = '';
+		let finish: string | null | undefined;
+		let refused = false;
+		let reported: ChatResponse['usage'];
+		try {
+			if (!(res.headers.get('content-type') ?? '').includes('event-stream')) {
+				// Server ignored `stream: true`: read the whole reply.
+				const data = (await res.json()) as ChatResponse;
+				const c = data.choices?.[0];
+				text = contentText(c?.message?.content);
+				if (text) onText(text);
+				finish = c?.finish_reason;
+				refused = !!c?.message?.refusal;
+				reported = data.usage;
+			} else {
+				for await (const d of sseData(res.body)) {
+					if (d === '[DONE]') break;
+					let chunk: ChatChunk;
+					try {
+						chunk = JSON.parse(d);
+					} catch {
+						continue;
+					}
+					if (chunk.usage) reported = chunk.usage;
+					const c = chunk.choices?.[0];
+					if (!c) continue;
+					if (c.delta?.refusal) refused = true;
+					const t = contentText(c.delta?.content);
+					if (t) {
+						text += t;
+						onText(t);
+					}
+					if (c.finish_reason) finish = c.finish_reason;
+				}
+			}
+		} catch (e) {
+			return {
+				ok: false,
+				status: 502,
+				error: 'provider',
+				message: `The reply stream broke: ${(e as Error).message}`,
+				usage: usageOf({ usage: reported }, model, parts, text),
+				billedUnknown: true
+			};
+		}
+		const usage = usageOf({ usage: reported }, model, parts, text);
+		if (refused || finish === 'content_filter')
+			return { ok: false, status: 502, error: 'provider', message: 'The model declined this request.', usage };
+		if (!text.trim()) return { ok: false, status: 502, error: 'invalid_output', message: 'Empty reply.', usage };
+		// A reply cut off by max_tokens is still shown; the answer is usually complete enough.
+		return { ok: true, text, usage };
+	}
+	return { ok: false, status: 502, error: 'provider', message: 'Provider rejected the request format.', usage: [] };
+}

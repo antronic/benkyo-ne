@@ -6,6 +6,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type {
 	BetaContentBlockParam,
 	BetaMessage,
+	BetaMessageStreamParams,
 	MessageCreateParamsNonStreaming
 } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import type { ModelInfo as AnthropicModelInfo } from '@anthropic-ai/sdk/resources/models';
@@ -43,7 +44,7 @@ export function buildAnthropicRequest(parts: PromptParts, model: string): Messag
 		max_tokens: parts.maxTokens,
 		system: [{ type: 'text', text: parts.system, cache_control: { type: 'ephemeral' } }],
 		messages: [{ role: 'user', content }],
-		output_config: { effort: 'low', format: { type: 'json_schema', schema: parts.schema } }
+		output_config: parts.plain ? { effort: 'low' } : { effort: 'low', format: { type: 'json_schema', schema: parts.schema } }
 	};
 	if (usesFallback(model)) {
 		req.betas = [FALLBACK_BETA];
@@ -153,4 +154,43 @@ export async function listAnthropicModels(apiKey: string, fetchImpl?: FetchLike)
 		if (out.length >= 500) break;
 	}
 	return out;
+}
+
+// ------------------------------------------------------------- streaming ----
+
+/**
+ * Streamed plain-text reply (Ask AI). `onText` gets each text delta as it
+ * arrives; the result carries the full text and usage from the final message.
+ */
+export async function streamAnthropic(
+	parts: PromptParts,
+	model: string,
+	apiKey: string,
+	onText: (t: string) => void,
+	signal?: AbortSignal,
+	fetchImpl?: FetchLike
+): Promise<AdapterResult> {
+	let started = false;
+	let collected = '';
+	try {
+		const params = buildAnthropicRequest(parts, model) as BetaMessageStreamParams;
+		const stream = client(apiKey, fetchImpl).beta.messages.stream(params, { signal });
+		for await (const event of stream) {
+			if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+				started = true;
+				collected += event.delta.text;
+				onText(event.delta.text);
+			}
+		}
+		const msg = await stream.finalMessage();
+		const r = readAnthropicMessage(msg, model);
+		// Cut off by max_tokens: the learner already saw the text, keep it.
+		if (!r.ok && msg.stop_reason === 'max_tokens' && collected.trim()) return { ok: true, text: collected, usage: r.usage };
+		return r;
+	} catch (e) {
+		const r = anthropicError(e);
+		// Tokens were already produced: we can't know the bill, keep the worst case.
+		if (!r.ok && started) r.billedUnknown = true;
+		return r;
+	}
 }

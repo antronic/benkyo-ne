@@ -154,6 +154,8 @@ export interface PromptParts {
 	schema: JsonSchema;
 	schemaName: 'fill_response' | 'propose_response' | 'lesson_response' | 'ask_response';
 	maxTokens: number;
+	/** plain-text reply (streaming Ask): no JSON format is requested */
+	plain?: boolean;
 }
 
 function langLine(secondLang: string | null) {
@@ -261,7 +263,7 @@ export function openAiChatBody(
 	retry = false
 ): Record<string, unknown> {
 	const system =
-		format === 'json_object'
+		parts.plain ? parts.system : format === 'json_object'
 			? `${parts.system}\n\nJSON schema of the reply:\n${JSON.stringify(parts.schema)}`
 			: parts.system;
 	const userText = retry ? `${parts.user}\n\n${RETRY_NOTE}` : parts.user;
@@ -278,9 +280,13 @@ export function openAiChatBody(
 			{ role: 'system', content: system },
 			{ role: 'user', content }
 		],
-		response_format:
-			format === 'json_schema'
-				? { type: 'json_schema', json_schema: { name: parts.schemaName, strict: true, schema: parts.schema } }
-				: { type: 'json_object' }
+		...(parts.plain
+			? {}
+			: {
+					response_format:
+						format === 'json_schema'
+							? { type: 'json_schema', json_schema: { name: parts.schemaName, strict: true, schema: parts.schema } }
+							: { type: 'json_object' }
+				})
 	};
 }
