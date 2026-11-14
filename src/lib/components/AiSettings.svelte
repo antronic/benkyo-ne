@@ -264,7 +264,7 @@
 		{:else}
 			<div class="item caption">No keys yet. Keys are encrypted on your Worker and can’t be read back.</div>
 		{/each}
-		<div class="item stack add" style:--gap="8px">
+		<div class="item add">
 			<div class="row">
 				<select bind:value={provider} aria-label="Provider">
 					<option value="anthropic">Anthropic</option>
@@ -286,9 +286,8 @@
 		<h3 class="eyebrow section">Models</h3>
 		<div class="glass group">
 			{#each FEATURES as f}
-				<div class="item">
+				<div class="item feature">
 					<span class="stack" style:--gap="2px"><span>{f.label}</span><span class="caption">{f.hint}</span></span>
-					<span class="spacer"></span>
 					<select aria-label="Model for {f.label}" value={current(f.id)} onchange={(e) => choose(f.id, e.currentTarget.value)} disabled={loadingModels}>
 						{#each groups as g}
 							<optgroup label={g.c.label}>
@@ -346,33 +345,77 @@
 		border-top: 0.5px solid var(--hairline);
 	}
 	/* .item is a flex row; these two must stack full-width */
-	.item.add,
 	details.item {
 		display: block;
 	}
+	/* add-key form: evenly spaced rows of equal-height controls */
+	.item.add {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 10px;
+	}
+	.add .row {
+		--gap: 10px;
+		align-items: stretch;
+	}
+	.add select {
+		flex: none;
+		max-width: none;
+	}
+	.add input {
+		flex: 1;
+		min-width: 0;
+	}
+	.add .btn {
+		flex: none;
+		min-height: 48px;
+	}
+	/* one look for every control in this section */
 	select,
-	.num {
+	.num,
+	.add input,
+	input[type='password'],
+	.item input[type='text'] {
 		font: inherit;
-		font-size: 0.9375rem;
-		padding: 8px 10px;
-		border-radius: 10px;
+		font-size: 1rem;
+		height: 48px;
+		min-height: 48px;
+		padding: 0 14px;
+		border-radius: 12px;
 		border: 0.5px solid var(--hairline);
 		background: var(--glass-strong);
 		color: var(--ink);
+		box-sizing: border-box;
+	}
+	select {
+		padding-right: 32px;
+		appearance: none;
+		-webkit-appearance: none;
+		background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
+			linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+		background-position:
+			calc(100% - 18px) 21px,
+			calc(100% - 13px) 21px;
+		background-size: 5px 5px;
+		background-repeat: no-repeat;
+		text-overflow: ellipsis;
+	}
+	/* model pickers: label above a full-width picker */
+	.item.feature {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+	}
+	.feature select {
+		width: 100%;
+		max-width: none;
+	}
+	select {
 		max-width: 52vw;
 	}
 	.num {
-		width: 80px;
-	}
-	input[type='password'] {
-		font: inherit;
-		width: 100%;
-		min-height: 44px;
-		padding: 0 14px;
-		border-radius: var(--r-s);
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		color: var(--ink);
+		width: 88px;
 	}
 	.meter {
 		height: 8px;
