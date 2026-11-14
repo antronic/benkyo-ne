@@ -5,6 +5,9 @@
 	import { goto, onNavigate } from '$app/navigation';
 	import { updater } from '#lib/pwa/update.svelte.ts';
 	import UpdateBanner from '#lib/components/UpdateBanner.svelte';
+	import Splash from '#lib/components/Splash.svelte';
+	import Intro from '#lib/components/Intro.svelte';
+	import { get as idbGet, put as idbPut } from '#lib/db/idb.ts';
 	import { page } from '$app/state';
 	import Backdrop from '#lib/components/Backdrop.svelte';
 	import TabBar from '#lib/components/TabBar.svelte';
@@ -36,6 +39,9 @@
 		progress
 			.load()
 			.then(() => words.load())
+			.then(async () => {
+				if (!(await idbGet<boolean>('meta', 'introSeen'))) ui.showIntro = true;
+			})
 			.then(startAutoSync);
 		ai.watch();
 		const onOnline = () => setTimeout(() => void processOutbox(), 1500);
@@ -81,6 +87,15 @@
 	<TabBar />
 {/if}
 
+{#if ui.showIntro}
+	<Intro
+		ondone={() => {
+			ui.showIntro = false;
+			void idbPut('meta', true, 'introSeen');
+		}}
+	/>
+{/if}
+<Splash ready={progress.ready && words.ready} />
 <UpdateBanner />
 <Overlays />
 

@@ -5,5 +5,7 @@ export const ui = $state({
 	 * Optional guard run before leaving an immersive screen (swipe-back or the
 	 * close button). Return false to stay.
 	 */
-	backGuard: null as null | (() => Promise<boolean>)
+	backGuard: null as null | (() => Promise<boolean>),
+	/** first-launch introduction overlay (replayable from Settings) */
+	showIntro: false
 });

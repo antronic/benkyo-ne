@@ -173,6 +173,7 @@
 	<div class="glass group rise" style:--i="3">
 		<div class="item"><span>Handwriting engine</span><span class="spacer"></span><span class="caption">{engine}</span></div>
 		<div class="item"><span>Version</span><span class="spacer"></span><span class="caption">{new Date(Number(version) || Date.now()).toLocaleString()}{#if updater.ready} · <button class="link" onclick={() => updater.restart()}>update ready, restart</button>{/if}</span></div>
+		<div class="item"><span>Introduction</span><span class="spacer"></span><button class="btn ghost small" onclick={() => (ui.showIntro = true)}>▶ Replay introduction</button></div>
 		<div class="item"><span>Scheduler</span><span class="spacer"></span><span class="caption">FSRS-5</span></div>
 		<div class="item caption">
 			<span>Stroke order data from <a href="https://kanjivg.tagaini.net" target="_blank" rel="noreferrer">KanjiVG</a>
