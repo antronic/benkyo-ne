@@ -3,6 +3,7 @@
 	deck until you tick items and tap Save.
 -->
 <script lang="ts">
+	import Skeleton from '#lib/components/Skeleton.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -160,7 +161,9 @@
 		</div>
 
 		<div class="pane results-pane">
-			{#if result}
+			{#if busy}
+				<Skeleton variant="row" count={4} label="Looking up" />
+			{:else if result}
 				{#if result.aiNote && result.items.length}<p class="caption note">⚠️ {result.aiNote}</p>{/if}
 				{#if !result.items.length}
 					<div class="glass empty">

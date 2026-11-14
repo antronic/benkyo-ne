@@ -4,6 +4,7 @@
 	skips waiting for the kana lessons (cards aren't parked).
 -->
 <script lang="ts">
+	import Skeleton from '#lib/components/Skeleton.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -96,6 +97,9 @@
 			</div>
 		</header>
 
+		{#if !cands.length}
+			<Skeleton variant="row" count={unit.items.length} label="Checking items in the dictionary" />
+		{/if}
 		<ul class="items">
 			{#each cands as c, i (c.key)}
 				{@const have = !!words.cards[c.key] && !words.cards[c.key].deleted}

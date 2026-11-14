@@ -1,5 +1,6 @@
 <!-- Words hub: reading packs, card maker, tags, and your word/phrase cards. -->
 <script lang="ts">
+	import Skeleton from '#lib/components/Skeleton.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -115,8 +116,10 @@
 					</a>
 				{/each}
 			</div>
+		{:else if preparing}
+			<Skeleton variant="tile" count={3} label="Preparing reading packs" />
 		{:else}
-			<div class="glass card caption">{preparing ? 'Preparing packs…' : 'No packs yet. They appear as you learn more kana.'}</div>
+			<div class="glass card caption">No packs yet. They appear as you learn more kana.</div>
 		{/if}
 	</section>
 

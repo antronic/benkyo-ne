@@ -11,6 +11,7 @@
 	import { page } from '$app/state';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { backOut, cubicIn } from 'svelte/easing';
 	import { insets, regular, SIDE_RAIL_MIN } from '#lib/ios/device.svelte.ts';
 
 	// Compact screens with a right-side status column (iOS 27, folded iPhone Duo):
@@ -63,9 +64,28 @@
 		}
 		minimized = false;
 	}
+
+	/**
+	 * Slide the bar out/in when entering/leaving immersive screens. Animates
+	 * the standalone CSS `translate` property so it composes with the bar's
+	 * own positioning transform. Direction follows where the bar lives.
+	 */
+	function barSlide(_node: Element, { out = false } = {}) {
+		const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+		const dir = side ? 'right' : regular.current ? 'left' : 'down';
+		return {
+			duration: reduce ? 0 : out ? 260 : 520,
+			easing: out ? cubicIn : backOut,
+			css: (t: number) => {
+				const d = (1 - t) * (dir === 'down' ? 140 : 110);
+				const tr = dir === 'down' ? `0 ${d}px` : dir === 'right' ? `${d}px 0` : `${-d}px 0`;
+				return `translate: ${tr}; opacity: ${Math.min(1, t * 1.6)}; filter: blur(${(1 - t) * 4}px);`;
+			}
+		};
+	}
 </script>
 
-<nav class="tabbar glass sheen" class:minimized={minimized && !side} class:side style:--i={activeIndex} style:--n={tabs.length} aria-label="Main">
+<nav in:barSlide|global out:barSlide|global={{ out: true }} class="tabbar glass sheen" class:minimized={minimized && !side} class:side style:--i={activeIndex} style:--n={tabs.length} aria-label="Main">
 	<span class="pill" aria-hidden="true"></span>
 	{#each tabs as t, i}
 		<a href={t.href} class:active={i === activeIndex} aria-current={i === activeIndex ? 'page' : undefined} onclick={(e) => tap(e, i)}>

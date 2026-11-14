@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Skeleton from '#lib/components/Skeleton.svelte';
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { goto, onNavigate } from '$app/navigation';
@@ -67,6 +68,12 @@
 <div class="app" use:edgeSwipeBack={{ enabled: immersive, onback: back }}>
 	{#if progress.ready && words.ready}
 		{@render children()}
+	{:else}
+		<main class="page stack boot" style:--gap="16px" aria-busy="true">
+			<div class="boot-title"></div>
+			<Skeleton variant="card" count={1} label="Loading your progress" />
+			<Skeleton variant="row" count={3} />
+		</main>
 	{/if}
 </div>
 
@@ -80,5 +87,11 @@
 <style>
 	.app {
 		min-height: 100dvh;
+	}
+	.boot-title {
+		width: 46%;
+		height: 34px;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--ink) 9%, transparent);
 	}
 </style>

@@ -3,6 +3,7 @@
 	checked against the dictionary → save → it appears in Learn ("My packs").
 -->
 <script lang="ts">
+	import Skeleton from '#lib/components/Skeleton.svelte';
 	import { goto } from '$app/navigation';
 	import { fly } from 'svelte/transition';
 	import * as api from '#lib/ai/client.ts';
@@ -87,7 +88,13 @@
 		{#if !ai.available}<p class="caption">{ai.reason}</p>{/if}
 	</form>
 
-	{#if draft}
+	{#if busy}
+		<div class="stack" style:--gap="10px">
+			<div class="caption">✨ Designing “{topic}” and checking each item in the dictionary…</div>
+			<Skeleton variant="card" count={1} />
+			<Skeleton variant="row" count={5} />
+		</div>
+	{:else if draft}
 		<section class="stack draft" style:--gap="10px" in:fly={{ y: 16, duration: 350 }}>
 			<div>
 				<h2 class="title-2">{draft.title.en}</h2>

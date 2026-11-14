@@ -3,6 +3,7 @@
 	hook and example. Finishing adds the words as cards (D10).
 -->
 <script lang="ts">
+	import Skeleton from '#lib/components/Skeleton.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -75,7 +76,9 @@
 		<span class="caption">{pack ? `${i + 1}/${pack.items.length}` : ''}</span>
 	</header>
 
-	{#if missing}
+	{#if !pack && !missing}
+		<div class="stack" style:--gap="12px" style="margin-top:20px"><Skeleton variant="card" count={1} label="Opening pack" /><Skeleton variant="line" count={2} /></div>
+	{:else if missing}
 		<p class="subhead">This pack isn’t on this device anymore.</p>
 	{:else if pack && item}
 		{#if pack.theme}

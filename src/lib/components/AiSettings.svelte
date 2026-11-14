@@ -4,6 +4,7 @@
 	prices, the monthly cap meter, and the second explanation language.
 -->
 <script lang="ts">
+	import Skeleton from '#lib/components/Skeleton.svelte';
 	import { onMount } from 'svelte';
 	import * as api from '#lib/ai/client.ts';
 	import type { Feature, FeatureModel, ModelInfo, ProviderKind } from '#lib/ai/contract.ts';
@@ -301,6 +302,7 @@
 			{/each}
 			<details class="item">
 				<summary class="caption">All models ({models.length}) · fetched live from each provider</summary>
+				{#if loadingModels && !models.length}<Skeleton variant="line" count={4} label="Loading models" />{/if}
 				<div class="model-list">
 					{#each models as m}
 						<div class="model">

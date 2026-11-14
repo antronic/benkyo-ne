@@ -99,7 +99,7 @@
 				{/if}
 			</div>
 		{/each}
-		{#if busy}<div class="bubble assistant typing" aria-label="Thinking">●●●</div>{/if}
+		{#if busy}<div class="bubble assistant typing" role="status" aria-label="Thinking"><span></span><span></span><span></span></div>{/if}
 	</div>
 
 	<form class="composer glass glass-strong" onsubmit={(e) => (e.preventDefault(), send())}>
@@ -190,9 +190,34 @@
 		font-size: 1.0625rem;
 	}
 	.typing {
-		letter-spacing: 3px;
-		color: var(--ink-3);
-		animation: pop 1.2s ease-in-out infinite;
+		display: flex;
+		gap: 5px;
+		padding: 14px 16px;
+	}
+	.typing span {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--ink-3);
+		animation: dot 1.1s ease-in-out infinite;
+	}
+	.typing span:nth-child(2) {
+		animation-delay: 0.15s;
+	}
+	.typing span:nth-child(3) {
+		animation-delay: 0.3s;
+	}
+	@keyframes dot {
+		0%,
+		60%,
+		100% {
+			transform: translateY(0);
+			opacity: 0.4;
+		}
+		30% {
+			transform: translateY(-5px);
+			opacity: 1;
+		}
 	}
 	.composer {
 		position: fixed;
