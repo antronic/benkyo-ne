@@ -71,7 +71,7 @@ revisited later on purpose rather than by accident.
 | Runaway loop or bug | $5/month hard cap checked **before** every call, using the worst case (`max_tokens` × output price). Per-request `max_tokens` ceiling. Max 30 AI calls per minute per session |
 | Prompt injection via generated content | Model output is data. It's validated against a JSON schema and the dictionary; HTML is never rendered from it (text nodes only) |
 | Lost phone | Passkeys sync through iCloud Keychain. A one-time recovery code is shown once when you register, stored hashed in D1 |
-| First-run takeover (someone registers a passkey before you) | Registration needs a one-time `SETUP_TOKEN` Worker secret. Registration closes after the first passkey unless you're already signed in |
+| Someone else uses my key | Since wave 2 phase A, keys belong to a passkey account: every query takes the account from the session, and the AES-GCM additional data includes the account id, so a key row can't be used by another account. Sign-up is open (set `SIGNUP_MODE=closed` to stop it) and throttled per IP and per day |
 
 ---
 
@@ -309,7 +309,7 @@ CREATE TABLE ai_ledger (               -- spend tracking for the hard cap
 ```
 
 **Endpoints:**
-- `POST /api/auth/register` (+ setup token)
+- `POST /api/auth/register/options` + `/verify` (sign-up, or add a passkey when signed in)
 - `POST /api/auth/login`
 - `POST /api/ai/keys` (write-only)
 - `GET /api/ai/keys` (labels and last4 only)
@@ -485,4 +485,43 @@ fees.
 | Billing entity | **Personal** (individual) | Check Stripe/Omise eligibility for individual sellers in Thailand. Thai VAT registration is needed only above the revenue threshold (currently 1.8M THB/year). Personal income tax applies to the income. Get confirmation from a Thai tax advisor before charging. |
 | Sending email | **mail@jirachai.me** | Verify `jirachai.me` with the email provider (SPF, DKIM and DMARC records on the Cloudflare zone). Use a dedicated sending address; replies can go to `mail@jirachai.me` via Cloudflare Email Routing. |
 
-Status: **captured only; nothing in wave 2 is being built yet.**
+Status: **Phase A is built, passkey only (2026-11-14).** Email magic links,
+Sign in with Apple, Turnstile, the admin screen, data export and syncing
+learning progress through the account are still to do. Phase B is not started.
+
+## Phase A as built (2026-11-14)
+
+Scope chosen: **passkeys only**, each account brings its own key (BYOK).
+
+- **Accounts** (`accounts` table, migration `0003_accounts.sql`): name,
+  WebAuthn user handle, monthly cap, admin and disabled flags. The previous
+  single-owner data (passkeys, keys, prices, model choices, ledger, cap)
+  becomes account 1, an admin. Rows that can't be attributed are deleted so
+  a new sign-up can't inherit them.
+- **Sign-up:** signed out, `register/options` takes `{name}` and issues a
+  challenge carrying a fresh user handle; the account row is created only
+  when the passkey verifies. Open by default; `SIGNUP_MODE=closed` stops new
+  accounts. Throttles: 5 sign-ups per IP per hour, 200 per day overall.
+  The `SETUP_TOKEN` secret is no longer used.
+- **Sign-in:** discoverable passkey; the passkey's account (and the
+  authenticator's user handle) decides who you are.
+- **Per account:** API keys (up to 10), model per feature, manual prices,
+  spend cap and ledger, AI rate limit (30/min per account, 300/min overall),
+  one recovery code.
+- **Key binding:** new keys use AAD `ai-cred|v2|u<id>|provider|baseUrl`
+  (`aad_version` 2). Older rows keep version 1 and still decrypt.
+- **Account controls in Settings → Account:** rename, passkey list (with
+  the device name), add or remove passkeys (never the last one), new
+  recovery code, sign out, delete account (keys, passkeys, AI settings and
+  usage are deleted at once).
+- **Not covered:** learning progress stays on the device and syncs with the
+  sync key as before, and Ask AI chats stay on the device. Two people
+  sharing one phone share that local data.
+- **Tests:** a two-account browser test checks that one account can't see,
+  delete, select or spend through another's key, that passkeys, usage and
+  caps are separate, that recovery codes are single use, and that deleting
+  an account stops its passkey from signing in.
+
+**Deploying it:** apply the migration before the new Worker goes live:
+`npx wrangler d1 migrations apply benkyo --remote` (the
+`cf:deploy` script does this; `cf:deploy:embedded` does not).

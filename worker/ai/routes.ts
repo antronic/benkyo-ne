@@ -30,16 +30,17 @@ export async function handleAi(req: Request, env: Env, ctx: ExecutionContext, ur
 	if (!session) return aiError(401, 'unauthorized', 'Sign in with your passkey first');
 	const path = url.pathname;
 	const m = req.method;
+	const uid = session.userId;
 
 	if (path === '/api/ai/credentials') {
-		if (m === 'GET') return json((await listCredentials(env)).map(toInfo));
-		if (m === 'POST') return json(await createCredential(env, await readJson(req), url), { status: 201 });
+		if (m === 'GET') return json((await listCredentials(env, uid)).map(toInfo));
+		if (m === 'POST') return json(await createCredential(env, uid, await readJson(req), url), { status: 201 });
 	}
 	const credMatch = /^\/api\/ai\/credentials\/(\d+)$/.exec(path);
 	if (credMatch && m === 'DELETE') {
 		const id = Number(credMatch[1]);
-		const cred = await getCredential(env, id);
-		if (!cred || !(await deleteCredential(env, id))) return aiError(404, 'bad_request', 'No such credential');
+		const cred = await getCredential(env, uid, id);
+		if (!cred || !(await deleteCredential(env, uid, id))) return aiError(404, 'bad_request', 'No such credential');
 		ctx.waitUntil(dropModelCache(cred).catch(() => {}));
 		return json({ ok: true });
 	}
@@ -47,22 +48,22 @@ export async function handleAi(req: Request, env: Env, ctx: ExecutionContext, ur
 		const c = url.searchParams.get('credential');
 		const only = c === null ? undefined : Number(c);
 		if (only !== undefined && !Number.isInteger(only)) throw httpError(400, 'bad_request', 'bad credential');
-		const { models, errors } = await listAllModels(env, ctx, only);
+		const { models, errors } = await listAllModels(env, ctx, uid, only);
 		return json(models, errors.length ? { headers: { 'x-model-errors': JSON.stringify(errors) } } : {});
 	}
-	if (path === '/api/ai/prices' && m === 'PUT') return json(await setManualPrice(env, await readJson(req)));
+	if (path === '/api/ai/prices' && m === 'PUT') return json(await setManualPrice(env, uid, await readJson(req)));
 	if (path === '/api/ai/features') {
-		if (m === 'GET') return json(await featureModels(env));
-		if (m === 'PUT') return json(await setFeatureModel(env, await readJson(req)));
+		if (m === 'GET') return json(await featureModels(env, uid));
+		if (m === 'PUT') return json(await setFeatureModel(env, uid, await readJson(req)));
 	}
-	if (path === '/api/ai/usage' && m === 'GET') return json(await getUsage(env));
+	if (path === '/api/ai/usage' && m === 'GET') return json(await getUsage(env, uid));
 	if (path === '/api/ai/cap' && m === 'PUT') {
 		const b = (await readJson(req)) as { capUsd?: unknown };
 		const cap = b?.capUsd;
 		if (typeof cap !== 'number' || !Number.isFinite(cap) || cap < 0 || cap > 1000)
 			throw httpError(400, 'bad_request', 'capUsd must be a number between 0 and 1000');
-		await setCap(env, cap);
-		return json(await getUsage(env));
+		await setCap(env, uid, cap);
+		return json(await getUsage(env, uid));
 	}
 	if (path === '/api/ai/propose' && m === 'POST') return handleGenerate('propose', req, env, ctx, session);
 	if (path === '/api/ai/fill' && m === 'POST') return handleGenerate('fill', req, env, ctx, session);

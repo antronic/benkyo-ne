@@ -52,10 +52,12 @@ export async function dropModelCache(cred: CredRow) {
 type ManualPrices = Map<string, Price>;
 const priceKey = (provider: ProviderKind, model: string) => `${provider}\u0000${model}`;
 
-export async function manualPrices(env: Env): Promise<ManualPrices> {
+export async function manualPrices(env: Env, userId: number): Promise<ManualPrices> {
 	const { results } = await env.DB.prepare(
-		`SELECT provider, model, input_per_m AS inputPerM, output_per_m AS outputPerM FROM ai_model_prices`
-	).all<{ provider: ProviderKind; model: string } & Price>();
+		`SELECT provider, model, input_per_m AS inputPerM, output_per_m AS outputPerM FROM ai_model_prices WHERE user_id = ?1`
+	)
+		.bind(userId)
+		.all<{ provider: ProviderKind; model: string } & Price>();
 	return new Map(results.map((r) => [priceKey(r.provider, r.model), { inputPerM: r.inputPerM, outputPerM: r.outputPerM }]));
 }
 
@@ -76,9 +78,9 @@ export function toModelInfo(cred: CredRow, m: ProviderModel, manual: ManualPrice
 }
 
 /** All models across credentials. Per-credential failures are reported, not fatal. */
-export async function listAllModels(env: Env, ctx: ExecutionContext, onlyCredential?: number) {
-	const creds = (await listCredentials(env)).filter((c) => onlyCredential === undefined || c.id === onlyCredential);
-	const manual = await manualPrices(env);
+export async function listAllModels(env: Env, ctx: ExecutionContext, userId: number, onlyCredential?: number) {
+	const creds = (await listCredentials(env, userId)).filter((c) => onlyCredential === undefined || c.id === onlyCredential);
+	const manual = await manualPrices(env, userId);
 	const errors: { credentialId: number; message: string }[] = [];
 	const lists = await Promise.all(
 		creds.map(async (c) => {
@@ -108,21 +110,21 @@ export async function priceFor(
 			/* list unavailable: fall through to built-in / manual */
 		}
 	}
-	const manual = await manualPrices(env);
+	const manual = await manualPrices(env, cred.user_id);
 	return resolvePrice(model, providerPrice, manual.get(priceKey(cred.provider, model)));
 }
 
-export async function setManualPrice(env: Env, body: unknown) {
+export async function setManualPrice(env: Env, userId: number, body: unknown) {
 	const b = (body ?? {}) as { provider?: unknown; model?: unknown; inputPerM?: unknown; outputPerM?: unknown };
 	if (b.provider !== 'anthropic' && b.provider !== 'openai-compatible') throw httpError(400, 'bad_request', 'bad provider');
 	if (typeof b.model !== 'string' || !b.model.trim() || b.model.length > 200) throw httpError(400, 'bad_request', 'bad model');
 	const price = { inputPerM: b.inputPerM, outputPerM: b.outputPerM };
 	if (!isValidPrice(price)) throw httpError(400, 'bad_request', 'prices must be numbers between 0 and 1000 (USD per million tokens)');
 	await env.DB.prepare(
-		`INSERT INTO ai_model_prices (provider, model, input_per_m, output_per_m, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)
-		 ON CONFLICT (provider, model) DO UPDATE SET input_per_m = ?3, output_per_m = ?4, updated_at = ?5`
+		`INSERT INTO ai_model_prices (user_id, provider, model, input_per_m, output_per_m, updated_at) VALUES (?6, ?1, ?2, ?3, ?4, ?5)
+		 ON CONFLICT (user_id, provider, model) DO UPDATE SET input_per_m = ?3, output_per_m = ?4, updated_at = ?5`
 	)
-		.bind(b.provider, b.model.trim(), price.inputPerM, price.outputPerM, Date.now())
+		.bind(b.provider, b.model.trim(), price.inputPerM, price.outputPerM, Date.now(), userId)
 		.run();
 	return { provider: b.provider, model: b.model.trim(), ...price };
 }
@@ -134,10 +136,12 @@ export async function setManualPrice(env: Env, body: unknown) {
  * falls back to the first Anthropic credential + Sonnet 5.5 (which also has
  * vision). Features with no usable credential are omitted.
  */
-export async function featureModels(env: Env): Promise<FeatureModel[]> {
+export async function featureModels(env: Env, userId: number): Promise<FeatureModel[]> {
 	const [creds, { results }] = await Promise.all([
-		listCredentials(env),
-		env.DB.prepare(`SELECT feature, credential_id AS credentialId, model FROM ai_feature_models`).all<FeatureModel>()
+		listCredentials(env, userId),
+		env.DB.prepare(`SELECT feature, credential_id AS credentialId, model FROM ai_feature_models WHERE user_id = ?1`)
+			.bind(userId)
+			.all<FeatureModel>()
 	]);
 	const ids = new Set(creds.map((c) => c.id));
 	const firstAnthropic = creds.find((c) => c.provider === 'anthropic');
@@ -150,25 +154,25 @@ export async function featureModels(env: Env): Promise<FeatureModel[]> {
 	return out;
 }
 
-export async function resolveFeature(env: Env, feature: Feature): Promise<{ cred: CredRow; model: string } | null> {
-	const fm = (await featureModels(env)).find((f) => f.feature === feature);
+export async function resolveFeature(env: Env, userId: number, feature: Feature): Promise<{ cred: CredRow; model: string } | null> {
+	const fm = (await featureModels(env, userId)).find((f) => f.feature === feature);
 	if (!fm) return null;
-	const cred = await getCredential(env, fm.credentialId);
+	const cred = await getCredential(env, userId, fm.credentialId);
 	return cred ? { cred, model: fm.model } : null;
 }
 
-export async function setFeatureModel(env: Env, body: unknown): Promise<FeatureModel> {
+export async function setFeatureModel(env: Env, userId: number, body: unknown): Promise<FeatureModel> {
 	const b = (body ?? {}) as Partial<FeatureModel>;
 	if (!FEATURES.includes(b.feature as Feature)) throw httpError(400, 'bad_request', 'feature must be fill, propose or vision');
-	if (!Number.isInteger(b.credentialId) || !(await getCredential(env, b.credentialId!)))
+	if (!Number.isInteger(b.credentialId) || !(await getCredential(env, userId, b.credentialId!)))
 		throw httpError(400, 'bad_request', 'unknown credentialId');
 	if (typeof b.model !== 'string' || !b.model.trim() || b.model.length > 200) throw httpError(400, 'bad_request', 'bad model');
 	const fm: FeatureModel = { feature: b.feature!, credentialId: b.credentialId!, model: b.model.trim() };
 	await env.DB.prepare(
-		`INSERT INTO ai_feature_models (feature, credential_id, model) VALUES (?1, ?2, ?3)
-		 ON CONFLICT (feature) DO UPDATE SET credential_id = ?2, model = ?3`
+		`INSERT INTO ai_feature_models (user_id, feature, credential_id, model) VALUES (?4, ?1, ?2, ?3)
+		 ON CONFLICT (user_id, feature) DO UPDATE SET credential_id = ?2, model = ?3`
 	)
-		.bind(fm.feature, fm.credentialId, fm.model)
+		.bind(fm.feature, fm.credentialId, fm.model, userId)
 		.run();
 	return fm;
 }

@@ -19,7 +19,7 @@ import type { Session } from '../auth/passkey.ts';
 import { streamAnthropic } from './anthropic.ts';
 import { sumUsage, usageCost, worstCaseForCall } from './cost.ts';
 import { decryptKey } from './credentials.ts';
-import { getUsage, rateLimit, reserve, settle } from './ledger.ts';
+import { GLOBAL_PER_MIN, getUsage, rateLimit, reserve, settle } from './ledger.ts';
 import { priceFor, resolveFeature } from './models.ts';
 import { streamOpenAi } from './openai.ts';
 import type { AdapterResult, UsageEntry } from './types.ts';
@@ -32,12 +32,12 @@ export async function handleAskStream(req: Request, env: Env, ctx: ExecutionCont
 	if (!parsed.ok) return aiError(400, 'bad_request', parsed.error);
 	const ask: AskRequest = parsed.value;
 
-	if (!(await rateLimit(env, session.tokenHash)))
+	if (!((await rateLimit(env, `user:${session.userId}`)) && (await rateLimit(env, 'all-users', GLOBAL_PER_MIN))))
 		return aiError(429, 'rate_limited', 'Too many AI calls; wait a minute and try again.', { 'retry-after': '60' });
 
 	const parts = buildAskStreamPrompt(ask);
 	const feature = 'propose' as const; // Ask AI uses the "Suggestions" model
-	const target = await resolveFeature(env, feature);
+	const target = await resolveFeature(env, session.userId, feature);
 	if (!target) return aiError(409, 'no_model', `No model is set for "${feature}". Add an API key in Settings.`);
 	const { cred, model } = target;
 	const priced = await priceFor(env, ctx, cred, model);
@@ -45,9 +45,9 @@ export async function handleAskStream(req: Request, env: Env, ctx: ExecutionCont
 
 	const apiKey = await decryptKey(env, cred);
 	const worst = worstCaseForCall(parts, cred.provider, model, priced.price);
-	const reservation = await reserve(env, { feature, provider: cred.provider, model, worstUsd: worst });
+	const reservation = await reserve(env, session.userId, { feature, provider: cred.provider, model, worstUsd: worst });
 	if (reservation === null) {
-		const u = await getUsage(env);
+		const u = await getUsage(env, session.userId);
 		return aiError(
 			402,
 			'cap_reached',

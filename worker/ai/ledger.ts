@@ -1,5 +1,5 @@
 /**
- * Spend cap (D12), usage meter and per-session rate limit.
+ * Per-account spend cap (D12), usage meter and rate limits.
  *
  * Every AI call first *reserves* its worst-case cost with a single
  * conditional INSERT (atomic in D1: the cap check and the reservation can't
@@ -13,6 +13,8 @@ import type { Env } from '../env.ts';
 
 export const DEFAULT_CAP_USD = 5;
 export const RATE_LIMIT_PER_MIN = 30;
+/** All accounts together, protecting the Worker and D1 free-tier limits. */
+export const GLOBAL_PER_MIN = 300;
 
 export function monthStart(now = Date.now()): number {
 	const d = new Date(now);
@@ -20,16 +22,17 @@ export function monthStart(now = Date.now()): number {
 }
 export const monthLabel = (now = Date.now()) => new Date(now).toISOString().slice(0, 7);
 
-const CAP_SQL = `COALESCE((SELECT CAST(value AS REAL) FROM ai_settings WHERE key = 'cap_usd'), ${DEFAULT_CAP_USD})`;
+/** The account's cap; `?U` is the user id parameter. */
+const capSql = (u: string) => `COALESCE((SELECT cap_usd FROM accounts WHERE id = ${u}), ${DEFAULT_CAP_USD})`;
 
-export async function getUsage(env: Env, now = Date.now()): Promise<Usage> {
+export async function getUsage(env: Env, userId: number, now = Date.now()): Promise<Usage> {
 	const row = await env.DB.prepare(
 		`SELECT COALESCE(SUM(cost_usd), 0) AS spent,
 		        COALESCE(SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END), 0) AS calls,
-		        ${CAP_SQL} AS cap
-		   FROM ai_ledger WHERE at >= ?1`
+		        ${capSql('?2')} AS cap
+		   FROM ai_ledger WHERE at >= ?1 AND user_id = ?2`
 	)
-		.bind(monthStart(now))
+		.bind(monthStart(now), userId)
 		.first<{ spent: number; calls: number; cap: number }>();
 	return {
 		month: monthLabel(now),
@@ -39,27 +42,24 @@ export async function getUsage(env: Env, now = Date.now()): Promise<Usage> {
 	};
 }
 
-export async function setCap(env: Env, capUsd: number) {
-	await env.DB.prepare(
-		`INSERT INTO ai_settings (key, value) VALUES ('cap_usd', ?1) ON CONFLICT (key) DO UPDATE SET value = ?1`
-	)
-		.bind(String(capUsd))
-		.run();
+export async function setCap(env: Env, userId: number, capUsd: number) {
+	await env.DB.prepare(`UPDATE accounts SET cap_usd = ?1 WHERE id = ?2`).bind(capUsd, userId).run();
 }
 
 /** Reserve `worstUsd` if it fits under this month's cap. Returns the ledger id, or null when it doesn't fit. */
 export async function reserve(
 	env: Env,
+	userId: number,
 	r: { feature: string; provider: string; model: string; worstUsd: number },
 	now = Date.now()
 ): Promise<number | null> {
 	const row = await env.DB.prepare(
-		`INSERT INTO ai_ledger (at, feature, provider, model, status, cost_usd)
-		 SELECT ?1, ?2, ?3, ?4, 'reserved', ?5
-		  WHERE (SELECT COALESCE(SUM(cost_usd), 0) FROM ai_ledger WHERE at >= ?6) + ?5 <= ${CAP_SQL} + 1e-9
+		`INSERT INTO ai_ledger (at, feature, provider, model, status, cost_usd, user_id)
+		 SELECT ?1, ?2, ?3, ?4, 'reserved', ?5, ?7
+		  WHERE (SELECT COALESCE(SUM(cost_usd), 0) FROM ai_ledger WHERE at >= ?6 AND user_id = ?7) + ?5 <= ${capSql('?7')} + 1e-9
 		 RETURNING id`
 	)
-		.bind(now, r.feature, r.provider, r.model, r.worstUsd, monthStart(now))
+		.bind(now, r.feature, r.provider, r.model, r.worstUsd, monthStart(now), userId)
 		.first<{ id: number }>();
 	return row?.id ?? null;
 }
@@ -88,11 +88,14 @@ export async function settle(
 	await env.DB.batch(stmts);
 }
 
-/** Fixed one-minute window per bucket. Returns false when over the limit. */
-export async function rateLimit(env: Env, bucket: string, limit = RATE_LIMIT_PER_MIN, now = Date.now()) {
-	const minute = Math.floor(now / 60000);
+/**
+ * Fixed window per bucket (`windowMin` minutes, default 1). Returns false
+ * when over the limit. `minute` stores the window's first minute.
+ */
+export async function rateLimit(env: Env, bucket: string, limit = RATE_LIMIT_PER_MIN, now = Date.now(), windowMin = 1) {
+	const minute = Math.floor(now / 60000 / windowMin) * windowMin;
 	const [, res] = await env.DB.batch([
-		env.DB.prepare(`DELETE FROM ai_rate WHERE minute < ?1`).bind(minute - 5),
+		env.DB.prepare(`DELETE FROM ai_rate WHERE minute < ?1`).bind(Math.floor(now / 60000) - 2 * 1440),
 		env.DB.prepare(
 			`INSERT INTO ai_rate (bucket, minute, count) VALUES (?1, ?2, 1)
 			 ON CONFLICT (bucket, minute) DO UPDATE SET count = count + 1 RETURNING count`

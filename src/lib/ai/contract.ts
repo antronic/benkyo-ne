@@ -18,8 +18,26 @@ export interface Bi {
 
 export interface Me {
 	signedIn: boolean;
-	/** True once a passkey exists; registration then needs a session. */
-	registered: boolean;
+	account: {
+		id: number;
+		name: string;
+		isAdmin: boolean;
+		/** signed in with a recovery code: add a passkey before anything else */
+		recovery: boolean;
+	} | null;
+	/** anyone can create an account with a passkey */
+	signupOpen: boolean;
+}
+
+export interface PasskeyInfo {
+	id: string;
+	name: string | null;
+	deviceType: string | null;
+	backedUp: boolean;
+	createdAt: number;
+	lastUsedAt: number | null;
+	/** the passkey this session signed in with */
+	current: boolean;
 }
 
 // ----------------------------------------------------------- credentials ----

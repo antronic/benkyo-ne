@@ -1,10 +1,11 @@
 <!--
-	AI settings (docs/AI-PLAN.md): passkey, provider keys (write-only),
+	AI settings (docs/AI-PLAN.md): your account's provider keys (write-only),
 	live model list from each provider's /models, per-feature model choice,
 	prices, the monthly cap meter, and the second explanation language.
 -->
 <script lang="ts">
 	import Skeleton from '#lib/components/Skeleton.svelte';
+	import AccountSettings from '#lib/components/AccountSettings.svelte';
 	import { onMount } from 'svelte';
 	import * as api from '#lib/ai/client.ts';
 	import type { Feature, FeatureModel, ModelInfo, ProviderKind } from '#lib/ai/contract.ts';
@@ -41,9 +42,6 @@
 	let features = $state<FeatureModel[]>([]);
 	let loadingModels = $state(false);
 	let busy = $state(false);
-	let recoveryCode = $state<string | null>(null);
-	let setupToken = $state('');
-	let recoverInput = $state('');
 	let capInput = $state(5);
 
 	// new key form
@@ -52,13 +50,23 @@
 	let baseUrl = $state('');
 	let apiKey = $state('');
 
-	const supported = typeof window !== 'undefined' && 'PublicKeyCredential' in window;
 
 	onMount(async () => {
 		await ai.refresh();
 		if (ai.signedIn) await loadModels();
 		if (ai.usage) capInput = ai.usage.capUsd;
 	});
+
+	/** Called by the Account section after sign-in, sign-up or sign-out. */
+	export async function reload() {
+		if (ai.signedIn) {
+			await loadModels();
+			if (ai.usage) capInput = ai.usage.capUsd;
+		} else {
+			models = [];
+			features = [];
+		}
+	}
 
 	async function guard<T>(fn: () => Promise<T>, ok?: string): Promise<T | undefined> {
 		busy = true;
@@ -88,31 +96,6 @@
 		}
 	}
 
-	async function register() {
-		const r = await guard(() => api.registerPasskey(ai.registered ? undefined : setupToken.trim()), 'Passkey saved');
-		if (r) {
-			recoveryCode = r.recoveryCode ?? null;
-			await guard(() => api.signIn());
-			await ai.refresh();
-			await loadModels();
-		}
-	}
-	async function signIn() {
-		await guard(() => api.signIn(), 'Signed in');
-		await ai.refresh();
-		if (ai.signedIn) await loadModels();
-	}
-	async function signOut() {
-		await guard(() => api.signOut(), 'Signed out');
-		await ai.refresh();
-	}
-	async function useRecovery() {
-		const r = await guard(() => api.recover(recoverInput.trim()), 'Recovered, now add a new passkey');
-		if (r) {
-			recoverInput = '';
-			await ai.refresh();
-		}
-	}
 
 	async function addKey() {
 		if (!apiKey.trim()) return;
@@ -135,7 +118,7 @@
 		}
 	}
 	async function removeKey(id: number, name: string) {
-		if (!(await confirmDestructive(`Remove “${name}”?`, 'The encrypted key is deleted from your Worker.', 'Remove Key'))) return;
+		if (!(await confirmDestructive(`Remove “${name}”?`, 'The encrypted key is deleted from the server.', 'Remove Key'))) return;
 		await guard(() => api.deleteCredential(id), 'Key removed');
 		await ai.refresh();
 		await loadModels();
@@ -170,6 +153,8 @@
 	);
 </script>
 
+<AccountSettings onchange={reload} />
+
 <h2 class="eyebrow section" id="ai">AI assistant</h2>
 
 <div class="glass group">
@@ -187,49 +172,6 @@
 			{#each LANGS as [code, name]}<option value={code}>{name}</option>{/each}
 		</select>
 	</div>
-</div>
-
-<div class="glass group">
-	{#if !supported}
-		<div class="item caption">This browser doesn’t support passkeys.</div>
-	{:else if ai.signedIn}
-		<div class="item">
-			<span class="stack" style:--gap="2px"><span>Signed in with passkey</span><span class="caption">AI requests go through your Worker.</span></span>
-			<span class="spacer"></span>
-			<button class="btn ghost small" onclick={signOut} disabled={busy}>Sign out</button>
-		</div>
-		<div class="item">
-			<span class="caption">Add a passkey for another device</span><span class="spacer"></span>
-			<button class="btn ghost small" onclick={register} disabled={busy}>Add passkey</button>
-		</div>
-	{:else if ai.registered}
-		<div class="item"><button class="btn block" onclick={signIn} disabled={busy}>Sign in with passkey</button></div>
-		<details class="item">
-			<summary class="caption">Lost your passkey?</summary>
-			<div class="row" style="margin-top:8px">
-				<input type="text" placeholder="Recovery code" bind:value={recoverInput} autocomplete="off" />
-				<button class="btn ghost small" onclick={useRecovery} disabled={busy}>Use</button>
-			</div>
-		</details>
-	{:else}
-		<div class="item caption">
-			Set up AI once: create a passkey (Face ID / Touch ID). Enter the setup token you set as a Worker secret.
-		</div>
-		<div class="item row">
-			<input type="text" placeholder="Setup token" bind:value={setupToken} autocomplete="off" autocapitalize="off" />
-			<button class="btn small" onclick={register} disabled={busy || !setupToken.trim()}>Create passkey</button>
-		</div>
-	{/if}
-	{#if recoveryCode}
-		<div class="item recovery">
-			<span class="stack" style:--gap="4px">
-				<b>Recovery code: shown once</b>
-				<code>{recoveryCode}</code>
-				<span class="caption">Store it in your password manager. It lets you add a new passkey if you lose this one.</span>
-			</span>
-			<button class="btn ghost small" onclick={() => (recoveryCode = null)}>Done</button>
-		</div>
-	{/if}
 </div>
 
 {#if ai.signedIn}
@@ -263,7 +205,7 @@
 				<button class="btn ghost small danger" onclick={() => removeKey(c.id, c.label)} disabled={busy}>Remove</button>
 			</div>
 		{:else}
-			<div class="item caption">No keys yet. Keys are encrypted on your Worker and can’t be read back.</div>
+			<div class="item caption">No keys yet. Keys are encrypted on the server, tied to your account, and can’t be read back.</div>
 		{/each}
 		<div class="item add">
 			<div class="row">
@@ -434,10 +376,6 @@
 	.meter.warn span {
 		background: var(--warn);
 	}
-	.recovery {
-		background: color-mix(in srgb, var(--warn) 14%, transparent);
-	}
-	code,
 	.mono {
 		font-family: ui-monospace, monospace;
 		font-size: 0.8125rem;

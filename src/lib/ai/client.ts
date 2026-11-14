@@ -6,6 +6,7 @@
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import type {
 	AiError,
+	PasskeyInfo,
 	AskRequest,
 	AskResponse,
 	LessonRequest,
@@ -59,28 +60,47 @@ async function call<T>(path: string, init: RequestInit & { json?: unknown } = {}
 
 export const me = () => call<Me>('/api/auth/me');
 
-export async function registerPasskey(setupToken?: string): Promise<{ recoveryCode?: string }> {
-	const headers: Record<string, string> = setupToken ? { 'x-setup-token': setupToken } : {};
-	const options = await call<Parameters<typeof startRegistration>[0]['optionsJSON']>('/api/auth/register/options', {
-		method: 'POST',
-		headers,
-		json: {}
-	});
-	const response = await startRegistration({ optionsJSON: options });
-	return call('/api/auth/register/verify', { method: 'POST', headers, json: response });
+/** A short label for this device, saved with the passkey ("iPhone", "Mac", …). */
+export function deviceName(): string {
+	const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent;
+	if (/iPad/.test(ua)) return 'iPad';
+	if (/iPhone/.test(ua)) return 'iPhone';
+	if (/Android/.test(ua)) return 'Android';
+	if (/Macintosh/.test(ua)) return navigator.maxTouchPoints > 1 ? 'iPad' : 'Mac';
+	if (/Windows/.test(ua)) return 'Windows';
+	if (/Linux/.test(ua)) return 'Linux';
+	return 'This device';
 }
 
-export async function signIn(): Promise<void> {
+/**
+ * Signed out with `name`: create an account (its first passkey).
+ * Signed in: add another passkey to your account.
+ */
+export async function registerPasskey(name?: string): Promise<{ recoveryCode?: string }> {
+	const options = await call<Parameters<typeof startRegistration>[0]['optionsJSON']>('/api/auth/register/options', {
+		method: 'POST',
+		json: name ? { name } : {}
+	});
+	const response = await startRegistration({ optionsJSON: options });
+	return call('/api/auth/register/verify', { method: 'POST', json: { response, deviceName: deviceName() } });
+}
+
+export async function signIn(): Promise<Me> {
 	const options = await call<Parameters<typeof startAuthentication>[0]['optionsJSON']>('/api/auth/login/options', {
 		method: 'POST',
 		json: {}
 	});
 	const response = await startAuthentication({ optionsJSON: options });
-	await call('/api/auth/login/verify', { method: 'POST', json: response });
+	return call<Me>('/api/auth/login/verify', { method: 'POST', json: response });
 }
 
-export const recover = (code: string) => call<{ ok: boolean }>('/api/auth/recover', { method: 'POST', json: { code } });
-export const signOut = () => call('/api/auth/logout', { method: 'POST', json: {} });
+export const recover = (code: string) => call<Me>('/api/auth/recover', { method: 'POST', json: { code } });
+export const signOut = () => call<Me>('/api/auth/logout', { method: 'POST', json: {} });
+export const listPasskeys = () => call<PasskeyInfo[]>('/api/auth/passkeys');
+export const deletePasskey = (id: string) => call(`/api/auth/passkeys/${encodeURIComponent(id)}`, { method: 'DELETE' });
+export const newRecoveryCode = () => call<{ recoveryCode: string }>('/api/auth/recovery-code', { method: 'POST', json: {} });
+export const renameAccount = (name: string) => call<Me>('/api/auth/account', { method: 'PATCH', json: { name } });
+export const deleteAccount = () => call<Me>('/api/auth/account', { method: 'DELETE', json: { confirm: 'DELETE' } });
 
 // ----------------------------------------------------------- credentials ----
 

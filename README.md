@@ -43,7 +43,8 @@ handwriting checked in WebAssembly, FSRS spaced repetition and a bring-your-own-
 | 🕘 **Chat history** | Every conversation is saved on the device. Search, reopen, continue, swipe to delete. |
 | 🃏 **Card maker** | Make word cards from English, Japanese, romaji, a screenshot or a scenario; AI names the pack. |
 | 📚 **Lesson packs** | Describe a topic and get a short lesson unit of words and phrases. |
-| 🔐 **Your keys, your cap** | Anthropic or any OpenAI-compatible provider. Keys are encrypted on the Worker behind a passkey, with a monthly spend cap. |
+| 👥 **Accounts with passkeys** | Anyone can sign up with a name and a passkey (Face ID / Touch ID): no password, no email. |
+| 🔐 **Your keys, your cap** | Each account brings its own Anthropic or OpenAI-compatible key, encrypted and bound to that account, with its own monthly spend cap. |
 
 ### 📱 Feels like iOS
 
@@ -135,6 +136,10 @@ No secrets live in GitHub.
 
 4. Save. Every push to `main` goes live; other branches get preview URLs.
 
+> [!IMPORTANT]
+> Secrets: `AI_MASTER_KEY` (base64 of 32 random bytes) encrypts API keys.
+> Optional: `SIGNUP_MODE=closed` stops new accounts (default: open sign-up).
+
 <details>
 <summary><b>Manual deploy from your machine</b></summary>
 
@@ -153,7 +158,8 @@ npm run build && npm run cf:deploy
 Wrangler's asset upload can't run, for example behind a proxy that rewrites the
 `Authorization` header. Static files then count as Worker requests (free plan:
 100k/day). The next normal deploy switches back to free Static Assets under the
-same Worker name and domain.
+same Worker name and domain. It does **not** apply D1 migrations: run
+`npx wrangler d1 migrations apply benkyo --remote` first.
 
 </details>
 
@@ -178,7 +184,7 @@ src/lib/state/               runes stores backed by IndexedDB
 src/lib/ios/                 haptics, swipe-back, keyboard, action sheets, device insets
 src/service-worker/          offline caching
 wasm/stroke/                 Rust handwriting matcher
-worker/                      Cloudflare Worker: sync, passkeys, AI proxy + ledger, D1 migrations
+worker/                      Cloudflare Worker: sync, passkey accounts, AI proxy + ledger, D1 migrations
 ```
 
 ---

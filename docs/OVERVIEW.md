@@ -164,9 +164,13 @@ All AI is optional; every feature still works without it.
 - **Your key, your Worker:** API keys are **AES-GCM encrypted in D1**. The
   app can write a key but never read it back; it only shows the last 4
   characters.
-- **Passkey sign-in** (Face ID). A one-time setup token creates the first
-  passkey, and a recovery code is shown once. The session is an HttpOnly
-  cookie.
+- **Passkey accounts** (Face ID / Touch ID). Anyone can create an account
+  with just a name and a passkey; no password or email. Each account has its
+  own API keys, model choices, prices, spending cap and usage, and the
+  encrypted keys are bound to the account. A recovery code is shown once at
+  sign-up. Settings → Account lists your passkeys and lets you add or remove
+  them, make a new recovery code or delete the account. The session is an
+  HttpOnly cookie.
 - **Live model list:**
   - Models come from each provider's `/models` API (Anthropic,
     OpenAI-compatible).

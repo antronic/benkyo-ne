@@ -58,3 +58,19 @@ describe('recovery codes', () => {
 		expect(generateRecoveryCode()).not.toBe(c);
 	});
 });
+
+describe('per-account key binding', () => {
+	it('a key sealed for one account does not open for another', async () => {
+		const { credentialAad } = await import('./ai/credentials.ts');
+		const key = await deriveKey(master());
+		const sealed = await seal(key, 'sk-user-1', credentialAad('anthropic', null, 1));
+		expect(await open(key, sealed, credentialAad('anthropic', null, 1))).toBe('sk-user-1');
+		await expect(open(key, sealed, credentialAad('anthropic', null, 2))).rejects.toThrow();
+		await expect(open(key, sealed, credentialAad('anthropic', null))).rejects.toThrow();
+	});
+	it('keeps the single-owner AAD for version 1 rows', async () => {
+		const { credentialAad } = await import('./ai/credentials.ts');
+		expect(credentialAad('openai-compatible', 'https://x.test/v1')).toBe('ai-cred|openai-compatible|https://x.test/v1');
+		expect(credentialAad('anthropic', null, 7)).toBe('ai-cred|v2|u7|anthropic|');
+	});
+});
