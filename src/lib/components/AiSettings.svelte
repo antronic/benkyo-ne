@@ -308,7 +308,7 @@
 							<span class="stack" style:--gap="1px">
 								<span class="mono">{m.id}</span>
 								<span class="caption">
-									{m.contextTokens ? `${Math.round(m.contextTokens / 1000)}K ctx` : ''}
+									{m.contextTokens ? (m.contextTokens >= 1_000_000 ? `${+(m.contextTokens / 1_000_000).toFixed(1)}M ctx` : `${Math.round(m.contextTokens / 1000)}K ctx`) : ''}
 									{m.vision ? '· 👁 vision' : ''}
 									{m.structured ? '· {} structured' : ''}
 								</span>
@@ -345,8 +345,9 @@
 	.item + .item {
 		border-top: 0.5px solid var(--hairline);
 	}
-	.add,
-	details {
+	/* .item is a flex row; these two must stack full-width */
+	.item.add,
+	details.item {
 		display: block;
 	}
 	select,
