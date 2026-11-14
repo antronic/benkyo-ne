@@ -7,5 +7,7 @@ export const ui = $state({
 	 */
 	backGuard: null as null | (() => Promise<boolean>),
 	/** first-launch introduction overlay (replayable from Settings) */
-	showIntro: false
+	showIntro: false,
+	/** beta sign-up / sign-in after the introduction (passkey only) */
+	showWelcome: false
 });

@@ -7,6 +7,7 @@
 	import UpdateBanner from '#lib/components/UpdateBanner.svelte';
 	import Splash from '#lib/components/Splash.svelte';
 	import Intro from '#lib/components/Intro.svelte';
+	import Welcome from '#lib/components/Welcome.svelte';
 	import { get as idbGet, put as idbPut } from '#lib/db/idb.ts';
 	import { page } from '$app/state';
 	import Backdrop from '#lib/components/Backdrop.svelte';
@@ -89,11 +90,17 @@
 
 {#if ui.showIntro}
 	<Intro
-		ondone={() => {
+		ondone={async () => {
 			ui.showIntro = false;
 			void idbPut('meta', true, 'introSeen');
+			// then the beta sign-up / sign-in (passkey only), unless already signed in
+			if (!ai.checked) await ai.refresh();
+			if (!ai.signedIn) ui.showWelcome = true;
 		}}
 	/>
+{/if}
+{#if ui.showWelcome}
+	<Welcome ondone={() => (ui.showWelcome = false)} />
 {/if}
 <Splash ready={progress.ready && words.ready} />
 <UpdateBanner />

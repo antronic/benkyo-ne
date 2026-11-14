@@ -352,7 +352,7 @@
 		transition: background 200ms, box-shadow 200ms;
 	}
 	.seg button.on {
-		background: var(--glass-strong);
+		background: color-mix(in srgb, var(--ink) 14%, var(--glass-strong));
 		box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
 	}
 	.seg button:disabled {
