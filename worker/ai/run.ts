@@ -6,13 +6,17 @@
  * (402 cap_reached) → call provider → settle ledger with actual usage →
  * validate output (502 invalid_output) → respond.
  */
-import type { Feature, FillRequest, ProposeRequest } from '../../src/lib/ai/contract.ts';
-import { buildFillPrompt, buildProposePrompt, type PromptParts } from '../../src/lib/ai/prompts.ts';
+import type { AskRequest, Feature, FillRequest, LessonRequest, ProposeRequest } from '../../src/lib/ai/contract.ts';
+import { buildAskPrompt, buildFillPrompt, buildLessonPrompt, buildProposePrompt, type PromptParts } from '../../src/lib/ai/prompts.ts';
 import {
+	parseAskRequest,
 	parseFillRequest,
+	parseLessonRequest,
 	parseModelJson,
 	parseProposeRequest,
+	validateAskOutput,
 	validateFillOutput,
+	validateLessonOutput,
 	validateProposeOutput,
 	type Result
 } from '../../src/lib/ai/validate.ts';
@@ -29,20 +33,34 @@ import type { AdapterResult, UsageEntry } from './types.ts';
 
 const MAX_BODY = 8 * 1024 * 1024; // screenshots
 
-type Kind = 'propose' | 'fill';
+type Kind = 'propose' | 'fill' | 'lesson' | 'ask';
+type Req = ProposeRequest | FillRequest | LessonRequest | AskRequest;
 
 export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: ExecutionContext, session: Session) {
 	const body = await readJson(req, kind === 'propose' ? MAX_BODY : 256 * 1024);
-	const parsed: Result<ProposeRequest | FillRequest> =
-		kind === 'propose' ? parseProposeRequest(body) : parseFillRequest(body);
+	const parsed: Result<Req> =
+		kind === 'propose'
+			? parseProposeRequest(body)
+			: kind === 'fill'
+				? parseFillRequest(body)
+				: kind === 'lesson'
+					? parseLessonRequest(body)
+					: parseAskRequest(body);
 	if (!parsed.ok) return aiError(400, 'bad_request', parsed.error);
 
 	if (!(await rateLimit(env, session.tokenHash)))
 		return aiError(429, 'rate_limited', 'Too many AI calls; wait a minute and try again.', { 'retry-after': '60' });
 
 	const parts: PromptParts =
-		kind === 'propose' ? buildProposePrompt(parsed.value as ProposeRequest) : buildFillPrompt(parsed.value as FillRequest);
-	const feature: Feature = parts.image ? 'vision' : kind;
+		kind === 'propose'
+			? buildProposePrompt(parsed.value as ProposeRequest)
+			: kind === 'fill'
+				? buildFillPrompt(parsed.value as FillRequest)
+				: kind === 'lesson'
+					? buildLessonPrompt(parsed.value as LessonRequest)
+					: buildAskPrompt(parsed.value as AskRequest);
+	// lesson packs and Ask AI use the "Suggestions" model
+	const feature: Feature = parts.image ? 'vision' : kind === 'fill' ? 'fill' : 'propose';
 
 	const target = await resolveFeature(env, feature);
 	if (!target) return aiError(409, 'no_model', `No model is set for "${feature}". Add an API key in Settings.`);
@@ -83,9 +101,16 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 		};
 		const check = (text: string) => {
 			const raw = parseModelJson(text);
-			return kind === 'propose'
-				? validateProposeOutput(raw, parsed.value as ProposeRequest)
-				: validateFillOutput(raw, parsed.value as FillRequest);
+			switch (kind) {
+				case 'propose':
+					return validateProposeOutput(raw, parsed.value as ProposeRequest);
+				case 'fill':
+					return validateFillOutput(raw, parsed.value as FillRequest);
+				case 'lesson':
+					return validateLessonOutput(raw, parsed.value as LessonRequest);
+				default:
+					return validateAskOutput(raw, parsed.value as AskRequest);
+			}
 		};
 
 		let result = await call(false);

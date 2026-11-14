@@ -9,7 +9,8 @@
 	import { page } from '$app/state';
 	import { fly } from 'svelte/transition';
 	import Romaji from '#lib/components/Romaji.svelte';
-	import { courseById, courseTag, NOW_TAG, type CourseItem } from '#lib/content/courses.ts';
+	import { courseTag, NOW_TAG, type CourseItem } from '#lib/content/courses.ts';
+	import { lessonPacks } from '#lib/state/lessonPacks.svelte.ts';
 	import { speak } from '#lib/content/kana.ts';
 	import { verifyItem } from '#lib/dict/dict.ts';
 	import { unknownKanaIn } from '#lib/dict/readable.ts';
@@ -22,7 +23,7 @@
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 
 	const params = $derived(page.params as Record<string, string | undefined>);
-	const course = $derived(courseById(params.course ?? ''));
+	const course = $derived(lessonPacks.courses.find((c) => c.id === params.course));
 	const unit = $derived(course?.units.find((u) => u.id === params.unit));
 	const tag = $derived(course && unit ? courseTag(course.id, unit.id) : '');
 
@@ -52,6 +53,7 @@
 	}
 
 	onMount(async () => {
+		await lessonPacks.load();
 		if (unit) cands = await Promise.all(unit.items.map(toCandidate));
 	});
 

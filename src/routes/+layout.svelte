@@ -20,9 +20,9 @@
 	let { children } = $props();
 
 	// Immersive screens hide the navigation and can be swiped back from.
-	const immersive = $derived(/^\/(learn\/[^/]+|review|words\/.+)/.test(page.url.pathname));
+	const immersive = $derived(/^\/(learn\/.+|review|words\/.+|ai\/.+)/.test(page.url.pathname));
 	const parent = $derived(
-		page.url.pathname.startsWith('/learn/') ? '/learn' : page.url.pathname.startsWith('/words/') ? '/words' : '/'
+		page.url.pathname.startsWith('/learn/') ? '/learn' : page.url.pathname.startsWith('/words/') ? '/words' : page.url.pathname.startsWith('/ai/') ? '/ai' : '/'
 	);
 
 	async function back() {

@@ -36,6 +36,8 @@ export interface CandidateResult {
 	aiUsed: boolean;
 	/** shown when AI was wanted but unavailable or failed */
 	aiNote?: string;
+	/** scenario/photo: AI-suggested pack name (becomes the cards' tag) */
+	packName?: Bi | null;
 }
 
 const fromHit = (h: DictHit): Candidate => ({
@@ -105,7 +107,7 @@ export async function candidatesFor(
 				note: p.note
 			});
 		}
-		return { items: dedupe(items), aiUsed: true };
+		return { items: dedupe(items), aiUsed: true, packName: r.packName ?? null };
 	} catch (e) {
 		return { items: [], aiUsed: false, aiNote: errText(e) };
 	}

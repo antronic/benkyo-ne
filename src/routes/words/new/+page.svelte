@@ -11,7 +11,7 @@
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
-	import { candidatesFor, imageToBase64, saveCandidates, type Candidate, type MakerMode } from '#lib/words/maker.ts';
+	import { candidatesFor, imageToBase64, saveCandidates, type Candidate, type CandidateResult, type MakerMode } from '#lib/words/maker.ts';
 	import { unknownKanaIn } from '#lib/dict/readable.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
@@ -31,7 +31,7 @@
 	let file = $state<File | null>(null);
 	let preview = $state<string | null>(null);
 	let busy = $state(false);
-	let result = $state<{ items: Candidate[]; aiUsed: boolean; aiNote?: string } | null>(null);
+	let result = $state<CandidateResult | null>(null);
 	let chosen = $state<Set<string>>(new Set());
 	let tags = $state('');
 	let saving = $state(false);
@@ -64,7 +64,9 @@
 			result = await candidatesFor(mode, mode === 'screenshot' ? 'Extract the Japanese words and phrases worth learning.' : input, image);
 			// Pre-select: AI-proposed items (scenario/photo) and the single top dictionary hit.
 			chosen = new Set(mode === 'scenario' || mode === 'screenshot' ? result.items.map((i) => i.key) : result.items.slice(0, 1).map((i) => i.key));
-			if (mode === 'scenario' && !tags.trim()) tags = input.trim();
+			// scenario/photo: the AI names the pack; it becomes the tag (still editable)
+			if ((mode === 'scenario' || mode === 'screenshot') && result.packName) tags = result.packName.en;
+			else if (mode === 'scenario' && !tags.trim()) tags = input.trim();
 			haptic(result.items.length ? 'success' : 'warning');
 		} catch (e) {
 			toast(e instanceof Error ? e.message : 'Lookup failed', '⚠️');
@@ -187,8 +189,15 @@
 							</button>
 						{/each}
 					</div>
+					{#if result.packName}
+						<div class="packname">
+							<span class="caption">✨ Pack name</span>
+							<span class="headline">{result.packName.en}</span>
+							{#if result.packName.second}<span class="caption">{result.packName.second}</span>{/if}
+						</div>
+					{/if}
 					<label class="tags">
-						<span class="caption">Tags (comma-separated)</span>
+						<span class="caption">{result.packName ? 'Tag (from the pack name, editable)' : 'Tags (comma-separated)'}</span>
 						<input type="text" bind:value={tags} placeholder="e.g. ramen shop, travel" />
 					</label>
 					<button class="btn block" onclick={save} disabled={saving || !chosen.size}>
@@ -352,6 +361,14 @@
 		flex: none;
 		padding: 6px;
 		cursor: pointer;
+	}
+	.packname {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 10px 12px;
+		border-radius: var(--r-m);
+		background: color-mix(in srgb, var(--accent-2) 10%, transparent);
 	}
 	.tags {
 		display: flex;

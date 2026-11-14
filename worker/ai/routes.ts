@@ -12,6 +12,8 @@
  *   PUT    /api/ai/cap                   {capUsd} → Usage
  *   POST   /api/ai/propose               ProposeRequest → ProposeResponse
  *   POST   /api/ai/fill                  FillRequest → FillResponse
+ *   POST   /api/ai/lesson                LessonRequest → LessonResponse
+ *   POST   /api/ai/ask                   AskRequest → AskResponse
  */
 import type { Env } from '../env.ts';
 import { aiError, httpError, json, readJson } from '../http.ts';
@@ -62,5 +64,7 @@ export async function handleAi(req: Request, env: Env, ctx: ExecutionContext, ur
 	}
 	if (path === '/api/ai/propose' && m === 'POST') return handleGenerate('propose', req, env, ctx, session);
 	if (path === '/api/ai/fill' && m === 'POST') return handleGenerate('fill', req, env, ctx, session);
+	if (path === '/api/ai/lesson' && m === 'POST') return handleGenerate('lesson', req, env, ctx, session);
+	if (path === '/api/ai/ask' && m === 'POST') return handleGenerate('ask', req, env, ctx, session);
 	return aiError(404, 'bad_request', 'Not found');
 }

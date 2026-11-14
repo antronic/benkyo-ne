@@ -32,7 +32,7 @@
 	];
 	const FEATURES: { id: Feature; label: string; hint: string }[] = [
 		{ id: 'fill', label: 'Card & pack content', hint: 'Hooks, examples, translations' },
-		{ id: 'propose', label: 'Suggestions', hint: 'English & scenario modes' },
+		{ id: 'propose', label: 'Suggestions, lessons & Ask AI', hint: 'English & scenario modes, lesson packs, tutor chat' },
 		{ id: 'vision', label: 'Screenshots', hint: 'Needs a model that reads images' }
 	];
 

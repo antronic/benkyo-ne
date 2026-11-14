@@ -8,15 +8,18 @@
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import JapanglishConverter from '#lib/components/JapanglishConverter.svelte';
 	import { COURSES, courseTag } from '#lib/content/courses.ts';
+	import { lessonPacks } from '#lib/state/lessonPacks.svelte.ts';
+	import { onMount } from 'svelte';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 
-	type Filter = 'all' | 'fundamentals' | (typeof COURSES)[number]['id'];
-	const FILTERS: { id: Filter; label: string }[] = [
+	type Filter = string;
+	onMount(() => lessonPacks.load());
+	const FILTERS = $derived<{ id: Filter; label: string }[]>([
 		{ id: 'all', label: 'All' },
 		{ id: 'fundamentals', label: '🔤 Fundamentals' },
-		...COURSES.map((c) => ({ id: c.id as Filter, label: `${c.emoji} ${c.title}` }))
-	];
+		...lessonPacks.courses.map((c) => ({ id: c.id as Filter, label: `${c.emoji} ${c.title}` }))
+	]);
 	const saved = (() => {
 		try {
 			return (localStorage.getItem('learn.filter') as Filter) || 'all';
@@ -24,7 +27,7 @@
 			return 'all';
 		}
 	})();
-	let filter = $state<Filter>(FILTERS.some((f) => f.id === saved) ? saved : 'all');
+	let filter = $state<Filter>(saved);
 	function choose(f: Filter) {
 		filter = f;
 		haptic('selection');
@@ -32,7 +35,7 @@
 			localStorage.setItem('learn.filter', f);
 		} catch {}
 	}
-	const shownCourses = $derived(COURSES.filter((c) => filter === 'all' || filter === c.id));
+	const shownCourses = $derived(lessonPacks.courses.filter((c) => filter === 'all' || filter === c.id));
 
 	/** Cards added from a unit (by hidden course tag). */
 	const addedIn = (course: string, unit: string) => words.list.filter((c) => c.tags.includes(courseTag(course, unit))).length;

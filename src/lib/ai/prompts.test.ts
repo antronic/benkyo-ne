@@ -9,8 +9,7 @@ import {
 	openAiChatBody,
 	PROPOSE_SCHEMA,
 	PROPOSE_SYSTEM,
-	type JsonSchema
-} from './prompts.ts';
+	type JsonSchema, LESSON_SCHEMA, ASK_SCHEMA } from './prompts.ts';
 
 /** Minimal validator for the schema subset we use (type, properties, required, additionalProperties, items, anyOf, enum). */
 function validate(schema: JsonSchema, v: unknown, path = '$'): string[] {
@@ -97,9 +96,19 @@ describe('schemas', () => {
 		expect(validate(FILL_SCHEMA, { items: good.items })).not.toEqual([]);
 	});
 	it('accept a well-formed propose reply and reject a bad kind', () => {
-		const good = { items: [{ text: '池', reading: 'いけ', kind: 'word', gloss: 'pond', note: null }] };
+		const good = { packName: null, items: [{ text: '池', reading: 'いけ', kind: 'word', gloss: 'pond', note: null }] };
 		expect(validate(PROPOSE_SCHEMA, good)).toEqual([]);
 		expect(validate(PROPOSE_SCHEMA, { items: [{ ...good.items[0], kind: 'noun' }] })).not.toEqual([]);
+	});
+});
+
+describe('lesson & ask schemas', () => {
+	it('accept well-formed replies', () => {
+		const item = { text: '駅', reading: 'えき', kind: 'word', gloss: 'station', note: null };
+		const bi = { en: 'At the station', second: null };
+		expect(validate(LESSON_SCHEMA, { title: bi, blurb: bi, items: [item] })).toEqual([]);
+		expect(validate(ASK_SCHEMA, { answer: 'は marks the topic.', answer2: null, examples: [{ jp: 'わたしは', reading: 'わたしは', en: 'as for me' }] })).toEqual([]);
+		expect(validate(ASK_SCHEMA, { answer: 'x', answer2: null })).not.toEqual([]);
 	});
 });
 

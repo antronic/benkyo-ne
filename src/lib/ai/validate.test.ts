@@ -222,3 +222,29 @@ describe('request parsers', () => {
 		).toBe(false);
 	});
 });
+
+import { validateAskOutput, validateLessonOutput, parseAskRequest } from './validate.ts';
+
+describe('lesson & ask validation', () => {
+	const req = { topic: 'train station', knownKana: [], secondLang: null };
+	it('lesson: keeps valid items, drops romaji readings, needs 3+', () => {
+		const bi = { en: 'At the station', second: null };
+		const items = [
+			{ text: '駅', reading: 'えき', kind: 'word', gloss: 'station', note: null },
+			{ text: '切符', reading: 'きっぷ', kind: 'word', gloss: 'ticket', note: null },
+			{ text: '電車', reading: 'densha', kind: 'word', gloss: 'train', note: null },
+			{ text: 'ホーム', reading: 'ホーム', kind: 'word', gloss: 'platform', note: null }
+		];
+		const r = validateLessonOutput({ title: bi, blurb: bi, items }, req);
+		expect(r.ok && r.value.items.map((i) => i.text)).toEqual(['駅', '切符', 'ホーム']);
+		expect(validateLessonOutput({ title: bi, blurb: bi, items: items.slice(0, 2) }, req).ok).toBe(false);
+	});
+	it('ask: last turn must be the question; answer2 null without a second language', () => {
+		expect(parseAskRequest({ turns: [{ role: 'assistant', text: 'hi' }] }).ok).toBe(false);
+		const a = parseAskRequest({ turns: [{ role: 'user', text: 'は vs が?' }], secondLang: null });
+		expect(a.ok).toBe(true);
+		const r = validateAskOutput({ answer: 'は marks the topic.', answer2: 'ignored', examples: [{ jp: 'ねこがいる', reading: 'ねこがいる', en: 'there is a cat' }] }, a.ok ? a.value : (null as never));
+		expect(r.ok && r.value.answer2).toBe(null);
+		expect(r.ok && r.value.examples.length).toBe(1);
+	});
+});

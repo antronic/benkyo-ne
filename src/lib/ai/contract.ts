@@ -110,6 +110,45 @@ export interface ProposedItem {
 
 export interface ProposeResponse {
 	items: ProposedItem[];
+	/** scenario/screenshot: a short suggested pack name (used as the cards' tag) */
+	packName: Bi | null;
+}
+
+// ---------------------------------------------------------- lesson pack ----
+
+/** "Make a new lesson pack": the AI designs a unit around a topic. */
+export interface LessonRequest {
+	topic: string;
+	knownKana: string[];
+	secondLang: string | null;
+}
+
+export interface LessonResponse {
+	title: Bi;
+	blurb: Bi;
+	items: ProposedItem[];
+}
+
+// ---------------------------------------------------------------- ask AI ----
+
+export interface AskTurn {
+	role: 'user' | 'assistant';
+	text: string;
+}
+
+export interface AskRequest {
+	/** the conversation so far, oldest first; the last turn is the question */
+	turns: AskTurn[];
+	knownKana: string[];
+	secondLang: string | null;
+}
+
+export interface AskResponse {
+	answer: string;
+	/** the same answer in the second language, when set */
+	answer2: string | null;
+	/** Japanese examples mentioned in the answer */
+	examples: { jp: string; reading: string; en: string }[];
 }
 
 /**

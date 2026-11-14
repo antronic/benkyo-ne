@@ -16,7 +16,12 @@ import type {
 	FilledItem,
 	ProposeRequest,
 	ProposeResponse,
-	ProposedItem
+	ProposedItem,
+	LessonRequest,
+	LessonResponse,
+	AskRequest,
+	AskResponse,
+	AskTurn
 } from './contract.ts';
 import { knownKanaChars } from './prompts.ts';
 
@@ -219,7 +224,8 @@ export function validateProposeOutput(raw: unknown, req: ProposeRequest): Result
 	}
 	if (items.length === 0 && raw.items.length > 0) return fail('no valid items in output');
 	if (items.length === 0 && req.mode !== 'screenshot') return fail('no items in output');
-	return ok({ items });
+	const packName = req.mode === 'english' ? null : cleanBi(raw.packName, req.secondLang, 60);
+	return ok({ items, packName });
 }
 
 export function validateFillOutput(raw: unknown, req: FillRequest): Result<FillResponse> {
@@ -264,4 +270,73 @@ export function validateFillOutput(raw: unknown, req: FillRequest): Result<FillR
 	const items = req.items.map((i) => out.get(i.key)).filter((x): x is FilledItem => !!x);
 	const theme = req.theme ? cleanBi(raw.theme, req.secondLang, 80) : null;
 	return ok({ theme, items });
+}
+
+// ---------------------------------------------------------- lesson & ask ----
+
+export function parseLessonRequest(body: unknown): Result<LessonRequest> {
+	if (!isRec(body)) return fail('body must be an object');
+	const topic = typeof body.topic === 'string' ? body.topic.trim() : '';
+	if (!topic) return fail('topic required');
+	if (topic.length > 300) return fail('topic too long');
+	const lang = parseLang(body.secondLang);
+	if (!lang.ok) return lang;
+	const knownKana = Array.isArray(body.knownKana) ? body.knownKana.filter((k): k is string => typeof k === 'string').slice(0, 300) : [];
+	return ok({ topic, knownKana, secondLang: lang.value });
+}
+
+export function validateLessonOutput(raw: unknown, req: LessonRequest): Result<LessonResponse> {
+	if (!isRec(raw) || !Array.isArray(raw.items)) return fail('output must be {title, blurb, items}');
+	const title = cleanBi(raw.title, req.secondLang, 80);
+	const blurb = cleanBi(raw.blurb, req.secondLang, 300);
+	if (!title || !blurb) return fail('missing title or blurb');
+	const seen = new Set<string>();
+	const items: ProposedItem[] = [];
+	for (const r of raw.items) {
+		if (!isRec(r)) continue;
+		const text = cleanStr(r.text, 100);
+		const reading = cleanStr(r.reading, 100);
+		const gloss = cleanStr(r.gloss, 200);
+		if (!text || !reading || !gloss || !isKanaReading(reading) || seen.has(text)) continue;
+		seen.add(text);
+		items.push({ text, reading, kind: r.kind === 'phrase' ? 'phrase' : 'word', gloss, note: cleanBi(r.note, req.secondLang, 300) });
+		if (items.length >= 10) break;
+	}
+	if (items.length < 3) return fail('too few valid items');
+	return ok({ title, blurb, items });
+}
+
+export const MAX_ASK_TURNS = 16;
+
+export function parseAskRequest(body: unknown): Result<AskRequest> {
+	if (!isRec(body) || !Array.isArray(body.turns) || body.turns.length === 0) return fail('turns required');
+	const turns: AskTurn[] = [];
+	for (const t of body.turns.slice(-MAX_ASK_TURNS)) {
+		if (!isRec(t) || (t.role !== 'user' && t.role !== 'assistant')) return fail('bad turn');
+		const text = cleanStr(t.text, 4000);
+		if (!text) return fail('empty turn');
+		turns.push({ role: t.role, text });
+	}
+	if (turns.at(-1)!.role !== 'user') return fail('last turn must be the question');
+	const lang = parseLang(body.secondLang);
+	if (!lang.ok) return lang;
+	const knownKana = Array.isArray(body.knownKana) ? body.knownKana.filter((k): k is string => typeof k === 'string').slice(0, 300) : [];
+	return ok({ turns, knownKana, secondLang: lang.value });
+}
+
+export function validateAskOutput(raw: unknown, req: AskRequest): Result<AskResponse> {
+	if (!isRec(raw)) return fail('output must be an object');
+	const answer = cleanStr(raw.answer, 6000);
+	if (!answer) return fail('missing answer');
+	const answer2 = req.secondLang ? cleanStr(raw.answer2, 6000) : null;
+	const examples: AskResponse['examples'] = [];
+	if (Array.isArray(raw.examples))
+		for (const e of raw.examples.slice(0, 5)) {
+			if (!isRec(e)) continue;
+			const jp = cleanStr(e.jp, 200);
+			const reading = cleanStr(e.reading, 300);
+			const en = cleanStr(e.en, 300);
+			if (jp && reading && en && isKanaReading(reading)) examples.push({ jp, reading, en });
+		}
+	return ok({ answer, answer2, examples });
 }

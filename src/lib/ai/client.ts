@@ -6,6 +6,10 @@
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import type {
 	AiError,
+	AskRequest,
+	AskResponse,
+	LessonRequest,
+	LessonResponse,
 	CredentialInfo,
 	CredentialInput,
 	Feature,
@@ -99,5 +103,7 @@ export const setCap = (capUsd: number) => call('/api/ai/cap', { method: 'PUT', j
 
 export const propose = (r: ProposeRequest) => call<ProposeResponse>('/api/ai/propose', { method: 'POST', json: r });
 export const fill = (r: FillRequest) => call<FillResponse>('/api/ai/fill', { method: 'POST', json: r });
+export const lesson = (r: LessonRequest) => call<LessonResponse>('/api/ai/lesson', { method: 'POST', json: r });
+export const ask = (r: AskRequest) => call<AskResponse>('/api/ai/ask', { method: 'POST', json: r });
 
 export type { Feature };
