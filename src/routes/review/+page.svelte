@@ -164,7 +164,7 @@
 	{#if !entry || (!kana && !wordCard)}
 		<section class="stage" in:scale={{ start: 0.94, duration: 400 }}>
 			<div class="stack center" style:--gap="16px">
-				<ProgressRing value={total ? correctCount / Math.max(done, 1) : 1} size={140} color="var(--success)">
+				<ProgressRing value={total ? correctCount / Math.max(done, 1) : 1} size={140}>
 					<div>
 						<div class="big-num">{total ? Math.round((correctCount / Math.max(done, 1)) * 100) : 100}%</div>
 						<div class="caption">recalled</div>
