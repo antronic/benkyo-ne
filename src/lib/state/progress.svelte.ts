@@ -12,6 +12,8 @@ export interface Settings {
 	secondLang: string | null;
 	/** Small romaji under Japanese text (hidden on quiz prompts whose answer is the reading). */
 	showRomaji: boolean;
+	/** Tab bar placement: auto = beside a side status bar when the screen has one. */
+	navPosition: 'auto' | 'bottom' | 'side';
 }
 
 interface Today {
@@ -28,7 +30,7 @@ class Progress {
 	ready = $state(false);
 	cards = $state<Record<string, Card>>({});
 	completed = $state<string[]>([]);
-	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true });
+	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true, navPosition: 'auto' });
 	streak = $state({ days: 0, last: '' });
 	today = $state<Today>({ date: dayKey(), reviews: 0, learned: 0 });
 	now = $state(Date.now());

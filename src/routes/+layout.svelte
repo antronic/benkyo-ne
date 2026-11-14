@@ -12,6 +12,7 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { startAutoSync } from '#lib/sync.ts';
 	import { edgeSwipeBack, trackKeyboard } from '#lib/ios/gestures.ts';
+	import { insets } from '#lib/ios/device.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { processOutbox } from '#lib/words/maker.ts';
@@ -42,6 +43,7 @@
 		document.addEventListener('visibilitychange', vis);
 		const stopKb = trackKeyboard();
 		updater.start();
+		insets.watch();
 		return () => {
 			document.removeEventListener('visibilitychange', vis);
 			stopKb();

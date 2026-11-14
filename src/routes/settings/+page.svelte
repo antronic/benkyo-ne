@@ -119,6 +119,18 @@
 			<span class="spacer"></span>
 			<input type="checkbox" class="switch" checked={progress.settings.showRomaji} onchange={(e) => progress.saveSettings({ showRomaji: e.currentTarget.checked })} />
 		</label>
+		<div class="item">
+			<span class="stack" style:--gap="0">
+				<span>Tab bar position</span>
+				<span class="caption">Auto puts it beside the status bar when your screen has one on the side (iOS 27, folded iPhone Duo).</span>
+			</span>
+			<span class="spacer"></span>
+			<select class="pick" aria-label="Tab bar position" value={progress.settings.navPosition} onchange={(e) => progress.saveSettings({ navPosition: e.currentTarget.value as 'auto' | 'bottom' | 'side' })}>
+				<option value="auto">Auto</option>
+				<option value="bottom">Bottom</option>
+				<option value="side">Side</option>
+			</select>
+		</div>
 		<label class="item">
 			<span>Play audio automatically</span><span class="spacer"></span>
 			<input type="checkbox" class="switch" checked={progress.settings.autoplayAudio} onchange={(e) => progress.saveSettings({ autoplayAudio: e.currentTarget.checked })} />
@@ -253,6 +265,16 @@
 	}
 	a {
 		color: var(--accent-2);
+	}
+	.pick {
+		font: inherit;
+		font-size: 1rem;
+		height: 44px;
+		padding: 0 12px;
+		border-radius: 12px;
+		border: 0.5px solid var(--hairline);
+		background: var(--glass-strong);
+		color: var(--ink);
 	}
 	.link {
 		border: 0;

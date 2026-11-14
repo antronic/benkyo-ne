@@ -11,6 +11,19 @@
 	import { page } from '$app/state';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { insets, regular, SIDE_RAIL_MIN } from '#lib/ios/device.svelte.ts';
+
+	// Compact screens with a right-side status column (iOS 27, folded iPhone Duo):
+	// put the tab bar in that column, under the battery.
+	const side = $derived(
+		!regular.current &&
+			(progress.settings.navPosition === 'side' ||
+				(progress.settings.navPosition === 'auto' && insets.right >= SIDE_RAIL_MIN))
+	);
+	$effect(() => {
+		document.documentElement.classList.toggle('nav-side', side);
+		return () => document.documentElement.classList.remove('nav-side');
+	});
 
 	const tabs = [
 		{ href: '/', label: 'Today', icon: 'M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z' },
@@ -51,7 +64,7 @@
 	}
 </script>
 
-<nav class="tabbar glass sheen" class:minimized style:--i={activeIndex} style:--n={tabs.length} aria-label="Main">
+<nav class="tabbar glass sheen" class:minimized={minimized && !side} class:side style:--i={activeIndex} style:--n={tabs.length} aria-label="Main">
 	<span class="pill" aria-hidden="true"></span>
 	{#each tabs as t, i}
 		<a href={t.href} class:active={i === activeIndex} aria-current={i === activeIndex ? 'page' : undefined} onclick={(e) => tap(e, i)}>
@@ -172,6 +185,36 @@
 		display: grid;
 		place-items: center;
 		box-shadow: 0 0 0 2px var(--bg);
+	}
+
+	/* ---- compact + side status column: icon rail under the battery ---- */
+	.tabbar.side {
+		left: auto;
+		right: max(4px, calc((var(--safe-right) - 60px) / 2));
+		top: auto;
+		bottom: calc(var(--safe-bottom) + 16px);
+		transform: none;
+		width: 60px;
+		height: auto;
+		border-radius: 30px;
+		grid-template-columns: 1fr;
+		grid-auto-rows: 52px;
+		padding: 4px;
+	}
+	.tabbar.side .label {
+		display: none;
+	}
+	.tabbar.side .pill {
+		top: 4px;
+		left: 4px;
+		right: 4px;
+		bottom: auto;
+		width: auto;
+		height: 52px;
+		transform: translateY(calc(var(--i) * 100%));
+	}
+	.tabbar.side .badge {
+		left: 22px;
 	}
 
 	/* ---- regular width: side rail (unfolded iPhone Duo, landscape, iPad) ---- */

@@ -6,6 +6,7 @@
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import JapanglishConverter from '#lib/components/JapanglishConverter.svelte';
 	import { COURSES, courseTag } from '#lib/content/courses.ts';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
@@ -93,6 +94,7 @@
 		<section class="course rise" style:--i={ci + 1} style:--h={c.hue}>
 			<h2 class="eyebrow section">{c.emoji} {c.title}</h2>
 			<p class="caption blurb">{c.blurb}</p>
+			{#if c.id === 'japanglish'}<JapanglishConverter />{/if}
 			<div class="units">
 				{#each c.units as u, ui (u.id)}
 					{@const n = addedIn(c.id, u.id)}

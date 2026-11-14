@@ -55,6 +55,12 @@
 	--gutter-r: max(16px, env(safe-area-inset-right, 0px));
 }
 
+/* Tab bar as a side rail (right status column): reserve the right edge, not the bottom */
+html.nav-side {
+	--tabbar-h: 0px;
+	--gutter-r: max(76px, var(--safe-right));
+}
+
 /* Regular width (unfolded iPhone Duo ≥ ~600 CSS px): nav moves to a side rail. */
 @media (min-width: 600px) {
 	:root {
