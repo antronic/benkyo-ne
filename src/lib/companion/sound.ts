@@ -9,8 +9,8 @@
  * syllable at a time), so it copies no recording and no real voice.
  *
  * Silent mode: Safari 16.4+ can mark page audio as "ambient", which follows the
- * iPhone's silent switch. Other browsers play at the page volume, which is why
- * the Sound setting is off by default.
+ * iPhone's silent switch. Other browsers play at the page volume. Sound is on
+ * by default; nothing plays until the first tap unlocks audio.
  */
 
 export type KuriSoundName = 'yip' | 'bark' | 'tap' | 'happy' | 'wave' | 'held' | 'thinking' | 'encourage' | 'sleep' | 'intro';
@@ -213,13 +213,28 @@ function mora(c: AudioContext, t: number, cons: 'h' | 'j' | 'm' | 'sh' | 't', v:
 }
 
 /** Play one of Kuri's sounds now. Does nothing where Web Audio is missing. */
+/**
+ * True when a sound may start now: audio is already running, or we are inside a
+ * tap. Sound is on by default, so a timer sound (falling asleep) can come before
+ * the first touch; skip it instead of queueing it on a locked context, which
+ * would warn in the console and then play late on the first tap.
+ */
+function allowed(): boolean {
+	if (typeof navigator === 'undefined') return false;
+	if (ctx && ctx.state === 'running') return true;
+	const ua = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation;
+	return ua ? ua.isActive : true; // browsers without userActivation: old behaviour
+}
+
 export function play(name: KuriSoundName) {
+	if (!allowed()) return;
 	const c = unlock();
 	if (c) SOUNDS[name](c, c.currentTime + 0.01);
 }
 
 /** Kuri says "はじめまして！" (about one second). */
 export function hello() {
+	if (!allowed()) return;
 	const c = unlock();
 	if (!c) return;
 	// pitch: low on は, high and level after (Tokyo accent), with a bright rise on the final て

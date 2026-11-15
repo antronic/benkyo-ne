@@ -25,8 +25,10 @@ export interface Settings {
 	kuriReact: boolean;
 	/** small Kuris use the low-poly model (fewer triangles, less memory) */
 	kuriLowPoly: boolean;
-	/** Kuri's yips, hums and the first-meeting voice (off by default; follows the iPhone silent switch) */
+	/** Kuri's yips, hums and the first-meeting voice (on by default; follows the iPhone silent switch) */
 	kuriSound: boolean;
+	/** set once the learner flips the Sound switch, so their choice wins over the default */
+	kuriSoundChosen?: boolean;
 }
 
 interface Today {
@@ -43,7 +45,7 @@ class Progress {
 	ready = $state(false);
 	cards = $state<Record<string, Card>>({});
 	completed = $state<string[]>([]);
-	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true, navPosition: 'auto', kuri: true, kuriStyle: 'bandana', kuriWalk: true, kuriReact: true, kuriLowPoly: true, kuriSound: false });
+	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true, navPosition: 'auto', kuri: true, kuriStyle: 'bandana', kuriWalk: true, kuriReact: true, kuriLowPoly: true, kuriSound: true });
 	streak = $state({ days: 0, last: '' });
 	today = $state<Today>({ date: dayKey(), reviews: 0, learned: 0 });
 	now = $state(Date.now());
@@ -76,7 +78,12 @@ class Progress {
 		]);
 		this.cards = Object.fromEntries(cards.map((c) => [c.id, c]));
 		if (completed) this.completed = completed;
-		if (settings) this.settings = { ...this.settings, ...settings };
+		if (settings) {
+			// Sound used to start off, and every settings save stored that default.
+			// Only keep a stored value the learner picked on the switch themselves.
+			if (!settings.kuriSoundChosen) delete (settings as Partial<Settings>).kuriSound;
+			this.settings = { ...this.settings, ...settings };
+		}
 		if (streak) this.streak = streak;
 		if (today && today.date === dayKey()) this.today = today;
 		this.ready = true;
