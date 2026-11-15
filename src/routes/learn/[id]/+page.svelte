@@ -3,6 +3,8 @@
 	  MEET → TRACE (per kana) → RECOGNISE (pick 1 of 4) → RECALL (draw from memory) → SCHEDULE
 -->
 <script lang="ts">
+	import { t, type MessageKey } from '#lib/i18n/index.svelte.ts';
+	import { c, scriptName, story } from '#lib/i18n/content.ts';
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { page } from '$app/state';
@@ -161,7 +163,7 @@
 	const inProgress = $derived(phase !== 'intro' && phase !== 'done');
 	$effect(() => {
 		ui.backGuard = inProgress
-			? () => confirmDestructive('Leave this lesson?', 'Progress in this lesson won’t be saved.', 'Leave Lesson')
+			? () => confirmDestructive(t('lesson.leaveTitle'), t('lesson.leaveBody'), t('lesson.leave'))
 			: null;
 		return () => (ui.backGuard = null);
 	});
@@ -174,15 +176,15 @@
 </script>
 
 {#if !lesson}
-	<main class="page"><h1 class="large-title">Lesson not found</h1><a href="/learn">Back</a></main>
+	<main class="page"><h1 class="large-title">{t('lesson.notFound')}</h1><a href="/learn">{t('common.back')}</a></main>
 {:else}
 	<main class="lesson" style:--h={lesson.hue}>
 		<header class="top">
-			<button class="icon-btn" aria-label="Close lesson" onclick={close}>
+			<button class="icon-btn" aria-label={t('lesson.close')} onclick={close}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
 			</button>
 			<div class="bar" role="progressbar" aria-valuemin={0} aria-valuemax={steps} aria-valuenow={stepNow}><span style:width="{(stepNow / steps) * 100}%"></span></div>
-			<div class="caption phase-label">{phase === 'intro' || phase === 'done' ? '' : phase}</div>
+			<div class="caption phase-label">{phase === 'intro' || phase === 'done' ? '' : t(`lesson.phase.${phase}` as MessageKey)}</div>
 		</header>
 
 		{#key phase + idx + (queue[0]?.char ?? '')}
@@ -197,17 +199,17 @@
 							</div>
 						</div>
 						<div class="pane text">
-							<div class="eyebrow">{lesson.script} · lesson {lesson.id.slice(1)}</div>
-							<h1 class="large-title">{lesson.title}</h1>
-							{#if lesson.note}<p class="subhead note">{lesson.note}</p>{/if}
-							<p class="subhead">{chars.length} new characters · about 4 minutes</p>
+							<div class="eyebrow">{scriptName(lesson.script)} · {t('lesson.n', { n: lesson.id.slice(1) })}</div>
+							<h1 class="large-title">{c(lesson.title)}</h1>
+							{#if lesson.note}<p class="subhead note">{c(lesson.note)}</p>{/if}
+							<p class="subhead">{t('lesson.introMeta', { n: chars.length })}</p>
 						</div>
 					</div>
 				{:else if phase === 'meet' && current}
 					{@const m = mnemonicFor(current.char)}
 					<div class="split">
 						<div class="pane">
-							<div class="eyebrow">New · {idx + 1} of {chars.length}</div>
+							<div class="eyebrow">{t('lesson.newOf', { i: idx + 1, n: chars.length })}</div>
 							<div class="glass sheen canvas">
 								{#key animKey}
 									<StrokeAnimator char={current.char} size="100%" scene={m.scene ? 1 : 0} />
@@ -216,10 +218,10 @@
 						</div>
 						<div class="pane text">
 							<div class="romaji">{current.romaji}</div>
-							<p class="story">{m.story}</p>
+							<p class="story">{story(current.char)}</p>
 							<div class="row" style="justify-content:center">
-								<button class="btn ghost small" onclick={() => speak(current.char)}>🔊 Listen</button>
-								<button class="btn ghost small" onclick={() => animKey++}>↻ Replay strokes</button>
+								<button class="btn ghost small" onclick={() => speak(current.char)}>🔊 {t('common.listen')}</button>
+								<button class="btn ghost small" onclick={() => animKey++}>↻ {t('lesson.replay')}</button>
 							</div>
 						</div>
 					</div>
@@ -229,15 +231,15 @@
 							<TracePad char={current.char} mode="trace" size="var(--pad)" oncomplete={nextFromTrace} />
 						</div>
 						<div class="pane text">
-							<div class="eyebrow">Trace · follow the numbered dots</div>
+							<div class="eyebrow">{t('lesson.traceTitle')}</div>
 							<div class="romaji small">{current.romaji}</div>
-							<p class="caption">Each stroke is checked as you lift your finger: position, shape and direction.</p>
+							<p class="caption">{t('lesson.traceBody')}</p>
 						</div>
 					</div>
 				{:else if phase === 'recognize' && current}
 					<div class="split">
 						<div class="pane">
-							<div class="eyebrow">Which sound is this?</div>
+							<div class="eyebrow">{t('lesson.whichSound')}</div>
 							<div class="glass sheen big" class:shake={shaking}>
 								<KanaGlyph char={current.char} size={150} />
 								<Romaji text={current.char} hide={!choice} />
@@ -263,10 +265,10 @@
 										<KanaGlyph char={current.char} size={56} />
 										<div class="stack" style:--gap="2px">
 											<b>{current.romaji}</b>
-											<span class="caption">{mnemonicFor(current.char).story}</span>
+											<span class="caption">{story(current.char)}</span>
 										</div>
 									</div>
-									<button class="btn block" onclick={advance}>Got it</button>
+									<button class="btn block" onclick={advance}>{t('lesson.gotIt')}</button>
 								</div>
 							{/if}
 						</div>
@@ -283,19 +285,19 @@
 							{/if}
 						</div>
 						<div class="pane text">
-							<div class="eyebrow">Write it from memory</div>
+							<div class="eyebrow">{t('lesson.recallTitle')}</div>
 							<div class="row" style="justify-content:center">
 								<div class="romaji">{current.romaji}</div>
-								<button class="icon-btn" aria-label="Listen" onclick={() => speak(current.char)}>🔊</button>
+								<button class="icon-btn" aria-label={t('common.listen')} onclick={() => speak(current.char)}>🔊</button>
 							</div>
 							{#if !recallResult}
 								<MnemonicHint char={current.char} onuse={() => (stats[current.char].hinted = true)} />
 							{/if}
 							{#if recallResult}
 								<p class="headline" style:color={recallResult.correct ? 'var(--success)' : 'var(--danger)'}>
-									{recallResult.correct ? 'Nice, that’s it.' : recallResult.guess ? `That looked like ${recallResult.guess}. Watch the strokes.` : 'Not quite. Watch the strokes.'}
+									{recallResult.correct ? t('lesson.recallOk') : recallResult.guess ? t('lesson.recallLooked', { guess: recallResult.guess }) : t('lesson.recallWrong')}
 								</p>
-								<button class="btn block" onclick={advance}>Continue</button>
+								<button class="btn block" onclick={advance}>{t('common.continue')}</button>
 							{/if}
 						</div>
 					</div>
@@ -309,10 +311,9 @@
 							</div>
 						</div>
 						<div class="pane text">
-							<h1 class="large-title">Lesson complete</h1>
+							<h1 class="large-title">{t('lesson.complete')}</h1>
 							<p class="subhead">
-								{chars.length} kana added to your deck. The first review comes up in about ten minutes,
-								then again over the next few days. Spacing the reviews out is what makes them stick.
+								{t('lesson.completeBody', { n: chars.length })}
 							</p>
 						</div>
 					</div>
@@ -322,16 +323,16 @@
 
 		<footer class="bottom">
 			{#if phase === 'intro'}
-				<button class="btn accent block" onclick={start}>Start lesson</button>
+				<button class="btn accent block" onclick={start}>{t('lesson.start')}</button>
 			{:else if phase === 'meet'}
-				<button class="btn accent block" onclick={nextFromMeet}>Now trace it</button>
+				<button class="btn accent block" onclick={nextFromMeet}>{t('lesson.nowTrace')}</button>
 			{:else if phase === 'trace'}
-				<button class="btn ghost block" onclick={nextFromTrace}>Skip tracing</button>
+				<button class="btn ghost block" onclick={nextFromTrace}>{t('lesson.skipTrace')}</button>
 			{:else if phase === 'done'}
 				<div class="row" style="width:100%">
-					<button class="btn ghost block" onclick={() => goto('/')}>Done</button>
+					<button class="btn ghost block" onclick={() => goto('/')}>{t('common.done')}</button>
 					{#if nextLesson}
-						<button class="btn accent block" onclick={() => goto(`/learn/${nextLesson.id}`).then(() => (phase = 'intro'))}>Next lesson</button>
+						<button class="btn accent block" onclick={() => goto(`/learn/${nextLesson.id}`).then(() => (phase = 'intro'))}>{t('lesson.next')}</button>
 					{/if}
 				</div>
 			{/if}

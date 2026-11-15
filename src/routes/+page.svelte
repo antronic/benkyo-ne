@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t, tn, fmtDate } from '#lib/i18n/index.svelte.ts';
+	import { c, scriptName } from '#lib/i18n/content.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { LESSONS } from '#lib/content/lessons.ts';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
@@ -11,10 +13,10 @@
 	const hour = new Date().getHours();
 	const greeting =
 		hour < 11
-			? { jp: 'おはよう', en: 'Good morning' }
+			? { jp: 'おはよう', en: 'home.morning' as const }
 			: hour < 18
-				? { jp: 'こんにちは', en: 'Good afternoon' }
-				: { jp: 'こんばんは', en: 'Good evening' };
+				? { jp: 'こんにちは', en: 'home.afternoon' as const }
+				: { jp: 'こんばんは', en: 'home.evening' as const };
 
 	const next = $derived(LESSONS.find((l) => !progress.completed.includes(l.id)));
 	const goal = $derived(progress.settings.newPerDay + Math.max(10, progress.due.length));
@@ -28,11 +30,11 @@
 <main class="page stack dash" style:--gap="18px">
 	<header class="rise">
 		<div class="eyebrow">
-			{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+			{fmtDate(new Date(), { weekday: 'long', month: 'long', day: 'numeric' })}
 		</div>
 		<LargeTitle title={greeting.jp} jp />
 		<p class="subhead" style="margin:4px 0 0">
-			{greeting.en}. Ten focused minutes beat an hour of cramming.
+			{t('home.greetingLine', { greeting: t(greeting.en), tagline: t('home.tagline') })}
 		</p>
 	</header>
 
@@ -40,16 +42,16 @@
 		<ProgressRing value={doneToday / goal} size={112} width={11}>
 			<div>
 				<div class="ring-num">{doneToday}</div>
-				<div class="caption">of {goal}</div>
+				<div class="caption">{t('home.of', { n: goal })}</div>
 			</div>
 		</ProgressRing>
 		<div class="stack" style:--gap="4px">
-			<div class="headline">Today</div>
-			<div class="subhead">{progress.today.reviews} reviewed · {progress.today.learned} new</div>
+			<div class="headline">{t('nav.today')}</div>
+			<div class="subhead">{t('home.reviewedNew', { r: progress.today.reviews, n: progress.today.learned })}</div>
 			<div class="row stats" style:--gap="16px">
-				<div><b>{progress.streak.days}</b><span class="caption">day streak</span></div>
-				<div><b>{progress.learnedCount}</b><span class="caption">learned</span></div>
-				<div><b>{Math.round(progress.settings.retention * 100)}%</b><span class="caption">target</span></div>
+				<div><b>{progress.streak.days}</b><span class="caption">{t('home.streak')}</span></div>
+				<div><b>{progress.learnedCount}</b><span class="caption">{t('home.learned')}</span></div>
+				<div><b>{Math.round(progress.settings.retention * 100)}%</b><span class="caption">{t('home.target')}</span></div>
 			</div>
 		</div>
 	</section>
@@ -57,9 +59,9 @@
 	{#if progress.due.length > 0}
 		<a href="/review" class="glass sheen card review rise" style:--i="2">
 			<div class="stack" style:--gap="2px">
-				<div class="eyebrow" style="color:var(--accent)">Reviews due</div>
-				<div class="title-2">{progress.due.length} card{progress.due.length === 1 ? '' : 's'}</div>
-				<div class="subhead">Timed to come up just before you'd forget them.</div>
+				<div class="eyebrow" style="color:var(--accent)">{t('home.reviewsDue')}</div>
+				<div class="title-2">{tn('home.cards', progress.due.length)}</div>
+				<div class="subhead">{t('home.reviewsBody')}</div>
 			</div>
 			<div class="go">›</div>
 		</a>
@@ -68,11 +70,11 @@
 	{#if words.newQueue.length > 0 || words.list.length > 0}
 		<a href={words.newQueue.length ? '/review' : '/words'} class="glass sheen card review rise" style:--i="2">
 			<div class="stack" style:--gap="2px">
-				<div class="eyebrow" style="color:#8b5cf6">Words</div>
+				<div class="eyebrow" style="color:#8b5cf6">{t('nav.words')}</div>
 				<div class="title-2">
-					{words.newQueue.length ? `${words.newQueue.length} new word${words.newQueue.length === 1 ? '' : 's'} ready` : `${words.list.length} card${words.list.length === 1 ? "" : "s"}`}
+					{words.newQueue.length ? tn('home.newWordsReady', words.newQueue.length) : tn('home.cards', words.list.length)}
 				</div>
-				<div class="subhead">{words.newQueue.length ? 'Your own cards come first, then reading-pack words.' : 'Make cards from anything you meet, or read a pack.'}</div>
+				<div class="subhead">{words.newQueue.length ? t('home.wordsQueued') : t('home.wordsEmpty')}</div>
 			</div>
 			<div class="go">›</div>
 		</a>
@@ -87,30 +89,27 @@
 			</div>
 			<div class="stack" style:--gap="2px">
 				<div class="eyebrow" style="color:rgb(255 255 255 / .75)">
-					{progress.completed.length ? 'Up next' : 'Start here'} · {next.script}
+					{progress.completed.length ? t('home.upNext') : t('home.startHere')} · {scriptName(next.script)}
 				</div>
-				<div class="title-2">{next.title}</div>
+				<div class="title-2">{c(next.title)}</div>
 				<div class="jp" style="opacity:.85">{next.subtitle}</div>
 				<div class="hero-rmj"><Romaji text={next.subtitle} /></div>
 			</div>
 			{#if progress.newBudgetLeft === 0}
 				<div class="caption" style="color:#fff;opacity:.9">
-					You've reached today's limit for new kana. You'll remember them better if you stop
-					here and review tomorrow.
+					{t('home.limit')}
 				</div>
 			{/if}
 		</a>
 	{:else}
-		<div class="glass card rise">All kana lessons complete 🎉 Keep your reviews going.</div>
+		<div class="glass card rise">{t('home.allDone')}</div>
 	{/if}
 
 	<section class="glass sheen card tip rise" style:--i="4">
 		<div>
-			<div class="eyebrow">How this works</div>
+			<div class="eyebrow">{t('home.howTitle')}</div>
 			<p style="margin:6px 0 0">
-				Each lesson goes <b>meet → trace → recognise → recall</b>. After that the app
-				schedules every kana with <b>FSRS</b>, so it comes back for review just before you'd
-				forget it.
+				{@html t('home.howBody')}
 			</p>
 		</div>
 	</section>

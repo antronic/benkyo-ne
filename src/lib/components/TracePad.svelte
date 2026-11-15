@@ -7,6 +7,7 @@
 	Grading runs in WASM (wasm/stroke), with a JS fallback.
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { onMount } from 'svelte';
 	import { familyOf, strokesOf } from '#lib/content/strokes.ts';
 	import { getMatcher, type Matcher, type Pt } from '#lib/handwriting/match.ts';
@@ -127,7 +128,7 @@
 		onpointerup={up}
 		onpointercancel={up}
 		role="application"
-		aria-label="Drawing pad for {char}"
+		aria-label={t('a11y.drawingPad', { char })}
 	>
 		<g class="grid">
 			<path d="M54.5 4 V105 M4 54.5 H105" />

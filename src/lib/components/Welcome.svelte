@@ -6,6 +6,7 @@
 	"Not now" keeps the app usable offline without AI.
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import * as api from '#lib/ai/client.ts';
@@ -34,7 +35,7 @@
 		} catch (e) {
 			// closing the system passkey sheet is not an error
 			if ((e as Error)?.name !== 'NotAllowedError') {
-				error = e instanceof Error ? e.message : 'Something went wrong';
+				error = e instanceof Error ? e.message : t('welcome.error');
 				haptic('error');
 			}
 		} finally {
@@ -57,7 +58,7 @@
 		if (!r?.signedIn) return;
 		haptic('success');
 		await ai.refresh();
-		toast(`Welcome back, ${r.account?.name ?? ''}`.trim(), '👋');
+		toast(t('welcome.back', { name: r.account?.name ?? '' }).trim(), '👋');
 		finish();
 	}
 	async function recover() {
@@ -67,13 +68,13 @@
 		// a recovery session must add a passkey straight away
 		const added = await run(() => api.registerPasskey());
 		await ai.refresh();
-		toast(added ? 'Recovered, new passkey saved' : 'Recovered. Add a passkey in Settings.', '🔑', 2800);
+		toast(added ? t('welcome.recovered') : t('welcome.recoveredNoKey'), '🔑', 2800);
 		finish();
 	}
 	async function copy() {
 		try {
 			await navigator.clipboard.writeText(recoveryCode ?? '');
-			toast('Recovery code copied', '📋');
+			toast(t('welcome.codeCopied'), '📋');
 		} catch {
 			/* still on screen */
 		}
@@ -87,7 +88,7 @@
 	}
 </script>
 
-<div class="welcome" transition:fade={{ duration: 350 }} role="dialog" aria-modal="true" aria-label="Join the Benkyo beta">
+<div class="welcome" transition:fade={{ duration: 350 }} role="dialog" aria-modal="true" aria-label={t('welcome.label')}>
 	<div class="bg" aria-hidden="true"></div>
 
 	<div class="panel">
@@ -98,64 +99,64 @@
 				</svg>
 			</div>
 			<span class="beta">BETA</span>
-			<h2 class="large-title">Join the beta</h2>
+			<h2 class="large-title">{t('welcome.title')}</h2>
 			<p class="subhead">
-				One tap with Face ID or Touch ID. No password, no email: your device makes a <b>passkey</b>{#if ai.appleEnabled}, or use your Apple ID{/if}.
+				{@html t(ai.appleEnabled ? 'welcome.leadApple' : 'welcome.lead')}
 			</p>
 		</div>
 
 		{#if recoveryCode}
 			<div class="card glass glass-strong" in:fly|global={{ y: 16, duration: 450 }}>
-				<b>You’re in! 🎉 Save your recovery code</b>
+				<b>{t('welcome.inSave')}</b>
 				<code>{recoveryCode}</code>
-				<p class="caption">Shown only once. Keep it in your password manager: it gets you back in if you lose your passkey.</p>
+				<p class="caption">{t('welcome.codeBody')}</p>
 				<div class="row">
-					<button class="btn ghost" onclick={copy}>Copy</button>
-					<button class="btn accent grow" onclick={finish}>I saved it</button>
+					<button class="btn ghost" onclick={copy}>{t('welcome.copy')}</button>
+					<button class="btn accent grow" onclick={finish}>{t('welcome.saved')}</button>
 				</div>
 			</div>
 		{:else if !supported}
 			<div class="card glass glass-strong">
 				{#if ai.appleEnabled}
 					<AppleButton />
-					<p class="caption">This browser doesn’t support passkeys, but you can join with your Apple ID. You can still learn offline.</p>
+					<p class="caption">{t('welcome.noPasskeysApple')}</p>
 				{:else}
-					<p class="caption">This browser doesn’t support passkeys. Open Benkyo in Safari or Chrome to join the beta. You can still learn offline.</p>
+					<p class="caption">{t('welcome.noPasskeys')}</p>
 				{/if}
 			</div>
 		{:else}
 			<div class="card glass glass-strong" in:fly|global={{ y: 16, duration: 500, delay: 120 }}>
-				<div class="seg" role="tablist" aria-label="Account">
-					<button role="tab" aria-selected={mode === 'create'} class:on={mode === 'create'} onclick={() => ((mode = 'create'), (error = ''))} disabled={!ai.signupOpen}>Create account</button>
-					<button role="tab" aria-selected={mode !== 'create'} class:on={mode !== 'create'} onclick={() => ((mode = 'signin'), (error = ''))}>Sign in</button>
+				<div class="seg" role="tablist" aria-label={t('welcome.account')}>
+					<button role="tab" aria-selected={mode === 'create'} class:on={mode === 'create'} onclick={() => ((mode = 'create'), (error = ''))} disabled={!ai.signupOpen}>{t('welcome.create')}</button>
+					<button role="tab" aria-selected={mode !== 'create'} class:on={mode !== 'create'} onclick={() => ((mode = 'signin'), (error = ''))}>{t('welcome.signIn')}</button>
 				</div>
 
 				{#if mode === 'create'}
 					{#if ai.signupOpen}
 						<form class="stack" style:--gap="10px" onsubmit={(e) => (e.preventDefault(), create())}>
-							<input type="text" placeholder="Your name" bind:value={name} maxlength="40" autocomplete="nickname" aria-label="Your name" />
+							<input type="text" placeholder={t('welcome.name')} bind:value={name} maxlength="40" autocomplete="nickname" aria-label={t('welcome.name')} />
 							<button class="btn accent block" disabled={busy || !name.trim()}>
-								{busy ? 'Waiting for passkey…' : 'Create passkey'}
+								{busy ? t('welcome.waiting') : t('welcome.createPasskey')}
 							</button>
 						</form>
 						{#if ai.appleEnabled}
-							<div class="or" aria-hidden="true"><span>or</span></div>
+							<div class="or" aria-hidden="true"><span>{t('welcome.or')}</span></div>
 							<AppleButton disabled={busy} />
 						{/if}
-						<p class="caption">Then add your own AI key in Settings. It’s encrypted and only your account can use it.</p>
+						<p class="caption">{t('welcome.thenKey')}</p>
 					{:else}
-						<p class="caption">The beta is full right now. Already joined? Sign in instead.</p>
+						<p class="caption">{t('welcome.full')}</p>
 					{/if}
 				{:else if mode === 'signin'}
-					<button class="btn accent block" onclick={signIn} disabled={busy}>{busy ? 'Waiting for passkey…' : 'Sign in with passkey'}</button>
-					{#if ai.appleEnabled}<AppleButton label="Sign in with Apple" disabled={busy} />{/if}
-					<button class="link" onclick={() => ((mode = 'recover'), (error = ''))}>Lost your passkey?</button>
+					<button class="btn accent block" onclick={signIn} disabled={busy}>{busy ? t('welcome.waiting') : t('welcome.signInPasskey')}</button>
+					{#if ai.appleEnabled}<AppleButton label={t('welcome.signInApple')} disabled={busy} />{/if}
+					<button class="link" onclick={() => ((mode = 'recover'), (error = ''))}>{t('welcome.lost')}</button>
 				{:else}
 					<form class="stack" style:--gap="10px" onsubmit={(e) => (e.preventDefault(), recover())}>
-						<input type="text" placeholder="Recovery code" bind:value={code} autocomplete="off" autocapitalize="characters" aria-label="Recovery code" />
-						<button class="btn accent block" disabled={busy || !code.trim()}>Recover and add a passkey</button>
+						<input type="text" placeholder={t('welcome.code')} bind:value={code} autocomplete="off" autocapitalize="characters" aria-label={t('welcome.code')} />
+						<button class="btn accent block" disabled={busy || !code.trim()}>{t('welcome.recover')}</button>
 					</form>
-					<button class="link" onclick={() => ((mode = 'signin'), (error = ''))}>Back to sign in</button>
+					<button class="link" onclick={() => ((mode = 'signin'), (error = ''))}>{t('welcome.backToSignIn')}</button>
 				{/if}
 
 				{#if error}<p class="error" role="alert" in:fade>{error}</p>{/if}
@@ -163,7 +164,7 @@
 		{/if}
 
 		{#if !recoveryCode}
-			<button class="later" onclick={later}>Not now, learn offline without AI</button>
+			<button class="later" onclick={later}>{t('welcome.later')}</button>
 		{/if}
 	</div>
 </div>

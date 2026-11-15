@@ -4,6 +4,8 @@
 	Using it is reported via `onuse` so the answer is graded Hard.
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { story } from '#lib/i18n/content.ts';
 	import { fly, fade } from 'svelte/transition';
 	import { mnemonicFor } from '#lib/content/mnemonics.ts';
 	import KanaGlyph from './KanaGlyph.svelte';
@@ -27,7 +29,7 @@
 </script>
 
 {#if !open}
-	<button class="btn ghost small" onclick={show}>💡 Show memory hint</button>
+	<button class="btn ghost small" onclick={show}>💡 {t('hint.show')}</button>
 {:else}
 	<div class="hint glass" in:fly={{ y: 10, duration: 300 }}>
 		<div class="pic" aria-hidden="true">
@@ -40,8 +42,8 @@
 			{#if !m.scene && !peeking}<span class="placeholder">💭</span>{/if}
 		</div>
 		<div class="stack" style:--gap="6px">
-			<p class="story">{m.story}</p>
-			<button class="btn ghost small" onclick={peek} disabled={peeking}>👀 Peek (2 s)</button>
+			<p class="story">{story(char)}</p>
+			<button class="btn ghost small" onclick={peek} disabled={peeking}>👀 {t('hint.peek')}</button>
 		</div>
 	</div>
 {/if}

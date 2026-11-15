@@ -6,6 +6,8 @@
 	Grades are inferred by the parent from correctness + time (PLAN §5.2).
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { gloss } from '#lib/i18n/content.ts';
 	import Romaji from './Romaji.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { fly, scale } from 'svelte/transition';
@@ -83,20 +85,20 @@
 
 <div class="wq">
 	<div class="eyebrow">
-		{mode === 'study' ? (card.kind === 'phrase' ? 'New phrase' : 'New word') : mode === 'choose' ? 'What does it mean?' : 'How do you say it?'}
-		{#if drill}· drill{/if}
+		{mode === 'study' ? (card.kind === 'phrase' ? t('quiz.newPhrase') : t('quiz.newWord')) : mode === 'choose' ? t('quiz.whatMeans') : t('quiz.howSay')}
+		{#if drill}· {t('quiz.drill')}{/if}
 	</div>
 
 	<div class="split">
 		<div class="pane">
 			{#if mode === 'type'}
 				<div class="prompt glass sheen">
-					<span class="meaning">{card.gloss}</span>
+					<span class="meaning">{gloss(card.gloss)}</span>
 					{#if card.gloss2}<span class="caption">{card.gloss2}</span>{/if}
 					{#if card.usage}<span class="caption">💬 {card.usage.en}</span>{/if}
 				</div>
 			{:else}
-				<button class="front glass sheen" onclick={() => speak(card.front)} aria-label="Listen to {card.front}">
+				<button class="front glass sheen" onclick={() => speak(card.front)} aria-label={t('a11y.listenTo', { text: card.front })}>
 					<span class="jp">{card.front}</span>
 					<Romaji text={card.front} />
 				</button>
@@ -109,12 +111,12 @@
 		<div class="pane">
 			{#if mode === 'study'}
 				<div class="glass back"><WordCardView {card} /></div>
-				<button class="btn accent block" onclick={startQuiz}>Got it, quiz me</button>
+				<button class="btn accent block" onclick={startQuiz}>{t('quiz.quizMe')}</button>
 			{:else if !result}
 				{#if mode === 'choose'}
 					<div class="choices">
 						{#each options as o}
-							<button class="glass choice" class:picked={picked === o} onclick={() => ((picked = o), submit(o === card.gloss))}>{o}</button>
+							<button class="glass choice" class:picked={picked === o} onclick={() => ((picked = o), submit(o === card.gloss))}>{gloss(o)}</button>
 						{/each}
 					</div>
 				{:else}
@@ -122,8 +124,8 @@
 					<input
 						type="text"
 						bind:value={answer}
-						placeholder="romaji or kana…"
-						aria-label="Reading"
+						placeholder={t('quiz.typePlaceholder')}
+						aria-label={t('quiz.reading')}
 						autocomplete="off"
 						autocapitalize="off"
 						autocorrect="off"
@@ -132,20 +134,20 @@
 						autofocus
 						onkeydown={(e) => e.key === 'Enter' && answer.trim() && submit(check(answer))}
 					/>
-					<button class="btn block" disabled={!answer.trim()} onclick={() => submit(check(answer))}>Check</button>
+					<button class="btn block" disabled={!answer.trim()} onclick={() => submit(check(answer))}>{t('quiz.check')}</button>
 				{/if}
 				{#if card.hook}
-					<button class="btn ghost small" onclick={() => (hint = true)} disabled={hint}>💡 Hint</button>
+					<button class="btn ghost small" onclick={() => (hint = true)} disabled={hint}>💡 {t('quiz.hint')}</button>
 				{/if}
 			{:else}
 				<div class="glass back" class:wrong={!result.correct} in:scale={{ start: 0.94, duration: 300 }}>
 					<p class="headline verdict" style:color={result.correct ? 'var(--success)' : 'var(--danger)'}>
-						{result.correct ? 'Correct' : 'Not quite'}
+						{result.correct ? t('quiz.correct') : t('quiz.notQuite')}
 					</p>
 					<WordCardView {card} />
 				</div>
 				{#if !(result.correct && mode === 'choose')}
-					<button class="btn block {result.correct ? '' : 'accent'}" onclick={onnext}>Continue</button>
+					<button class="btn block {result.correct ? '' : 'accent'}" onclick={onnext}>{t('common.continue')}</button>
 				{/if}
 			{/if}
 		</div>

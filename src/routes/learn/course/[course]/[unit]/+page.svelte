@@ -4,6 +4,8 @@
 	skips waiting for the kana lessons (cards aren't parked).
 -->
 <script lang="ts">
+	import { t, tn } from '#lib/i18n/index.svelte.ts';
+	import { c as tc, gloss } from '#lib/i18n/content.ts';
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -74,9 +76,9 @@
 				if (note && !words.cards[c.id].usage) await words.save({ ...words.cards[c.id], usage: { en: note, second: null } });
 			}
 			haptic('success');
-			toast(`${saved.length} added · ${learnNow || !needsKana ? 'ready to learn' : 'some are parked until you learn their kana'}`, '✓', 2600);
+			toast(`${t('unit.added', { n: saved.length })} · ${learnNow || !needsKana ? t('unit.ready') : t('unit.parked')}`, '✓', 2600);
 		} catch (e) {
-			toast(e instanceof Error ? e.message : 'Couldn’t add cards', '⚠️');
+			toast(e instanceof Error ? e.message : t('unit.addFailed'), '⚠️');
 		} finally {
 			saving = false;
 		}
@@ -84,39 +86,39 @@
 </script>
 
 {#if !course || !unit}
-	<main class="page"><h1 class="large-title">Unit not found</h1><a href="/learn">Back to Learn</a></main>
+	<main class="page"><h1 class="large-title">{t('unit.notFound')}</h1><a href="/learn">{t('unit.backToLearn')}</a></main>
 {:else}
 	<main class="unit-page" style:--h={course.hue}>
 		<header class="top">
-			<button class="icon-btn" aria-label="Back" onclick={() => goto('/learn')}>
+			<button class="icon-btn" aria-label={t('common.back')} onclick={() => goto('/learn')}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
 			</button>
 			<div class="stack" style:--gap="0">
-				<span class="eyebrow">{course.emoji} {course.title}</span>
-				<h1 class="title-2">{unit.title}</h1>
+				<span class="eyebrow">{course.emoji} {tc(course.title)}</span>
+				<h1 class="title-2">{tc(unit.title)}</h1>
 			</div>
 		</header>
 
 		{#if !cands.length}
-			<Skeleton variant="row" count={unit.items.length} label="Checking items in the dictionary" />
+			<Skeleton variant="row" count={unit.items.length} label={t('unit.checking')} />
 		{/if}
 		<ul class="items">
 			{#each cands as c, i (c.key)}
 				{@const have = !!words.cards[c.key] && !words.cards[c.key].deleted}
 				<li class="glass item rise" style:--i={i} class:have>
-					<button class="say" aria-label="Listen to {c.reading}" onclick={() => speak(c.reading)}>🔊</button>
+					<button class="say" aria-label={t('a11y.listenTo', { text: c.reading })} onclick={() => speak(c.reading)}>🔊</button>
 					<div class="body">
 						<div class="row" style:--gap="8px">
 							<span class="jp reading">{c.reading}</span>
-							{#if c.kind === 'phrase'}<span class="tag">phrase</span>{/if}
-							{#if !c.verified}<span class="tag warn">unverified</span>{/if}
+							{#if c.kind === 'phrase'}<span class="tag">{t('card.phrase')}</span>{/if}
+							{#if !c.verified}<span class="tag warn">{t('card.unverified')}</span>{/if}
 						</div>
 						<Romaji text={c.reading} />
 						{#if c.written[0]}<span class="jp kanji">{c.written[0]}</span>{/if}
-						<span class="gloss">{c.gloss}</span>
-						{#if c.note}<span class="caption">💬 {c.note}</span>{/if}
+						<span class="gloss">{gloss(c.gloss)}</span>
+						{#if c.note}<span class="caption">💬 {tc(c.note)}</span>{/if}
 					</div>
-					{#if have}<span class="check" aria-label="Added">✓</span>{/if}
+					{#if have}<span class="check" aria-label={t('unit.addedOne')}>✓</span>{/if}
 				</li>
 			{/each}
 		</ul>
@@ -126,19 +128,19 @@
 				{#if needsKana}
 					<label class="now">
 						<span class="stack" style:--gap="0">
-							<span>Learn now with romaji</span>
-							<span class="caption">Don’t wait for the kana lessons; romaji helps you read.</span>
+							<span>{t('unit.learnNow')}</span>
+							<span class="caption">{t('unit.learnNowBody')}</span>
 						</span>
 						<input type="checkbox" class="switch" bind:checked={learnNow} />
 					</label>
 				{/if}
 				<button class="btn accent block" onclick={addAll} disabled={saving || !cands.length}>
-					{saving ? 'Adding…' : `Add ${toAdd.length} to my cards`}
+					{saving ? t('unit.adding') : t('unit.addN', { n: toAdd.length })}
 				</button>
-				{#if ai.available}<p class="caption center">✨ AI adds memory hooks and examples after adding.</p>{/if}
+				{#if ai.available}<p class="caption center">✨ {t('unit.aiNote')}</p>{/if}
 			{:else}
-				<p class="caption center">All {added.length} are in your cards.</p>
-				<button class="btn accent block" onclick={() => goto('/review')}>Practise now</button>
+				<p class="caption center">{tn('unit.allIn', added.length)}</p>
+				<button class="btn accent block" onclick={() => goto('/review')}>{t('unit.practise')}</button>
 			{/if}
 		</footer>
 	</main>

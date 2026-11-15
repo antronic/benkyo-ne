@@ -1,5 +1,7 @@
 <!-- Words hub: reading packs, card maker, tags, and your word/phrase cards. -->
 <script lang="ts">
+	import { t as tr, tn } from '#lib/i18n/index.svelte.ts';
+	import { gloss } from '#lib/i18n/content.ts';
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
@@ -57,9 +59,9 @@
 
 	function status(c: UserCard) {
 		const s = progress.cards[c.id];
-		if (words.isParked(c) && !s) return { label: 'parked', title: 'Uses kana you haven’t learned yet' };
-		if (!s || s.state === 'new') return { label: 'new', title: 'Not introduced yet' };
-		return { label: s.state === 'review' ? 'learning ✓' : 'learning', title: '' };
+		if (words.isParked(c) && !s) return { label: tr('words.parked'), title: tr('words.parkedTitle') };
+		if (!s || s.state === 'new') return { label: tr('words.new'), title: tr('words.newTitle') };
+		return { label: s.state === 'review' ? tr('words.learningDone') : tr('words.learning'), title: '' };
 	}
 
 	async function addTag() {
@@ -79,53 +81,53 @@
 		await words.setTags(open.id, [...open.tags, NOW_TAG]);
 		open = words.cards[open.id];
 		haptic('success');
-		toast('Added to today’s new cards', '✓');
+		toast(tr('words.addedToday'), '✓');
 	}
 		async function removeCard() {
 		if (!open) return;
-		if (!(await confirmDestructive('Delete this card?', `“${open.front}” and its review history stop appearing.`, 'Delete Card'))) return;
+		if (!(await confirmDestructive(tr('words.deleteTitle'), tr('words.deleteBody', { text: open.front }), tr('words.deleteConfirm')))) return;
 		await words.remove(open.id);
 		open = null;
-		toast('Card deleted');
+		toast(tr('words.deleted'));
 	}
 </script>
 
 <main class="page stack" style:--gap="14px">
-	<LargeTitle title="Words">
+	<LargeTitle title={tr('nav.words')}>
 		{#snippet trailing()}
-			<button class="btn accent small" onclick={() => goto('/words/new')}>＋ Make card</button>
+			<button class="btn accent small" onclick={() => goto('/words/new')}>{tr('words.make')}</button>
 		{/snippet}
 	</LargeTitle>
 
 	{#if !ai.available && ai.checked && ai.reason}
-		<p class="caption hint">✨ {ai.reason} Dictionary features still work.</p>
+		<p class="caption hint">✨ {ai.reason} {tr('words.dictStillWorks')}</p>
 	{/if}
 
 	<section class="stack" style:--gap="8px">
-		<h2 class="eyebrow">Words you can read</h2>
+		<h2 class="eyebrow">{tr('words.canRead')}</h2>
 		{#if progress.knownKana.size < MIN_KANA}
-			<div class="glass card">Finish the first two kana lessons to unlock reading packs with real words.</div>
+			<div class="glass card">{tr('words.unlock')}</div>
 		{:else if ready.length}
 			<div class="packs">
 				{#each ready as p, i (p.id)}
 					<a class="pack glass sheen rise" style:--i={i} href="/words/pack/{p.id}">
 						<span class="jp words">{p.items.slice(0, 3).map((x) => x.reading).join(' · ')}<Romaji text={p.items.slice(0, 3).map((x) => x.reading).join(' · ')} /></span>
-						<span class="headline">{p.theme?.en ?? `${p.items.length} words`}</span>
+						<span class="headline">{p.theme?.en ?? tn('words.nWords', p.items.length)}</span>
 						{#if p.theme?.second}<span class="caption">{p.theme.second}</span>{/if}
-						{#if !p.enriched}<span class="caption">dictionary only</span>{/if}
+						{#if !p.enriched}<span class="caption">{tr('words.dictOnly')}</span>{/if}
 					</a>
 				{/each}
 			</div>
 		{:else if preparing}
-			<Skeleton variant="tile" count={3} label="Preparing reading packs" />
+			<Skeleton variant="tile" count={3} label={tr('words.preparing')} />
 		{:else}
-			<div class="glass card caption">No packs yet. They appear as you learn more kana.</div>
+			<div class="glass card caption">{tr('words.noPacks')}</div>
 		{/if}
 	</section>
 
 	{#if words.tags.length}
 		<section class="stack" style:--gap="8px">
-			<h2 class="eyebrow">Tags · tap to drill</h2>
+			<h2 class="eyebrow">{tr('words.tags')}</h2>
 			<div class="chips">
 				{#each words.tags as t}
 					<span class="chip-wrap">
@@ -133,7 +135,7 @@
 							{t.tag} <span class="count">{t.count}</span>
 						</button>
 						{#if filterTag === t.tag}
-							<a class="chip drill" href="/review?tag={encodeURIComponent(t.tag)}">Drill ›</a>
+							<a class="chip drill" href="/review?tag={encodeURIComponent(t.tag)}">{tr('words.drill')}</a>
 						{/if}
 					</span>
 				{/each}
@@ -143,12 +145,12 @@
 
 	<section class="stack" style:--gap="8px">
 		<div class="row">
-			<h2 class="eyebrow">Your cards · {words.list.length}</h2>
+			<h2 class="eyebrow">{tr('words.yourCards', { n: words.list.length })}</h2>
 			<span class="spacer"></span>
-			{#if words.newQueue.length}<span class="caption">{words.newQueue.length} ready to learn</span>{/if}
+			{#if words.newQueue.length}<span class="caption">{tr('words.readyN', { n: words.newQueue.length })}</span>{/if}
 		</div>
 		{#if words.list.length > 6}
-			<input type="text" placeholder="Search cards" bind:value={query} aria-label="Search cards" />
+			<input type="text" placeholder={tr('words.search')} bind:value={query} aria-label={tr('words.search')} />
 		{/if}
 		<div class="glass list">
 			{#each shown as c (c.id)}
@@ -158,39 +160,39 @@
 						<span class="jp">{c.front}</span>
 						<Romaji text={c.front} />
 						{#if c.kanji}<span class="jp kanji">{c.kanji}</span>{/if}
-						<span class="caption">{c.gloss}</span>
+						<span class="caption">{gloss(c.gloss)}</span>
 					</span>
 					<span class="spacer"></span>
-					{#if !c.verified}<span class="pill warn" title="Not in the dictionary">?</span>{/if}
+					{#if !c.verified}<span class="pill warn" title={tr('card.unverifiedTitle')}>?</span>{/if}
 					<span class="pill" title={st.title}>{st.label}</span>
 				</button>
 			{:else}
-				<div class="item caption">No cards yet. Tap “＋ Make card” to add a word or phrase from English, Japanese, romaji, a screenshot or a scenario.</div>
+				<div class="item caption">{tr('words.empty')}</div>
 			{/each}
 		</div>
 	</section>
 </main>
 
-<Sheet open={!!open} label="Card" onclose={() => (open = null)}>
+<Sheet open={!!open} label={tr('words.card')} onclose={() => (open = null)}>
 	{#if open}
 		<WordCardView card={open} />
 		{#if words.isParked(open) && !progress.cards[open.id]}
 			{@const missing = unknownKanaIn(open.front, progress.knownKana)}
 			<p class="caption parked">
-				⏸ Parked until you learn
+				⏸ {tr('words.parkedUntil')}
 				{#each missing as k}<span class="jp need">{k}<Romaji text={k} /></span>{/each}
-				Then it joins your reviews automatically.
+				{tr('words.parkedThen')}
 			</p>
-			<button class="btn ghost small" onclick={learnNow}>Learn it now anyway (with romaji)</button>
+			<button class="btn ghost small" onclick={learnNow}>{tr('words.learnAnyway')}</button>
 		{/if}
 		<div class="chips">
 			{#each open.tags.filter((t) => !t.startsWith('~')) as t}<button class="chip on" onclick={() => removeTag(t)}>{t} ✕</button>{/each}
 		</div>
 		<div class="row">
-			<input type="text" placeholder="Add tag, e.g. ramen shop" bind:value={tagInput} onkeydown={(e) => e.key === 'Enter' && addTag()} />
-			<button class="btn ghost small" onclick={addTag}>Add</button>
+			<input type="text" placeholder={tr('words.addTagPlaceholder')} bind:value={tagInput} onkeydown={(e) => e.key === 'Enter' && addTag()} />
+			<button class="btn ghost small" onclick={addTag}>{tr('words.add')}</button>
 		</div>
-		<button class="btn ghost block danger" onclick={removeCard}>Delete card</button>
+		<button class="btn ghost block danger" onclick={removeCard}>{tr('words.deleteCard')}</button>
 	{/if}
 </Sheet>
 

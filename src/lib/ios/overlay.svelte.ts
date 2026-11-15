@@ -2,6 +2,8 @@
  * App-level overlays: iOS-style action sheets and toasts (HUDs).
  * Rendered once by <Overlays/> in the root layout.
  */
+import { t } from '#lib/i18n/index.svelte.ts';
+
 export interface SheetAction {
 	label: string;
 	role?: 'destructive' | 'cancel';
@@ -36,7 +38,7 @@ export async function confirmDestructive(title: string, message: string, confirm
 	const i = await actionSheet({
 		title,
 		message,
-		actions: [{ label: confirmLabel, role: 'destructive' }, { label: 'Cancel', role: 'cancel' }]
+		actions: [{ label: confirmLabel, role: 'destructive' }, { label: t('common.cancel'), role: 'cancel' }]
 	});
 	return i === 0;
 }
