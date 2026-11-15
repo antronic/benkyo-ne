@@ -7,6 +7,7 @@
  *   GET  /api/health
  *   /api/auth/*         passkey auth (worker/auth/passkey.ts)
  *   /api/ai/*           AI features behind the passkey session (worker/ai/routes.ts)
+ *   /api/beta/*         beta consent and usage data (worker/beta/routes.ts)
  *
  * Everything else falls through to static assets (SPA fallback configured
  * in wrangler.jsonc).
@@ -14,6 +15,7 @@
 
 import { handleAi } from './ai/routes.ts';
 import { handleAuth } from './auth/passkey.ts';
+import { handleBeta, purgeOld } from './beta/routes.ts';
 import { MAX_CARDS_PUSH, pullCards, upsertCardStatements, validCard } from './cards.ts';
 import type { Env } from './env.ts';
 import { HttpError, json } from './http.ts';
@@ -126,12 +128,17 @@ export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): 
 	const url = new URL(req.url);
 	try {
 		const p = url.pathname;
-		if (p.startsWith('/api/auth/') || p.startsWith('/api/ai/')) {
+		if (p.startsWith('/api/auth/') || p.startsWith('/api/ai/') || p.startsWith('/api/beta/')) {
 			// CSRF: SameSite=Strict cookie, plus same-origin check on writes.
 			const origin = req.headers.get('origin');
 			if (req.method !== 'GET' && req.method !== 'HEAD' && origin && origin !== url.origin)
 				return json({ error: 'unauthorized', message: 'Cross-origin request' }, { status: 403 });
 			if (p.startsWith('/api/ai/')) return await handleAi(req, env, ctx, url);
+			if (p.startsWith('/api/beta/')) {
+				const res = await handleBeta(req, env, p);
+				if (res) return res;
+				return json({ error: 'not found' }, { status: 404 });
+			}
 			const res = await handleAuth(req, env, p);
 			if (res) return res;
 		}
@@ -146,10 +153,19 @@ export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): 
 	}
 }
 
+/** Daily cron (wrangler.jsonc "triggers"): retention clean-up. Shared by both deploy modes. */
+export async function handleScheduled(env: Env) {
+	const n = await purgeOld(env);
+	console.log(`beta retention: deleted ${n.events} events, ${n.aiCalls} AI calls`);
+}
+
 export default {
 	async fetch(req, env, ctx): Promise<Response> {
 		const url = new URL(req.url);
 		if (!url.pathname.startsWith('/api/')) return env.ASSETS!.fetch(req);
 		return handleApi(req, env, ctx);
+	},
+	async scheduled(_event, env, ctx) {
+		ctx.waitUntil(handleScheduled(env));
 	}
 } satisfies ExportedHandler<Env>;

@@ -36,6 +36,7 @@ import type { Env } from '../env.ts';
 import { aiError, cookieSecure, getCookie, httpError, isLocalhost, json, readJson } from '../http.ts';
 import { rateLimit } from '../ai/ledger.ts';
 import { deleteAccountData } from '../ai/credentials.ts';
+import { betaStatus } from '../beta/routes.ts';
 
 export const SESSION_COOKIE = 'bk_session';
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -477,7 +478,10 @@ async function deleteAccount(req: Request, session: Session, env: Env) {
 /** Route /api/auth/*; returns null when the path isn't an auth route. */
 export async function handleAuth(req: Request, env: Env, path: string): Promise<Response | null> {
 	const m = req.method;
-	if (path === '/api/auth/me' && m === 'GET') return json(meOf(await getSession(req, env), env));
+	if (path === '/api/auth/me' && m === 'GET') {
+		const s = await getSession(req, env);
+		return json({ ...meOf(s, env), beta: s ? await betaStatus(env, s.userId) : null } satisfies Me);
+	}
 	if (path === '/api/auth/passkeys' && m === 'GET') return json(await listPasskeys(await requireSession(req, env), env));
 	const pk = /^\/api\/auth\/passkeys\/([A-Za-z0-9_-]{1,512})$/.exec(path);
 	if (pk && m === 'DELETE') {

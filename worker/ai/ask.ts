@@ -23,6 +23,7 @@ import { GLOBAL_PER_MIN, getUsage, rateLimit, reserve, settle } from './ledger.t
 import { priceFor, resolveFeature } from './models.ts';
 import { streamOpenAi } from './openai.ts';
 import type { AdapterResult, UsageEntry } from './types.ts';
+import { recordAiCall } from '../beta/routes.ts';
 
 const enc = new TextEncoder();
 const sse = (event: string, data: unknown) => enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -72,6 +73,7 @@ export async function handleAskStream(req: Request, env: Env, ctx: ExecutionCont
 	});
 
 	const run = async () => {
+		const startedAt = Date.now();
 		let text = '';
 		const onText = (t: string) => {
 			text += t;
@@ -95,11 +97,27 @@ export async function handleAskStream(req: Request, env: Env, ctx: ExecutionCont
 			unknown = false;
 		}
 		const reply: AskResponse | null = result.ok ? finishAskText(result.text, ask) : null;
-		await settle(env, [reservation], {
-			status: reply ? 'done' : 'failed',
-			usage: sumUsage(usage),
-			cost: unknown ? null : usageCost(usage, model, priced.price)
-		}).catch(() => {});
+		const cost = unknown ? null : usageCost(usage, model, priced.price);
+		const total = sumUsage(usage);
+		await settle(env, [reservation], { status: reply ? 'done' : 'failed', usage: total, cost }).catch(() => {});
+		// Beta usage data: the question, the prompt and the streamed answer (only with consent).
+		await recordAiCall(env, session.userId, {
+			kind: 'ask_stream',
+			feature,
+			provider: cred.provider,
+			model,
+			status: gone ? 'stopped' : reply ? 'done' : result.ok ? 'invalid' : 'failed',
+			error: result.ok ? null : `${result.error}: ${result.message}`,
+			startedAt,
+			inputTokens: total.input + (total.cacheRead ?? 0) + (total.cacheWrite ?? 0),
+			outputTokens: total.output,
+			costUsd: cost,
+			request: ask,
+			system: parts.system,
+			user: parts.user,
+			outputText: result.ok ? result.text : text || null,
+			result: reply
+		});
 
 		if (reply) send('done', reply);
 		else if (!result.ok) send('error', { error: result.error, message: result.message } satisfies Pick<AiError, 'error' | 'message'>);

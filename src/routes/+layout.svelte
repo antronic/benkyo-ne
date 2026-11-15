@@ -8,6 +8,8 @@
 	import Splash from '#lib/components/Splash.svelte';
 	import Intro from '#lib/components/Intro.svelte';
 	import Welcome from '#lib/components/Welcome.svelte';
+	import BetaConsent from '#lib/components/BetaConsent.svelte';
+	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 	import { get as idbGet, put as idbPut } from '#lib/db/idb.ts';
 	import { page } from '$app/state';
 	import Backdrop from '#lib/components/Backdrop.svelte';
@@ -29,6 +31,14 @@
 	const parent = $derived(
 		page.url.pathname.startsWith('/learn/') ? '/learn' : page.url.pathname.startsWith('/words/') ? '/words' : page.url.pathname.startsWith('/ai/') ? '/ai' : '/'
 	);
+
+	// Beta usage data (only once the account has agreed): screens and a daily progress summary.
+	$effect(() => {
+		if (telemetry.enabled) telemetry.screen(page.url.pathname);
+	});
+	$effect(() => {
+		if (telemetry.enabled && progress.ready) void progress.snapshot();
+	});
 
 	async function back() {
 		if (ui.backGuard && !(await ui.backGuard())) return false;
@@ -101,6 +111,10 @@
 {/if}
 {#if ui.showWelcome}
 	<Welcome ondone={() => (ui.showWelcome = false)} />
+{/if}
+{#if ai.needsConsent && !ui.showIntro && !ui.showWelcome}
+	<!-- required after sign-in until the account agrees to the current beta terms -->
+	<BetaConsent />
 {/if}
 <Splash ready={progress.ready && words.ready} />
 <UpdateBanner />

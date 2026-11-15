@@ -1,5 +1,6 @@
 /**
- * /api/ai/* — every route needs a passkey session (401 otherwise).
+ * /api/ai/* — every route needs a passkey session (401 otherwise) and the
+ * current beta consent (403 consent_required otherwise).
  *
  *   GET    /api/ai/credentials           → CredentialInfo[]
  *   POST   /api/ai/credentials           CredentialInput → CredentialInfo
@@ -24,10 +25,13 @@ import { getUsage, setCap } from './ledger.ts';
 import { dropModelCache, featureModels, listAllModels, setFeatureModel, setManualPrice } from './models.ts';
 import { handleGenerate } from './run.ts';
 import { handleAskStream } from './ask.ts';
+import { requireConsent } from '../beta/routes.ts';
 
 export async function handleAi(req: Request, env: Env, ctx: ExecutionContext, url: URL): Promise<Response> {
 	const session = await getSession(req, env);
 	if (!session) return aiError(401, 'unauthorized', 'Sign in with your passkey first');
+	// Beta: account features need the current consent (docs/BETA-DATA.md).
+	await requireConsent(env, session.userId);
 	const path = url.pathname;
 	const m = req.method;
 	const uid = session.userId;

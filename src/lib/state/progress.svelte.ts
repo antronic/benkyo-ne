@@ -1,6 +1,7 @@
 import { browser } from '$app/env';
 import { haptic as iosHaptic, type HapticKind } from '#lib/ios/haptics.ts';
 import { clearAll, get, getAll, put, putMany } from '#lib/db/idb.ts';
+import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 import { defaultParams, newCard, replay, review, type Card, type Grade, type ReviewLog } from '#lib/srs/fsrs.ts';
 
 export interface Settings {
@@ -73,6 +74,7 @@ class Progress {
 
 	async saveSettings(s: Partial<Settings>) {
 		this.settings = { ...this.settings, ...s };
+		telemetry.track('event', 'settings', { changed: s });
 		await put('meta', $state.snapshot(this.settings), 'settings');
 	}
 
@@ -96,6 +98,17 @@ class Progress {
 
 		this.bumpToday(isNew ? 'learned' : 'reviews');
 		this.bumpStreak();
+		telemetry.track('progress', 'review', {
+			cardId,
+			grade,
+			durationMs: log.durationMs,
+			isNew,
+			elapsedDays: Math.round(log.elapsedDays * 100) / 100,
+			before: { state: prev.state, stability: prev.stability, difficulty: prev.difficulty, reps: prev.reps, lapses: prev.lapses },
+			after: { state: next.state, stability: next.stability, difficulty: next.difficulty, dueInDays: Math.round(((next.due - now) / 86_400_000) * 100) / 100 },
+			today: { ...this.today },
+			streak: this.streak.days
+		});
 		await Promise.all([
 			put('cards', $state.snapshot(next)),
 			put('logs', log),
@@ -106,6 +119,7 @@ class Progress {
 	}
 
 	async completeLesson(id: string) {
+		telemetry.track('progress', 'lesson_complete', { id, first: !this.completed.includes(id), completedCount: this.completed.length + 1 });
 		if (!this.completed.includes(id)) this.completed.push(id);
 		await put('meta', $state.snapshot(this.completed), 'completed');
 	}
@@ -125,7 +139,33 @@ class Progress {
 		await putMany('cards', updated);
 	}
 
+	/** Beta usage data: one overall progress summary per day the app is opened. */
+	async snapshot() {
+		const day = dayKey();
+		if ((await get<string>('meta', 'betaSnapshotDay')) === day || !telemetry.enabled) return;
+		const cards = Object.values(this.cards);
+		const byState: Record<string, number> = {};
+		const byKind: Record<string, number> = {};
+		for (const c of cards) {
+			byState[c.state] = (byState[c.state] ?? 0) + 1;
+			const kind = c.id.split(':')[0];
+			byKind[kind] = (byKind[kind] ?? 0) + 1;
+		}
+		telemetry.track('progress', 'daily_summary', {
+			cards: cards.length,
+			byState,
+			byKind,
+			due: this.due.length,
+			learned: this.learnedCount,
+			lessonsCompleted: this.completed.length,
+			streak: this.streak.days,
+			settings: $state.snapshot(this.settings)
+		});
+		await put('meta', day, 'betaSnapshotDay');
+	}
+
 	async reset() {
+		telemetry.track('event', 'progress_reset', { cards: Object.keys(this.cards).length });
 		await clearAll();
 		this.cards = {};
 		this.completed = [];

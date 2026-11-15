@@ -23,6 +23,8 @@ import type {
 	ProposeResponse,
 	Usage
 } from './contract.ts';
+import type { BetaStatus } from '../beta/contract.ts';
+import { telemetry } from '../beta/telemetry.svelte.ts';
 
 export class AiRequestError extends Error {
 	constructor(
@@ -45,12 +47,16 @@ async function call<T>(path: string, init: RequestInit & { json?: unknown } = {}
 			body: init.json !== undefined ? JSON.stringify(init.json) : init.body
 		});
 	} catch {
+		telemetry.track('error', 'api_network', { path, method: init.method ?? 'GET' });
 		throw new AiRequestError(0, 'network', 'Network error');
 	}
 	const text = await res.text();
 	const body = text ? JSON.parse(text) : null;
 	if (!res.ok) {
 		const e = body as Partial<AiError> | null;
+		// path, status and the server's message only: request bodies (which can hold an API key) are never sent
+		telemetry.track('error', 'api_error', { path, method: init.method ?? 'GET', status: res.status, code: e?.error ?? null, message: e?.message ?? null });
+		if (e?.error === 'consent_required') void import('../state/ai.svelte.ts').then((m) => m.ai.refresh());
 		throw new AiRequestError(res.status, (e?.error as AiError['error']) ?? 'provider', e?.message ?? `HTTP ${res.status}`);
 	}
 	return body as T;
@@ -101,6 +107,22 @@ export const deletePasskey = (id: string) => call(`/api/auth/passkeys/${encodeUR
 export const newRecoveryCode = () => call<{ recoveryCode: string }>('/api/auth/recovery-code', { method: 'POST', json: {} });
 export const renameAccount = (name: string) => call<Me>('/api/auth/account', { method: 'PATCH', json: { name } });
 export const deleteAccount = () => call<Me>('/api/auth/account', { method: 'DELETE', json: { confirm: 'DELETE' } });
+
+// ------------------------------------------------------------------ beta ----
+
+export const acceptConsent = (version: number) => call<BetaStatus>('/api/beta/consent', { method: 'POST', json: { version } });
+export const withdrawConsent = () => call<BetaStatus>('/api/beta/consent', { method: 'DELETE' });
+export const deleteBetaData = () => call<{ ok: true }>('/api/beta/data', { method: 'DELETE' });
+/** Your beta data as a JSON file, opened as a download. */
+export async function downloadBetaData() {
+	const data = await call<unknown>('/api/beta/export');
+	const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+	const a = document.createElement('a');
+	a.href = URL.createObjectURL(blob);
+	a.download = `benkyo-beta-data-${new Date().toISOString().slice(0, 10)}.json`;
+	a.click();
+	setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+}
 
 // ----------------------------------------------------------- credentials ----
 
