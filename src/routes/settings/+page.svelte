@@ -8,11 +8,11 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import AiSettings from '#lib/components/AiSettings.svelte';
-	import LanguageSettings from '#lib/components/LanguageSettings.svelte';
-	import { t, fmtDateTime } from '#lib/i18n/index.svelte.ts';
 	import { version } from '$app/env';
 	import { updater } from '#lib/pwa/update.svelte.ts';
 	import { DICT_ATTRIBUTION } from '#lib/dict/attribution.ts';
+	import LanguageSettings from '#lib/components/LanguageSettings.svelte';
+	import { t, fmtDateTime } from '#lib/i18n/index.svelte.ts';
 
 	ui.hue = 260;
 	let key = $state<string | undefined>();
@@ -23,7 +23,7 @@
 
 	onMount(async () => {
 		key = await getSyncKey();
-		engine = (await getMatcher()).kind === 'wasm' ? 'WebAssembly (Rust)' : t('settings.jsFallback');
+		engine = (await getMatcher()).kind === 'wasm' ? 'WebAssembly (Rust)' : 'JavaScript fallback';
 	});
 
 	const describe = (r: SyncResult) =>

@@ -11,6 +11,7 @@
  */
 import { en, type MessageKey } from './en.ts';
 import { th } from './th.ts';
+import './thai.css';
 
 export type Locale = 'en' | 'th';
 export type LocalePref = 'auto' | Locale;
@@ -54,6 +55,13 @@ const state = $state<{ pref: LocalePref; browser: Locale }>({
 
 if (typeof window !== 'undefined') {
 	addEventListener('languagechange', () => (state.browser = browserLocale()));
+	// <html lang> drives the Thai font stack and line heights (thai.css) and
+	// tells screen readers and line breaking which language they're reading.
+	$effect.root(() => {
+		$effect(() => {
+			document.documentElement.lang = state.pref === 'auto' ? state.browser : state.pref;
+		});
+	});
 }
 
 export const i18n = {

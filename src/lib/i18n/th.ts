@@ -25,7 +25,6 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'common.cancel': 'ยกเลิก',
 	'common.close': 'ปิด',
 	'common.listen': 'ฟังเสียง',
-	'common.loadingProgress': 'กำลังโหลดความคืบหน้า',
 
 	'update.title': 'มีเวอร์ชันใหม่',
 	'update.body': 'รีสตาร์ตเพื่ออัปเดต',
@@ -209,7 +208,6 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'lang.aiHint': 'AI อธิบายเป็นภาษาอังกฤษอย่างเดียว ให้มีภาษาไทยด้วยไหม',
 	'lang.aiHintAction': 'เพิ่มภาษาไทย',
 
-	'settings.jsFallback': 'JavaScript (สำรอง)',
 	'settings.learning': 'การเรียน',
 	'settings.retention': 'เป้าหมายการจำ',
 	'settings.retentionBody': 'ยิ่งสูง ยิ่งทบทวนบ่อย แต่ลืมการ์ดน้อยลง',
