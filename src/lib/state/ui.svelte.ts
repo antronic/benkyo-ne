@@ -8,6 +8,8 @@ export const ui = $state({
 	backGuard: null as null | (() => Promise<boolean>),
 	/** first-launch introduction overlay (replayable from Settings) */
 	showIntro: false,
+	/** first-run questions that set up the plan (after the intro, before sign-up) */
+	showOnboarding: false,
 	/** beta sign-up / sign-in after the introduction (passkey only) */
 	showWelcome: false
 });
