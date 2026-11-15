@@ -11,5 +11,7 @@ export const ui = $state({
 	/** first-run questions that set up the plan (after the intro, before sign-up) */
 	showOnboarding: false,
 	/** beta sign-up / sign-in after the introduction (passkey only) */
-	showWelcome: false
+	showWelcome: false,
+	/** Kuri's first meeting: once, after onboarding (and once for existing users on Today) */
+	showKuriIntro: false
 });

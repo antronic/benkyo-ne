@@ -7,6 +7,7 @@
 	Kanji cards pick the meaning until they're strong, then are drawn from it.
 -->
 <script lang="ts">
+	import { kuriReact } from '#lib/companion/kuri.svelte.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import { scriptName, story } from '#lib/i18n/content.ts';
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
@@ -135,9 +136,11 @@
 		result = { correct, guess };
 		if (correct) {
 			haptic('success');
+			kuriReact('happy');
 			speak(kana ? kana.char : kanji!.example.reading);
 		} else {
 			haptic('error');
+			kuriReact('encourage');
 			shaking = true;
 			setTimeout(() => (shaking = false), 480);
 		}

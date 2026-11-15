@@ -27,6 +27,8 @@
 	import { processOutbox } from '#lib/words/maker.ts';
 	import { takeAppleResult } from '#lib/ai/client.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
+	import KuriIntro from '#lib/companion/KuriIntro.svelte';
+	import KuriReaction from '#lib/companion/KuriReaction.svelte';
 
 	let { children } = $props();
 
@@ -63,6 +65,8 @@
 			.then(async () => {
 				if (apple) void idbPut('meta', true, 'introSeen'); // you got as far as signing in
 				else if (!(await idbGet<boolean>('meta', 'introSeen'))) ui.showIntro = true;
+				// people who onboarded before Kuri existed meet Kuri once, on Today
+				if (!ui.showIntro && !(await idbGet<boolean>('meta', 'kuriIntroSeen'))) kuriPending = true;
 			})
 			.then(startAutoSync);
 		ai.watch();
@@ -106,6 +110,14 @@
 	});
 
 	let firstRun = false;
+	/** Kuri's first meeting is waiting for the next calm moment on Today */
+	let kuriPending = $state(false);
+	$effect(() => {
+		if (!kuriPending || !progress.settings.kuri || page.url.pathname !== '/') return;
+		if (ui.showIntro || ui.showOnboarding || ui.showWelcome || ai.needsConsent) return;
+		kuriPending = false;
+		ui.showKuriIntro = true;
+	});
 	/** the beta sign-up / sign-in (passkey only), unless already signed in */
 	async function offerWelcome() {
 		if (!ai.checked) await ai.refresh();
@@ -150,11 +162,24 @@
 			firstRun = false;
 			if (start) void goto(start);
 			await offerWelcome();
+			// after the questions (and sign-up, if it's showing), Kuri says hello on Today
+			kuriPending = true;
 		}}
 	/>
 {/if}
 {#if ui.showWelcome}
 	<Welcome ondone={() => (ui.showWelcome = false)} />
+{/if}
+{#if ui.showKuriIntro}
+	<KuriIntro
+		ondone={() => {
+			ui.showKuriIntro = false;
+			void idbPut('meta', true, 'kuriIntroSeen');
+		}}
+	/>
+{/if}
+{#if progress.settings.kuri && progress.settings.kuriReact && progress.ready}
+	<KuriReaction />
 {/if}
 {#if ai.needsConsent && !ui.showIntro && !ui.showWelcome}
 	<!-- required after sign-in until the account agrees to the current beta terms -->
