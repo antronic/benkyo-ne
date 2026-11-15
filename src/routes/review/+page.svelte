@@ -4,6 +4,7 @@
 	  3 – 21 d          → type the reading (cued recall)
 	  > 21 d            → hear/see the reading, draw the kana (production)
 	Grades are inferred from correctness, time and hint use (PLAN §5.2).
+	Kanji cards pick the meaning until they're strong, then are drawn from it.
 -->
 <script lang="ts">
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
@@ -25,6 +26,9 @@
 	import RecallPad from '#lib/components/RecallPad.svelte';
 	import ProgressRing from '#lib/components/ProgressRing.svelte';
 	import WordQuiz from '#lib/components/WordQuiz.svelte';
+	import KanjiInfo from '#lib/components/KanjiInfo.svelte';
+	import { kanjiByChar, meaningChoices, type Kanji } from '#lib/content/kanji.ts';
+	import { partColors } from '#lib/content/strokes.ts';
 
 	ui.hue = 220;
 
@@ -73,16 +77,20 @@
 	let result = $state<null | { correct: boolean; guess?: string }>(null);
 	let usedHint = $state(false);
 	let options = $state<Kana[]>([]);
+	let kanjiOptions = $state<Kanji[]>([]);
 	let shaking = $state(false);
 	let t0 = performance.now();
 
 	const entry = $derived(queue[0]);
 	const card = $derived(entry ? progress.cards[entry.id] : undefined);
 	const kana = $derived(entry?.id.startsWith('kana:') ? byChar.get(entry.id.slice(5)) : undefined);
-	const wordCard = $derived(entry && !kana ? words.cards[entry.id] : undefined);
-	const mode = $derived<Mode>(
-		!card || card.state !== 'review' || card.stability < 3 ? 'choose' : card.stability < 21 ? 'type' : 'draw'
-	);
+	const kanji = $derived(entry?.id.startsWith('kanji:') ? kanjiByChar.get(entry.id.slice(6)) : undefined);
+	const wordCard = $derived(entry && !kana && !kanji ? words.cards[entry.id] : undefined);
+	const mode = $derived.by<Mode>(() => {
+		const m: Mode = !card || card.state !== 'review' || card.stability < 3 ? 'choose' : card.stability < 21 ? 'type' : 'draw';
+		// kanji have no typed step: their answer is a meaning, not a reading
+		return kanji ? (card && card.state === 'review' && card.stability >= 21 ? 'draw' : 'choose') : m;
+	});
 
 	function prep() {
 		answer = '';
@@ -91,6 +99,7 @@
 		t0 = performance.now();
 		if (kana && mode === 'choose') options = choicesFor(kana);
 		if (kana && mode === 'draw') speak(kana.char);
+		if (kanji && mode === 'choose') kanjiOptions = meaningChoices(kanji);
 	}
 	prep();
 
@@ -108,12 +117,12 @@
 	}
 
 	async function submit(correct: boolean, guess?: string) {
-		if (!card || !kana || result) return;
+		if (!card || !(kana || kanji) || result) return;
 		const ms = performance.now() - t0;
 		result = { correct, guess };
 		if (correct) {
 			haptic('success');
-			speak(kana.char);
+			speak(kana ? kana.char : kanji!.example.reading);
 		} else {
 			haptic('error');
 			shaking = true;
@@ -140,6 +149,7 @@
 	}
 
 	function onKey(e: KeyboardEvent) {
+		if (kanji && e.key === 'Enter' && result) return next();
 		if (!kana || e.key !== 'Enter') return;
 		if (result) next();
 		else if (mode === 'type' && answer.trim()) submit(romajiMatches(kana, answer));
@@ -161,7 +171,7 @@
 		<div class="tagline caption">Drilling <b>{tag}</b>. Cards that aren’t due are practised without changing their schedule.</div>
 	{/if}
 
-	{#if !entry || (!kana && !wordCard)}
+	{#if !entry || (!kana && !kanji && !wordCard)}
 		<section class="stage" in:scale={{ start: 0.94, duration: 400 }}>
 			<div class="stack center" style:--gap="16px">
 				<ProgressRing value={total ? correctCount / Math.max(done, 1) : 1} size={140}>
@@ -183,6 +193,63 @@
 		{#key wordCard.id + done}
 			<section class="stage" in:fly={{ y: 30, duration: 450, easing: cubicOut, opacity: 0 }}>
 				<WordQuiz card={wordCard} fsrs={card} isNew={entry.isNew} drill={entry.drill} onanswer={onWordAnswer} onnext={next} />
+			</section>
+		{/key}
+	{:else if kanji}
+		{#key entry.id + done}
+			<section class="stage" in:fly={{ y: 30, duration: 450, easing: cubicOut, opacity: 0 }}>
+				<div class="split">
+					<div class="pane">
+						<div class="eyebrow">{mode === 'draw' ? 'Write this kanji' : 'What does it mean?'} · kanji</div>
+						{#if mode === 'draw' && !result}
+							<div class="romaji">{kanji.meaning}</div>
+							<RecallPad char={kanji.char} size="var(--pad)" oncomplete={(r) => submit(r.correct, r.guess)} />
+						{:else}
+							<div class="flip" class:flipped={!!result}>
+								<div class="face front glass sheen" class:shake={shaking}>
+									<KanaGlyph char={kanji.char} size={150} scene={usedHint ? 0.9 : 0} />
+								</div>
+								<div class="face back glass sheen">
+									{#if result?.correct === false}
+										<StrokeAnimator char={kanji.char} size={150} speed={150} numbers={false} scene={0.5} colors={partColors(kanji.char)} />
+									{:else}
+										<KanaGlyph char={kanji.char} size={110} color="var(--success)" />
+									{/if}
+									<div class="romaji">{kanji.meaning}</div>
+								</div>
+							</div>
+						{/if}
+					</div>
+					<div class="pane answer">
+						{#if mode === 'draw' && !result}
+							<MnemonicHint char={kanji.char} onuse={() => (usedHint = true)} />
+						{:else if usedHint && !result}
+							<p class="story" in:fly={{ y: 10, duration: 300 }}>{kanji.story}</p>
+						{/if}
+						{#if !result}
+							{#if mode === 'choose'}
+								<div class="choices">
+									{#each kanjiOptions as o (o.char)}
+										<button class="glass choice small-text" onclick={() => submit(o.char === kanji.char)}>{o.meaning}</button>
+									{/each}
+								</div>
+								<button class="btn ghost small" onclick={() => (usedHint = true)} disabled={usedHint}>💡 Show the picture</button>
+							{/if}
+						{:else}
+							{#if !result.correct}
+								<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
+									<KanjiInfo kanji={kanji} compact />
+									{#if result.guess && result.guess !== kanji.char}
+										<p class="caption" style="margin:6px 0 0">You drew something closer to <span class="jp">{result.guess}</span>.</p>
+									{/if}
+								</div>
+							{/if}
+							{#if !(result.correct && mode === 'choose')}
+								<button class="btn block {result.correct ? '' : 'accent'}" onclick={next}>Continue</button>
+							{/if}
+						{/if}
+					</div>
+				</div>
 			</section>
 		{/key}
 	{:else if kana}
@@ -400,6 +467,10 @@
 		font-weight: 600;
 		cursor: pointer;
 		transition: transform 380ms var(--spring);
+	}
+	.choice.small-text {
+		font-size: 1.0625rem;
+		padding: 6px 10px;
 	}
 	.choice:active {
 		transform: scale(0.95);
