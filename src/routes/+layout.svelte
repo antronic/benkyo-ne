@@ -16,6 +16,8 @@
 	import TabBar from '#lib/components/TabBar.svelte';
 	import Overlays from '#lib/components/Overlays.svelte';
 	import { progress } from '#lib/state/progress.svelte.ts';
+	import Onboarding from '#lib/components/Onboarding.svelte';
+	import { profile } from '#lib/onboarding/profile.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { startAutoSync, sync } from '#lib/sync.ts';
 	import { edgeSwipeBack, trackKeyboard } from '#lib/ios/gestures.ts';
@@ -102,6 +104,13 @@
 			});
 		});
 	});
+
+	let firstRun = false;
+	/** the beta sign-up / sign-in (passkey only), unless already signed in */
+	async function offerWelcome() {
+		if (!ai.checked) await ai.refresh();
+		if (!ai.signedIn) ui.showWelcome = true;
+	}
 </script>
 
 <Backdrop hue={ui.hue} />
@@ -127,9 +136,20 @@
 		ondone={async () => {
 			ui.showIntro = false;
 			void idbPut('meta', true, 'introSeen');
-			// then the beta sign-up / sign-in (passkey only), unless already signed in
-			if (!ai.checked) await ai.refresh();
-			if (!ai.signedIn) ui.showWelcome = true;
+			// first run: a few questions to set up the plan, then sign-up
+			if (!(await profile.load())) (firstRun = true), (ui.showOnboarding = true);
+			else await offerWelcome();
+		}}
+	/>
+{/if}
+{#if ui.showOnboarding}
+	<Onboarding
+		ondone={async (start) => {
+			ui.showOnboarding = false;
+			if (!firstRun) return;
+			firstRun = false;
+			if (start) void goto(start);
+			await offerWelcome();
 		}}
 	/>
 {/if}

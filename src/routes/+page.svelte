@@ -9,6 +9,7 @@
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
+	import PlanCard from '#lib/components/PlanCard.svelte';
 
 	const hour = new Date().getHours();
 	const greeting =
@@ -55,6 +56,8 @@
 			</div>
 		</div>
 	</section>
+
+	<PlanCard i={2} />
 
 	{#if progress.due.length > 0}
 		<a href="/review" class="glass sheen card review rise" style:--i="2">
