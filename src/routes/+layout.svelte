@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import '../app.css';
+	import '#lib/i18n/thai.css';
+	import { i18n, t } from '#lib/i18n/index.svelte.ts';
 	import { onMount } from 'svelte';
 	import { goto, onNavigate } from '$app/navigation';
 	import { updater } from '#lib/pwa/update.svelte.ts';
@@ -23,6 +25,11 @@
 	import { processOutbox } from '#lib/words/maker.ts';
 
 	let { children } = $props();
+
+	// <html lang> drives the Thai font stack and line heights (lib/i18n/thai.css).
+	$effect(() => {
+		document.documentElement.lang = i18n.locale;
+	});
 
 	// Immersive screens hide the navigation and can be swiped back from.
 	const immersive = $derived(/^\/(learn\/.+|review|words\/.+|ai\/.+)/.test(page.url.pathname));
@@ -78,7 +85,7 @@
 	{:else}
 		<main class="page stack boot" style:--gap="16px" aria-busy="true">
 			<div class="boot-title"></div>
-			<Skeleton variant="card" count={1} label="Loading your progress" />
+			<Skeleton variant="card" count={1} label={t('common.loadingProgress')} />
 			<Skeleton variant="row" count={3} />
 		</main>
 	{/if}

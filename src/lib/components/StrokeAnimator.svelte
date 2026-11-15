@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 	import { strokesOf } from '#lib/content/strokes.ts';
 	import { mnemonicFor } from '#lib/content/mnemonics.ts';
+	import { t } from '#lib/i18n/index.svelte.ts';
 
 	interface Props {
 		char: string;
@@ -102,7 +103,7 @@
 	});
 </script>
 
-<svg viewBox="0 0 109 109" width={size} height={size} class="anim" role="img" aria-label="Stroke order for {char}">
+<svg viewBox="0 0 109 109" width={size} height={size} class="anim" role="img" aria-label={t('a11y.strokeOrder', { char })}>
 	<!-- writing guide: 田 grid -->
 	<g class="grid">
 		<rect x="1" y="1" width="107" height="107" rx="10" />

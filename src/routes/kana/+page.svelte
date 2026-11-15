@@ -18,6 +18,8 @@
 	import TracePad from '#lib/components/TracePad.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { scriptName, story } from '#lib/i18n/content.ts';
 
 	ui.hue = 150;
 	let script = $state<Script>('hiragana');
@@ -50,12 +52,12 @@
 	<div class="row head">
 		<div class="stack" style:--gap="0">
 			<div class="title-2">{k.romaji}</div>
-			<div class="caption">{k.script} · {strokesOf(k.char)?.d.length ?? '?'} strokes</div>
+			<div class="caption">{scriptName(k.script)} · {t('kana.strokes', { n: strokesOf(k.char)?.d.length ?? '?' })}</div>
 		</div>
 		<span class="spacer"></span>
-		<button class="icon-btn" aria-label="Listen" onclick={() => speak(k.char)}>🔊</button>
+		<button class="icon-btn" aria-label={t('common.listen')} onclick={() => speak(k.char)}>🔊</button>
 		{#if !regular.current}
-			<button class="icon-btn" aria-label="Close" onclick={() => (selected = null)}>✕</button>
+			<button class="icon-btn" aria-label={t('common.close')} onclick={() => (selected = null)}>✕</button>
 		{/if}
 	</div>
 	<div class="detail-canvas">
@@ -69,29 +71,29 @@
 			{/key}
 		{/if}
 	</div>
-	<p class="story">{mnemonicFor(k.char).story}</p>
+	<p class="story">{story(k.char)}</p>
 	<div class="row">
-		<button class="btn ghost block" onclick={() => { practice = false; animKey++; }}>↻ Watch</button>
-		<button class="btn accent block" onclick={() => { practice = true; animKey++; }}>✍️ Practise</button>
+		<button class="btn ghost block" onclick={() => { practice = false; animKey++; }}>↻ {t('kana.watch')}</button>
+		<button class="btn accent block" onclick={() => { practice = true; animKey++; }}>✍️ {t('kana.practise')}</button>
 	</div>
 {/snippet}
 
 <main class="page">
 	<div class="layout" class:has-detail={regular.current}>
 		<div class="stack" style:--gap="14px">
-			<LargeTitle title="Kana" />
+			<LargeTitle title={t('nav.kana')} />
 
 			<div class="segmented glass rise" style:--i="1" style:--pos={script === 'hiragana' ? 0 : 1} role="tablist">
 				<span class="thumb"></span>
 				<button role="tab" aria-selected={script === 'hiragana'} class:on={script === 'hiragana'} onclick={() => setScript('hiragana')}>
-					<span class="jp">ひらがな</span> Hiragana
+					<span class="jp">ひらがな</span> {scriptName('Hiragana')}
 				</button>
 				<button role="tab" aria-selected={script === 'katakana'} class:on={script === 'katakana'} onclick={() => setScript('katakana')}>
-					<span class="jp">カタカナ</span> Katakana
+					<span class="jp">カタカナ</span> {scriptName('Katakana')}
 				</button>
 			</div>
 
-			<p class="caption rise" style:--i="2">Tap any character to see its strokes. The tint shows how likely you are to recall it right now.</p>
+			<p class="caption rise" style:--i="2">{t('kana.intro')}</p>
 
 			{#key script}
 				<div class="grid" in:fade={{ duration: 250 }}>
@@ -121,13 +123,13 @@
 		</div>
 
 		{#if regular.current}
-			<aside class="side glass sheen" aria-label="Character detail">
+			<aside class="side glass sheen" aria-label={t('kana.detail')}>
 				{#if selected}
 					{@render detail(selected)}
 				{:else}
 					<div class="empty">
 						<span class="jp big">あ</span>
-						<p class="subhead">Pick a character to watch its stroke order and practise writing it.</p>
+						<p class="subhead">{t('kana.pick')}</p>
 					</div>
 				{/if}
 			</aside>
@@ -136,7 +138,7 @@
 </main>
 
 {#if !regular.current}
-	<Sheet open={!!selected} label="{selected?.char ?? ''} details" onclose={() => (selected = null)}>
+	<Sheet open={!!selected} label={t('kana.details', { char: selected?.char ?? '' })} onclose={() => (selected = null)}>
 		{#if selected}{@render detail(selected)}{/if}
 	</Sheet>
 {/if}

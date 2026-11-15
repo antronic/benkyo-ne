@@ -12,13 +12,15 @@
 	import { onMount } from 'svelte';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { c as tc, scriptName } from '#lib/i18n/content.ts';
 
 	type Filter = string;
 	onMount(() => lessonPacks.load());
 	const FILTERS = $derived<{ id: Filter; label: string }[]>([
-		{ id: 'all', label: 'All' },
-		{ id: 'fundamentals', label: '🔤 Fundamentals' },
-		...lessonPacks.courses.map((c) => ({ id: c.id as Filter, label: `${c.emoji} ${c.title}` }))
+		{ id: 'all', label: t('learn.all') },
+		{ id: 'fundamentals', label: `🔤 ${t('learn.fundamentals')}` },
+		...lessonPacks.courses.map((c) => ({ id: c.id as Filter, label: `${c.emoji} ${tc(c.title)}` }))
 	]);
 	const saved = (() => {
 		try {
@@ -54,19 +56,19 @@
 </script>
 
 <main class="page stack" style:--gap="10px">
-	<LargeTitle title="Learn" />
-	<div class="filters" role="tablist" aria-label="Filter lessons">
+	<LargeTitle title={t('nav.learn')} />
+	<div class="filters" role="tablist" aria-label={t('learn.filter')}>
 		{#each FILTERS as f}
 			<button role="tab" aria-selected={filter === f.id} class="chip" class:on={filter === f.id} onclick={() => choose(f.id)}>{f.label}</button>
 		{/each}
 	</div>
 
 	{#if filter === 'all' || filter === 'fundamentals'}
-	<p class="subhead rise" style="margin:0 0 4px">Kana first: one row at a time, up to five new characters a lesson.</p>
+	<p class="subhead rise" style="margin:0 0 4px">{t('learn.kanaFirst')}</p>
 	<div class="columns">
 	{#each ['hiragana', 'katakana'] as script, si}
 		<section>
-		<h2 class="eyebrow section rise" style:--i={si * 8}>{script} · <span class="jp">{script === 'hiragana' ? 'ひらがな' : 'カタカナ'}</span></h2>
+		<h2 class="eyebrow section rise" style:--i={si * 8}>{scriptName(script)} · <span class="jp">{script === 'hiragana' ? 'ひらがな' : 'カタカナ'}</span></h2>
 		<ol class="path">
 			{#each LESSONS.filter((l) => l.script === script) as l, i}
 				{@const done = progress.completed.includes(l.id)}
@@ -75,14 +77,14 @@
 					<a href="/learn/{l.id}" class="glass sheen lesson" class:next={l.id === nextId} class:done style:--h={l.hue}>
 						<span class="badge">{done ? '✓' : i + 1}</span>
 						<span class="stack" style:--gap="1px">
-							<span class="headline">{l.title}</span>
+							<span class="headline">{tc(l.title)}</span>
 							<span class="jp kana">{l.subtitle}<Romaji text={l.subtitle} /></span>
 						</span>
 						<span class="spacer"></span>
 						{#if s !== null}
-							<span class="meter" title="Predicted recall"><span style:width="{Math.round(s * 100)}%"></span></span>
+							<span class="meter" title={t('learn.predicted')}><span style:width="{Math.round(s * 100)}%"></span></span>
 						{:else if l.id === nextId}
-							<span class="start">Start</span>
+							<span class="start">{t('learn.start')}</span>
 						{/if}
 					</a>
 				</li>
@@ -95,8 +97,8 @@
 
 	{#each shownCourses as c, ci (c.id)}
 		<section class="course rise" style:--i={ci + 1} style:--h={c.hue}>
-			<h2 class="eyebrow section">{c.emoji} {c.title}</h2>
-			<p class="caption blurb">{c.blurb}</p>
+			<h2 class="eyebrow section">{c.emoji} {tc(c.title)}</h2>
+			<p class="caption blurb">{tc(c.blurb)}</p>
 			{#if c.id === 'japanglish'}<JapanglishConverter />{/if}
 			<div class="units">
 				{#each c.units as u, ui (u.id)}
@@ -104,7 +106,7 @@
 					<a class="unit glass sheen" href="/learn/course/{c.id}/{u.id}" class:done={n >= u.items.length}>
 						<span class="badge">{n >= u.items.length ? '✓' : ui + 1}</span>
 						<span class="stack" style:--gap="1px">
-							<span class="headline">{u.title}</span>
+							<span class="headline">{tc(u.title)}</span>
 							<span class="jp kana">{u.items.slice(0, 3).map((i) => i.reading).join('・')}…</span>
 						</span>
 						<span class="spacer"></span>

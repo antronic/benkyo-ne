@@ -3,6 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { updater } from '#lib/pwa/update.svelte.ts';
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 
@@ -17,9 +18,9 @@
 {#if updater.ready && !updater.dismissed}
 	<div class="banner glass glass-strong" role="status" transition:fly={{ y: -40, duration: 420, easing: cubicOut }}>
 		<span class="dot" aria-hidden="true"></span>
-		<span class="text"><b>New version available</b><span class="caption">Restart to update</span></span>
-		<button class="btn small accent" onclick={restart}>Restart</button>
-		<button class="close" aria-label="Later" onclick={() => (updater.dismissed = true)}>✕</button>
+		<span class="text"><b>{t('update.title')}</b><span class="caption">{t('update.body')}</span></span>
+		<button class="btn small accent" onclick={restart}>{t('update.restart')}</button>
+		<button class="close" aria-label={t('update.later')} onclick={() => (updater.dismissed = true)}>✕</button>
 	</div>
 {/if}
 

@@ -13,6 +13,7 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { backOut, cubicIn } from 'svelte/easing';
 	import { insets, regular, SIDE_RAIL_MIN } from '#lib/ios/device.svelte.ts';
+	import { t as tr, type MessageKey } from '#lib/i18n/index.svelte.ts';
 
 	// Compact screens with a right-side status column (iOS 27, folded iPhone Duo):
 	// put the tab bar in that column, under the battery.
@@ -27,13 +28,13 @@
 	});
 
 	const tabs = [
-		{ href: '/', label: 'Today', icon: 'M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z' },
-		{ href: '/learn', label: 'Learn', icon: 'M4 5.5C6.5 4 9.5 4 12 5.5 14.5 4 17.5 4 20 5.5V19c-2.5-1.5-5.5-1.5-8 0-2.5-1.5-5.5-1.5-8 0zM12 5.5V19' },
-		{ href: '/words', label: 'Words', icon: 'M4 6.5A2.5 2.5 0 0 1 6.5 4H17a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6.5A2.5 2.5 0 0 1 4 17.5zM8 9h8M8 13h5' },
-		{ href: '/ai', label: 'AI', icon: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18.5 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z' },
-		{ href: '/review', label: 'Review', icon: 'M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 9h6M9 13h4' },
-		{ href: '/kana', label: 'Kana', icon: '' },
-		{ href: '/settings', label: 'Settings', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 13a7.5 7.5 0 0 0 0-2l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-1.7-1L15 3.6h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.3-1-2 3.4 2 1.5a7.5 7.5 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.3 1 2-3.4z' }
+		{ href: '/', label: 'nav.today' as MessageKey, icon: 'M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z' },
+		{ href: '/learn', label: 'nav.learn' as MessageKey, icon: 'M4 5.5C6.5 4 9.5 4 12 5.5 14.5 4 17.5 4 20 5.5V19c-2.5-1.5-5.5-1.5-8 0-2.5-1.5-5.5-1.5-8 0zM12 5.5V19' },
+		{ href: '/words', label: 'nav.words' as MessageKey, icon: 'M4 6.5A2.5 2.5 0 0 1 6.5 4H17a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6.5A2.5 2.5 0 0 1 4 17.5zM8 9h8M8 13h5' },
+		{ href: '/ai', label: 'nav.ai' as MessageKey, icon: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18.5 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z' },
+		{ href: '/review', label: 'nav.review' as MessageKey, icon: 'M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 9h6M9 13h4' },
+		{ href: '/kana', label: 'nav.kana' as MessageKey, icon: '' },
+		{ href: '/settings', label: 'nav.settings' as MessageKey, icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 13a7.5 7.5 0 0 0 0-2l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-1.7-1L15 3.6h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.3-1-2 3.4 2 1.5a7.5 7.5 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.3 1 2-3.4z' }
 	];
 
 	const activeIndex = $derived(
@@ -85,7 +86,7 @@
 	}
 </script>
 
-<nav in:barSlide|global out:barSlide|global={{ out: true }} class="tabbar glass sheen" class:minimized={minimized && !side} class:side style:--i={activeIndex} style:--n={tabs.length} aria-label="Main">
+<nav in:barSlide|global out:barSlide|global={{ out: true }} class="tabbar glass sheen" class:minimized={minimized && !side} class:side style:--i={activeIndex} style:--n={tabs.length} aria-label={tr('nav.main')}>
 	<span class="pill" aria-hidden="true"></span>
 	{#each tabs as t, i}
 		<a href={t.href} class:active={i === activeIndex} aria-current={i === activeIndex ? 'page' : undefined} onclick={(e) => tap(e, i)}>
@@ -96,10 +97,10 @@
 					<span class="jp kana-icon" aria-hidden="true">あ</span>
 				{/if}
 				{#if t.href === '/review' && progress.due.length > 0}
-					<span class="badge" aria-label="{progress.due.length} due">{progress.due.length > 99 ? '99+' : progress.due.length}</span>
+					<span class="badge" aria-label={tr('nav.due', { n: progress.due.length })}>{progress.due.length > 99 ? '99+' : progress.due.length}</span>
 				{/if}
 			</span>
-			<span class="label">{t.label}</span>
+			<span class="label">{tr(t.label)}</span>
 		</a>
 	{/each}
 </nav>

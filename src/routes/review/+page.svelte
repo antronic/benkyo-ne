@@ -25,6 +25,8 @@
 	import RecallPad from '#lib/components/RecallPad.svelte';
 	import ProgressRing from '#lib/components/ProgressRing.svelte';
 	import WordQuiz from '#lib/components/WordQuiz.svelte';
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { scriptName, story } from '#lib/i18n/content.ts';
 
 	ui.hue = 220;
 
@@ -150,7 +152,7 @@
 
 <main class="review">
 	<header class="top">
-		<button class="icon-btn" aria-label="End session" onclick={() => goto('/')}>
+		<button class="icon-btn" aria-label={t('review.end')} onclick={() => goto('/')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
 		</button>
 		<div class="bar"><span style:width="{total ? (Math.min(done, total) / total) * 100 : 100}%"></span></div>
@@ -158,7 +160,7 @@
 	</header>
 
 	{#if tag}
-		<div class="tagline caption">Drilling <b>{tag}</b>. Cards that aren’t due are practised without changing their schedule.</div>
+		<div class="tagline caption">{@html t('review.drilling', { tag: `<b>${tag.replace(/[&<>"]/g, (ch) => `&#${ch.charCodeAt(0)};`)}</b>` })}</div>
 	{/if}
 
 	{#if !entry || (!kana && !wordCard)}
@@ -167,16 +169,16 @@
 				<ProgressRing value={total ? correctCount / Math.max(done, 1) : 1} size={140}>
 					<div>
 						<div class="big-num">{total ? Math.round((correctCount / Math.max(done, 1)) * 100) : 100}%</div>
-						<div class="caption">recalled</div>
+						<div class="caption">{t('review.recalled')}</div>
 					</div>
 				</ProgressRing>
-				<h1 class="large-title">{total ? 'Session complete' : tag ? 'Nothing to drill' : 'All caught up'}</h1>
+				<h1 class="large-title">{total ? t('review.complete') : tag ? t('review.nothingDrill') : t('review.caughtUp')}</h1>
 				<p class="subhead">
 					{total
-						? 'Each card is now scheduled for the day your memory of it is predicted to dip to your target.'
-						: 'Nothing is due right now. New reviews will appear as their dates come round.'}
+						? t('review.completeBody')
+						: t('review.caughtUpBody')}
 				</p>
-				<button class="btn accent" onclick={() => goto('/')}>Done</button>
+				<button class="btn accent" onclick={() => goto('/')}>{t('common.done')}</button>
 			</div>
 		</section>
 	{:else if wordCard}
@@ -191,14 +193,14 @@
 				<div class="split">
 				<div class="pane">
 					<div class="eyebrow">
-						{mode === 'choose' ? 'Which sound?' : mode === 'type' ? 'Type the reading' : 'Write this sound'}
-						· {kana.script}
+						{mode === 'choose' ? t('review.whichSound') : mode === 'type' ? t('review.typeReading') : t('review.writeSound')}
+						· {scriptName(kana.script)}
 					</div>
 
 					{#if mode === 'draw' && !result}
 						<div class="row" style="justify-content:center">
 							<div class="romaji">{kana.romaji}</div>
-							<button class="icon-btn" aria-label="Listen" onclick={() => speak(kana.char)}>🔊</button>
+							<button class="icon-btn" aria-label={t('common.listen')} onclick={() => speak(kana.char)}>🔊</button>
 						</div>
 						<RecallPad char={kana.char} size="var(--pad)" oncomplete={(r) => submit(r.correct, r.guess)} />
 					{:else}
@@ -222,7 +224,7 @@
 					{#if mode === 'draw' && !result}
 						<MnemonicHint char={kana.char} onuse={() => (usedHint = true)} />
 					{:else if usedHint && !result}
-						<p class="story" in:fly={{ y: 10, duration: 300 }}>{mnemonicFor(kana.char).story}</p>
+						<p class="story" in:fly={{ y: 10, duration: 300 }}>{story(kana.char)}</p>
 					{/if}
 
 					{#if !result}
@@ -237,8 +239,8 @@
 							<input
 								type="text"
 								bind:value={answer}
-								placeholder="romaji…"
-								aria-label="Reading in romaji"
+								placeholder={t('review.romajiPlaceholder')}
+								aria-label={t('review.readingRomaji')}
 								autocomplete="off"
 								autocapitalize="off"
 								autocorrect="off"
@@ -248,21 +250,21 @@
 								onfocus={(e) => setTimeout(() => e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300)}
 								autofocus
 							/>
-							<button class="btn block" disabled={!answer.trim()} onclick={() => submit(romajiMatches(kana, answer))}>Check</button>
+							<button class="btn block" disabled={!answer.trim()} onclick={() => submit(romajiMatches(kana, answer))}>{t('quiz.check')}</button>
 						{/if}
 						{#if mode !== 'draw'}
-							<button class="btn ghost small" onclick={() => (usedHint = true)} disabled={usedHint}>💡 Hint</button>
+							<button class="btn ghost small" onclick={() => (usedHint = true)} disabled={usedHint}>💡 {t('quiz.hint')}</button>
 						{/if}
 					{:else}
 						{#if !result.correct}
 							<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
-								<p style="margin:0">{mnemonicFor(kana.char).story}</p>
+								<p style="margin:0">{story(kana.char)}</p>
 								{#if result.guess && result.guess !== kana.char}
-									<p class="caption" style="margin:6px 0 0">You drew something closer to <span class="jp">{result.guess}</span><Romaji text={result.guess} inline />.</p>
+									<p class="caption" style="margin:6px 0 0">{t('review.drewCloser')} <span class="jp">{result.guess}</span><Romaji text={result.guess} inline /></p>
 								{/if}
 								{#if confusablesOf(kana.char).length}
 									<div class="row confuse">
-										<span class="caption">Don't confuse with</span>
+										<span class="caption">{t('review.dontConfuse')}</span>
 										{#each confusablesOf(kana.char).slice(0, 3) as c}
 											<span class="pair"><KanaGlyph char={c} size={34} /><span class="caption">{byChar.get(c)?.romaji}</span></span>
 										{/each}
@@ -271,7 +273,7 @@
 							</div>
 						{/if}
 						{#if !(result.correct && mode === 'choose')}
-							<button class="btn block {result.correct ? '' : 'accent'}" onclick={next}>Continue</button>
+							<button class="btn block {result.correct ? '' : 'accent'}" onclick={next}>{t('common.continue')}</button>
 						{/if}
 					{/if}
 				</div>

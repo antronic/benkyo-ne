@@ -1,0 +1,66 @@
+/*
+ * Thai typography. Applies when <html lang="th"> (set by the root layout from
+ * the interface language).
+ *
+ * Thai stacks vowels and tone marks above and below the consonant (e.g. ปั้น,
+ * ญี่ปุ่น), so the tight Latin line heights clip them. Thai also has no spaces
+ * between words and no capitals, and tracking breaks up mark clusters.
+ *
+ * Works with both the current app.css variables (--font) and the PR #4
+ * design tokens (--font-text, --leading-*).
+ */
+
+:root:lang(th) {
+	/* SF has no Thai: iOS/macOS fall back to Sukhumvit Set / Thonburi on their
+	   own, but name them so Thai never lands on a Latin-only fallback. */
+	--font-thai: 'Sukhumvit Set', Thonburi, 'Noto Sans Thai', 'Noto Sans Thai UI', 'Leelawadee UI', Leelawadee, Tahoma, sans-serif;
+	--font: -apple-system, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, var(--font-thai);
+	--font-text: var(--font);
+	--font-display: -apple-system, 'SF Pro Display', system-ui, 'Segoe UI', var(--font-thai);
+
+	/* design-token line heights (PR #4), loosened for stacked marks */
+	--leading-tight: 1.35;
+	--leading-snug: 1.45;
+	--leading-normal: 1.6;
+}
+
+:lang(th) body {
+	line-height: 1.6;
+}
+
+:lang(th) .large-title {
+	line-height: 1.35;
+	letter-spacing: 0;
+	/* a few extra px so the top marks of a Thai title aren't cut by overflow */
+	padding-top: 0.06em;
+}
+
+:lang(th) .title-2,
+:lang(th) .headline {
+	line-height: 1.4;
+	letter-spacing: 0;
+}
+
+:lang(th) .eyebrow {
+	letter-spacing: 0;
+	line-height: 1.5;
+}
+
+:lang(th) .caption,
+:lang(th) .subhead {
+	line-height: 1.55;
+}
+
+/* Thai breaks lines at word boundaries the browser finds with a dictionary;
+   a long run with no break point still must not overflow a narrow card. */
+:lang(th) p,
+:lang(th) .caption,
+:lang(th) .subhead {
+	overflow-wrap: break-word;
+}
+
+/* Short labels under numbers (Today's streak / learned / target) are split by
+   Thai word segmentation inside narrow columns; keep each on one line. */
+:lang(th) .stats .caption {
+	white-space: nowrap;
+}

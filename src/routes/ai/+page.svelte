@@ -3,34 +3,35 @@
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
+	import { t } from '#lib/i18n/index.svelte.ts';
 
 	ui.hue = 265;
 	const ACTIONS = [
-		{ href: '/words/new?mode=scenario', icon: '🃏', title: 'Make a new word card pack', desc: 'Describe a situation, a photo or a word: AI suggests cards and names the pack.' },
-		{ href: '/ai/lesson', icon: '📚', title: 'Make a new lesson pack', desc: 'Pick any topic: AI builds a lesson unit that appears in Learn.' },
-		{ href: '/ai/ask', icon: '💬', title: 'Ask AI', desc: 'Grammar, nuance, “how do I say…”: a patient tutor that knows your level.' }
-	];
+		{ href: '/words/new?mode=scenario', icon: '🃏', title: 'ai.packTitle', desc: 'ai.packDesc' },
+		{ href: '/ai/lesson', icon: '📚', title: 'ai.lessonTitle', desc: 'ai.lessonDesc' },
+		{ href: '/ai/ask', icon: '💬', title: 'ai.askTitle', desc: 'ai.askDesc' }
+	] as const;
 </script>
 
 <main class="page stack" style:--gap="14px">
-	<LargeTitle title="AI" />
+	<LargeTitle title={t('nav.ai')} />
 	{#if ai.checked && !ai.available}
-		<a class="glass warn" href="/settings#ai">✨ {ai.reason || 'Set up AI in Settings.'} <b>Open Settings ›</b></a>
+		<a class="glass warn" href="/settings#ai">✨ {ai.reason || t('ai.setup')} <b>{t('ai.openSettings')}</b></a>
 	{/if}
 	<div class="actions">
 		{#each ACTIONS as a, i}
 			<a class="action glass sheen rise" style:--i={i} href={a.href} class:disabled={!ai.available}>
 				<span class="icon" aria-hidden="true">{a.icon}</span>
 				<span class="stack" style:--gap="4px">
-					<span class="title-2">{a.title}</span>
-					<span class="subhead">{a.desc}</span>
+					<span class="title-2">{t(a.title)}</span>
+					<span class="subhead">{t(a.desc)}</span>
 				</span>
 				<span class="go" aria-hidden="true">›</span>
 			</a>
 		{/each}
 	</div>
 	{#if ai.usage}
-		<p class="caption">This month: ${ai.usage.spentUsd.toFixed(3)} of ${ai.usage.capUsd.toFixed(2)} · {ai.usage.calls} calls</p>
+		<p class="caption">{t('ai.usage', { spent: '$' + ai.usage.spentUsd.toFixed(3), cap: '$' + ai.usage.capUsd.toFixed(2), n: ai.usage.calls })}</p>
 	{/if}
 </main>
 

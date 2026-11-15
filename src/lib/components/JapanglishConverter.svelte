@@ -13,6 +13,8 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import Romaji from './Romaji.svelte';
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { c, gloss } from '#lib/i18n/content.ts';
 
 	let input = $state('');
 	let conv = $state<Conversion | null>(null);
@@ -46,18 +48,18 @@
 			{ tags: ['Japanglish', NOW_TAG], source: 'user' }
 		);
 		haptic('success');
-		toast(`${h.reading} added`, '✓');
+		toast(t('jg.added', { text: h.reading }), '✓');
 	}
 </script>
 
 <section class="conv glass sheen">
-	<div class="eyebrow">🔁 Make it Japanglish</div>
+	<div class="eyebrow">🔁 {t('jg.title')}</div>
 	<input
 		type="text"
 		bind:value={input}
 		oninput={onInput}
-		placeholder="Type an English word, e.g. coffee, taxi, game"
-		aria-label="English word"
+		placeholder={t('jg.placeholder')}
+		aria-label={t('jg.englishWord')}
 		autocomplete="off"
 		autocapitalize="off"
 		autocorrect="off"
@@ -70,33 +72,33 @@
 			{#if real.length}
 				{#each real as h (h.id)}
 					<div class="real">
-						<button class="say" aria-label="Listen" onclick={() => speak(h.reading)}>🔊</button>
+						<button class="say" aria-label={t('common.listen')} onclick={() => speak(h.reading)}>🔊</button>
 						<span class="stack" style:--gap="0">
-							<span class="caption">Real Japanese ✓</span>
+							<span class="caption">{t('jg.real')}</span>
 							<span class="jp big">{h.reading}</span>
 							<Romaji text={h.reading} />
-							<span class="caption">{h.gloss}</span>
+							<span class="caption">{gloss(h.gloss)}</span>
 						</span>
 						<span class="spacer"></span>
 						{#if words.cards[`${h.kind}:${h.id}`]}
-							<span class="caption ok">✓ in cards</span>
+							<span class="caption ok">{t('jg.inCards')}</span>
 						{:else}
-							<button class="btn ghost small" onclick={() => add(h)}>＋ Card</button>
+							<button class="btn ghost small" onclick={() => add(h)}>{t('jg.addCard')}</button>
 						{/if}
 					</div>
 				{/each}
 			{:else if !looking}
-				<p class="caption">No common loanword found in the dictionary; here’s how the rules would write it.</p>
+				<p class="caption">{t('jg.noReal')}</p>
 			{/if}
 
 			<div class="guess">
-				<span class="caption">Rule-based guess {real.some((h) => h.reading === conv?.guess) ? '· matches ✓' : real.length ? '· differs: real words can be irregular' : ''}</span>
+				<span class="caption">{t('jg.guess')} {real.some((h) => h.reading === conv?.guess) ? t('jg.matches') : real.length ? t('jg.differs') : ''}</span>
 				<span class="jp mid">{conv.guess}</span>
 			</div>
 			{#if conv.steps.length}
 				<ol class="steps">
 					{#each conv.steps as s}
-						<li><b>{s.rule.title}.</b> <span class="caption">{s.rule.explain}</span></li>
+						<li><b>{c(s.rule.title)}.</b> <span class="caption">{c(s.rule.explain)}</span></li>
 					{/each}
 				</ol>
 			{/if}
@@ -104,10 +106,10 @@
 	{/if}
 
 	<details>
-		<summary class="caption">All conversion rules ({RULES.length})</summary>
+		<summary class="caption">{t('jg.allRules', { n: RULES.length })}</summary>
 		<ul class="rules">
 			{#each RULES as r}
-				<li><b>{r.title}</b><span class="caption">{r.explain}</span><span class="jp ex">{r.example}</span></li>
+				<li><b>{c(r.title)}</b><span class="caption">{c(r.explain)}</span><span class="jp ex">{r.example}</span></li>
 			{/each}
 		</ul>
 	</details>

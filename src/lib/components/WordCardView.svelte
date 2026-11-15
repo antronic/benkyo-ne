@@ -3,6 +3,8 @@
 	import Romaji from './Romaji.svelte';
 	import type { UserCard } from '#lib/ai/contract.ts';
 	import { speak } from '#lib/content/kana.ts';
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { gloss } from '#lib/i18n/content.ts';
 
 	let { card, compact = false }: { card: Pick<UserCard, 'front' | 'kanji' | 'gloss' | 'gloss2' | 'hook' | 'usage' | 'example' | 'kind' | 'verified'>; compact?: boolean } = $props();
 </script>
@@ -10,13 +12,13 @@
 <div class="wc" class:compact>
 	<div class="row head">
 		<span class="jp front" class:long={card.front.length > 8} class:xlong={card.front.length > 14}>{card.front}</span>
-		<button class="icon-btn" aria-label="Listen" onclick={() => speak(card.front)}>🔊</button>
-		{#if !card.verified}<span class="badge unverified" title="Not found in the dictionary">unverified</span>{/if}
-		{#if card.kind === 'phrase'}<span class="badge">phrase</span>{/if}
+		<button class="icon-btn" aria-label={t('common.listen')} onclick={() => speak(card.front)}>🔊</button>
+		{#if !card.verified}<span class="badge unverified" title={t('card.unverifiedTitle')}>{t('card.unverified')}</span>{/if}
+		{#if card.kind === 'phrase'}<span class="badge">{t('card.phrase')}</span>{/if}
 	</div>
 	<Romaji text={card.front} />
-	{#if card.kanji}<div class="also">also written <span class="jp">{card.kanji}</span></div>{/if}
-	<div class="gloss">{card.gloss}</div>
+	{#if card.kanji}<div class="also">{t('card.alsoWritten')} <span class="jp">{card.kanji}</span></div>{/if}
+	<div class="gloss">{gloss(card.gloss)}</div>
 	{#if card.gloss2}<div class="gloss2">{card.gloss2}</div>{/if}
 	{#if card.usage}
 		<div class="usage">💬 {card.usage.en}{#if card.usage.second}<br /><span class="second">{card.usage.second}</span>{/if}</div>

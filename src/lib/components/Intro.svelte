@@ -8,15 +8,16 @@
 	import { cubicOut } from 'svelte/easing';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { strokesOf } from '#lib/content/strokes.ts';
+	import { t } from '#lib/i18n/index.svelte.ts';
 
 	let { ondone }: { ondone: () => void } = $props();
 
 	const SLIDES = [
-		{ key: 'cube', title: 'Welcome to Benkyo', text: 'Learn to read and write Japanese, from your first あ to real conversations.', hue: 8 },
-		{ key: 'draw', title: 'Learn by writing', text: 'Watch each stroke, trace it, then write it from memory. Your handwriting is checked as you go.', hue: 200 },
-		{ key: 'cards', title: 'Remember for good', text: 'Smart reviews come back just before you’d forget. Ten focused minutes a day is enough.', hue: 140 },
-		{ key: 'ai', title: 'Your AI companion', text: 'Make cards from anything you meet, build lesson packs, and ask questions anytime.', hue: 265 }
-	];
+		{ key: 'cube', title: 'intro.1.title', text: 'intro.1.text', hue: 8 },
+		{ key: 'draw', title: 'intro.2.title', text: 'intro.2.text', hue: 200 },
+		{ key: 'cards', title: 'intro.3.title', text: 'intro.3.text', hue: 140 },
+		{ key: 'ai', title: 'intro.4.title', text: 'intro.4.text', hue: 265 }
+	] as const;
 	const CUBE = ['あ', 'カ', '日', 'さ', 'ね', 'ン'];
 	const draw = strokesOf('ね')?.d ?? [];
 
@@ -48,9 +49,9 @@
 	};
 </script>
 
-<div class="intro" style:--h={slide.hue} transition:fade={{ duration: 400 }} role="dialog" aria-modal="true" aria-label="Introduction">
+<div class="intro" style:--h={slide.hue} transition:fade={{ duration: 400 }} role="dialog" aria-modal="true" aria-label={t('intro.label')}>
 	<div class="bg" aria-hidden="true"></div>
-	<button class="skip" onclick={finish}>Skip</button>
+	<button class="skip" onclick={finish}>{t('intro.skip')}</button>
 
 	<div class="stage" onpointerdown={down} onpointerup={up} role="presentation">
 		{#key i}
@@ -92,16 +93,16 @@
 	<div class="copy">
 		{#key i}
 			<div in:fly={{ y: 16, duration: 500, delay: 120, easing: cubicOut }}>
-				<h2 class="large-title">{slide.title}</h2>
-				<p class="subhead">{slide.text}</p>
+				<h2 class="large-title">{t(slide.title)}</h2>
+				<p class="subhead">{t(slide.text)}</p>
 			</div>
 		{/key}
-		<div class="dots" role="tablist" aria-label="Introduction pages">
+		<div class="dots" role="tablist" aria-label={t('intro.pages')}>
 			{#each SLIDES as s, n}
-				<button role="tab" aria-selected={n === i} aria-label="Page {n + 1}" class:on={n === i} onclick={() => go(n)}></button>
+				<button role="tab" aria-selected={n === i} aria-label={t('intro.page', { n: n + 1 })} class:on={n === i} onclick={() => go(n)}></button>
 			{/each}
 		</div>
-		<button class="btn accent block" onclick={next}>{i < SLIDES.length - 1 ? 'Next' : 'Get started'}</button>
+		<button class="btn accent block" onclick={next}>{i < SLIDES.length - 1 ? t('intro.next') : t('intro.start')}</button>
 	</div>
 </div>
 
