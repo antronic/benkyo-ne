@@ -5,6 +5,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { AdminError, overview } from '#lib/admin/client.ts';
 	import type { AdminOverview } from '#lib/admin/contract.ts';
@@ -27,15 +28,6 @@
 	}
 	onMount(load);
 
-	const TITLES = {
-		access: 'Cloudflare Access sign-in needed',
-		closed: 'The console is closed',
-		signin: 'Sign in first',
-		forbidden: 'No access',
-		offline: 'You’re offline',
-		server: 'Something went wrong'
-	} as const;
-
 	const usd = (n: number) => `$${n.toFixed(n < 100 ? 2 : 0)}`;
 	const time = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 </script>
@@ -46,21 +38,7 @@
 	<LargeTitle title="Fleet" />
 
 	{#if error}
-		<div class="glass group rise" style:--i="1" role="alert">
-			<div class="item col">
-				<b>{TITLES[error.code]}</b>
-				<span class="caption">{error.message}</span>
-				<span class="row actions">
-					{#if error.code === 'access'}
-						<button class="btn small" onclick={() => location.reload()}>Sign in again</button>
-					{:else if error.code === 'signin'}
-						<a class="btn small" href="/settings#account">Go to Settings</a>
-					{:else}
-						<button class="btn ghost small" onclick={load}>Try again</button>
-					{/if}
-				</span>
-			</div>
-		</div>
+		<ErrorCard {error} onretry={load} />
 	{:else if !data}
 		<div class="tiles" aria-busy="true">
 			{#each [0, 1, 2, 3] as i (i)}<div class="glass tile placeholder"></div>{/each}
@@ -75,6 +53,9 @@
 				<span class="caption">{data.accounts.new24h} in the last 24 h</span>
 			</div>
 			<div class="glass tile"><span class="caption">Disabled</span><b class="num">{data.accounts.disabled}</b></div>
+		</div>
+		<div class="glass group">
+			<a class="item nav" href="/admin/accounts"><span>All accounts</span><span class="spacer"></span><span class="caption" aria-hidden="true">›</span></a>
 		</div>
 
 		<h2 class="eyebrow section">AI this month</h2>
@@ -122,17 +103,12 @@
 		padding: 12px 16px;
 		min-height: 48px;
 	}
+	a.nav {
+		color: inherit;
+		text-decoration: none;
+	}
 	.item + .item {
 		border-top: 0.5px solid var(--hairline);
-	}
-	.item.col {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 6px;
-	}
-	.actions {
-		gap: 8px;
-		margin-top: 4px;
 	}
 	.tiles {
 		display: grid;

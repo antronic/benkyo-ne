@@ -111,7 +111,12 @@ export async function deleteCredential(env: Env, userId: number, id: number): Pr
 
 /** Delete an account and everything tied to it (keys first). */
 export async function deleteAccountData(env: Env, userId: number) {
-	await env.DB.batch([
+	await env.DB.batch(accountDataStatements(env, userId));
+}
+
+/** Every statement that deletes an account and its data (also used by the fleet console). */
+export function accountDataStatements(env: Env, userId: number): D1PreparedStatement[] {
+	return [
 		// synced learning progress (worker/sync.ts); the copy on each device stays
 		...deleteSyncStatements(env.DB, userId),
 		env.DB.prepare(`DELETE FROM ai_credentials WHERE user_id = ?1`).bind(userId),
@@ -129,7 +134,7 @@ export async function deleteAccountData(env: Env, userId: number) {
 		env.DB.prepare(`DELETE FROM apple_identities WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM apple_states WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM accounts WHERE id = ?1`).bind(userId)
-	]);
+	];
 }
 
 async function masterKey(env: Env) {

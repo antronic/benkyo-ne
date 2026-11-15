@@ -10,6 +10,7 @@ const session = (over: Partial<Session> = {}): Session => ({
 	userId: 1,
 	name: 'Owner',
 	isAdmin: true,
+	appleLinked: false,
 	...over
 });
 const env = (over: Partial<Env> = {}) => ({ DB: {} as D1Database, CONTENT: {} as KVNamespace, ...over }) as Env;
@@ -19,7 +20,8 @@ describe('admin session rules', () => {
 	it('allows only passkey sessions on admin accounts', () => {
 		expect(adminSessionProblem(session())).toBeNull();
 		expect(adminSessionProblem(null)).toMatch(/Sign in/);
-		expect(adminSessionProblem(session({ kind: 'recovery', passkeyId: null }))).toMatch(/recovery code/);
+		expect(adminSessionProblem(session({ kind: 'recovery', passkeyId: null }))).toMatch(/with a passkey/);
+		expect(adminSessionProblem(session({ kind: 'apple', passkeyId: null }))).toMatch(/with a passkey/);
 		expect(adminSessionProblem(session({ isAdmin: false }))).toMatch(/not an admin/);
 	});
 });
