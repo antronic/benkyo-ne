@@ -388,6 +388,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'kanji.onTitle': 'เสียงอ่านที่ยืมมาจากภาษาจีน (อง)',
 	'kanji.lookLike': 'ภาพนี้ดูเหมือนอะไร',
 	'splash.loading': 'กำลังโหลด Benkyo',
+	'boot.storageFailed': 'เปิดความคืบหน้าที่บันทึกไว้ในอุปกรณ์นี้ไม่ได้ ลองโหลดหน้าใหม่อีกครั้ง',
 	'kanjiLesson.introMeta': 'คันจิใหม่ {n} ตัว · ประมาณ 6 นาที',
 	'kanjiLesson.strokeOrder': 'เขียนคันจิจากบนลงล่าง จากซ้ายไปขวา และเส้นแนวนอนก่อนเส้นแนวตั้ง',
 	'kanjiLesson.completeBody': 'เพิ่มคันจิ {n} ตัวเข้าสำรับแล้ว ตอนทบทวนจะถามความหมายก่อน แล้วค่อยให้เขียนเมื่อเริ่มจำได้',

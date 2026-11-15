@@ -7,6 +7,7 @@
  */
 import { progress } from '#lib/state/progress.svelte.ts';
 import { play, hello, unlock, type KuriSoundName } from './sound.ts';
+import { safeMode } from '#lib/boot.ts';
 
 export type KuriPose = 'idle' | 'happy' | 'thinking' | 'encourage' | 'sleep' | 'wave' | 'walk' | 'held';
 
@@ -37,15 +38,19 @@ export interface KuriInstance {
 }
 
 let engine: Promise<{ create(canvas: HTMLCanvasElement, opts: KuriOptions): KuriInstance }> | null = null;
-/** Load the renderer once (a separate ~9 KB chunk). */
+/** Load the renderer once (a separate ~9 KB chunk). A failed download can be tried again later. */
 export function loadEngine() {
-	return (engine ??= import('./shiba.ts') as never);
+	return (engine ??= (import('./shiba.ts') as Promise<never>).catch((e) => {
+		engine = null;
+		throw e;
+	}));
 }
 
 /** Is Kuri on, and which look and detail should a small Kuri use. */
 export const kuriPrefs = {
 	get on() {
-		return progress.settings.kuri;
+		// safe mode (the last launches crashed on start): no WebGL this visit
+		return progress.settings.kuri && !safeMode;
 	},
 	get variant() {
 		return progress.settings.kuriStyle;
@@ -55,7 +60,7 @@ export const kuriPrefs = {
 	}
 };
 
-const soundOn = () => progress.settings.kuri && progress.settings.kuriSound;
+const soundOn = () => !safeMode && progress.settings.kuri && progress.settings.kuriSound;
 
 /** Play one of Kuri's sounds if Kuri and Sound are both on. */
 export function kuriSound(name: KuriSoundName) {
@@ -69,7 +74,11 @@ export function kuriHello() {
 // Browsers keep audio locked until the first touch, so get it ready on any tap
 // while Sound is on. Later sounds (sleep, the intro timeline) can then play.
 if (typeof document !== 'undefined') {
-	const ready = () => soundOn() && unlock();
+	const ready = () => {
+		try {
+			if (soundOn()) unlock();
+		} catch {}
+	};
 	document.addEventListener('pointerdown', ready, { capture: true, passive: true });
 	document.addEventListener('keydown', ready, { capture: true, passive: true });
 }

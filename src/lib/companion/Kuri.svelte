@@ -4,6 +4,7 @@
 	Re-created when the outfit or detail level changes.
 -->
 <script lang="ts">
+	import { safeMode } from '#lib/boot.ts';
 	import { loadEngine, currentTheme, reducedMotion, kuriPrefs, type KuriInstance, type KuriOptions, type KuriPose } from './kuri.svelte.ts';
 
 	let {
@@ -36,23 +37,29 @@
 	function mount(node: HTMLCanvasElement, init: { variant: 'bandana' | 'neckerchief'; detail: 'full' | 'low' }) {
 		let dead = false;
 		let inst: KuriInstance | null = null;
+		if (safeMode) return { destroy() {} }; // the last launches crashed on start: no WebGL this visit
 		const dark = matchMedia('(prefers-color-scheme: dark)');
 		const motion = matchMedia('(prefers-reduced-motion: reduce)');
 		const onTheme = () => inst?.setTheme(currentTheme());
 		const onMotion = () => inst?.setReducedMotion(motion.matches);
 		const io = new IntersectionObserver(([e]) => inst?.setPaused(!e.isIntersecting));
-		void loadEngine().then((m) => {
-			if (dead) return;
-			try {
-				inst = m.create(node, { orbit: false, ...options, variant: init.variant, detail: init.detail, theme: currentTheme(), reducedMotion: reducedMotion() });
-			} catch {
-				return; // no WebGL: Kuri just doesn't appear
-			}
-			k = instance = inst;
-			dark.addEventListener('change', onTheme);
-			motion.addEventListener('change', onMotion);
-			io.observe(node);
-		});
+		void loadEngine()
+			.catch((e) => {
+				console.warn('[kuri] renderer could not be loaded', e);
+				return null; // Kuri just doesn't appear; the app carries on
+			})
+			.then((m) => {
+				if (!m || dead) return;
+				try {
+					inst = m.create(node, { orbit: false, ...options, variant: init.variant, detail: init.detail, theme: currentTheme(), reducedMotion: reducedMotion() });
+				} catch {
+					return; // no WebGL: Kuri just doesn't appear
+				}
+				k = instance = inst;
+				dark.addEventListener('change', onTheme);
+				motion.addEventListener('change', onMotion);
+				io.observe(node);
+			});
 		return {
 			destroy() {
 				dead = true;
