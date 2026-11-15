@@ -34,9 +34,9 @@
 	});
 
 	// Immersive screens hide the navigation and can be swiped back from.
-	const immersive = $derived(/^\/(learn\/.+|review|words\/.+|ai\/.+)/.test(page.url.pathname));
+	const immersive = $derived(/^\/(learn\/.+|review|words\/.+|ai\/.+|admin)/.test(page.url.pathname));
 	const parent = $derived(
-		page.url.pathname.startsWith('/learn/') ? '/learn' : page.url.pathname.startsWith('/words/') ? '/words' : page.url.pathname.startsWith('/ai/') ? '/ai' : '/'
+		page.url.pathname.startsWith('/learn/') ? '/learn' : page.url.pathname.startsWith('/words/') ? '/words' : page.url.pathname.startsWith('/ai/') ? '/ai' : page.url.pathname.startsWith('/admin') ? '/settings' : '/'
 	);
 
 	// Beta usage data (only once the account has agreed): screens and a daily progress summary.
