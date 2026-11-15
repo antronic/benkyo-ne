@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t, fmtDateTime } from '#lib/i18n/index.svelte.ts';
+	import { t, fmtDateTime, type MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { onMount } from 'svelte';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
@@ -32,22 +32,24 @@
 		void readKey();
 		// automatic syncs can retire the key too
 		const off = onSync(() => void readKey());
-		void (async () => (engine = (await getMatcher()).kind === 'wasm' ? 'WebAssembly (Rust)' : 'JavaScript fallback'))();
+		void (async () => (engine = (await getMatcher()).kind === 'wasm' ? 'WebAssembly (Rust)' : t('settings.jsFallback')))();
 		return off;
 	});
 
-	const ERRORS: Record<string, string> = {
-		offline: 'You’re offline. Progress syncs when you reconnect.',
-		network: 'Couldn’t reach the server. Try again in a moment.',
-		'signed-out': 'Sign in to sync your progress.',
-		'key-claimed': 'Your progress moved to your account. Sign in to keep syncing.'
+	const ERRORS: Record<string, MessageKey> = {
+		offline: 'sync.err.offline',
+		network: 'sync.err.network',
+		'signed-out': 'sync.err.signedOut',
+		'key-claimed': 'sync.err.keyClaimed'
 	};
 	const describe = (r: SyncResult) =>
 		'error' in r
-			? (ERRORS[r.error] ?? `Sync failed (${r.error})`)
+			? ERRORS[r.error]
+				? t(ERRORS[r.error])
+				: t('sync.failedWith', { error: r.error })
 			: r.pushed + r.pulled
-				? `Up to date: ${r.pushed} sent, ${r.pulled} received`
-				: 'Up to date';
+				? t('sync.upToDateCounts', { sent: r.pushed, received: r.pulled })
+				: t('sync.upToDate');
 
 	async function syncNow() {
 		syncing = true;
@@ -56,10 +58,10 @@
 		status = describe(r);
 		if ('error' in r) {
 			haptic('error');
-			toast(r.error === 'offline' ? 'You’re offline' : 'Sync failed', '⚠️');
+			toast(r.error === 'offline' ? t('sync.offline') : t('sync.failed'), '⚠️');
 		} else {
 			haptic('success');
-			toast('Synced', '✓');
+			toast(t('sync.synced'), '✓');
 		}
 	}
 	async function reset() {
@@ -150,36 +152,36 @@
 		</label>
 	</div>
 
-	<h2 class="eyebrow section">Sync</h2>
+	<h2 class="eyebrow section">{t('sync.section')}</h2>
 	<div class="glass group rise" style:--i="2">
 		{#if ai.signedIn && ai.account}
 			<div class="item">
 				<span class="stack" style:--gap="2px">
-					<span>Synced to {ai.account.name}</span>
-					<span class="caption">Your progress and cards follow your account. Sign in on another device to pick up where you left off.</span>
+					<span>{t('sync.syncedTo', { name: ai.account.name })}</span>
+					<span class="caption">{t('sync.accountBody')}</span>
 				</span>
 				<span class="spacer"></span>
-				<button class="btn small nowrap" onclick={syncNow} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync now'}</button>
+				<button class="btn small nowrap" onclick={syncNow} disabled={syncing}>{syncing ? t('sync.syncing') : t('sync.now')}</button>
 			</div>
 		{:else if oldKey}
 			<div class="item">
 				<span class="stack" style:--gap="2px">
-					<span>Syncing with a sync key</span>
-					<span class="caption">Sync keys are being retired. Sign in or create an account below and this device’s progress moves to it automatically. After that you won’t need the key.</span>
+					<span>{t('sync.keyTitle')}</span>
+					<span class="caption">{t('sync.keyBody')}</span>
 				</span>
 				<span class="spacer"></span>
-				<button class="btn ghost small nowrap" onclick={syncNow} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync now'}</button>
+				<button class="btn ghost small nowrap" onclick={syncNow} disabled={syncing}>{syncing ? t('sync.syncing') : t('sync.now')}</button>
 			</div>
 		{:else if claimed}
 			<div class="item">
 				<span class="stack" style:--gap="2px">
-					<span>Sign in to keep syncing</span>
-					<span class="caption">This device’s sync key was moved into an account on another device. Sign in to that account below and your progress here joins it.</span>
+					<span>{t('sync.claimedTitle')}</span>
+					<span class="caption">{t('sync.claimedBody')}</span>
 				</span>
 			</div>
 		{:else}
 			<div class="item">
-				<span class="caption">Your progress is saved on this device and works offline. To back it up and use it on more than one device, sign in or create an account below. It syncs on its own after that.</span>
+				<span class="caption">{t('sync.localBody')}</span>
 			</div>
 		{/if}
 		{#if status}<div class="item caption">{status}</div>{/if}

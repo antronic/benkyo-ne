@@ -4,6 +4,7 @@
 	Shown until `ready` and for at least MIN_MS so it never flickers.
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { strokesOf } from '#lib/content/strokes.ts';
@@ -28,7 +29,7 @@
 </script>
 
 {#if !(ready && minDone)}
-	<div class="splash" out:lift in:fade={{ duration: 0 }} role="status" aria-label="Loading Benkyo">
+	<div class="splash" out:lift in:fade={{ duration: 0 }} role="status" aria-label={t('splash.loading')}>
 		<div class="tile">
 			<svg viewBox="0 0 109 109" aria-hidden="true">
 				{#each strokes as d, i}

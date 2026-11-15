@@ -1,5 +1,7 @@
 <!-- Meaning, origin, parts, readings and an example word for one kanji. -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { c, gloss } from '#lib/i18n/content.ts';
 	import Romaji from './Romaji.svelte';
 	import KanaGlyph from './KanaGlyph.svelte';
 	import { kanjiByChar, ORIGIN_LABEL, showKun, type Kanji } from '#lib/content/kanji.ts';
@@ -14,7 +16,7 @@
 		const g = strokesOf(kanji.char)?.g ?? [];
 		return kanji.parts.map((p, i) => {
 			const seen = g[i]?.[0];
-			return { char: p, shown: seen && seen !== p && !kanjiByChar.has(seen) ? seen : p, meaning: kanjiByChar.get(p)?.meaning ?? '' };
+			return { char: p, shown: seen && seen !== p && !kanjiByChar.has(seen) ? seen : p, meaning: gloss(kanjiByChar.get(p)?.meaning ?? '') };
 		});
 	});
 	// 森 is 木 + 林 to KanjiVG; colour by its own groups only when they line up with the parts
@@ -23,12 +25,12 @@
 
 <div class="info stack" style:--gap="10px">
 	<div class="row head">
-		<span class="meaning">{kanji.meaning}</span>
-		<span class="tag {kanji.origin}">{ORIGIN_LABEL[kanji.origin]}</span>
+		<span class="meaning">{gloss(kanji.meaning)}</span>
+		<span class="tag {kanji.origin}">{c(ORIGIN_LABEL[kanji.origin])}</span>
 	</div>
 
 	{#if parts.length}
-		<div class="parts row" aria-label="Built from">
+		<div class="parts row" aria-label={t('kanji.builtFrom')}>
 			{#each parts as p, i}
 				{#if i > 0}<span class="op">+</span>{/if}
 				<span class="part" style:--c={colored ? PART_COLORS[i % PART_COLORS.length] : 'var(--ink)'}>
@@ -37,21 +39,21 @@
 				</span>
 			{/each}
 			<span class="op">=</span>
-			<span class="part"><KanaGlyph char={kanji.char} size={34} /><span class="caption">{kanji.meaning}</span></span>
+			<span class="part"><KanaGlyph char={kanji.char} size={34} /><span class="caption">{gloss(kanji.meaning)}</span></span>
 		</div>
 	{/if}
 
-	<p class="story">{kanji.story}</p>
+	<p class="story">{c(kanji.story)}</p>
 
 	{#if !compact}
 		<dl class="readings">
 			{#if kanji.kun.length}
-				<dt title="Native Japanese reading">kun</dt>
+				<dt title={t('kanji.kunTitle')}>kun</dt>
 				<dd class="jp">
 					{#each kanji.kun as r}<span class="r">{showKun(r)}<Romaji text={r.replace('.', '')} /></span>{/each}
 				</dd>
 			{/if}
-			<dt title="Reading borrowed from Chinese">on</dt>
+			<dt title={t('kanji.onTitle')}>on</dt>
 			<dd class="jp">
 				{#each kanji.on as r}<span class="r">{r}<Romaji text={r} /></span>{/each}
 			</dd>
@@ -60,7 +62,7 @@
 			<span class="jp word">{kanji.example.word}</span>
 			<span class="stack" style:--gap="0">
 				<span class="jp caption">{kanji.example.reading}<Romaji text={kanji.example.reading} inline /></span>
-				<span class="caption">{kanji.example.gloss}</span>
+				<span class="caption">{gloss(kanji.example.gloss)}</span>
 			</span>
 			<span class="spacer"></span>
 			<span aria-hidden="true">🔊</span>

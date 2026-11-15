@@ -4,6 +4,8 @@
 	scheduled for review. Stops after two missed lessons in a row.
 -->
 <script lang="ts">
+	import { t, tn } from '#lib/i18n/index.svelte.ts';
+	import { c, scriptName } from '#lib/i18n/content.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import { page } from '$app/state';
@@ -108,7 +110,7 @@
 	const inProgress = $derived(phase === 'quiz');
 	$effect(() => {
 		ui.backGuard = inProgress
-			? () => confirmDestructive('Stop the placement check?', 'Lessons you haven’t finished checking won’t be skipped.', 'Stop')
+			? () => confirmDestructive(t('placement.stopTitle'), t('placement.stopBody'), t('placement.stop'))
 			: null;
 		return () => (ui.backGuard = null);
 	});
@@ -121,11 +123,11 @@
 </script>
 
 {#if !script}
-	<main class="page"><h1 class="large-title">Not found</h1><a href="/learn">Back to Learn</a></main>
+	<main class="page"><h1 class="large-title">{t('placement.notFound')}</h1><a href="/learn">{t('unit.backToLearn')}</a></main>
 {:else}
 	<main class="placement" style:--h={hue}>
 		<header class="top">
-			<button class="icon-btn" aria-label="Close placement check" onclick={close}>
+			<button class="icon-btn" aria-label={t('placement.close')} onclick={close}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
 			</button>
 			<div class="bar" role="progressbar" aria-valuemin={0} aria-valuemax={total || 1} aria-valuenow={phase === 'done' ? total : asked}>
@@ -138,22 +140,19 @@
 			<section class="stage" in:fly={{ x: 40, duration: 380, easing: cubicOut, opacity: 0 }}>
 				{#if phase === 'intro'}
 					<div class="text stack" style:--gap="10px">
-						<div class="eyebrow">{script} · placement check</div>
-						<h1 class="large-title">Already know some {script}?</h1>
+						<div class="eyebrow">{scriptName(script)} · {t('placement.eyebrow')}</div>
+						<h1 class="large-title">{t('placement.title', { script: scriptName(script) })}</h1>
 						{#if todo.length}
-							<p class="subhead">
-								Answer {PER_LESSON} quick questions from each lesson. Get them all right and the lesson is
-								skipped: it’s marked done and its kana go straight into your reviews.
-							</p>
-							<p class="caption">{todo.length} lessons to check · stops after two missed lessons in a row · no hints</p>
+							<p class="subhead">{t('placement.body', { n: PER_LESSON })}</p>
+							<p class="caption">{tn('placement.meta', todo.length)}</p>
 						{:else}
-							<p class="subhead">You’ve finished every {script} lesson. Practise with the drills in Learn instead.</p>
+							<p class="subhead">{t('placement.allDone', { script: scriptName(script) })}</p>
 						{/if}
 					</div>
 				{:else if phase === 'quiz' && current}
 					<div class="split">
 						<div class="pane">
-							<div class="eyebrow">Checking {block.lesson.title} · {qi + 1} of {block.questions.length}</div>
+							<div class="eyebrow">{t('placement.checking', { lesson: c(block.lesson.title), i: qi + 1, n: block.questions.length })}</div>
 							<div class="glass sheen big" class:shake={shaking}>
 								<KanaGlyph char={current.char} size={150} />
 								<Romaji text={current.char} hide={!choice} />
@@ -175,19 +174,19 @@
 							</div>
 							{#if choice && !answers[current.char]?.correct}
 								<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
-									<p style="margin:0">It’s <b>{current.romaji}</b>. You’ll learn {block.lesson.title} in its lesson.</p>
-									<button class="btn block" onclick={advance}>Continue</button>
+									<p style="margin:0">{@html t('placement.itsAnswer', { romaji: `<b>${current.romaji}</b>`, lesson: c(block.lesson.title) })}</p>
+									<button class="btn block" onclick={advance}>{t('common.continue')}</button>
 								</div>
 							{/if}
 						</div>
 					</div>
 				{:else if phase === 'done' && outcome}
 					<div class="text stack" style:--gap="10px">
-						<h1 class="large-title">{outcome.passed.length ? `Skipped ${outcome.passed.length} ${outcome.passed.length === 1 ? 'lesson' : 'lessons'}` : 'Let’s start with the lessons'}</h1>
+						<h1 class="large-title">{outcome.passed.length ? tn('placement.skipped', outcome.passed.length) : t('placement.startLessons')}</h1>
 						<p class="subhead">
 							{outcome.passed.length
-								? `${outcome.grades.length} kana are in your reviews now. The ones you answered fast start with longer gaps.`
-								: 'None of the checked lessons were all right, so the lessons will teach them from the start.'}
+								? t('placement.passedBody', { n: outcome.grades.length })
+								: t('placement.noneBody')}
 						</p>
 						<ul class="results">
 							{#each blocks as b (b.lesson.id)}
@@ -195,9 +194,9 @@
 								{@const bad = outcome.failed.includes(b.lesson.id)}
 								<li class="glass result" class:ok class:bad>
 									<span class="mark">{ok ? '✓' : bad ? '✗' : '·'}</span>
-									<span class="headline">{b.lesson.title}</span>
+									<span class="headline">{c(b.lesson.title)}</span>
 									<span class="jp caption sub">{b.lesson.subtitle}</span>
-									<span class="caption">{ok ? 'skipped' : bad ? 'take lesson' : 'not checked'}</span>
+									<span class="caption">{ok ? t('placement.rSkipped') : bad ? t('placement.rTake') : t('placement.rNotChecked')}</span>
 								</li>
 							{/each}
 						</ul>
@@ -209,17 +208,17 @@
 		<footer class="bottom">
 			{#if phase === 'intro'}
 				{#if todo.length}
-					<button class="btn accent block" onclick={start}>Start check</button>
+					<button class="btn accent block" onclick={start}>{t('placement.start')}</button>
 				{:else}
-					<button class="btn accent block" onclick={() => goto('/learn')}>Back to Learn</button>
+					<button class="btn accent block" onclick={() => goto('/learn')}>{t('unit.backToLearn')}</button>
 				{/if}
 			{:else if phase === 'quiz'}
-				<button class="btn ghost block" onclick={finish} disabled={saving}>Stop here and keep what I passed</button>
+				<button class="btn ghost block" onclick={finish} disabled={saving}>{t('placement.stopKeep')}</button>
 			{:else if phase === 'done'}
 				<div class="row" style="width:100%">
-					<button class="btn ghost block" onclick={() => goto('/learn')}>Done</button>
+					<button class="btn ghost block" onclick={() => goto('/learn')}>{t('common.done')}</button>
 					{#if nextLesson}
-						<button class="btn accent block" onclick={() => goto(`/learn/${nextLesson.id}`)}>Start {nextLesson.title}</button>
+						<button class="btn accent block" onclick={() => goto(`/learn/${nextLesson.id}`)}>{t('placement.startLesson', { lesson: c(nextLesson.title) })}</button>
 					{/if}
 				</div>
 			{/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import '../app.css';
 	import { onMount, untrack } from 'svelte';
@@ -93,9 +94,9 @@
 			if (!ai.signedIn) ui.showWelcome = true;
 			return;
 		}
-		if (r.result === 'linked') toast('Apple ID connected', '✓');
-		else if (r.result === 'created') toast(`Welcome to the beta, ${ai.account?.name ?? ''}`.trim(), '🎉', 2800);
-		else toast(`Welcome back, ${ai.account?.name ?? ''}`.trim(), '👋');
+		if (r.result === 'linked') toast(t('apple.connected'), '✓');
+		else if (r.result === 'created') toast(t('welcome.toBeta', { name: ai.account?.name ?? '' }).trim(), '🎉', 2800);
+		else toast(t('welcome.back', { name: ai.account?.name ?? '' }).trim(), '👋');
 	}
 
 	// Page morphs with the View Transitions API (falls back to instant swap).
@@ -133,7 +134,7 @@
 	{:else}
 		<main class="page stack boot" style:--gap="16px" aria-busy="true">
 			<div class="boot-title"></div>
-			<Skeleton variant="card" count={1} label="Loading your progress" />
+			<Skeleton variant="card" count={1} label={t('common.loadingProgress')} />
 			<Skeleton variant="row" count={3} />
 		</main>
 	{/if}
