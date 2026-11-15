@@ -53,7 +53,7 @@ class Ai {
 			this.account = m.account;
 			this.signupOpen = m.signupOpen;
 			this.beta = m.signedIn ? (m.beta ?? null) : null;
-			telemetry.setEnabled(m.signedIn && !!m.beta && m.beta.acceptedVersion === m.beta.version);
+			telemetry.setEnabled(m.signedIn && !!m.beta && m.beta.acceptedVersion === m.beta.version, m.account?.id ?? null);
 			if (m.signedIn && this.needsConsent) {
 				// AI routes refuse until the consent is given
 				this.credentials = [];

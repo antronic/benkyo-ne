@@ -119,8 +119,9 @@ class Progress {
 	}
 
 	async completeLesson(id: string) {
-		telemetry.track('progress', 'lesson_complete', { id, first: !this.completed.includes(id), completedCount: this.completed.length + 1 });
-		if (!this.completed.includes(id)) this.completed.push(id);
+		const first = !this.completed.includes(id);
+		if (first) this.completed.push(id);
+		telemetry.track('progress', 'lesson_complete', { id, first, completedCount: this.completed.length });
 		await put('meta', $state.snapshot(this.completed), 'completed');
 	}
 

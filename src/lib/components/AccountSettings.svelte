@@ -11,6 +11,7 @@
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import BetaConsent from '#lib/components/BetaConsent.svelte';
+	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 
 	let { onchange }: { onchange: () => void | Promise<void> } = $props();
 
@@ -140,7 +141,8 @@
 			))
 		)
 			return;
-		await guard(() => api.deleteBetaData(), 'Beta data deleted');
+		// drop what the app hasn't uploaded yet, and let an upload in flight land first
+		await guard(async () => (await telemetry.discard(), api.deleteBetaData()), 'Beta data deleted');
 	}
 	async function withdraw() {
 		if (
@@ -151,7 +153,7 @@
 			))
 		)
 			return;
-		await guard(() => api.withdrawConsent(), 'Withdrawn, usage data deleted');
+		await guard(async () => (await telemetry.discard(), api.withdrawConsent()), 'Withdrawn, usage data deleted');
 		await after();
 	}
 

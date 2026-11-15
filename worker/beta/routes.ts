@@ -23,7 +23,10 @@ import { rateLimit } from '../ai/ledger.ts';
 const DAY = 86_400_000;
 /** cap on each stored text field of an AI call (D1 rows top out at 2 MB) */
 const MAX_TEXT = 48 * 1024;
-const EXPORT_LIMIT = 20_000;
+/** export reads in pages of this many rows, until everything is read */
+const EXPORT_PAGE = 5_000;
+/** request ceiling for one events batch: 100 events × 8 KiB data, plus room */
+const MAX_EVENTS_BODY = 1024 * 1024;
 
 // --------------------------------------------------------------- consent ----
 
@@ -96,7 +99,7 @@ async function ingest(req: Request, env: Env, s: Session) {
 	// generous: the app batches, so this only stops a runaway loop
 	if (!(await rateLimit(env, `beta:${s.userId}`, 60)))
 		throw httpError(429, 'rate_limited', 'Too many usage reports; try again in a minute');
-	const events = parseEvents(await readJson(req, 256 * 1024));
+	const events = parseEvents(await readJson(req, MAX_EVENTS_BODY));
 	if (!events.length) return json({ stored: 0 });
 	const now = Date.now();
 	const country = (req as Request & { cf?: { country?: string } }).cf?.country ?? null;
@@ -164,7 +167,7 @@ export async function recordAiCall(env: Env, userId: number, r: AiCallRecord) {
 				r.provider ?? null,
 				r.model ?? null,
 				r.status,
-				r.error ? r.error.slice(0, 500) : null,
+				r.error ? scrubText(r.error.slice(0, 500)) : null,
 				Date.now() - r.startedAt,
 				r.inputTokens ?? null,
 				r.outputTokens ?? null,
@@ -183,25 +186,37 @@ export async function recordAiCall(env: Env, userId: number, r: AiCallRecord) {
 
 // ---------------------------------------------------------------- export ----
 
+/** Every row of a query, read EXPORT_PAGE at a time (keyset on id). */
+async function allRows<T extends { id: number }>(env: Env, sql: string, userId: number): Promise<T[]> {
+	const out: T[] = [];
+	let after = 0;
+	for (;;) {
+		const { results } = await env.DB.prepare(sql).bind(userId, after, EXPORT_PAGE).all<T>();
+		out.push(...results);
+		if (results.length < EXPORT_PAGE) return out;
+		after = results[results.length - 1].id;
+	}
+}
+
 async function exportData(env: Env, s: Session) {
 	const [consents, events, aiCalls] = await Promise.all([
 		env.DB.prepare(`SELECT version, accepted_at AS acceptedAt, withdrawn_at AS withdrawnAt, user_agent AS userAgent FROM beta_consents WHERE user_id = ?1 ORDER BY accepted_at`)
 			.bind(s.userId)
 			.all(),
-		env.DB.prepare(
-			`SELECT at, received_at AS receivedAt, app_session AS appSession, kind, name, route, app_version AS appVersion, country, data_json AS data
-			   FROM beta_events WHERE user_id = ?1 ORDER BY at DESC LIMIT ?2`
-		)
-			.bind(s.userId, EXPORT_LIMIT)
-			.all<Record<string, unknown> & { data: string | null }>(),
-		env.DB.prepare(
-			`SELECT at, kind, feature, provider, model, status, error, latency_ms AS latencyMs, input_tokens AS inputTokens, output_tokens AS outputTokens,
+		allRows<{ id: number; data: string | null } & Record<string, unknown>>(
+			env,
+			`SELECT id, at, received_at AS receivedAt, app_session AS appSession, kind, name, route, app_version AS appVersion, country, data_json AS data
+			   FROM beta_events WHERE user_id = ?1 AND id > ?2 ORDER BY id LIMIT ?3`,
+			s.userId
+		),
+		allRows<{ id: number; request: string | null; result: string | null } & Record<string, unknown>>(
+			env,
+			`SELECT id, at, kind, feature, provider, model, status, error, latency_ms AS latencyMs, input_tokens AS inputTokens, output_tokens AS outputTokens,
 			        cost_usd AS costUsd, request_json AS request, prompt_system AS promptSystem, prompt_user AS promptUser,
 			        output_text AS outputText, result_json AS result
-			   FROM beta_ai_calls WHERE user_id = ?1 ORDER BY at DESC LIMIT ?2`
+			   FROM beta_ai_calls WHERE user_id = ?1 AND id > ?2 ORDER BY id LIMIT ?3`,
+			s.userId
 		)
-			.bind(s.userId, EXPORT_LIMIT)
-			.all<Record<string, unknown> & { request: string | null; result: string | null }>()
 	]);
 	const parse = (t: string | null) => {
 		try {
@@ -215,8 +230,8 @@ async function exportData(env: Env, s: Session) {
 		account: { id: s.userId, name: s.name },
 		retentionDays: RETENTION_DAYS,
 		consents: consents.results,
-		events: events.results.map((e) => ({ ...e, data: parse(e.data) })),
-		aiCalls: aiCalls.results.map((a) => ({ ...a, request: parse(a.request), result: parse(a.result) }))
+		events: events.map(({ id: _id, ...e }) => ({ ...e, data: parse(e.data) })),
+		aiCalls: aiCalls.map(({ id: _id, ...a }) => ({ ...a, request: parse(a.request), result: parse(a.result) }))
 	};
 	return json(body, { headers: { 'content-disposition': `attachment; filename="benkyo-beta-data-${new Date().toISOString().slice(0, 10)}.json"` } });
 }

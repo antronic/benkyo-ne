@@ -42,6 +42,8 @@ export interface BetaEvent {
 
 export const MAX_EVENTS_PER_BATCH = 100;
 export const MAX_EVENT_DATA_CHARS = 8 * 1024;
+/** the app keeps each upload well under the Worker's 1 MiB body limit */
+export const MAX_BATCH_BYTES = 200 * 1024;
 
 const NAME_RE = /^[a-z][a-z0-9_.:-]{0,63}$/;
 
@@ -66,6 +68,19 @@ export function parseEvents(body: unknown, now = Date.now()): BetaEvent[] {
 			if (JSON.stringify(data).length > MAX_EVENT_DATA_CHARS) data = { truncated: true };
 		}
 		out.push({ at, kind: e.kind as EventKind, name: e.name, sid, route, appVersion, data });
+	}
+	return out;
+}
+
+/** The oldest events that fit one upload: at most MAX_EVENTS_PER_BATCH and MAX_BATCH_BYTES. */
+export function takeBatch(queue: BetaEvent[]): BetaEvent[] {
+	const out: BetaEvent[] = [];
+	let bytes = 20;
+	for (const e of queue) {
+		const n = JSON.stringify(e).length + 1;
+		if (out.length && (out.length >= MAX_EVENTS_PER_BATCH || bytes + n > MAX_BATCH_BYTES)) break;
+		out.push(e);
+		bytes += n;
 	}
 	return out;
 }

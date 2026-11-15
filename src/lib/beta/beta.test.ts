@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { REDACTED, scrub, scrubText } from './scrub.ts';
-import { MAX_EVENTS_PER_BATCH, parseEvents } from './contract.ts';
+import { MAX_EVENTS_PER_BATCH, parseEvents, takeBatch } from './contract.ts';
 
 describe('scrub', () => {
 	it('drops secret-looking fields at any depth', () => {
@@ -47,5 +47,17 @@ describe('parseEvents', () => {
 describe('scrub field names', () => {
 	it('keeps token counts but drops tokens', () => {
 		expect(scrub({ inputTokens: 5, outputTokens: 2, sessionToken: 'x', key: 'y', keys: 3 })).toEqual({ inputTokens: 5, outputTokens: 2, keys: 3 });
+	});
+});
+
+describe('takeBatch', () => {
+	const ev = (n: number) => ({ at: 1, kind: 'error' as const, name: 'x', sid: 's', data: { m: 'a'.repeat(n) } });
+	it('caps by count', () => {
+		expect(takeBatch(Array.from({ length: 250 }, () => ev(10)))).toHaveLength(MAX_EVENTS_PER_BATCH);
+	});
+	it('caps by bytes but always takes at least one', () => {
+		expect(takeBatch(Array.from({ length: 100 }, () => ev(8000))).length).toBeLessThan(30);
+		expect(takeBatch([ev(500_000)])).toHaveLength(1);
+		expect(takeBatch([])).toEqual([]);
 	});
 });

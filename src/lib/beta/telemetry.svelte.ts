@@ -11,7 +11,7 @@
  */
 import { version } from '$app/env';
 import { get, put } from '#lib/db/idb.ts';
-import { MAX_EVENTS_PER_BATCH, type BetaEvent, type EventKind } from './contract.ts';
+import { MAX_EVENTS_PER_BATCH, takeBatch, type BetaEvent, type EventKind } from './contract.ts';
 import { scrub } from './scrub.ts';
 
 const FLUSH_MS = 30_000;
@@ -28,13 +28,33 @@ class Telemetry {
 	private sending = false;
 	private started = false;
 	private route: string | null = null;
+	/** the account the queue belongs to; a saved queue from another account is discarded */
+	private account: number | null = null;
+	private inflight: Promise<void> | null = null;
 
 	/** Called by the AI state whenever sign-in or consent changes. */
-	setEnabled(on: boolean) {
+	setEnabled(on: boolean, account: number | null = null) {
+		if (on && this.enabled && account !== this.account) {
+			// switched accounts: never carry one account's queue into another's
+			this.enabled = false;
+			this.stop();
+		}
 		if (on === this.enabled) return;
 		this.enabled = on;
+		this.account = on ? account : null;
 		if (on) void this.start();
 		else this.stop();
+	}
+
+	/**
+	 * Drop everything not yet uploaded and wait for an upload in flight, so a
+	 * server-side delete that follows really removes everything collected so far.
+	 */
+	async discard() {
+		this.queue = [];
+		await this.inflight?.catch(() => {});
+		this.queue = [];
+		await this.persist();
 	}
 
 	track(kind: EventKind, name: string, data?: Record<string, unknown>) {
@@ -73,9 +93,11 @@ class Telemetry {
 	async flush(beacon = false) {
 		if (!this.enabled || this.sending || !this.queue.length) return;
 		if (typeof navigator !== 'undefined' && !navigator.onLine) return void this.save();
-		const batch = this.queue.slice(0, MAX_EVENTS_PER_BATCH);
+		const batch = takeBatch(this.queue);
 		const body = JSON.stringify({ events: batch });
 		this.sending = true;
+		let done!: () => void;
+		this.inflight = new Promise((r) => (done = r));
 		try {
 			const res = await fetch('/api/beta/events', {
 				method: 'POST',
@@ -85,13 +107,21 @@ class Telemetry {
 				keepalive: beacon && body.length < 60_000
 			});
 			// 4xx: the server won't take these (signed out, consent withdrawn, bad data); drop them
-			if (res.ok || (res.status >= 400 && res.status < 500 && res.status !== 429)) this.queue.splice(0, batch.length);
+			if (res.ok || (res.status >= 400 && res.status < 500 && res.status !== 429)) this.dropSent(batch);
 		} catch {
 			/* offline or dropped: keep for the next try */
 		} finally {
 			this.sending = false;
+			this.inflight = null;
+			done();
 			this.save();
 		}
+	}
+
+	/** Remove the sent events (the queue may have been cleared meanwhile). */
+	private dropSent(batch: BetaEvent[]) {
+		const sent = new Set(batch);
+		this.queue = this.queue.filter((e) => !sent.has(e));
 	}
 
 	private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -99,13 +129,19 @@ class Telemetry {
 		if (this.saveTimer) return;
 		this.saveTimer = setTimeout(() => {
 			this.saveTimer = null;
-			void put('meta', this.enabled ? this.queue.slice(-MAX_QUEUE) : [], QUEUE_KEY).catch(() => {});
+			void this.persist();
 		}, 1000);
+	}
+	private persist() {
+		const saved: SavedQueue = { account: this.account, events: this.enabled ? this.queue.slice(-MAX_QUEUE) : [] };
+		return put('meta', saved, QUEUE_KEY).catch(() => {});
 	}
 
 	private async start() {
-		const saved = (await get<BetaEvent[]>('meta', QUEUE_KEY).catch(() => undefined)) ?? [];
-		this.queue = [...saved, ...this.queue].slice(-MAX_QUEUE);
+		const saved = await get<SavedQueue | BetaEvent[]>('meta', QUEUE_KEY).catch(() => undefined);
+		// only this account's events; older builds saved a bare array with no owner, so drop those
+		const mine = saved && !Array.isArray(saved) && saved.account === this.account ? saved.events : [];
+		this.queue = [...mine, ...this.queue].slice(-MAX_QUEUE);
 		this.listen();
 		this.timer ??= setInterval(() => void this.flush(), FLUSH_MS);
 		await this.sendDevice();
@@ -116,7 +152,7 @@ class Telemetry {
 		if (this.timer) clearInterval(this.timer);
 		this.timer = null;
 		this.queue = [];
-		void put('meta', [], QUEUE_KEY).catch(() => {});
+		void put('meta', { account: null, events: [] } satisfies SavedQueue, QUEUE_KEY).catch(() => {});
 	}
 
 	/** Global error hooks and page-hide flush; added once per launch. */
@@ -148,6 +184,12 @@ class Telemetry {
 }
 
 export const telemetry = new Telemetry();
+
+interface SavedQueue {
+	account: number | null;
+	events: BetaEvent[];
+}
+
 
 // ------------------------------------------------------------------ device --
 
