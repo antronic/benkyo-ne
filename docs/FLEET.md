@@ -14,7 +14,7 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 | 2 | Accounts: list, detail, disable/enable, delete, cap, revoke sessions; passkey step-up | merged (#10) |
 | 3 | Settings: sign-up switch, invite codes, session lifetime, sign-ups per day | merged (#11) |
 | 4 | Usage, System and Audit log screens (read-only) | merged (#14) |
-| 5 | Packages: Free / Plus / Pro, manual grants | this PR |
+| 5 | Packages: Free / Plus / Pro, manual grants | merged (#15) |
 
 ## Security
 
