@@ -4,6 +4,7 @@
 	prices, the monthly cap meter, and the second explanation language.
 -->
 <script lang="ts">
+	import { i18n, t, type MessageKey } from '#lib/i18n/index.svelte.ts';
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import AccountSettings from '#lib/components/AccountSettings.svelte';
 	import { onMount } from 'svelte';
@@ -14,28 +15,16 @@
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 
-	const LANGS: [string, string][] = [
-		['', 'None (English only)'],
-		['th', 'Thai'],
-		['zh', 'Chinese'],
-		['ko', 'Korean'],
-		['vi', 'Vietnamese'],
-		['id', 'Indonesian'],
-		['es', 'Spanish'],
-		['fr', 'French'],
-		['de', 'German'],
-		['pt', 'Portuguese'],
-		['it', 'Italian'],
-		['ru', 'Russian'],
-		['nl', 'Dutch'],
-		['sv', 'Swedish'],
-		['hu', 'Hungarian'],
-		['sl', 'Slovenian']
-	];
-	const FEATURES: { id: Feature; label: string; hint: string }[] = [
-		{ id: 'fill', label: 'Card & pack content', hint: 'Hooks, examples, translations' },
-		{ id: 'propose', label: 'Suggestions, lessons & Ask AI', hint: 'English & scenario modes, lesson packs, tutor chat' },
-		{ id: 'vision', label: 'Screenshots', hint: 'Needs a model that reads images' }
+	const LANG_CODES = ['th', 'zh', 'ko', 'vi', 'id', 'es', 'fr', 'de', 'pt', 'it', 'ru', 'nl', 'sv', 'hu', 'sl'];
+	// language names in the interface language ("Thai" / "ไทย")
+	const LANGS = $derived.by((): [string, string][] => {
+		const names = new Intl.DisplayNames([i18n.tag], { type: 'language' });
+		return [['', t('ai.langNone')], ...LANG_CODES.map((c): [string, string] => [c, names.of(c) ?? c])];
+	});
+	const FEATURES: { id: Feature; label: MessageKey; hint: MessageKey }[] = [
+		{ id: 'fill', label: 'ai.feat.fill', hint: 'ai.feat.fillHint' },
+		{ id: 'propose', label: 'ai.feat.propose', hint: 'ai.feat.proposeHint' },
+		{ id: 'vision', label: 'ai.feat.vision', hint: 'ai.feat.visionHint' }
 	];
 
 	let models = $state<ModelInfo[]>([]);
@@ -79,7 +68,7 @@
 			return r;
 		} catch (e) {
 			haptic('error');
-			toast(e instanceof Error ? e.message : 'Something went wrong', '⚠️', 2600);
+			toast(e instanceof Error ? e.message : t('welcome.error'), '⚠️', 2600);
 		} finally {
 			busy = false;
 		}
@@ -90,7 +79,7 @@
 		try {
 			[models, features] = await Promise.all([api.listModels(), api.getFeatures()]);
 		} catch (e) {
-			toast(e instanceof Error ? e.message : 'Couldn’t load models', '⚠️');
+			toast(e instanceof Error ? e.message : t('ai.loadModelsFailed'), '⚠️');
 		} finally {
 			loadingModels = false;
 		}
@@ -103,11 +92,11 @@
 			() =>
 				api.addCredential({
 					provider,
-					label: label.trim() || (provider === 'anthropic' ? 'Anthropic' : 'OpenAI-compatible'),
+					label: label.trim() || (provider === 'anthropic' ? 'Anthropic' : t('ai.openaiCompat')),
 					baseUrl: provider === 'openai-compatible' ? baseUrl.trim() : undefined,
 					apiKey: apiKey.trim()
 				}),
-			'Key saved (encrypted)'
+			t('ai.keySaved')
 		);
 		apiKey = '';
 		if (r) {
@@ -118,8 +107,8 @@
 		}
 	}
 	async function removeKey(id: number, name: string) {
-		if (!(await confirmDestructive(`Remove “${name}”?`, 'The encrypted key is deleted from the server.', 'Remove Key'))) return;
-		await guard(() => api.deleteCredential(id), 'Key removed');
+		if (!(await confirmDestructive(t('ai.removeKeyTitle', { name }), t('ai.removeKeyBody'), t('ai.removeKey')))) return;
+		await guard(() => api.deleteCredential(id), t('ai.keyRemoved'));
 		await ai.refresh();
 		await loadModels();
 	}
@@ -131,19 +120,19 @@
 	async function choose(f: Feature, value: string) {
 		const [cid, ...rest] = value.split('|');
 		const fm = { feature: f, credentialId: Number(cid), model: rest.join('|') };
-		await guard(() => api.setFeature(fm), 'Model updated');
+		await guard(() => api.setFeature(fm), t('ai.modelUpdated'));
 		features = [...features.filter((x) => x.feature !== f), fm];
 	}
 	async function price(m: ModelInfo) {
-		const i = prompt(`Input price for ${m.id} (USD per million tokens)`, m.price?.inputPerM.toString() ?? '');
+		const i = prompt(t('ai.priceIn', { model: m.id }), m.price?.inputPerM.toString() ?? '');
 		if (i === null) return;
-		const o = prompt(`Output price for ${m.id} (USD per million tokens)`, m.price?.outputPerM.toString() ?? '');
+		const o = prompt(t('ai.priceOut', { model: m.id }), m.price?.outputPerM.toString() ?? '');
 		if (o === null || !Number.isFinite(+i) || !Number.isFinite(+o)) return;
-		await guard(() => api.setPrice({ provider: m.provider, model: m.id, inputPerM: +i, outputPerM: +o }), 'Price saved');
+		await guard(() => api.setPrice({ provider: m.provider, model: m.id, inputPerM: +i, outputPerM: +o }), t('ai.priceSaved'));
 		await loadModels();
 	}
 	async function saveCap() {
-		await guard(() => api.setCap(Math.max(0, capInput)), 'Cap updated');
+		await guard(() => api.setCap(Math.max(0, capInput)), t('ai.capUpdated'));
 		await ai.refresh();
 	}
 
@@ -155,17 +144,17 @@
 
 <AccountSettings onchange={reload} />
 
-<h2 class="eyebrow section" id="ai">AI assistant</h2>
+<h2 class="eyebrow section" id="ai">{t('ai.section')}</h2>
 
 <div class="glass group">
 	<div class="item">
 		<span class="stack" style:--gap="2px">
-			<span>Explanation language</span>
-			<span class="caption">English plus a second language for meanings, hooks and examples.</span>
+			<span>{t('ai.explainLang')}</span>
+			<span class="caption">{t('ai.explainLangBody')}</span>
 		</span>
 		<span class="spacer"></span>
 		<select
-			aria-label="Second language"
+			aria-label={t('ai.secondLang')}
 			value={progress.settings.secondLang ?? ''}
 			onchange={(e) => progress.saveSettings({ secondLang: e.currentTarget.value || null })}
 		>
@@ -180,20 +169,20 @@
 		<div class="glass group">
 			<div class="item">
 				<span class="stack" style:--gap="6px" style="flex:1">
-					<span class="row"><span>This month</span><span class="spacer"></span><b>{fmt(ai.usage.spentUsd)} of {fmt(ai.usage.capUsd)}</b></span>
+					<span class="row"><span>{t('ai.thisMonth')}</span><span class="spacer"></span><b>{t('ai.spentOf', { spent: fmt(ai.usage.spentUsd), cap: fmt(ai.usage.capUsd) })}</b></span>
 					<span class="meter" class:warn={pct > 0.8}><span style:width="{pct * 100}%"></span></span>
-					<span class="caption">{ai.usage.calls} calls · AI stops at the cap, it never goes over.</span>
+					<span class="caption">{t('ai.callsCap', { n: ai.usage.calls })}</span>
 				</span>
 			</div>
 			<div class="item row">
-				<span>Monthly cap (USD)</span><span class="spacer"></span>
-				<input class="num" type="number" min="0" step="1" bind:value={capInput} aria-label="Monthly cap" />
-				<button class="btn ghost small" onclick={saveCap} disabled={busy}>Save</button>
+				<span>{t('ai.cap')}</span><span class="spacer"></span>
+				<input class="num" type="number" min="0" step="1" bind:value={capInput} aria-label={t('ai.capAria')} />
+				<button class="btn ghost small" onclick={saveCap} disabled={busy}>{t('common.save')}</button>
 			</div>
 		</div>
 	{/if}
 
-	<h3 class="eyebrow section">API keys</h3>
+	<h3 class="eyebrow section">{t('ai.keys')}</h3>
 	<div class="glass group">
 		{#each ai.credentials as c (c.id)}
 			<div class="item">
@@ -202,36 +191,36 @@
 					<span class="caption">{c.provider === 'anthropic' ? 'Anthropic' : c.baseUrl} · ••••{c.last4}</span>
 				</span>
 				<span class="spacer"></span>
-				<button class="btn ghost small danger" onclick={() => removeKey(c.id, c.label)} disabled={busy}>Remove</button>
+				<button class="btn ghost small danger" onclick={() => removeKey(c.id, c.label)} disabled={busy}>{t('account.remove')}</button>
 			</div>
 		{:else}
-			<div class="item caption">No keys yet. Keys are encrypted on the server, tied to your account, and can’t be read back.</div>
+			<div class="item caption">{t('ai.noKeys')}</div>
 		{/each}
 		<div class="item add">
 			<div class="row">
-				<select bind:value={provider} aria-label="Provider">
+				<select bind:value={provider} aria-label={t('ai.provider')}>
 					<option value="anthropic">Anthropic</option>
-					<option value="openai-compatible">OpenAI-compatible</option>
+					<option value="openai-compatible">{t('ai.openaiCompat')}</option>
 				</select>
-				<input type="text" placeholder="Label (optional)" bind:value={label} />
+				<input type="text" placeholder={t('ai.labelOptional')} bind:value={label} />
 			</div>
 			{#if provider === 'openai-compatible'}
-				<input type="text" placeholder="Base URL, e.g. https://openrouter.ai/api/v1" bind:value={baseUrl} autocapitalize="off" />
+				<input type="text" placeholder={t('ai.baseUrl')} bind:value={baseUrl} autocapitalize="off" />
 			{/if}
 			<div class="row">
-				<input type="password" placeholder="API key" bind:value={apiKey} autocomplete="off" />
-				<button class="btn small" onclick={addKey} disabled={busy || !apiKey.trim()}>Save</button>
+				<input type="password" placeholder={t('ai.apiKey')} bind:value={apiKey} autocomplete="off" />
+				<button class="btn small" onclick={addKey} disabled={busy || !apiKey.trim()}>{t('common.save')}</button>
 			</div>
 		</div>
 	</div>
 
 	{#if ai.credentials.length}
-		<h3 class="eyebrow section">Models</h3>
+		<h3 class="eyebrow section">{t('ai.models')}</h3>
 		<div class="glass group">
 			{#each FEATURES as f}
 				<div class="item feature">
-					<span class="stack" style:--gap="2px"><span>{f.label}</span><span class="caption">{f.hint}</span></span>
-					<select aria-label="Model for {f.label}" value={current(f.id)} onchange={(e) => choose(f.id, e.currentTarget.value)} disabled={loadingModels}>
+					<span class="stack" style:--gap="2px"><span>{t(f.label)}</span><span class="caption">{t(f.hint)}</span></span>
+					<select aria-label={t('ai.modelFor', { feature: t(f.label) })} value={current(f.id)} onchange={(e) => choose(f.id, e.currentTarget.value)} disabled={loadingModels}>
 						{#each groups as g}
 							<optgroup label={g.c.label}>
 								{#each g.list.filter((m) => f.id !== 'vision' || m.vision !== false) as m}
@@ -243,8 +232,8 @@
 				</div>
 			{/each}
 			<details class="item">
-				<summary class="caption">All models ({models.length}) · fetched live from each provider</summary>
-				{#if loadingModels && !models.length}<Skeleton variant="line" count={4} label="Loading models" />{/if}
+				<summary class="caption">{t('ai.allModels', { n: models.length })}</summary>
+				{#if loadingModels && !models.length}<Skeleton variant="line" count={4} label={t('ai.loadingModels')} />{/if}
 				<div class="model-list">
 					{#each models as m}
 						<div class="model">
@@ -258,13 +247,13 @@
 							</span>
 							<span class="spacer"></span>
 							<button class="price" onclick={() => price(m)}>
-								{m.price ? `$${m.price.inputPerM} / $${m.price.outputPerM}` : '🔒 set price'}
+								{m.price ? `$${m.price.inputPerM} / $${m.price.outputPerM}` : `🔒 ${t('ai.setPrice')}`}
 								{#if m.priceSource}<span class="caption">{m.priceSource}</span>{/if}
 							</button>
 						</div>
 					{/each}
 				</div>
-				<button class="btn ghost small" onclick={loadModels} disabled={loadingModels}>{loadingModels ? 'Loading…' : 'Refresh'}</button>
+				<button class="btn ghost small" onclick={loadModels} disabled={loadingModels}>{loadingModels ? t('common.loading') : t('common.refresh')}</button>
 			</details>
 		</div>
 	{/if}
