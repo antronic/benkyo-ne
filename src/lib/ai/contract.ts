@@ -24,9 +24,15 @@ export interface Me {
 		isAdmin: boolean;
 		/** signed in with a recovery code: add a passkey before anything else */
 		recovery: boolean;
+		/** how this session signed in */
+		via: 'passkey' | 'recovery' | 'apple' | 'dev';
+		/** an Apple ID is connected to this account */
+		appleLinked: boolean;
 	} | null;
-	/** anyone can create an account with a passkey */
+	/** anyone can create an account (passkey or Apple) */
 	signupOpen: boolean;
+	/** Sign in with Apple is configured on the server */
+	appleEnabled: boolean;
 }
 
 export interface PasskeyInfo {

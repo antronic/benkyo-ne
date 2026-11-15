@@ -5,7 +5,7 @@
  *   POST /api/sync      push review logs (+ user cards), pull since cursors (D1)
  *   GET  /api/content   content manifest/version                   (KV + Cache API)
  *   GET  /api/health
- *   /api/auth/*         passkey auth (worker/auth/passkey.ts)
+ *   /api/auth/*         passkey auth (worker/auth/passkey.ts), Sign in with Apple (worker/auth/apple.ts)
  *   /api/ai/*           AI features behind the passkey session (worker/ai/routes.ts)
  *
  * Everything else falls through to static assets (SPA fallback configured
@@ -127,9 +127,12 @@ export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): 
 	try {
 		const p = url.pathname;
 		if (p.startsWith('/api/auth/') || p.startsWith('/api/ai/')) {
-			// CSRF: SameSite=Strict cookie, plus same-origin check on writes.
+			// CSRF: SameSite=Strict cookie, plus same-origin check on writes. The one exception is
+			// Apple's form_post back to us, which is cross-site by design and checked instead by
+			// its single-use state cookie (worker/auth/apple.ts).
 			const origin = req.headers.get('origin');
-			if (req.method !== 'GET' && req.method !== 'HEAD' && origin && origin !== url.origin)
+			const appleCallback = p === '/api/auth/apple/callback' && (origin === 'https://appleid.apple.com' || origin === 'null');
+			if (req.method !== 'GET' && req.method !== 'HEAD' && origin && origin !== url.origin && !appleCallback)
 				return json({ error: 'unauthorized', message: 'Cross-origin request' }, { status: 403 });
 			if (p.startsWith('/api/ai/')) return await handleAi(req, env, ctx, url);
 			const res = await handleAuth(req, env, p);

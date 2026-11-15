@@ -1,7 +1,8 @@
 <!--
 	Beta access, shown right after the introduction when you're signed out.
-	Passkey only: create an account (name + Face ID / Touch ID) or sign in
-	with an existing passkey. A recovery code is shown once after sign-up.
+	Create an account (name + Face ID / Touch ID) or sign in with an existing
+	passkey; a recovery code is shown once after a passkey sign-up. When the
+	server has it set up, "Continue with Apple" is offered beside the passkey.
 	"Not now" keeps the app usable offline without AI.
 -->
 <script lang="ts">
@@ -12,6 +13,7 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { strokesOf } from '#lib/content/strokes.ts';
+	import AppleButton from './AppleButton.svelte';
 
 	let { ondone }: { ondone: () => void } = $props();
 
@@ -98,7 +100,7 @@
 			<span class="beta">BETA</span>
 			<h2 class="large-title">Join the beta</h2>
 			<p class="subhead">
-				One tap with Face ID or Touch ID. No password, no email: your device makes a <b>passkey</b>.
+				One tap with Face ID or Touch ID. No password, no email: your device makes a <b>passkey</b>{#if ai.appleEnabled}, or use your Apple ID{/if}.
 			</p>
 		</div>
 
@@ -114,7 +116,12 @@
 			</div>
 		{:else if !supported}
 			<div class="card glass glass-strong">
-				<p class="caption">This browser doesn’t support passkeys. Open Benkyo in Safari or Chrome to join the beta. You can still learn offline.</p>
+				{#if ai.appleEnabled}
+					<AppleButton />
+					<p class="caption">This browser doesn’t support passkeys, but you can join with your Apple ID. You can still learn offline.</p>
+				{:else}
+					<p class="caption">This browser doesn’t support passkeys. Open Benkyo in Safari or Chrome to join the beta. You can still learn offline.</p>
+				{/if}
 			</div>
 		{:else}
 			<div class="card glass glass-strong" in:fly|global={{ y: 16, duration: 500, delay: 120 }}>
@@ -131,12 +138,17 @@
 								{busy ? 'Waiting for passkey…' : 'Create passkey'}
 							</button>
 						</form>
+						{#if ai.appleEnabled}
+							<div class="or" aria-hidden="true"><span>or</span></div>
+							<AppleButton disabled={busy} />
+						{/if}
 						<p class="caption">Then add your own AI key in Settings. It’s encrypted and only your account can use it.</p>
 					{:else}
 						<p class="caption">The beta is full right now. Already joined? Sign in instead.</p>
 					{/if}
 				{:else if mode === 'signin'}
 					<button class="btn accent block" onclick={signIn} disabled={busy}>{busy ? 'Waiting for passkey…' : 'Sign in with passkey'}</button>
+					{#if ai.appleEnabled}<AppleButton label="Sign in with Apple" disabled={busy} />{/if}
 					<button class="link" onclick={() => ((mode = 'recover'), (error = ''))}>Lost your passkey?</button>
 				{:else}
 					<form class="stack" style:--gap="10px" onsubmit={(e) => (e.preventDefault(), recover())}>
@@ -340,6 +352,20 @@
 		color: var(--ink-2);
 		font-size: 0.9375rem;
 		align-self: center;
+	}
+	.or {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		color: var(--ink-2);
+		font-size: 0.8125rem;
+	}
+	.or::before,
+	.or::after {
+		content: '';
+		flex: 1;
+		height: 0.5px;
+		background: var(--hairline);
 	}
 	.error {
 		color: var(--danger);

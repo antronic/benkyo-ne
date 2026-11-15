@@ -15,12 +15,14 @@
  *   POST   /api/auth/recovery-code     → {recoveryCode} (replaces the old one)
  *   PATCH  /api/auth/account {name}    → Me
  *   DELETE /api/auth/account {confirm: "DELETE"} → Me (signed out)
+ *   /api/auth/apple/*                  Sign in with Apple (worker/auth/apple.ts)
  *
  * Accounts are identified only by the session: every query below takes the
  * user id from the session row, never from the request. Sessions: random
  * 256-bit token in the HttpOnly cookie `bk_session`; D1 keeps only its
  * SHA-256, bound to the account and (for passkey sessions) to the passkey
- * that created it, so removing a passkey ends its sessions.
+ * that created it, so removing a passkey ends its sessions (and, for Apple
+ * sessions, to the linked Apple ID, so disconnecting Apple ends them).
  */
 import {
 	generateAuthenticationOptions,
@@ -36,6 +38,7 @@ import type { Env } from '../env.ts';
 import { aiError, cookieSecure, getCookie, httpError, isLocalhost, json, readJson } from '../http.ts';
 import { rateLimit } from '../ai/ledger.ts';
 import { deleteAccountData } from '../ai/credentials.ts';
+import { appleEnabled, handleApple } from './apple.ts';
 
 export const SESSION_COOKIE = 'bk_session';
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -45,14 +48,24 @@ const RP_NAME = 'Benkyo';
 const SIGNUPS_PER_IP_PER_HOUR = 5;
 const SIGNUPS_PER_DAY = 200;
 
+/** Throws 429 when sign-ups from this network, or overall today, are over the limit. */
+export async function signupThrottle(req: Request, env: Env) {
+	if (!(await rateLimit(env, `signup-ip:${clientIp(req)}`, SIGNUPS_PER_IP_PER_HOUR, Date.now(), 60)))
+		throw httpError(429, 'rate_limited', 'Too many sign-ups from this network; try again later');
+	if (!(await rateLimit(env, 'signup-all', SIGNUPS_PER_DAY, Date.now(), 1440)))
+		throw httpError(429, 'rate_limited', 'Sign-ups are busy today; try again tomorrow');
+}
+
 export interface Session {
 	/** SHA-256 of the token */
 	tokenHash: string;
 	passkeyId: string | null;
-	kind: 'passkey' | 'recovery' | 'dev';
+	kind: 'passkey' | 'recovery' | 'apple' | 'dev';
 	userId: number;
 	name: string;
 	isAdmin: boolean;
+	/** an Apple ID is connected to this account */
+	appleLinked: boolean;
 }
 
 // --------------------------------------------------------------- session ----
@@ -65,33 +78,60 @@ export async function getSession(req: Request, env: Env): Promise<Session | null
 		)
 			.bind(Date.now())
 			.run();
-		return { tokenHash: 'dev', passkeyId: null, kind: 'dev', userId: 1, name: 'Dev', isAdmin: true };
+		return { tokenHash: 'dev', passkeyId: null, kind: 'dev', userId: 1, name: 'Dev', isAdmin: true, appleLinked: false };
 	}
 	const token = getCookie(req, SESSION_COOKIE);
 	if (!token || token.length > 128) return null;
 	const tokenHash = await sha256Hex(token);
 	const row = await env.DB.prepare(
 		`SELECT s.token_hash AS tokenHash, s.passkey_id AS passkeyId, s.kind AS kind, s.user_id AS userId,
-		        a.name AS name, a.is_admin AS isAdmin
+		        a.name AS name, a.is_admin AS isAdmin, p.id AS livePasskey, ap.sub AS appleSub, s.apple_sub AS sessionAppleSub
 		   FROM sessions s
 		   JOIN accounts a ON a.id = s.user_id AND a.disabled = 0
 		   LEFT JOIN passkeys p ON p.id = s.passkey_id AND p.user_id = s.user_id
-		  WHERE s.token_hash = ?1 AND s.expires_at > ?2
-		    AND (s.kind = 'recovery' OR p.id IS NOT NULL)`
+		   LEFT JOIN apple_identities ap ON ap.user_id = s.user_id
+		  WHERE s.token_hash = ?1 AND s.expires_at > ?2`
 	)
 		.bind(tokenHash, Date.now())
-		.first<Omit<Session, 'isAdmin'> & { isAdmin: number }>();
-	return row ? { ...row, isAdmin: !!row.isAdmin } : null;
+		.first<
+			Omit<Session, 'isAdmin' | 'appleLinked'> & {
+				isAdmin: number;
+				livePasskey: string | null;
+				appleSub: string | null;
+				sessionAppleSub: string | null;
+			}
+		>();
+	if (!row) return null;
+	// Each session is only as good as what it signed in with: the passkey, or the Apple link.
+	const passkeyOk = row.kind === 'passkey' && !!row.livePasskey;
+	const appleOk = row.kind === 'apple' && !!row.appleSub && row.appleSub === row.sessionAppleSub;
+	if (row.kind !== 'recovery' && !passkeyOk && !appleOk) return null;
+	return {
+		tokenHash: row.tokenHash,
+		passkeyId: row.passkeyId,
+		kind: row.kind,
+		userId: row.userId,
+		name: row.name,
+		isAdmin: !!row.isAdmin,
+		appleLinked: !!row.appleSub
+	};
 }
 
-async function createSession(env: Env, url: URL, userId: number, passkeyId: string | null, kind: 'passkey' | 'recovery') {
+export async function createSession(
+	env: Env,
+	url: URL,
+	userId: number,
+	passkeyId: string | null,
+	kind: 'passkey' | 'recovery' | 'apple',
+	appleSub: string | null = null
+) {
 	const token = randomToken();
 	const now = Date.now();
 	await env.DB.batch([
 		env.DB.prepare(`DELETE FROM sessions WHERE expires_at <= ?1`).bind(now),
 		env.DB.prepare(
-			`INSERT INTO sessions (token_hash, passkey_id, kind, user_id, created_at, expires_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)`
-		).bind(await sha256Hex(token), passkeyId, kind, userId, now, now + SESSION_TTL_MS),
+			`INSERT INTO sessions (token_hash, passkey_id, apple_sub, kind, user_id, created_at, expires_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+		).bind(await sha256Hex(token), passkeyId, appleSub, kind, userId, now, now + SESSION_TTL_MS),
 		env.DB.prepare(`UPDATE accounts SET last_seen_at = ?1 WHERE id = ?2`).bind(now, userId)
 	]);
 	return sessionCookie(url, token, SESSION_TTL_MS / 1000);
@@ -110,19 +150,29 @@ function sessionCookie(url: URL, value: string, maxAge: number) {
 		.join('; ');
 }
 
-const signupOpen = (env: Env) => (env.SIGNUP_MODE ?? 'open') !== 'closed';
+export const signupOpen = (env: Env) => (env.SIGNUP_MODE ?? 'open') !== 'closed';
 
-function meOf(session: Session | null, env: Env): Me {
+export function meOf(session: Session | null, env: Env): Me {
 	return {
 		signedIn: !!session,
-		account: session ? { id: session.userId, name: session.name, isAdmin: session.isAdmin, recovery: session.kind === 'recovery' } : null,
-		signupOpen: signupOpen(env)
+		account: session
+			? {
+					id: session.userId,
+					name: session.name,
+					isAdmin: session.isAdmin,
+					recovery: session.kind === 'recovery',
+					via: session.kind,
+					appleLinked: session.appleLinked
+				}
+			: null,
+		signupOpen: signupOpen(env),
+		appleEnabled: appleEnabled(env)
 	};
 }
 
-async function requireSession(req: Request, env: Env): Promise<Session> {
+export async function requireSession(req: Request, env: Env): Promise<Session> {
 	const s = await getSession(req, env);
-	if (!s) throw httpError(401, 'unauthorized', 'Sign in with your passkey first');
+	if (!s) throw httpError(401, 'unauthorized', 'Sign in first');
 	return s;
 }
 
@@ -158,14 +208,14 @@ async function consumeChallenge(env: Env, challenge: string, kind: 'register' | 
 
 // ---------------------------------------------------------- registration ----
 
-function cleanName(raw: unknown, max = 40): string {
+export function cleanName(raw: unknown, max = 40): string {
 	const s = typeof raw === 'string' ? raw.normalize('NFC').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim() : '';
 	if (!s) throw httpError(400, 'bad_request', 'Please enter a name');
 	if (s.length > max) throw httpError(400, 'bad_request', `Names can be up to ${max} characters`);
 	return s;
 }
 
-const clientIp = (req: Request) => req.headers.get('cf-connecting-ip') ?? 'local';
+export const clientIp = (req: Request) => req.headers.get('cf-connecting-ip') ?? 'local';
 
 async function registerOptions(req: Request, env: Env) {
 	const url = new URL(req.url);
@@ -195,10 +245,7 @@ async function registerOptions(req: Request, env: Env) {
 		// sign-up: a brand-new account, created only when the passkey verifies
 		if (!signupOpen(env)) throw httpError(403, 'unauthorized', 'New sign-ups are closed right now');
 		const name = cleanName(body.name);
-		if (!(await rateLimit(env, `signup-ip:${clientIp(req)}`, SIGNUPS_PER_IP_PER_HOUR, Date.now(), 60)))
-			throw httpError(429, 'rate_limited', 'Too many sign-ups from this network; try again later');
-		if (!(await rateLimit(env, 'signup-all', SIGNUPS_PER_DAY, Date.now(), 1440)))
-			throw httpError(429, 'rate_limited', 'Sign-ups are busy today; try again tomorrow');
+		await signupThrottle(req, env);
 		userName = name;
 		userHandle = b64urlEncode(randomBytes(16));
 		f = { userHandle, signupName: name };
@@ -394,7 +441,16 @@ async function loginVerify(req: Request, env: Env) {
 		.bind(result.authenticationInfo.newCounter, Date.now(), pk.id)
 		.run();
 	const cookie = await createSession(env, url, pk.user_id, pk.id, 'passkey');
-	const session: Session = { tokenHash: '', passkeyId: pk.id, kind: 'passkey', userId: pk.user_id, name: pk.name, isAdmin: !!pk.is_admin };
+	const linked = await env.DB.prepare(`SELECT 1 AS x FROM apple_identities WHERE user_id = ?1`).bind(pk.user_id).first();
+	const session: Session = {
+		tokenHash: '',
+		passkeyId: pk.id,
+		kind: 'passkey',
+		userId: pk.user_id,
+		name: pk.name,
+		isAdmin: !!pk.is_admin,
+		appleLinked: !!linked
+	};
 	return json(meOf(session, env), { headers: { 'set-cookie': cookie } });
 }
 
@@ -419,15 +475,22 @@ async function recover(req: Request, env: Env) {
 		.first<{ userId: number }>();
 	if (!row?.userId) return aiError(401, 'unauthorized', 'Invalid or used recovery code');
 	const cookie = await createSession(env, url, row.userId, null, 'recovery');
-	const acct = await env.DB.prepare(`SELECT name, is_admin AS isAdmin FROM accounts WHERE id = ?1`)
+	const acct = await env.DB.prepare(
+		`SELECT a.name, a.is_admin AS isAdmin, ap.sub AS appleSub
+		   FROM accounts a LEFT JOIN apple_identities ap ON ap.user_id = a.id WHERE a.id = ?1`
+	)
 		.bind(row.userId)
-		.first<{ name: string; isAdmin: number }>();
-	const me: Me = {
-		signedIn: true,
-		account: { id: row.userId, name: acct?.name ?? '', isAdmin: !!acct?.isAdmin, recovery: true },
-		signupOpen: signupOpen(env)
+		.first<{ name: string; isAdmin: number; appleSub: string | null }>();
+	const session: Session = {
+		tokenHash: '',
+		passkeyId: null,
+		kind: 'recovery',
+		userId: row.userId,
+		name: acct?.name ?? '',
+		isAdmin: !!acct?.isAdmin,
+		appleLinked: !!acct?.appleSub
 	};
-	return json(me, { headers: { 'set-cookie': cookie } });
+	return json(meOf(session, env), { headers: { 'set-cookie': cookie } });
 }
 
 // --------------------------------------------------------------- account ----
@@ -444,7 +507,9 @@ async function listPasskeys(session: Session, env: Env): Promise<PasskeyInfo[]> 
 
 async function deletePasskey(session: Session, env: Env, id: string) {
 	const n = await env.DB.prepare(`SELECT COUNT(*) AS n FROM passkeys WHERE user_id = ?1`).bind(session.userId).first<{ n: number }>();
-	if ((n?.n ?? 0) <= 1) throw httpError(400, 'bad_request', 'You can’t remove your only passkey. Add another first, or delete the account.');
+	// Apple counts as a way back in, so the last passkey can go once Apple is connected.
+	if ((n?.n ?? 0) <= 1 && !session.appleLinked)
+		throw httpError(400, 'bad_request', 'You can’t remove your only passkey. Add another first, or delete the account.');
 	const res = await env.DB.batch([
 		env.DB.prepare(`DELETE FROM sessions WHERE passkey_id = ?1 AND user_id = ?2`).bind(id, session.userId),
 		env.DB.prepare(`DELETE FROM passkeys WHERE id = ?1 AND user_id = ?2`).bind(id, session.userId)
@@ -476,6 +541,7 @@ async function deleteAccount(req: Request, session: Session, env: Env) {
 
 /** Route /api/auth/*; returns null when the path isn't an auth route. */
 export async function handleAuth(req: Request, env: Env, path: string): Promise<Response | null> {
+	if (path.startsWith('/api/auth/apple')) return handleApple(req, env, path);
 	const m = req.method;
 	if (path === '/api/auth/me' && m === 'GET') return json(meOf(await getSession(req, env), env));
 	if (path === '/api/auth/passkeys' && m === 'GET') return json(await listPasskeys(await requireSession(req, env), env));
