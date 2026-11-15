@@ -17,9 +17,221 @@
 		<link rel="icon" href="%sveltekit.assets%/icons/icon.svg" type="image/svg+xml" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/icons/icon-180.png" />
 		<title>Benkyo — 勉強ね</title>
+		<style>
+			/* Startup screen before the app's code runs (and if it can't run). Same look as Splash.svelte. */
+			#boot {
+				position: fixed;
+				inset: 0;
+				z-index: 300;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 18px;
+				padding: 24px;
+				background: #f6f4ef;
+				color: #1b1a17;
+				font: 16px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans Thai', 'Hiragino Sans', sans-serif;
+				text-align: center;
+			}
+			html.booted #boot {
+				display: none;
+			}
+			#boot .tile {
+				width: 112px;
+				height: 112px;
+				border-radius: 26px;
+				background: linear-gradient(135deg, #ff7a5c, #e8432e 55%, #b8264f);
+				box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), 0 20px 40px -12px rgb(232 67 46 / 0.6);
+				display: grid;
+				place-items: center;
+			}
+			#boot .tile svg {
+				width: 74px;
+				height: 74px;
+				fill: none;
+				stroke: #fff;
+				stroke-width: 7;
+				stroke-linecap: round;
+				stroke-linejoin: round;
+			}
+			#boot .name {
+				font-weight: 700;
+				font-size: 1.375rem;
+				letter-spacing: -0.01em;
+			}
+			#boot .name span {
+				font-weight: 500;
+				opacity: 0.6;
+			}
+			#boot .fail {
+				display: none;
+				max-width: 340px;
+				flex-direction: column;
+				gap: 12px;
+				align-items: stretch;
+			}
+			#boot.failed .fail {
+				display: flex;
+			}
+			#boot.failed .tile {
+				filter: grayscale(0.6);
+				opacity: 0.8;
+			}
+			#boot h1 {
+				margin: 4px 0 0;
+				font-size: 1.25rem;
+			}
+			#boot p {
+				margin: 0;
+				opacity: 0.75;
+			}
+			#boot button {
+				appearance: none;
+				border: 0;
+				border-radius: 14px;
+				padding: 14px 18px;
+				font: inherit;
+				font-weight: 600;
+				cursor: pointer;
+			}
+			#boot .primary {
+				background: #e8432e;
+				color: #fff;
+				margin-top: 6px;
+			}
+			#boot .secondary {
+				background: rgb(0 0 0 / 0.06);
+				color: inherit;
+			}
+			#boot details {
+				font-size: 0.8125rem;
+				opacity: 0.6;
+				text-align: left;
+				word-break: break-word;
+			}
+			@media (prefers-color-scheme: dark) {
+				#boot {
+					background: #0b0b0f;
+					color: #f2f1ee;
+				}
+				#boot .secondary {
+					background: rgb(255 255 255 / 0.1);
+				}
+			}
+		</style>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<div id="boot" role="status" aria-live="polite">
+			<div class="tile">
+				<svg viewBox="0 0 109 109" aria-hidden="true">
+					<path d="M31.01,33c0.88,0.88,2.75,1.82,5.25,1.75c8.62-0.25,20-2.12,29.5-4.25c1.51-0.34,4.62-0.88,6.62-0.5" />
+					<path d="M49.76,17.62c0.88,1,1.82,3.26,1.38,5.25c-3.75,16.75-6.25,38.13-5.13,53.63c0.41,5.7,1.88,10.88,3.38,13.62" />
+					<path
+						d="M65.63,44.12c0.75,1.12,1.16,4.39,0.5,6.12c-4.62,12.26-11.24,23.76-25.37,35.76c-6.86,5.83-15.88,3.75-16.25-8.38c-0.34-10.87,13.38-23.12,32.38-26.74c12.42-2.37,27,1.38,30.5,12.75c4.05,13.18-3.76,26.37-20.88,30.49"
+					/>
+				</svg>
+			</div>
+			<div class="name">Benkyo <span>勉強ね</span></div>
+			<div class="fail">
+				<h1 data-t="title">Benkyo couldn't start</h1>
+				<p data-t="body">Something went wrong while opening the app. Your progress is saved on this device.</p>
+				<button class="primary" type="button" data-act="reload" data-t="reload">Try again</button>
+				<button class="secondary" type="button" data-act="repair" data-t="repair">Repair and reload</button>
+				<p data-t="hint" style="font-size: 0.875rem">Repair clears the downloaded app files and fetches fresh ones. It doesn't delete your progress.</p>
+				<details><summary data-t="details">Details</summary><div data-err></div></details>
+			</div>
+			<noscript>Benkyo needs JavaScript to run.</noscript>
+		</div>
+		<script>
+			// Never a blank screen: if the app hasn't started after a while (or its code failed to load),
+			// show what happened with a way out. The app adds class "booted" to <html> once it's running.
+			(function () {
+				var started = Date.now();
+				var errors = [];
+				var T = {
+					en: {},
+					th: {
+						title: 'เปิด Benkyo ไม่สำเร็จ',
+						body: 'เกิดปัญหาขณะเปิดแอป ความคืบหน้าของคุณยังบันทึกอยู่ในอุปกรณ์นี้',
+						reload: 'ลองอีกครั้ง',
+						repair: 'ซ่อมแซมแล้วโหลดใหม่',
+						hint: 'การซ่อมแซมจะล้างไฟล์แอปที่ดาวน์โหลดไว้แล้วโหลดใหม่ ความคืบหน้าของคุณจะไม่ถูกลบ',
+						details: 'รายละเอียด'
+					}
+				};
+				function lang() {
+					try {
+						var p = localStorage.getItem('benkyo.locale');
+						if (p === 'th' || p === 'en') return p;
+					} catch (e) {}
+					var l = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+					return /^th/i.test(l) ? 'th' : 'en';
+				}
+				function booted() {
+					return document.documentElement.classList.contains('booted');
+				}
+				function fail() {
+					if (booted()) return;
+					var box = document.getElementById('boot');
+					if (!box || box.className === 'failed') return;
+					var t = T[lang()];
+					var els = box.querySelectorAll('[data-t]');
+					for (var i = 0; i < els.length; i++) if (t[els[i].getAttribute('data-t')]) els[i].textContent = t[els[i].getAttribute('data-t')];
+					box.querySelector('[data-err]').textContent = errors.slice(0, 3).join(' · ') || 'Timed out after ' + Math.round((Date.now() - started) / 1000) + ' s';
+					box.className = 'failed';
+					box.setAttribute('role', 'alert');
+				}
+				function note(msg) {
+					errors.push(String(msg).slice(0, 200));
+					// a script that failed to load means the app can't start: say so soon, not after the full wait
+					if (!booted()) setTimeout(fail, 3000);
+				}
+				addEventListener(
+					'error',
+					function (e) {
+						var el = e.target;
+						if (el && el.tagName === 'SCRIPT') note('Could not load ' + (el.src || 'a script'));
+						else if (e.message) note(e.message);
+					},
+					true
+				);
+				addEventListener('unhandledrejection', function (e) {
+					var r = e.reason;
+					if (r && /module script|dynamically imported|import/i.test(String(r.message || r))) note(r.message || r);
+				});
+				setTimeout(fail, 15000);
+				document.getElementById('boot').addEventListener('click', function (e) {
+					var act = e.target && e.target.getAttribute && e.target.getAttribute('data-act');
+					if (act === 'reload') location.reload();
+					if (act !== 'repair') return;
+					e.target.disabled = true;
+					try {
+						localStorage.removeItem('benkyo.boot');
+						sessionStorage.clear();
+					} catch (err) {}
+					var jobs = [];
+					if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations)
+						jobs.push(
+							navigator.serviceWorker.getRegistrations().then(function (rs) {
+								return Promise.all(rs.map(function (r) { return r.unregister(); }));
+							})
+						);
+					if (window.caches)
+						jobs.push(
+							caches.keys().then(function (ks) {
+								return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+							})
+						);
+					// progress lives in IndexedDB, which is left alone
+					Promise.all(jobs).then(
+						function () { location.reload(); },
+						function () { location.reload(); }
+					);
+				});
+			})();
+		</script>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
