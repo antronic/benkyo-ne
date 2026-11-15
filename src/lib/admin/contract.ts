@@ -87,3 +87,61 @@ export interface AdminInviteInput {
 	maxUses?: number;
 	expiresInDays?: number | null;
 }
+
+/** GET /api/admin/usage?days=7|30|90. Money is USD, finished calls only. */
+export interface AdminUsage {
+	days: number;
+	totals: { usd: number; calls: number; failed: number };
+	/** per UTC day, oldest first, zero-filled */
+	byDay: { day: string; usd: number; calls: number; failed: number }[];
+	byFeature: { feature: string; calls: number; usd: number }[];
+	byModel: { provider: string; model: string; calls: number; usd: number; inputTokens: number; outputTokens: number }[];
+	topAccounts: { id: number; name: string; calls: number; usd: number }[];
+	/** the latest failed calls in the window */
+	failures: { at: number; feature: string; model: string; accountId: number | null; name: string | null }[];
+}
+
+/** GET /api/admin/system */
+export interface AdminSystem {
+	at: number;
+	/** the deployed Worker version (Cloudflare version metadata); null in local dev */
+	worker: { id: string; tag: string | null; deployedAt: number | null } | null;
+	migrations: {
+		/** latest migration recorded in d1_migrations, null if none */
+		applied: string | null;
+		appliedAt: number | null;
+		/** latest migration this Worker was built with */
+		expected: string;
+		upToDate: boolean;
+	};
+	checks: { name: string; ok: boolean; detail: string }[];
+	ai: {
+		/** accounts that saved at least one provider key */
+		accountsWithKey: number;
+		/** which model each feature uses, and on how many accounts */
+		featureModels: { feature: string; model: string; accounts: number }[];
+		/** ledger rows still 'reserved' after 10 minutes (a call that never finished) */
+		stuckReserved: number;
+	};
+	tables: { name: string; rows: number }[];
+}
+
+export interface AdminAuditEntry {
+	id: number;
+	at: number;
+	actorId: number;
+	actorName: string | null;
+	actorEmail: string | null;
+	action: string;
+	targetId: number | null;
+	targetName: string | null;
+	detail: unknown;
+}
+
+/** GET /api/admin/audit?offset=&action= */
+export interface AdminAuditList {
+	entries: AdminAuditEntry[];
+	next: number | null;
+	/** every action name in the log, for the filter */
+	actions: string[];
+}

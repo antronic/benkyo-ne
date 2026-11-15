@@ -17,6 +17,8 @@ export interface Env {
 	ACCESS_AUD?: string;
 	/** Optional comma-separated emails allowed into the console, checked on top of the Access policy. */
 	ADMIN_EMAILS?: string;
+	/** Cloudflare version metadata binding: which Worker version is deployed (fleet console system screen). */
+	CF_VERSION_METADATA?: WorkerVersionMetadata;
 	/** DEV ONLY ("1"): treat localhost requests as signed in. Never set in wrangler configs. */
 	DEV_AUTH_BYPASS?: string;
 	/**

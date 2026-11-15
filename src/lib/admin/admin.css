@@ -66,3 +66,58 @@
 		max-width: 820px;
 	}
 }
+.fleet .tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 12px;
+}
+.fleet .tile {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 14px 16px;
+	border-radius: var(--r-m);
+	min-height: 88px;
+}
+.fleet .tile .num {
+	font-size: 28px;
+	line-height: 1.1;
+}
+.fleet .tile.warn .num {
+	color: var(--danger);
+}
+.fleet .segmented {
+	display: flex;
+	gap: 4px;
+	padding: 3px;
+	border-radius: 999px;
+	background: var(--hairline);
+	align-self: flex-start;
+}
+.fleet .segmented button {
+	font: inherit;
+	font-size: 14px;
+	border: 0;
+	border-radius: 999px;
+	padding: 5px 14px;
+	background: none;
+	color: inherit;
+	cursor: pointer;
+}
+.fleet .segmented button[aria-pressed='true'] {
+	background: var(--glass-strong);
+	font-weight: 600;
+}
+.fleet .foot {
+	text-align: center;
+	margin-top: 12px;
+}
+.fleet .ellipsis {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.fleet .caption a {
+	color: var(--accent);
+}

@@ -10,6 +10,7 @@
  *   POST   /api/admin/accounts/:id/revoke      end all its sessions        step-up
  *   DELETE /api/admin/accounts/:id {confirm}   delete it and all its data  step-up
  *   /api/admin/settings, /api/admin/invites    sign-ups, invites, session lifetime (worker/admin/settings.ts)
+ *   /api/admin/usage, /system, /audit          read-only insights (worker/admin/insights.ts)
  *
  * Three locks, all required (fleet console plan, "Security"):
  *   1. Cloudflare Access at the edge on /admin* and /api/admin/*.
@@ -28,6 +29,7 @@ import { HttpError, httpError, isLocalhost, json } from '../http.ts';
 import { STEPUP_REQUIRED } from '../../src/lib/admin/contract.ts';
 import { handleAccounts } from './accounts.ts';
 import { handleSettings } from './settings.ts';
+import { handleInsights } from './insights.ts';
 import { signupState } from '../auth/signup.ts';
 import { AccessError, verifyAccessJwt, type AccessIdentity } from './access.ts';
 
@@ -152,6 +154,10 @@ export async function handleAdmin(req: Request, env: Env, url: URL): Promise<Res
 	if (p === '/api/admin/stepup/verify' && req.method === 'POST') return json({ at: await stepUpVerify(req, env, ctx.session) });
 	if (p.startsWith('/api/admin/settings') || p.startsWith('/api/admin/invites')) {
 		const res = await handleSettings(req, env, url, ctx);
+		if (res) return res;
+	}
+	if (p === '/api/admin/usage' || p === '/api/admin/system' || p === '/api/admin/audit') {
+		const res = await handleInsights(req, env, url, ctx);
 		if (res) return res;
 	}
 	if (p.startsWith('/api/admin/accounts')) {
