@@ -3,6 +3,7 @@
 	checked against the dictionary → save → it appears in Learn ("My packs").
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import { goto } from '$app/navigation';
 	import { fly } from 'svelte/transition';
@@ -20,7 +21,9 @@
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 
 	ui.hue = 265;
-	const IDEAS = ['At the train station', 'Ordering coffee', 'Asking for directions', 'Talking about the weather', 'At the doctor', 'Anime phrases', 'Numbers & money', 'Convenience store'];
+	const IDEAS = $derived(
+		(['station', 'coffee', 'directions', 'weather', 'doctor', 'anime', 'money', 'konbini'] as const).map((k) => t(`aiLesson.idea.${k}`))
+	);
 	let topic = $state('');
 	let busy = $state(false);
 	let draft = $state<(LessonResponse & { checked: (CourseItem & { verified: boolean })[] }) | null>(null);
@@ -48,7 +51,7 @@
 			haptic('success');
 		} catch (e) {
 			haptic('error');
-			toast(e instanceof Error ? e.message : 'Couldn’t make the lesson', '⚠️', 2800);
+			toast(e instanceof Error ? e.message : t('aiLesson.failed'), '⚠️', 2800);
 		} finally {
 			busy = false;
 		}
@@ -66,31 +69,31 @@
 			createdAt: Date.now()
 		});
 		haptic('success');
-		toast('Lesson pack saved to Learn', '✓');
+		toast(t('aiLesson.saved'), '✓');
 		goto(`/learn/course/mine/${id}`);
 	}
 </script>
 
 <main class="maker">
 	<header class="top">
-		<button class="icon-btn" aria-label="Back" onclick={() => goto('/ai')}>
+		<button class="icon-btn" aria-label={t('common.back')} onclick={() => goto('/ai')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		</button>
-		<h1 class="title-2">New lesson pack</h1>
+		<h1 class="title-2">{t('aiLesson.title')}</h1>
 	</header>
 
 	<form class="stack" style:--gap="10px" onsubmit={(e) => (e.preventDefault(), generate())}>
-		<input type="text" bind:value={topic} placeholder="Topic, e.g. at the train station" aria-label="Lesson topic" enterkeyhint="go" autocomplete="off" />
+		<input type="text" bind:value={topic} placeholder={t('aiLesson.placeholder')} aria-label={t('aiLesson.topic')} enterkeyhint="go" autocomplete="off" />
 		<div class="ideas">
 			{#each IDEAS as idea}<button type="button" class="chip" onclick={() => (topic = idea)}>{idea}</button>{/each}
 		</div>
-		<button class="btn accent block" disabled={busy || !topic.trim() || !ai.available}>{busy ? 'Designing your lesson…' : '✨ Make lesson'}</button>
+		<button class="btn accent block" disabled={busy || !topic.trim() || !ai.available}>{busy ? t('aiLesson.designing') : `✨ ${t('aiLesson.make')}`}</button>
 		{#if !ai.available}<p class="caption">{ai.reason}</p>{/if}
 	</form>
 
 	{#if busy}
 		<div class="stack" style:--gap="10px">
-			<div class="caption">✨ Designing “{topic}” and checking each item in the dictionary…</div>
+			<div class="caption">✨ {t('aiLesson.designingTopic', { topic })}</div>
 			<Skeleton variant="card" count={1} />
 			<Skeleton variant="row" count={5} />
 		</div>
@@ -103,12 +106,12 @@
 			</div>
 			{#each draft.checked as i}
 				<div class="item glass">
-					<button class="say" aria-label="Listen" onclick={() => speak(i.reading)}>🔊</button>
+					<button class="say" aria-label={t('common.listen')} onclick={() => speak(i.reading)}>🔊</button>
 					<div class="body">
 						<div class="row" style:--gap="6px">
 							<span class="jp reading">{i.reading}</span>
-							{#if i.kind === 'phrase'}<span class="tag">phrase</span>{/if}
-							{#if !i.verified}<span class="tag warn">unverified</span>{/if}
+							{#if i.kind === 'phrase'}<span class="tag">{t('card.phrase')}</span>{/if}
+							{#if !i.verified}<span class="tag warn">{t('card.unverified')}</span>{/if}
 						</div>
 						<Romaji text={i.reading} />
 						{#if i.kanji}<span class="jp kanji">{i.kanji}</span>{/if}
@@ -118,8 +121,8 @@
 				</div>
 			{/each}
 			<div class="row">
-				<button class="btn ghost block" onclick={generate} disabled={busy}>↻ Try again</button>
-				<button class="btn accent block" onclick={save}>Save to Learn</button>
+				<button class="btn ghost block" onclick={generate} disabled={busy}>↻ {t('common.tryAgain')}</button>
+				<button class="btn accent block" onclick={save}>{t('aiLesson.save')}</button>
 			</div>
 		</section>
 	{/if}

@@ -9,6 +9,7 @@ import { COURSES } from '#lib/content/courses.ts';
 import { KANA } from '#lib/content/kana.ts';
 import { baseOf, mnemonicFor } from '#lib/content/mnemonics.ts';
 import { RULES } from '#lib/content/japanglish.ts';
+import { KANJI_LESSONS, ORIGIN_LABEL } from '#lib/content/kanji.ts';
 
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
@@ -51,7 +52,7 @@ describe('Thai messages', () => {
 });
 
 describe('Thai lesson content', () => {
-	const sources = ['lessons.ts', 'courses.ts', 'mnemonics.ts', 'japanglish.ts']
+	const sources = ['lessons.ts', 'courses.ts', 'mnemonics.ts', 'japanglish.ts', 'kanji.ts', '../practice/drills.ts']
 		.map((f) => readFileSync(new URL(`../content/${f}`, import.meta.url), 'utf8'))
 		.join('\n');
 	const extra = new Set(['hiragana', 'katakana', 'Hiragana', 'Katakana', 'red', 'mountain', 'to eat', 'cat', 'tomorrow', 'pond', 'face', 'here', 'thank you', 'big']);
@@ -86,6 +87,19 @@ describe('Thai lesson content', () => {
 		for (const r of RULES) {
 			expect(CONTENT_TH, r.title).toHaveProperty([r.title]);
 			expect(CONTENT_TH, r.explain).toHaveProperty([r.explain]);
+		}
+	});
+	it('covers every kanji lesson, meaning, story and example', () => {
+		const glossed = (g: string) => g in CONTENT_TH || g.split('; ').every((p) => p in CONTENT_TH);
+		for (const s of Object.values(ORIGIN_LABEL)) expect(CONTENT_TH, s).toHaveProperty([s]);
+		for (const l of KANJI_LESSONS) {
+			expect(CONTENT_TH, l.title).toHaveProperty([l.title]);
+			expect(CONTENT_TH, l.note).toHaveProperty([l.note]);
+			for (const k of l.chars) {
+				expect(glossed(k.meaning), `${k.char}: ${k.meaning}`).toBe(true);
+				expect(glossed(k.example.gloss), `${k.char}: ${k.example.gloss}`).toBe(true);
+				expect(CONTENT_TH, `${k.char}: ${k.story}`).toHaveProperty([k.story]);
+			}
 		}
 	});
 });

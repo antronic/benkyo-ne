@@ -3,6 +3,7 @@
 	deck until you tick items and tap Save.
 -->
 <script lang="ts">
+	import { t, tn } from '#lib/i18n/index.svelte.ts';
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { goto } from '$app/navigation';
@@ -19,13 +20,13 @@
 	import { speak } from '#lib/content/kana.ts';
 
 	ui.hue = 285;
-	const MODES: { id: MakerMode; label: string; placeholder: string; ai: 'none' | 'optional' | 'required' }[] = [
-		{ id: 'english', label: 'English', placeholder: 'e.g. pond, thank you, delicious', ai: 'optional' },
-		{ id: 'japanese', label: '日本語', placeholder: 'e.g. いけ, 池, 食べた', ai: 'none' },
-		{ id: 'romaji', label: 'Romaji', placeholder: 'e.g. ike, itadakimasu', ai: 'none' },
-		{ id: 'screenshot', label: 'Photo', placeholder: '', ai: 'required' },
-		{ id: 'scenario', label: 'Scenario', placeholder: 'e.g. ordering at a ramen shop', ai: 'required' }
-	];
+	const MODES: { id: MakerMode; label: string; placeholder: string; ai: 'none' | 'optional' | 'required' }[] = $derived([
+		{ id: 'english', label: t('maker.english'), placeholder: t('maker.egEnglish'), ai: 'optional' },
+		{ id: 'japanese', label: '日本語', placeholder: t('maker.eg', { examples: 'いけ, 池, 食べた' }), ai: 'none' },
+		{ id: 'romaji', label: t('maker.romaji'), placeholder: t('maker.eg', { examples: 'ike, itadakimasu' }), ai: 'none' },
+		{ id: 'screenshot', label: t('maker.photo'), placeholder: '', ai: 'required' },
+		{ id: 'scenario', label: t('maker.scenario'), placeholder: t('maker.egScenario'), ai: 'required' }
+	]);
 
 	let mode = $state<MakerMode>((page.url.searchParams.get('mode') as MakerMode) || 'english');
 	let input = $state('');
@@ -70,7 +71,7 @@
 			else if (mode === 'scenario' && !tags.trim()) tags = input.trim();
 			haptic(result.items.length ? 'success' : 'warning');
 		} catch (e) {
-			toast(e instanceof Error ? e.message : 'Lookup failed', '⚠️');
+			toast(e instanceof Error ? e.message : t('maker.lookupFailed'), '⚠️');
 		} finally {
 			busy = false;
 		}
@@ -92,10 +93,10 @@
 			const cards = await saveCandidates(items, { tags: tagList, source: mode === 'scenario' ? 'scenario' : 'user' });
 			const parked = cards.filter((c) => words.isParked(c)).length;
 			haptic('success');
-			toast(`${cards.length} card${cards.length === 1 ? '' : 's'} saved${parked ? ` · ${parked} parked` : ''}`, '✓', 2400);
+			toast(tn('maker.saved', cards.length) + (parked ? ` · ${t('maker.parkedN', { n: parked })}` : ''), '✓', 2400);
 			goto('/words');
 		} catch (e) {
-			toast(e instanceof Error ? e.message : 'Saving failed', '⚠️');
+			toast(e instanceof Error ? e.message : t('maker.saveFailed'), '⚠️');
 		} finally {
 			saving = false;
 		}
@@ -104,14 +105,14 @@
 
 <main class="maker">
 	<header class="top">
-		<button class="icon-btn" aria-label="Close" onclick={() => goto('/words')}>
+		<button class="icon-btn" aria-label={t('common.close')} onclick={() => goto('/words')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
 		</button>
-		<h1 class="title-2">Make a card</h1>
+		<h1 class="title-2">{t('maker.title')}</h1>
 		<span class="spacer"></span>
 	</header>
 
-	<div class="modes glass" role="tablist" aria-label="Input mode">
+	<div class="modes glass" role="tablist" aria-label={t('maker.inputMode')}>
 		{#each MODES as x}
 			<button role="tab" aria-selected={mode === x.id} class:on={mode === x.id} onclick={() => setMode(x.id)}>
 				<span class:jp={x.id === 'japanese'}>{x.label}</span>
@@ -125,10 +126,10 @@
 			{#if mode === 'screenshot'}
 				<label class="drop glass">
 					{#if preview}
-						<img src={preview} alt="Selected screenshot" />
+						<img src={preview} alt={t('maker.selected')} />
 					{:else}
-						<span>📷 Take a photo or choose a screenshot</span>
-						<span class="caption">A menu, a sign, a game screen…</span>
+						<span>📷 {t('maker.pickPhoto')}</span>
+						<span class="caption">{t('maker.photoHint')}</span>
 					{/if}
 					<input type="file" accept="image/*" capture="environment" onchange={pickFile} />
 				</label>
@@ -139,7 +140,7 @@
 						type="text"
 						bind:value={input}
 						placeholder={m.placeholder}
-						aria-label="{m.label} input"
+						aria-label={t('maker.inputAria', { mode: m.label })}
 						autocomplete="off"
 						autocapitalize="off"
 						autocorrect="off"
@@ -151,23 +152,23 @@
 				</form>
 			{/if}
 			<button class="btn accent block" onclick={search} disabled={busy || blocked || (mode === 'screenshot' ? !file : !input.trim())}>
-				{busy ? 'Looking…' : mode === 'scenario' ? 'Suggest words' : mode === 'screenshot' ? 'Find words' : 'Look up'}
+				{busy ? t('maker.looking') : mode === 'scenario' ? t('maker.suggest') : mode === 'screenshot' ? t('maker.find') : t('maker.lookUp')}
 			</button>
 			{#if blocked}
-				<p class="caption note">✨ This mode needs AI. {ai.reason}</p>
+				<p class="caption note">✨ {t('maker.needsAi')} {ai.reason}</p>
 			{:else if m.ai === 'optional' && !ai.available && ai.reason}
-				<p class="caption note">Dictionary only: {ai.reason}</p>
+				<p class="caption note">{t('maker.dictOnly', { reason: ai.reason })}</p>
 			{/if}
 		</div>
 
 		<div class="pane results-pane">
 			{#if busy}
-				<Skeleton variant="row" count={4} label="Looking up" />
+				<Skeleton variant="row" count={4} label={t('maker.lookingUp')} />
 			{:else if result}
 				{#if result.aiNote && result.items.length}<p class="caption note">⚠️ {result.aiNote}</p>{/if}
 				{#if !result.items.length}
 					<div class="glass empty">
-						{result.aiNote ? `⚠️ ${result.aiNote}` : 'Nothing found. Try another spelling or mode.'}
+						{result.aiNote ? `⚠️ ${result.aiNote}` : t('maker.nothing')}
 					</div>
 				{:else}
 					<div class="results" in:fly={{ y: 16, duration: 300 }}>
@@ -179,14 +180,14 @@
 									<span class="row" style:--gap="6px">
 										<span class="jp reading">{c.reading}</span>
 										{#if c.text !== c.reading}<span class="jp written">{c.text}</span>{/if}
-										{#if c.kind === 'phrase'}<span class="tag">phrase</span>{/if}
-										{#if !c.verified}<span class="tag warn">unverified</span>{/if}
+										{#if c.kind === 'phrase'}<span class="tag">{t('card.phrase')}</span>{/if}
+										{#if !c.verified}<span class="tag warn">{t('card.unverified')}</span>{/if}
 									</span>
 									<Romaji text={c.reading} />
 									<span class="gloss">{c.gloss}</span>
-									{#if c.inflection}<span class="caption">from your input: {c.inflection}</span>{/if}
+									{#if c.inflection}<span class="caption">{t('maker.fromInput', { form: c.inflection })}</span>{/if}
 									{#if c.note}<span class="caption">✨ {c.note.en}{c.note.second ? ` · ${c.note.second}` : ''}</span>{/if}
-									{#if missing.length}<span class="caption">⏸ parked until you learn <span class="jp">{missing.join(' ')}</span><Romaji text={missing.join(' ')} inline /></span>{/if}
+									{#if missing.length}<span class="caption">⏸ {t('maker.parkedUntil')} <span class="jp">{missing.join(' ')}</span><Romaji text={missing.join(' ')} inline /></span>{/if}
 								</span>
 								<span class="listen" role="presentation" onclick={(e) => (e.stopPropagation(), speak(c.reading))}>🔊</span>
 							</button>
@@ -194,20 +195,20 @@
 					</div>
 					{#if result.packName}
 						<div class="packname">
-							<span class="caption">✨ Pack name</span>
+							<span class="caption">✨ {t('maker.packName')}</span>
 							<span class="headline">{result.packName.en}</span>
 							{#if result.packName.second}<span class="caption">{result.packName.second}</span>{/if}
 						</div>
 					{/if}
 					<label class="tags">
-						<span class="caption">{result.packName ? 'Tag (from the pack name, editable)' : 'Tags (comma-separated)'}</span>
-						<input type="text" bind:value={tags} placeholder="e.g. ramen shop, travel" />
+						<span class="caption">{result.packName ? t('maker.tagFromPack') : t('maker.tags')}</span>
+						<input type="text" bind:value={tags} placeholder={t('maker.egTags')} />
 					</label>
 					<button class="btn block" onclick={save} disabled={saving || !chosen.size}>
-						{saving ? 'Saving…' : `Save ${chosen.size || ''} card${chosen.size === 1 ? '' : 's'}`}
+						{saving ? t('common.saving') : chosen.size ? tn('maker.saveN', chosen.size) : t('maker.saveCards')}
 					</button>
 					<p class="caption note">
-						{ai.available ? '✨ AI adds a memory hook, an example and your second language after saving; examples are checked against the dictionary.' : 'Cards are saved with dictionary content now; AI extras are added when available.'}
+						{ai.available ? `✨ ${t('maker.aiExtras')}` : t('maker.noAiExtras')}
 					</p>
 				{/if}
 			{/if}

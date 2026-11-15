@@ -4,12 +4,13 @@
 	Leaves the app for Apple's page and comes back (worker/auth/apple.ts).
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import * as api from '#lib/ai/client.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 
 	let {
-		label = 'Continue with Apple',
+		label,
 		link = false,
 		disabled = false,
 		small = false
@@ -23,7 +24,7 @@
 			api.startApple(link);
 		} catch (e) {
 			leaving = false;
-			toast(e instanceof Error ? e.message : 'Something went wrong', '⚠️', 2800);
+			toast(e instanceof Error ? e.message : t('welcome.error'), '⚠️', 2800);
 		}
 	}
 </script>
@@ -34,7 +35,7 @@
 			d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.6 4.8 1.9 5.8 1 7.5c-1.9 3.3-.5 8.1 1.3 10.8.9 1.3 2 2.7 3.4 2.7 1.3-.1 1.9-.9 3.5-.9s2.1.9 3.5.8c1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.8-1.1-2.8-4.2zM11.5 3c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"
 		/>
 	</svg>
-	<span>{leaving ? 'Opening Apple…' : label}</span>
+	<span>{leaving ? t('apple.opening') : (label ?? t('apple.continue'))}</span>
 </button>
 
 <style>

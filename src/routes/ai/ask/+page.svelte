@@ -1,5 +1,6 @@
 <!-- 💬 Ask AI: a Japanese tutor chat. Conversation is kept on this device. -->
 <script lang="ts">
+	import { t, fmtDate, fmtTime, type MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { fly, slide } from 'svelte/transition';
@@ -26,11 +27,10 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import Kuri from '#lib/companion/Kuri.svelte';
-	import { t } from '#lib/i18n/index.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 
 	ui.hue = 265;
-	const STARTERS = ['What’s the difference between は and が?', 'How do I say “I don’t understand” politely?', 'When do I use です and ます?', 'Why is を read “o”?'];
+	const STARTERS = $derived([t('ask.starter1'), t('ask.starter2'), t('ask.starter3'), t('ask.starter4')]);
 
 	let threads = $state<AskThread[]>([]);
 	let current = $state<AskThread | null>(null);
@@ -49,7 +49,7 @@
 	const sections = $derived.by(() => {
 		const out: { name: string; rows: typeof found }[] = [];
 		for (const r of found) {
-			const name = sectionOf(r.thread.updatedAt);
+			const name = sectionLabel(r.thread.updatedAt);
 			if (out.at(-1)?.name !== name) out.push({ name, rows: [] });
 			out.at(-1)!.rows.push(r);
 		}
@@ -128,11 +128,11 @@
 			if (partial) {
 				// Keep what was written so far.
 				thread.msgs.push({ role: 'assistant', text: partial.answer, reply: partial, partial: true });
-				if (!stopped) toast(e instanceof Error ? e.message : 'The reply stopped early', '⚠️', 2800);
+				if (!stopped) toast(e instanceof Error ? e.message : t('ask.stoppedEarly'), '⚠️', 2800);
 			} else {
 				thread.msgs.pop();
 				input = q;
-				if (!stopped) toast(e instanceof Error ? e.message : 'Couldn’t get an answer', '⚠️', 2800);
+				if (!stopped) toast(e instanceof Error ? e.message : t('ask.failed'), '⚠️', 2800);
 			}
 		} finally {
 			live = null;
@@ -171,7 +171,7 @@
 	}
 	async function removeCurrent() {
 		if (!current) return;
-		if (!(await confirmDestructive('Delete this chat?', 'The conversation on this device will be deleted.', 'Delete Chat'))) return;
+		if (!(await confirmDestructive(t('ask.deleteTitle'), t('ask.deleteBody'), t('ask.deleteConfirm')))) return;
 		await remove(current);
 	}
 
@@ -228,11 +228,22 @@
 		}
 		void open(t);
 	}
-	const when = (t: number) => {
-		const d = new Date(t);
-		return sectionOf(t) === 'Today' || sectionOf(t) === 'Yesterday'
-			? d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-			: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+	const when = (ms: number) =>
+		sectionOf(ms) === 'Today' || sectionOf(ms) === 'Yesterday'
+			? fmtTime(ms, { hour: 'numeric', minute: '2-digit' })
+			: fmtDate(ms, { month: 'short', day: 'numeric' });
+	const SECTION_KEYS: Record<string, MessageKey> = {
+		Today: 'ask.today',
+		Yesterday: 'ask.yesterday',
+		'Previous 7 Days': 'ask.prev7',
+		'Previous 30 Days': 'ask.prev30'
+	};
+	/** History section heading in the interface language (sectionOf gives the English one). */
+	const sectionLabel = (ms: number) => {
+		const s = sectionOf(ms);
+		if (SECTION_KEYS[s]) return t(SECTION_KEYS[s]);
+		const sameYear = new Date(ms).getFullYear() === new Date().getFullYear();
+		return fmtDate(ms, { month: 'long', year: sameYear ? undefined : 'numeric' });
 	};
 </script>
 
@@ -254,7 +265,7 @@
 
 <main class="chat">
 	<header class="top">
-		<button class="icon-btn" aria-label="Back" onclick={() => goto('/ai')}>
+		<button class="icon-btn" aria-label={t('common.back')} onclick={() => goto('/ai')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		</button>
 		{#if progress.settings.kuri}
@@ -262,13 +273,13 @@
 				<Kuri pose={busy ? 'thinking' : 'idle'} label={busy ? t('kuri.thinking') : t('kuri.name')} options={{ yaw: 0.3, pitch: 0.1, distance: 3.1, target: [0, 1.62, 0.25], fps: 30 }} />
 			</span>
 		{/if}
-		<h1 class="title-2 head-title">{current && msgs.length ? current.title : 'Ask AI'}</h1>
+		<h1 class="title-2 head-title">{current && msgs.length ? current.title : t('ask.title')}</h1>
 		<span class="spacer"></span>
-		<button class="icon-btn" aria-label="Chat history" onclick={() => ((historyOpen = true), haptic('selection'))}>
+		<button class="icon-btn" aria-label={t('ask.history')} onclick={() => ((historyOpen = true), haptic('selection'))}>
 			<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" /><path d="M3 4v4.5h4.5" /><path d="M12 7.5V12l3 2" /></svg>
 			{#if threads.length}<span class="badge">{threads.length}</span>{/if}
 		</button>
-		<button class="icon-btn" aria-label="New chat" onclick={newChat} disabled={!msgs.length && !busy}>
+		<button class="icon-btn" aria-label={t('ask.newChat')} onclick={newChat} disabled={!msgs.length && !busy}>
 			<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" /><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
 		</button>
 	</header>
@@ -276,10 +287,10 @@
 	<div class="msgs" bind:this={list} aria-live="polite">
 		{#if !msgs.length}
 			<div class="empty">
-				<p class="subhead">Ask anything about Japanese. Answers adapt to the kana you know{progress.settings.secondLang ? ' and include your second language' : ''}.</p>
+				<p class="subhead">{progress.settings.secondLang ? t('ask.introSecond') : t('ask.intro')}</p>
 				{#each STARTERS as s}<button class="chip" onclick={() => send(s)}>{s}</button>{/each}
 				{#if threads.length}
-					<button class="chip ghost-chip" onclick={() => (historyOpen = true)}>🕘 Past chats ({threads.length})</button>
+					<button class="chip ghost-chip" onclick={() => (historyOpen = true)}>🕘 {t('ask.past', { n: threads.length })}</button>
 				{/if}
 			</div>
 		{/if}
@@ -287,7 +298,7 @@
 			<div class="bubble {m.role}" in:fly={{ y: 12, duration: 250 }}>
 				{#if m.role === 'assistant'}
 					{@render answerBody(m.text, m.reply?.answer2, m.reply?.examples ?? [])}
-					{#if m.partial}<p class="caption note">Reply stopped before it finished.</p>{/if}
+					{#if m.partial}<p class="caption note">{t('ask.partial')}</p>{/if}
 				{:else}
 					<p class="text">{m.text}</p>
 				{/if}
@@ -297,36 +308,36 @@
 			{#if liveParts.answer}
 				<div class="bubble assistant">{@render answerBody(liveParts.answer, liveParts.answer2, liveParts.examples, true)}</div>
 			{:else}
-				<div class="bubble assistant typing" role="status" aria-label="Thinking"><span></span><span></span><span></span></div>
+				<div class="bubble assistant typing" role="status" aria-label={t('ask.thinking')}><span></span><span></span><span></span></div>
 			{/if}
 		{/if}
 	</div>
 
 	<form class="composer glass glass-strong" onsubmit={(e) => (e.preventDefault(), send())}>
-		<input type="text" bind:value={input} placeholder={ai.available ? 'Ask about Japanese…' : ai.reason} aria-label="Your question" enterkeyhint="send" autocomplete="off" disabled={!ai.available} />
+		<input type="text" bind:value={input} placeholder={ai.available ? t('ask.placeholder') : ai.reason} aria-label={t('ask.question')} enterkeyhint="send" autocomplete="off" disabled={!ai.available} />
 		{#if busy}
-			<button type="button" class="btn small stop" onclick={stop} aria-label="Stop">
+			<button type="button" class="btn small stop" onclick={stop} aria-label={t('placement.stop')}>
 				<svg viewBox="0 0 24 24" width="14" height="14"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor" /></svg>
 			</button>
 		{:else}
-			<button class="btn accent small" disabled={!input.trim() || !ai.available} aria-label="Send">↑</button>
+			<button class="btn accent small" disabled={!input.trim() || !ai.available} aria-label={t('ask.send')}>↑</button>
 		{/if}
 	</form>
 </main>
 
-<Sheet open={historyOpen} label="Chat history" onclose={() => ((historyOpen = false), (openRow = null))}>
+<Sheet open={historyOpen} label={t('ask.history')} onclose={() => ((historyOpen = false), (openRow = null))}>
 	{#snippet header()}
 		<div class="hist-head">
-			<h2 class="title-3">History</h2>
+			<h2 class="title-3">{t('ask.historyTitle')}</h2>
 			<span class="spacer"></span>
-			<button class="btn ghost small" onclick={newChat}>New chat</button>
+			<button class="btn ghost small" onclick={newChat}>{t('ask.newChat')}</button>
 		</div>
 	{/snippet}
-	<input class="search" type="search" placeholder="Search chats" bind:value={query} aria-label="Search chats" />
+	<input class="search" type="search" placeholder={t('ask.search')} bind:value={query} aria-label={t('ask.search')} />
 	{#if !threads.length}
-		<p class="caption empty-hist">No chats yet. Your conversations are saved here on this device.</p>
+		<p class="caption empty-hist">{t('ask.noChats')}</p>
 	{:else if !found.length}
-		<p class="caption empty-hist">No chats match “{query}”.</p>
+		<p class="caption empty-hist">{t('ask.noMatch', { query })}</p>
 	{/if}
 	{#each sections as sec (sec.name)}
 		<section>
@@ -334,7 +345,7 @@
 			<div class="glass group">
 				{#each sec.rows as { thread, snippet } (thread.id)}
 					<div class="hist-row" class:reveal={openRow === thread.id || (swipeId === thread.id && swipeX < 0)} out:slide={{ duration: 220 }}>
-						<button class="del" onclick={() => ((openRow = null), remove(thread))} aria-label="Delete {thread.title}" tabindex={openRow === thread.id ? 0 : -1}>Delete</button>
+						<button class="del" onclick={() => ((openRow = null), remove(thread))} aria-label={t('ask.deleteAria', { title: thread.title })} tabindex={openRow === thread.id ? 0 : -1}>{t('common.delete')}</button>
 						<button
 							class="row-main"
 							class:active={current?.id === thread.id}
@@ -355,7 +366,7 @@
 		</section>
 	{/each}
 	{#if current && msgs.length}
-		<button class="btn ghost block danger" onclick={() => ((historyOpen = false), removeCurrent())}>Delete current chat</button>
+		<button class="btn ghost block danger" onclick={() => ((historyOpen = false), removeCurrent())}>{t('ask.deleteCurrent')}</button>
 	{/if}
 </Sheet>
 

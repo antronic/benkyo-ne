@@ -7,6 +7,7 @@ import * as api from '#lib/ai/client.ts';
 import type { CredentialInfo, Me, Usage } from '#lib/ai/contract.ts';
 import type { BetaStatus } from '#lib/beta/contract.ts';
 import { telemetry } from '#lib/beta/telemetry.svelte.ts';
+import { t } from '#lib/i18n/index.svelte.ts';
 
 class Ai {
 	checked = $state(false);
@@ -35,15 +36,15 @@ class Ai {
 	/** Why AI isn't available, for a friendly inline hint. */
 	reason = $derived(
 		!this.online
-			? 'You’re offline. AI parts will run when you reconnect.'
+			? t('ai.reason.offline')
 			: !this.signedIn
-				? 'Sign in or create an account in Settings to use AI.'
+				? t('ai.reason.signIn')
 				: this.needsConsent
-					? 'Agree to the beta terms to use AI.'
+					? t('ai.reason.consent')
 					: this.credentials.length === 0
-					? 'Add an API key in Settings to use AI.'
+					? t('ai.reason.noKey')
 					: this.usage && this.usage.spentUsd >= this.usage.capUsd
-						? 'This month’s AI spending cap is reached.'
+						? t('ai.reason.cap')
 						: ''
 	);
 

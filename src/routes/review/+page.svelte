@@ -9,7 +9,7 @@
 <script lang="ts">
 	import { kuriReact } from '#lib/companion/kuri.svelte.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
-	import { scriptName, story } from '#lib/i18n/content.ts';
+	import { c, gloss, scriptName, story } from '#lib/i18n/content.ts';
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { goto } from '$app/navigation';
@@ -186,7 +186,7 @@
 	{#if tag}
 		<div class="tagline caption">{@html t('review.drilling', { tag: `<b>${tag.replace(/[&<>"]/g, (ch) => `&#${ch.charCodeAt(0)};`)}</b>` })}</div>
 	{:else if practice}
-		<div class="tagline caption">{@html t('review.practicing', { drill: `${practice.emoji} <b>${practice.title}</b>` })}</div>
+		<div class="tagline caption">{@html t('review.practicing', { drill: `${practice.emoji} <b>${c(practice.title)}</b>` })}</div>
 	{/if}
 
 	{#if !entry || (!kana && !kanji && !wordCard)}
@@ -225,9 +225,9 @@
 			<section class="stage" in:fly={{ y: 30, duration: 450, easing: cubicOut, opacity: 0 }}>
 				<div class="split">
 					<div class="pane">
-						<div class="eyebrow">{mode === 'draw' ? 'Write this kanji' : 'What does it mean?'} · kanji</div>
+						<div class="eyebrow">{mode === 'draw' ? t('review.writeKanji') : t('quiz.whatMeans')} · {t('learn.kanji')}</div>
 						{#if mode === 'draw' && !result}
-							<div class="romaji">{kanji.meaning}</div>
+							<div class="romaji">{gloss(kanji.meaning)}</div>
 							<RecallPad char={kanji.char} size="var(--pad)" oncomplete={(r) => submit(r.correct, r.guess)} />
 						{:else}
 							<div class="flip" class:flipped={!!result}>
@@ -240,7 +240,7 @@
 									{:else}
 										<KanaGlyph char={kanji.char} size={110} color="var(--success)" />
 									{/if}
-									<div class="romaji">{kanji.meaning}</div>
+									<div class="romaji">{gloss(kanji.meaning)}</div>
 								</div>
 							</div>
 						{/if}
@@ -249,28 +249,28 @@
 						{#if mode === 'draw' && !result}
 							<MnemonicHint char={kanji.char} onuse={() => (usedHint = true)} />
 						{:else if usedHint && !result}
-							<p class="story" in:fly={{ y: 10, duration: 300 }}>{kanji.story}</p>
+							<p class="story" in:fly={{ y: 10, duration: 300 }}>{c(kanji.story)}</p>
 						{/if}
 						{#if !result}
 							{#if mode === 'choose'}
 								<div class="choices">
 									{#each kanjiOptions as o (o.char)}
-										<button class="glass choice small-text" onclick={() => submit(o.char === kanji.char)}>{o.meaning}</button>
+										<button class="glass choice small-text" onclick={() => submit(o.char === kanji.char)}>{gloss(o.meaning)}</button>
 									{/each}
 								</div>
-								<button class="btn ghost small" onclick={() => (usedHint = true)} disabled={usedHint}>💡 Show the picture</button>
+								<button class="btn ghost small" onclick={() => (usedHint = true)} disabled={usedHint}>💡 {t('review.showPicture')}</button>
 							{/if}
 						{:else}
 							{#if !result.correct}
 								<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
 									<KanjiInfo kanji={kanji} compact />
 									{#if result.guess && result.guess !== kanji.char}
-										<p class="caption" style="margin:6px 0 0">You drew something closer to <span class="jp">{result.guess}</span>.</p>
+										<p class="caption" style="margin:6px 0 0">{t('review.drewCloser')} <span class="jp">{result.guess}</span></p>
 									{/if}
 								</div>
 							{/if}
 							{#if !(result.correct && mode === 'choose')}
-								<button class="btn block {result.correct ? '' : 'accent'}" onclick={next}>Continue</button>
+								<button class="btn block {result.correct ? '' : 'accent'}" onclick={next}>{t('common.continue')}</button>
 							{/if}
 						{/if}
 					</div>

@@ -4,6 +4,8 @@
 	  the meaning) → RECALL (draw it from its meaning) → SCHEDULE
 -->
 <script lang="ts">
+	import { t, type MessageKey } from '#lib/i18n/index.svelte.ts';
+	import { c, gloss } from '#lib/i18n/content.ts';
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -148,7 +150,7 @@
 	const inProgress = $derived(phase !== 'intro' && phase !== 'done');
 	$effect(() => {
 		ui.backGuard = inProgress
-			? () => confirmDestructive('Leave this lesson?', 'Progress in this lesson won’t be saved.', 'Leave Lesson')
+			? () => confirmDestructive(t('lesson.leaveTitle'), t('lesson.leaveBody'), t('lesson.leave'))
 			: null;
 		return () => (ui.backGuard = null);
 	});
@@ -161,15 +163,15 @@
 </script>
 
 {#if !lesson}
-	<main class="page"><h1 class="large-title">Lesson not found</h1><a href="/learn">Back</a></main>
+	<main class="page"><h1 class="large-title">{t('lesson.notFound')}</h1><a href="/learn">{t('common.back')}</a></main>
 {:else}
 	<main class="lesson" style:--h={lesson.hue}>
 		<header class="top">
-			<button class="icon-btn" aria-label="Close lesson" onclick={close}>
+			<button class="icon-btn" aria-label={t('lesson.close')} onclick={close}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
 			</button>
 			<div class="bar" role="progressbar" aria-valuemin={0} aria-valuemax={steps} aria-valuenow={stepNow}><span style:width="{(stepNow / steps) * 100}%"></span></div>
-			<div class="caption phase-label">{phase === 'intro' || phase === 'done' ? '' : phase}</div>
+			<div class="caption phase-label">{phase === 'intro' || phase === 'done' ? '' : t(`lesson.phase.${phase}` as MessageKey)}</div>
 		</header>
 
 		{#key phase + idx + (queue[0]?.char ?? '')}
@@ -181,22 +183,22 @@
 								{#each chars as k, i}
 									<span class="rise hero-k" style:--i={i}>
 										<span class="glass tile"><KanaGlyph char={k.char} size={64} scene={0.9} /></span>
-										<span class="caption">{k.meaning.split(';')[0]}</span>
+										<span class="caption">{c(k.meaning.split('; ')[0])}</span>
 									</span>
 								{/each}
 							</div>
 						</div>
 						<div class="pane text">
-							<div class="eyebrow">kanji · lesson {lesson.id.split('-')[1]}</div>
-							<h1 class="large-title">{lesson.title}</h1>
-							<p class="subhead note">{lesson.note}</p>
-							<p class="subhead">{chars.length} new kanji · about 6 minutes</p>
+							<div class="eyebrow">{t('learn.kanji')} · {t('lesson.n', { n: lesson.id.split('-')[1] })}</div>
+							<h1 class="large-title">{c(lesson.title)}</h1>
+							<p class="subhead note">{c(lesson.note)}</p>
+							<p class="subhead">{t('kanjiLesson.introMeta', { n: chars.length })}</p>
 						</div>
 					</div>
 				{:else if phase === 'meet' && current}
 					<div class="split">
 						<div class="pane">
-							<div class="eyebrow">New · {idx + 1} of {chars.length}</div>
+							<div class="eyebrow">{t('lesson.newOf', { i: idx + 1, n: chars.length })}</div>
 							<div class="glass sheen canvas">
 								{#key animKey}<KanjiOrigin char={current.char} />{/key}
 							</div>
@@ -204,8 +206,8 @@
 						<div class="pane text">
 							<KanjiInfo kanji={current} />
 							<div class="row" style="justify-content:center">
-								<button class="btn ghost small" onclick={() => say(current)}>🔊 Listen</button>
-								<button class="btn ghost small" onclick={() => animKey++}>↻ Replay</button>
+								<button class="btn ghost small" onclick={() => say(current)}>🔊 {t('common.listen')}</button>
+								<button class="btn ghost small" onclick={() => animKey++}>↻ {t('lesson.replay')}</button>
 							</div>
 						</div>
 					</div>
@@ -215,15 +217,15 @@
 							<TracePad char={current.char} mode="trace" size="var(--pad)" oncomplete={nextFromTrace} />
 						</div>
 						<div class="pane text">
-							<div class="eyebrow">Trace · follow the numbered dots</div>
-							<div class="romaji small">{current.meaning}</div>
-							<p class="caption">Kanji strokes go top to bottom and left to right, horizontal before vertical.</p>
+							<div class="eyebrow">{t('lesson.traceTitle')}</div>
+							<div class="romaji small">{gloss(current.meaning)}</div>
+							<p class="caption">{t('kanjiLesson.strokeOrder')}</p>
 						</div>
 					</div>
 				{:else if phase === 'recognize' && current}
 					<div class="split">
 						<div class="pane">
-							<div class="eyebrow">What does it mean?</div>
+							<div class="eyebrow">{t('quiz.whatMeans')}</div>
 							<div class="glass sheen big" class:shake={shaking}>
 								<KanaGlyph char={current.char} size={150} />
 							</div>
@@ -238,7 +240,7 @@
 										onclick={() => pick(o)}
 										disabled={!!choice && choice !== o.char && o.char !== current.char}
 									>
-										{o.meaning}
+										{gloss(o.meaning)}
 									</button>
 								{/each}
 							</div>
@@ -247,11 +249,11 @@
 									<div class="row">
 										<KanaGlyph char={current.char} size={56} scene={0.9} />
 										<div class="stack" style:--gap="2px">
-											<b>{current.meaning}</b>
-											<span class="caption">{current.story}</span>
+											<b>{gloss(current.meaning)}</b>
+											<span class="caption">{c(current.story)}</span>
 										</div>
 									</div>
-									<button class="btn block" onclick={advance}>Got it</button>
+									<button class="btn block" onclick={advance}>{t('lesson.gotIt')}</button>
 								</div>
 							{/if}
 						</div>
@@ -268,15 +270,15 @@
 							{/if}
 						</div>
 						<div class="pane text">
-							<div class="eyebrow">Write it from memory</div>
-							<div class="romaji">{current.meaning}</div>
+							<div class="eyebrow">{t('lesson.recallTitle')}</div>
+							<div class="romaji">{gloss(current.meaning)}</div>
 							{#if !recallResult}
 								<MnemonicHint char={current.char} onuse={() => (stats[current.char].hinted = true)} />
 							{:else}
 								<p class="headline" style:color={recallResult.correct ? 'var(--success)' : 'var(--danger)'}>
-									{recallResult.correct ? 'Nice, that’s it.' : recallResult.guess ? `That looked like ${recallResult.guess}. Watch the strokes.` : 'Not quite. Watch the strokes.'}
+									{recallResult.correct ? t('lesson.recallOk') : recallResult.guess ? t('lesson.recallLooked', { guess: recallResult.guess }) : t('lesson.recallWrong')}
 								</p>
-								<button class="btn block" onclick={advance}>Continue</button>
+								<button class="btn block" onclick={advance}>{t('common.continue')}</button>
 							{/if}
 						</div>
 					</div>
@@ -290,11 +292,8 @@
 							</div>
 						</div>
 						<div class="pane text">
-							<h1 class="large-title">Lesson complete</h1>
-							<p class="subhead">
-								{chars.length} kanji added to your deck. Reviews will ask for the meaning first, then for you to
-								write them once they start to stick.
-							</p>
+							<h1 class="large-title">{t('lesson.complete')}</h1>
+							<p class="subhead">{t('kanjiLesson.completeBody', { n: chars.length })}</p>
 						</div>
 					</div>
 				{/if}
@@ -303,16 +302,16 @@
 
 		<footer class="bottom">
 			{#if phase === 'intro'}
-				<button class="btn accent block" onclick={start}>Start lesson</button>
+				<button class="btn accent block" onclick={start}>{t('lesson.start')}</button>
 			{:else if phase === 'meet'}
-				<button class="btn accent block" onclick={() => (phase = 'trace')}>Now trace it</button>
+				<button class="btn accent block" onclick={() => (phase = 'trace')}>{t('lesson.nowTrace')}</button>
 			{:else if phase === 'trace'}
-				<button class="btn ghost block" onclick={nextFromTrace}>Skip tracing</button>
+				<button class="btn ghost block" onclick={nextFromTrace}>{t('lesson.skipTrace')}</button>
 			{:else if phase === 'done'}
 				<div class="row" style="width:100%">
-					<button class="btn ghost block" onclick={() => goto('/')}>Done</button>
+					<button class="btn ghost block" onclick={() => goto('/')}>{t('common.done')}</button>
 					{#if nextLesson}
-						<button class="btn accent block" onclick={() => goto(`/learn/kanji/${nextLesson.id}`).then(() => (phase = 'intro'))}>Next lesson</button>
+						<button class="btn accent block" onclick={() => goto(`/learn/kanji/${nextLesson.id}`).then(() => (phase = 'intro'))}>{t('lesson.next')}</button>
 					{/if}
 				</div>
 			{/if}

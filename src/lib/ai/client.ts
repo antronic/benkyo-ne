@@ -4,6 +4,7 @@
  * automatically (same origin), so no token is ever readable from JS.
  */
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
+import { t } from '#lib/i18n/index.svelte.ts';
 import type {
 	AiError,
 	PasskeyInfo,
@@ -37,7 +38,7 @@ export class AiRequestError extends Error {
 }
 
 async function call<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
-	if (typeof navigator !== 'undefined' && !navigator.onLine) throw new AiRequestError(0, 'offline', 'You’re offline');
+	if (typeof navigator !== 'undefined' && !navigator.onLine) throw new AiRequestError(0, 'offline', t('sync.offline'));
 	let res: Response;
 	try {
 		res = await fetch(path, {
@@ -48,7 +49,7 @@ async function call<T>(path: string, init: RequestInit & { json?: unknown } = {}
 		});
 	} catch {
 		telemetry.track('error', 'api_network', { path, method: init.method ?? 'GET' });
-		throw new AiRequestError(0, 'network', 'Network error');
+		throw new AiRequestError(0, 'network', t('ai.err.network'));
 	}
 	const text = await res.text();
 	const body = text ? JSON.parse(text) : null;
@@ -114,7 +115,7 @@ export const deleteAccount = () => call<Me>('/api/auth/account', { method: 'DELE
  * back in the URL hash; see takeAppleResult().
  */
 export function startApple(link = false) {
-	if (typeof navigator !== 'undefined' && !navigator.onLine) throw new AiRequestError(0, 'offline', 'You’re offline');
+	if (typeof navigator !== 'undefined' && !navigator.onLine) throw new AiRequestError(0, 'offline', t('sync.offline'));
 	location.assign(`/api/auth/apple/start${link ? '?link=1' : ''}`);
 }
 export const disconnectApple = () => call<Me>('/api/auth/apple', { method: 'DELETE' });
@@ -189,7 +190,7 @@ export const ask = (r: AskRequest) => call<AskResponse>('/api/ai/ask', { method:
  * Resolves with the final parsed reply. Abort with `signal` (Stop button).
  */
 export async function askStream(r: AskRequest, ondelta: (text: string) => void, signal?: AbortSignal): Promise<AskResponse> {
-	if (typeof navigator !== 'undefined' && !navigator.onLine) throw new AiRequestError(0, 'offline', 'You’re offline');
+	if (typeof navigator !== 'undefined' && !navigator.onLine) throw new AiRequestError(0, 'offline', t('sync.offline'));
 	let res: Response;
 	try {
 		res = await fetch('/api/ai/ask/stream', {
@@ -201,7 +202,7 @@ export async function askStream(r: AskRequest, ondelta: (text: string) => void, 
 		});
 	} catch (e) {
 		if ((e as Error)?.name === 'AbortError') throw e;
-		throw new AiRequestError(0, 'network', 'Network error');
+		throw new AiRequestError(0, 'network', t('ai.err.network'));
 	}
 	if (!res.ok || !res.body) {
 		const body = (await res.json().catch(() => null)) as Partial<AiError> | null;
@@ -217,7 +218,7 @@ export async function askStream(r: AskRequest, ondelta: (text: string) => void, 
 			chunk = await reader.read();
 		} catch (e) {
 			if ((e as Error)?.name === 'AbortError') throw e;
-			throw new AiRequestError(0, 'network', 'The connection dropped');
+			throw new AiRequestError(0, 'network', t('ai.err.dropped'));
 		}
 		if (chunk.done) break;
 		buf += chunk.value;
@@ -232,12 +233,12 @@ export async function askStream(r: AskRequest, ondelta: (text: string) => void, 
 				data = '';
 				if (event === 'delta') ondelta(payload.t as string);
 				else if (event === 'done') return payload as AskResponse;
-				else if (event === 'error') throw new AiRequestError(502, payload.error ?? 'provider', payload.message ?? 'AI call failed');
+				else if (event === 'error') throw new AiRequestError(502, payload.error ?? 'provider', payload.message ?? t('ai.err.failed'));
 				event = 'message';
 			}
 		}
 	}
-	throw new AiRequestError(0, 'network', 'The reply ended early');
+	throw new AiRequestError(0, 'network', t('ai.err.endedEarly'));
 }
 
 export type { Feature };

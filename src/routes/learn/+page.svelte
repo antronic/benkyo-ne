@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.svelte.ts';
+	import { t, tn } from '#lib/i18n/index.svelte.ts';
 	import { c as tc, scriptName } from '#lib/i18n/content.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { LESSONS } from '#lib/content/lessons.ts';
@@ -46,6 +46,8 @@
 	function filterLabel(f: { id: Filter; label: string }) {
 		if (f.id === 'all') return t('learn.all');
 		if (f.id === 'fundamentals') return `🔤 ${t('learn.fundamentals')}`;
+		if (f.id === 'practice') return `🎯 ${t('learn.practice')}`;
+		if (f.id === 'kanji') return `⛰️ ${t('learn.kanjiFilter')}`;
 		const course = lessonPacks.courses.find((c) => c.id === f.id);
 		return course ? `${course.emoji} ${tc(course.title)}` : f.label;
 	}
@@ -86,16 +88,16 @@
 
 {#snippet practiceSection()}
 		<section class="practice rise" style:--h={265}>
-			<h2 class="eyebrow section">🎯 Practice · <span class="jp">れんしゅう</span></h2>
-			<p class="caption blurb">Already know some Japanese? Test out of the lessons you know, then drill what you’ve learned.</p>
+			<h2 class="eyebrow section">🎯 {t('learn.practice')} · <span class="jp">れんしゅう</span></h2>
+			<p class="caption blurb">{t('learn.practiceBlurb')}</p>
 			<div class="units">
 				{#each ['hiragana', 'katakana'] as const as script}
 					{@const n = left(script)}
 					<a class="unit glass sheen" href="/learn/placement/{script}" class:done={n === 0} style:--h={script === 'hiragana' ? 8 : 220}>
 						<span class="badge">{n === 0 ? '✓' : script === 'hiragana' ? 'あ' : 'ア'}</span>
 						<span class="stack" style:--gap="1px">
-							<span class="headline">Test out of {script}</span>
-							<span class="caption">{n === 0 ? 'All lessons done' : `Placement check · ${n} ${n === 1 ? 'lesson' : 'lessons'} to skip`}</span>
+							<span class="headline">{t('learn.testOut', { script: scriptName(script) })}</span>
+							<span class="caption">{n === 0 ? t('learn.allLessonsDone') : tn('learn.placementSkip', n)}</span>
 						</span>
 					</a>
 				{/each}
@@ -104,8 +106,8 @@
 					<a class="unit glass sheen" href="/review?practice={d.id}" class:empty={n === 0} aria-disabled={n === 0}>
 						<span class="badge">{d.emoji}</span>
 						<span class="stack" style:--gap="1px">
-							<span class="headline">{d.title}</span>
-							<span class="caption">{n ? d.blurb : 'Nothing to practise yet'}</span>
+							<span class="headline">{tc(d.title)}</span>
+							<span class="caption">{n ? tc(d.blurb) : t('learn.nothingYet')}</span>
 						</span>
 						<span class="spacer"></span>
 						{#if n}<span class="caption">{Math.min(n, 20)}</span>{/if}
@@ -151,8 +153,8 @@
 
 	{#if filter === 'all' || filter === 'kanji'}
 	<section class="kanji-sec">
-		<h2 class="eyebrow section rise">kanji · <span class="jp">漢字</span></h2>
-		<p class="caption blurb rise">Each kanji starts as the picture it was drawn from, then turns into strokes. Best after the hiragana lessons.</p>
+		<h2 class="eyebrow section rise">{t('learn.kanji')} · <span class="jp">漢字</span></h2>
+		<p class="caption blurb rise">{t('learn.kanjiBlurb')}</p>
 		<ol class="path kanji-path">
 			{#each KANJI_LESSONS as l, i}
 				{@const done = progress.completed.includes(l.id)}
@@ -161,16 +163,16 @@
 					<a href="/learn/kanji/{l.id}" class="glass sheen lesson" class:next={l.id === nextKanjiId} class:done style:--h={l.hue}>
 						<span class="badge">{done ? '✓' : i + 1}</span>
 						<span class="stack" style:--gap="2px">
-							<span class="headline">{l.title}</span>
+							<span class="headline">{tc(l.title)}</span>
 							<span class="glyphs">
 								{#each l.chars as k}<KanaGlyph char={k.char} size={22} weight={7} />{/each}
 							</span>
 						</span>
 						<span class="spacer"></span>
 						{#if s !== null}
-							<span class="meter" title="Predicted recall"><span style:width="{Math.round(s * 100)}%"></span></span>
+							<span class="meter" title={t('learn.predicted')}><span style:width="{Math.round(s * 100)}%"></span></span>
 						{:else if l.id === nextKanjiId}
-							<span class="start">Start</span>
+							<span class="start">{t('learn.start')}</span>
 						{/if}
 					</a>
 				</li>

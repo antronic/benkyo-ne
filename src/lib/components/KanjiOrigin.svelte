@@ -5,6 +5,7 @@
 	strokes to match the part chips (see KanjiParts).
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { onMount } from 'svelte';
 	import StrokeAnimator from './StrokeAnimator.svelte';
 	import { kanjiByChar } from '#lib/content/kanji.ts';
@@ -55,7 +56,7 @@
 		ondone={() => (stage = 'done')}
 	/>
 	{#if stage === 'picture' && kanji}
-		<span class="cue caption">What does this look like?</span>
+		<span class="cue caption">{t('kanji.lookLike')}</span>
 	{/if}
 </div>
 

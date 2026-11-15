@@ -5,6 +5,8 @@
 	offline. With `review`, the same text opens read-only from Settings.
 -->
 <script lang="ts">
+	import { i18n, t, fmtDateTime } from '#lib/i18n/index.svelte.ts';
+	import { consentCopy } from '#lib/beta/consentCopy.ts';
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import * as api from '#lib/ai/client.ts';
@@ -12,10 +14,11 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { CONSENT_DATE, CONSENT_VERSION } from '#lib/beta/contract.ts';
-	import { AGREE_LABEL, CHOICES, COLLECTED, CONSENT_INTRO, CONTACT, HOW_USED, NEVER_COLLECTED, OPERATOR, RETENTION } from '#lib/beta/consentText.ts';
+	import { OPERATOR } from '#lib/beta/consentText.ts';
 
 	let { review = false, onclose }: { review?: boolean; onclose?: () => void } = $props();
 
+	const { AGREE_LABEL, CHOICES, COLLECTED, CONSENT_INTRO, CONTACT, HOW_USED, NEVER_COLLECTED, RETENTION } = $derived(consentCopy(i18n.locale));
 	let agreed = $state(false);
 	let busy = $state(false);
 	let error = $state('');
@@ -30,10 +33,10 @@
 			await api.acceptConsent(CONSENT_VERSION);
 			haptic('success');
 			await ai.refresh();
-			toast('Thanks for helping with the beta', '🙏', 2400);
+			toast(t('consent.thanks'), '🙏', 2400);
 		} catch (e) {
 			haptic('error');
-			error = e instanceof Error ? e.message : 'Something went wrong';
+			error = e instanceof Error ? e.message : t('welcome.error');
 		} finally {
 			busy = false;
 		}
@@ -48,7 +51,7 @@
 		}
 		await ai.refresh();
 		busy = false;
-		toast('Signed out. You can keep learning offline.', '👋', 2600);
+		toast(t('consent.signedOut'), '👋', 2600);
 	}
 </script>
 
@@ -56,13 +59,13 @@
 	<div class="panel" in:fly|global={{ y: 18, duration: 500, easing: cubicOut }}>
 		<header class="hero">
 			<span class="beta">BETA</span>
-			<h2 class="large-title" id="consent-title">Help shape Benkyo</h2>
-			{#if updated}<p class="caption">The beta terms changed since you last agreed. Please read them again.</p>{/if}
+			<h2 class="large-title" id="consent-title">{t('consent.title')}</h2>
+			{#if updated}<p class="caption">{t('consent.updated')}</p>{/if}
 			<p class="subhead">{CONSENT_INTRO}</p>
 		</header>
 
-		<section class="card glass glass-strong" aria-label="What we collect">
-			<h3 class="eyebrow">What we collect</h3>
+		<section class="card glass glass-strong" aria-label={t('consent.collected')}>
+			<h3 class="eyebrow">{t('consent.collected')}</h3>
 			{#each COLLECTED as s (s.title)}
 				<details class="row">
 					<summary>
@@ -79,46 +82,46 @@
 			{/each}
 		</section>
 
-		<section class="card glass glass-strong" aria-label="What we never collect">
-			<h3 class="eyebrow">Never collected</h3>
+		<section class="card glass glass-strong" aria-label={t('consent.neverAria')}>
+			<h3 class="eyebrow">{t('consent.never')}</h3>
 			<ul class="plain">
 				{#each NEVER_COLLECTED as it}<li><span aria-hidden="true">🔒</span> {it}</li>{/each}
 			</ul>
 		</section>
 
-		<section class="card glass glass-strong" aria-label="How it is used and kept">
-			<h3 class="eyebrow">How it’s used</h3>
+		<section class="card glass glass-strong" aria-label={t('consent.usedAria')}>
+			<h3 class="eyebrow">{t('consent.used')}</h3>
 			<ul>{#each HOW_USED as it}<li>{it}</li>{/each}</ul>
-			<h3 class="eyebrow">How long we keep it</h3>
+			<h3 class="eyebrow">{t('consent.kept')}</h3>
 			<ul>{#each RETENTION as it}<li>{it}</li>{/each}</ul>
-			<h3 class="eyebrow">Your choices</h3>
+			<h3 class="eyebrow">{t('consent.choices')}</h3>
 			<ul>{#each CHOICES as it}<li>{it}</li>{/each}</ul>
-			<h3 class="eyebrow">Who we are</h3>
+			<h3 class="eyebrow">{t('consent.who')}</h3>
 			<ul>
 				<li>{CONTACT[0]}</li>
 				<li>
-					Questions, or a request to see, correct or delete your data:
+					{t('consent.contactAsk')}
 					<a href="mailto:{OPERATOR.email}?subject=Benkyo%20beta%20data">{OPERATOR.email}</a>.
 				</li>
 			</ul>
-			<p class="caption version">Beta terms version {CONSENT_VERSION} · {CONSENT_DATE}</p>
+			<p class="caption version">{t('consent.version', { version: CONSENT_VERSION, date: CONSENT_DATE })}</p>
 		</section>
 
 		{#if review}
 			{#if ai.beta?.acceptedAt}
-				<p class="caption center">You agreed on {new Date(ai.beta.acceptedAt).toLocaleString()}.</p>
+				<p class="caption center">{t('consent.agreedOn', { date: fmtDateTime(new Date(ai.beta.acceptedAt).getTime()) })}</p>
 			{/if}
-			<button class="btn accent block" onclick={() => onclose?.()}>Done</button>
+			<button class="btn accent block" onclick={() => onclose?.()}>{t('common.done')}</button>
 		{:else}
 			<div class="card glass glass-strong agree-card">
 				<label class="agree">
 					<input type="checkbox" bind:checked={agreed} />
 					<span>{AGREE_LABEL}</span>
 				</label>
-				<button class="btn accent block" onclick={agree} disabled={!agreed || busy}>{busy ? 'Saving…' : 'Agree and continue'}</button>
+				<button class="btn accent block" onclick={agree} disabled={!agreed || busy}>{busy ? t('common.saving') : t('consent.agree')}</button>
 				{#if error}<p class="error" role="alert" in:fade>{error}</p>{/if}
 			</div>
-			<button class="later" onclick={signOut} disabled={busy}>Not now, sign out and learn offline</button>
+			<button class="later" onclick={signOut} disabled={busy}>{t('consent.later')}</button>
 		{/if}
 	</div>
 </div>
