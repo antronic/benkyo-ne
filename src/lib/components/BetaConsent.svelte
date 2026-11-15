@@ -236,6 +236,9 @@
 		text-align: center;
 		margin: 4px 0 0;
 	}
+	ul a {
+		color: var(--accent-2);
+	}
 	.agree {
 		display: flex;
 		gap: 12px;
