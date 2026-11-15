@@ -631,6 +631,10 @@ export const en = {
 	'maker.saveCards': 'Save cards',
 	'maker.aiExtras': 'AI adds a memory hook, an example and your second language after saving; examples are checked against the dictionary.',
 	'maker.noAiExtras': 'Cards are saved with dictionary content now; AI extras are added when available.',
+	'ai.err.network': 'Network error',
+	'ai.err.dropped': 'The connection dropped',
+	'ai.err.failed': 'AI call failed',
+	'ai.err.endedEarly': 'The reply ended early',
 } as const satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;

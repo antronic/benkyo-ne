@@ -644,4 +644,8 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'maker.saveCards': 'บันทึกการ์ด',
 	'maker.aiExtras': 'หลังบันทึก AI จะเพิ่มตัวช่วยจำ ตัวอย่าง และภาษาที่สองของคุณ ตัวอย่างจะถูกตรวจกับพจนานุกรม',
 	'maker.noAiExtras': 'ตอนนี้การ์ดจะบันทึกพร้อมเนื้อหาจากพจนานุกรม ส่วนเสริมจาก AI จะเพิ่มให้เมื่อใช้งานได้',
+	'ai.err.network': 'เครือข่ายขัดข้อง',
+	'ai.err.dropped': 'การเชื่อมต่อขาดหาย',
+	'ai.err.failed': 'เรียกใช้ AI ไม่สำเร็จ',
+	'ai.err.endedEarly': 'คำตอบจบก่อนกำหนด',
 };
