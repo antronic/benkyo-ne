@@ -7,13 +7,13 @@
 	    iOS 27's move of controls to the side to free vertical space.
 -->
 <script lang="ts">
+	import { t as tr, type MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { backOut, cubicIn } from 'svelte/easing';
 	import { insets, regular, SIDE_RAIL_MIN } from '#lib/ios/device.svelte.ts';
-	import { t as tr, type MessageKey } from '#lib/i18n/index.svelte.ts';
 
 	// Compact screens with a right-side status column (iOS 27, folded iPhone Duo):
 	// put the tab bar in that column, under the battery.

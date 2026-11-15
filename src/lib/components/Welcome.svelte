@@ -5,6 +5,7 @@
 	"Not now" keeps the app usable offline without AI.
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import * as api from '#lib/ai/client.ts';
@@ -12,7 +13,6 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { strokesOf } from '#lib/content/strokes.ts';
-	import { t } from '#lib/i18n/index.svelte.ts';
 
 	let { ondone }: { ondone: () => void } = $props();
 

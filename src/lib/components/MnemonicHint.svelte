@@ -4,10 +4,10 @@
 	Using it is reported via `onuse` so the answer is graded Hard.
 -->
 <script lang="ts">
-	import { fly, fade } from 'svelte/transition';
-	import { mnemonicFor } from '#lib/content/mnemonics.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import { story } from '#lib/i18n/content.ts';
+	import { fly, fade } from 'svelte/transition';
+	import { mnemonicFor } from '#lib/content/mnemonics.ts';
 	import KanaGlyph from './KanaGlyph.svelte';
 
 	let { char, onuse }: { char: string; onuse?: () => void } = $props();

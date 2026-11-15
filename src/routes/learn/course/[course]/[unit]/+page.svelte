@@ -4,6 +4,8 @@
 	skips waiting for the kana lessons (cards aren't parked).
 -->
 <script lang="ts">
+	import { t, tn } from '#lib/i18n/index.svelte.ts';
+	import { c as tc, gloss } from '#lib/i18n/content.ts';
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -22,8 +24,6 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
-	import { t, tn } from '#lib/i18n/index.svelte.ts';
-	import { c as tc, gloss } from '#lib/i18n/content.ts';
 
 	const params = $derived(page.params as Record<string, string | undefined>);
 	const course = $derived(lessonPacks.courses.find((c) => c.id === params.course));

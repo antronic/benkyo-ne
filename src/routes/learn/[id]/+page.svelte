@@ -3,6 +3,8 @@
 	  MEET → TRACE (per kana) → RECOGNISE (pick 1 of 4) → RECALL (draw from memory) → SCHEDULE
 -->
 <script lang="ts">
+	import { t, type MessageKey } from '#lib/i18n/index.svelte.ts';
+	import { c, scriptName, story } from '#lib/i18n/content.ts';
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { page } from '$app/state';
@@ -21,8 +23,6 @@
 	import TracePad from '#lib/components/TracePad.svelte';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import RecallPad from '#lib/components/RecallPad.svelte';
-	import { t, type MessageKey } from '#lib/i18n/index.svelte.ts';
-	import { c, scriptName, story } from '#lib/i18n/content.ts';
 
 	type Phase = 'intro' | 'meet' | 'trace' | 'recognize' | 'recall' | 'done';
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t, fmtDateTime } from '#lib/i18n/index.svelte.ts';
 	import { onMount } from 'svelte';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
@@ -12,7 +13,6 @@
 	import { updater } from '#lib/pwa/update.svelte.ts';
 	import { DICT_ATTRIBUTION } from '#lib/dict/attribution.ts';
 	import LanguageSettings from '#lib/components/LanguageSettings.svelte';
-	import { t, fmtDateTime } from '#lib/i18n/index.svelte.ts';
 
 	ui.hue = 260;
 	let key = $state<string | undefined>();

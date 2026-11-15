@@ -5,6 +5,8 @@
 	  iPadOS list/detail split. The selection survives fold/unfold.
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { scriptName, story } from '#lib/i18n/content.ts';
 	import { fade } from 'svelte/transition';
 	import { GRID, speak, type Kana, type Script } from '#lib/content/kana.ts';
 	import { mnemonicFor } from '#lib/content/mnemonics.ts';
@@ -18,8 +20,6 @@
 	import TracePad from '#lib/components/TracePad.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
-	import { t } from '#lib/i18n/index.svelte.ts';
-	import { scriptName, story } from '#lib/i18n/content.ts';
 
 	ui.hue = 150;
 	let script = $state<Script>('hiragana');

@@ -1,5 +1,7 @@
 <!-- Words hub: reading packs, card maker, tags, and your word/phrase cards. -->
 <script lang="ts">
+	import { t as tr, tn } from '#lib/i18n/index.svelte.ts';
+	import { gloss } from '#lib/i18n/content.ts';
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
@@ -18,8 +20,6 @@
 	import { processOutbox } from '#lib/words/maker.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
-	import { t as tr, tn } from '#lib/i18n/index.svelte.ts';
-	import { gloss } from '#lib/i18n/content.ts';
 
 	ui.hue = 285;
 	let packs = $state<Pack[]>([]);

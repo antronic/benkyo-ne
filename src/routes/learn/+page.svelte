@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { c as tc, scriptName } from '#lib/i18n/content.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { LESSONS } from '#lib/content/lessons.ts';
 	import { cardId } from '#lib/content/lessons.ts';
@@ -12,15 +14,13 @@
 	import { onMount } from 'svelte';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
-	import { t } from '#lib/i18n/index.svelte.ts';
-	import { c as tc, scriptName } from '#lib/i18n/content.ts';
 
 	type Filter = string;
 	onMount(() => lessonPacks.load());
 	const FILTERS = $derived<{ id: Filter; label: string }[]>([
-		{ id: 'all', label: t('learn.all') },
-		{ id: 'fundamentals', label: `🔤 ${t('learn.fundamentals')}` },
-		...lessonPacks.courses.map((c) => ({ id: c.id as Filter, label: `${c.emoji} ${tc(c.title)}` }))
+		{ id: 'all', label: 'All' },
+		{ id: 'fundamentals', label: '🔤 Fundamentals' },
+		...lessonPacks.courses.map((c) => ({ id: c.id as Filter, label: `${c.emoji} ${c.title}` }))
 	]);
 	const saved = (() => {
 		try {
@@ -36,6 +36,13 @@
 		try {
 			localStorage.setItem('learn.filter', f);
 		} catch {}
+	}
+	/** Filter chip text in the interface language (labels above stay the English source). */
+	function filterLabel(f: { id: Filter; label: string }) {
+		if (f.id === 'all') return t('learn.all');
+		if (f.id === 'fundamentals') return `🔤 ${t('learn.fundamentals')}`;
+		const course = lessonPacks.courses.find((c) => c.id === f.id);
+		return course ? `${course.emoji} ${tc(course.title)}` : f.label;
 	}
 	const shownCourses = $derived(lessonPacks.courses.filter((c) => filter === 'all' || filter === c.id));
 
@@ -59,7 +66,7 @@
 	<LargeTitle title={t('nav.learn')} />
 	<div class="filters" role="tablist" aria-label={t('learn.filter')}>
 		{#each FILTERS as f}
-			<button role="tab" aria-selected={filter === f.id} class="chip" class:on={filter === f.id} onclick={() => choose(f.id)}>{f.label}</button>
+			<button role="tab" aria-selected={filter === f.id} class="chip" class:on={filter === f.id} onclick={() => choose(f.id)}>{filterLabel(f)}</button>
 		{/each}
 	</div>
 

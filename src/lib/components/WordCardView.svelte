@@ -1,10 +1,10 @@
 <!-- The back of a word/phrase card: reading, kanji, meanings, hook, usage, example. -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { gloss } from '#lib/i18n/content.ts';
 	import Romaji from './Romaji.svelte';
 	import type { UserCard } from '#lib/ai/contract.ts';
 	import { speak } from '#lib/content/kana.ts';
-	import { t } from '#lib/i18n/index.svelte.ts';
-	import { gloss } from '#lib/i18n/content.ts';
 
 	let { card, compact = false }: { card: Pick<UserCard, 'front' | 'kanji' | 'gloss' | 'gloss2' | 'hook' | 'usage' | 'example' | 'kind' | 'verified'>; compact?: boolean } = $props();
 </script>

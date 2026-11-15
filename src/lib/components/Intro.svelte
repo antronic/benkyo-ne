@@ -4,11 +4,11 @@
 	Replay from Settings → About. Reduce Motion: no 3D motion, simple fades.
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { strokesOf } from '#lib/content/strokes.ts';
-	import { t } from '#lib/i18n/index.svelte.ts';
 
 	let { ondone }: { ondone: () => void } = $props();
 

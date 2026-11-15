@@ -7,11 +7,11 @@
 	Grading runs in WASM (wasm/stroke), with a JS fallback.
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { onMount } from 'svelte';
 	import { strokesOf } from '#lib/content/strokes.ts';
 	import { getMatcher, type Matcher, type Pt } from '#lib/handwriting/match.ts';
 	import { haptic } from '#lib/state/progress.svelte.ts';
-	import { t } from '#lib/i18n/index.svelte.ts';
 
 	interface Props {
 		char: string;

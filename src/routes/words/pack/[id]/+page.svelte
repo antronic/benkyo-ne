@@ -3,6 +3,7 @@
 	hook and example. Finishing adds the words as cards (D10).
 -->
 <script lang="ts">
+	import { t, tn } from '#lib/i18n/index.svelte.ts';
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
@@ -17,7 +18,6 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
-	import { t, tn } from '#lib/i18n/index.svelte.ts';
 
 	ui.hue = 285;
 	let pack = $state<Pack | null>(null);

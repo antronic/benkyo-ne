@@ -6,6 +6,8 @@
 	Grades are inferred from correctness, time and hint use (PLAN §5.2).
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { scriptName, story } from '#lib/i18n/content.ts';
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { goto } from '$app/navigation';
@@ -25,8 +27,6 @@
 	import RecallPad from '#lib/components/RecallPad.svelte';
 	import ProgressRing from '#lib/components/ProgressRing.svelte';
 	import WordQuiz from '#lib/components/WordQuiz.svelte';
-	import { t } from '#lib/i18n/index.svelte.ts';
-	import { scriptName, story } from '#lib/i18n/content.ts';
 
 	ui.hue = 220;
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t, tn, fmtDate } from '#lib/i18n/index.svelte.ts';
+	import { c, scriptName } from '#lib/i18n/content.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { LESSONS } from '#lib/content/lessons.ts';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
@@ -7,8 +9,6 @@
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
-	import { t, tn, fmtDate } from '#lib/i18n/index.svelte.ts';
-	import { c, scriptName } from '#lib/i18n/content.ts';
 
 	const hour = new Date().getHours();
 	const greeting =

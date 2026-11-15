@@ -1,9 +1,9 @@
 <!-- ✨ AI hub: make word-card packs, make lesson packs, ask the tutor. -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
-	import { t } from '#lib/i18n/index.svelte.ts';
 
 	ui.hue = 265;
 	const ACTIONS = [

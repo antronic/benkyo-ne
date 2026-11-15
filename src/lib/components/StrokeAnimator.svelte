@@ -4,10 +4,10 @@
 	the leading edge and numbered start points.
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { onMount } from 'svelte';
 	import { strokesOf } from '#lib/content/strokes.ts';
 	import { mnemonicFor } from '#lib/content/mnemonics.ts';
-	import { t } from '#lib/i18n/index.svelte.ts';
 
 	interface Props {
 		char: string;

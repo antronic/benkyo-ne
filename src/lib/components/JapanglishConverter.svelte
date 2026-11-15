@@ -3,6 +3,8 @@
 	(dictionary) + a rule-based katakana guess with the rules that apply.
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { c, gloss } from '#lib/i18n/content.ts';
 	import { fly } from 'svelte/transition';
 	import { japanglish, RULES, type Conversion } from '#lib/content/japanglish.ts';
 	import { lookupEnglish, type DictHit } from '#lib/dict/dict.ts';
@@ -13,8 +15,6 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import Romaji from './Romaji.svelte';
-	import { t } from '#lib/i18n/index.svelte.ts';
-	import { c, gloss } from '#lib/i18n/content.ts';
 
 	let input = $state('');
 	let conv = $state<Conversion | null>(null);

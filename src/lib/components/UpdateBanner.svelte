@@ -1,9 +1,9 @@
 <!-- "New version available · Restart" banner (iOS-style glass pill). -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { updater } from '#lib/pwa/update.svelte.ts';
-	import { t } from '#lib/i18n/index.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 

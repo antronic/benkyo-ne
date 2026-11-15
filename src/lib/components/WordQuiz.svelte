@@ -6,6 +6,8 @@
 	Grades are inferred by the parent from correctness + time (PLAN §5.2).
 -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
+	import { gloss } from '#lib/i18n/content.ts';
 	import Romaji from './Romaji.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { fly, scale } from 'svelte/transition';
@@ -16,8 +18,6 @@
 	import { words } from '#lib/state/words.svelte.ts';
 	import { shuffle } from '#lib/quiz.ts';
 	import WordCardView from './WordCardView.svelte';
-	import { t } from '#lib/i18n/index.svelte.ts';
-	import { gloss } from '#lib/i18n/content.ts';
 
 	interface Props {
 		card: UserCard;
