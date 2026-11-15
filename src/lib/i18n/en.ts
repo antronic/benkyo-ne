@@ -265,6 +265,8 @@ export const en = {
 	'welcome.createPasskey': 'Create passkey',
 	'welcome.thenKey': 'Then add your own AI key in Settings. It’s encrypted and only your account can use it.',
 	'welcome.full': 'The beta is full right now. Already joined? Sign in instead.',
+	'welcome.invite': 'Invite code',
+	'welcome.inviteOnly': 'The beta is invite-only right now. Enter the code you were sent.',
 	'welcome.signInPasskey': 'Sign in with passkey',
 	'welcome.lost': 'Lost your passkey?',
 	'welcome.code': 'Recovery code',

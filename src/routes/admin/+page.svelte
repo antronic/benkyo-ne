@@ -71,8 +71,9 @@
 		<div class="glass group rise" style:--i="3">
 			<div class="item">
 				<span>Sign-ups</span><span class="spacer"></span>
-				<span class="pill" class:closed={data.signupMode === 'closed'}>{data.signupMode === 'open' ? 'Open' : 'Closed'}</span>
+				<span class="pill" class:closed={data.signupMode !== 'open'}>{data.signupMode === 'open' ? 'Open' : data.signupMode === 'invite' ? 'Invite only' : 'Closed'}</span>
 			</div>
+			<a class="item nav" href="/admin/settings"><span>Sign-ups, invites and sessions</span><span class="spacer"></span><span class="caption" aria-hidden="true">›</span></a>
 			<div class="item"><span>Devices on a sync key</span><span class="spacer"></span><b>{data.syncDevices}</b></div>
 		</div>
 

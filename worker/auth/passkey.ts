@@ -40,6 +40,7 @@ import { rateLimit } from '../ai/ledger.ts';
 import { deleteAccountData } from '../ai/credentials.ts';
 import { appleEnabled, handleApple } from './apple.ts';
 import { betaStatus } from '../beta/routes.ts';
+import { checkInvite, consumeInvite, normalizeInvite, signupState } from './signup.ts';
 
 export const SESSION_COOKIE = 'bk_session';
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -151,9 +152,8 @@ export function sessionCookie(url: URL, value: string, maxAge: number) {
 		.join('; ');
 }
 
-export const signupOpen = (env: Env) => (env.SIGNUP_MODE ?? 'open') !== 'closed';
-
-export function meOf(session: Session | null, env: Env): Me {
+export async function meOf(session: Session | null, env: Env): Promise<Me> {
+	const signup = await signupState(env);
 	return {
 		signedIn: !!session,
 		account: session
@@ -166,7 +166,8 @@ export function meOf(session: Session | null, env: Env): Me {
 					appleLinked: session.appleLinked
 				}
 			: null,
-		signupOpen: signupOpen(env),
+		signupOpen: signup.open,
+		signupInvite: signup.invite,
 		appleEnabled: appleEnabled(env)
 	};
 }
@@ -183,6 +184,7 @@ interface ChallengeFor {
 	userId?: number | null;
 	userHandle?: string | null;
 	signupName?: string | null;
+	inviteCode?: string | null;
 }
 
 async function storeChallenge(env: Env, challenge: string, kind: 'register' | 'login', f: ChallengeFor = {}) {
@@ -190,8 +192,8 @@ async function storeChallenge(env: Env, challenge: string, kind: 'register' | 'l
 	await env.DB.batch([
 		env.DB.prepare(`DELETE FROM auth_challenges WHERE expires_at <= ?1`).bind(now),
 		env.DB.prepare(
-			`INSERT INTO auth_challenges (challenge, kind, expires_at, user_id, user_handle, signup_name) VALUES (?1, ?2, ?3, ?4, ?5, ?6)`
-		).bind(challenge, kind, now + CHALLENGE_TTL_MS, f.userId ?? null, f.userHandle ?? null, f.signupName ?? null)
+			`INSERT INTO auth_challenges (challenge, kind, expires_at, user_id, user_handle, signup_name, invite_code) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+		).bind(challenge, kind, now + CHALLENGE_TTL_MS, f.userId ?? null, f.userHandle ?? null, f.signupName ?? null, f.inviteCode ?? null)
 	]);
 }
 
@@ -200,7 +202,7 @@ async function consumeChallenge(env: Env, challenge: string, kind: 'register' | 
 	return (
 		(await env.DB.prepare(
 			`DELETE FROM auth_challenges WHERE challenge = ?1 AND kind = ?2 AND expires_at > ?3
-			 RETURNING user_id AS userId, user_handle AS userHandle, signup_name AS signupName`
+			 RETURNING user_id AS userId, user_handle AS userHandle, signup_name AS signupName, invite_code AS inviteCode`
 		)
 			.bind(challenge, kind, Date.now())
 			.first<ChallengeFor>()) ?? null
@@ -221,7 +223,7 @@ export const clientIp = (req: Request) => req.headers.get('cf-connecting-ip') ??
 async function registerOptions(req: Request, env: Env) {
 	const url = new URL(req.url);
 	const session = await getSession(req, env);
-	const body = ((await readJson(req)) ?? {}) as { name?: unknown };
+	const body = ((await readJson(req)) ?? {}) as { name?: unknown; invite?: unknown };
 
 	let userName: string;
 	let userHandle: string;
@@ -244,12 +246,20 @@ async function registerOptions(req: Request, env: Env) {
 		f = { userId: session.userId };
 	} else {
 		// sign-up: a brand-new account, created only when the passkey verifies
-		if (!signupOpen(env)) throw httpError(403, 'unauthorized', 'New sign-ups are closed right now');
+		// closed in the console: an invite code still works; closed by the Worker var: nothing does
+		const signup = await signupState(env);
+		let inviteCode: string | null = null;
+		if (!signup.open) {
+			if (!signup.invite) throw httpError(403, 'unauthorized', 'New sign-ups are closed right now');
+			inviteCode = normalizeInvite(body.invite);
+			if (!inviteCode) throw httpError(403, 'unauthorized', 'Sign-ups are invite-only right now. Enter your invite code.');
+			await checkInvite(env, inviteCode);
+		}
 		const name = cleanName(body.name);
 		await signupThrottle(req, env);
 		userName = name;
 		userHandle = b64urlEncode(randomBytes(16));
-		f = { userHandle, signupName: name };
+		f = { userHandle, signupName: name, inviteCode };
 	}
 	const options = await generateRegistrationOptions({
 		rpName: RP_NAME,
@@ -344,11 +354,16 @@ async function registerVerify(req: Request, env: Env) {
 		if (!session || session.userId !== ch.userId) return aiError(401, 'unauthorized', 'Sign in again to add a passkey');
 		userId = ch.userId;
 	} else if (ch.userHandle && ch.signupName) {
-		if (!signupOpen(env)) return aiError(403, 'unauthorized', 'New sign-ups are closed right now');
+		const signup = await signupState(env);
+		if (!signup.open) {
+			if (!signup.invite || !ch.inviteCode) return aiError(403, 'unauthorized', 'New sign-ups are closed right now');
+			if (!(await consumeInvite(env, ch.inviteCode)))
+				return aiError(403, 'unauthorized', 'That invite code was used up in the meantime');
+		}
 		const acct = await env.DB.prepare(
-			`INSERT INTO accounts (name, webauthn_user_id, created_at) VALUES (?1, ?2, ?3) RETURNING id`
+			`INSERT INTO accounts (name, webauthn_user_id, created_at, invite_code) VALUES (?1, ?2, ?3, ?4) RETURNING id`
 		)
-			.bind(ch.signupName, ch.userHandle, now)
+			.bind(ch.signupName, ch.userHandle, now, ch.inviteCode ?? null)
 			.first<{ id: number }>();
 		userId = acct!.id;
 		recoveryCode = generateRecoveryCode();
@@ -452,14 +467,14 @@ async function loginVerify(req: Request, env: Env) {
 		isAdmin: !!pk.is_admin,
 		appleLinked: !!linked
 	};
-	return json(meOf(session, env), { headers: { 'set-cookie': cookie } });
+	return json(await meOf(session, env), { headers: { 'set-cookie': cookie } });
 }
 
 async function logout(req: Request, env: Env) {
 	const url = new URL(req.url);
 	const token = getCookie(req, SESSION_COOKIE);
 	if (token) await env.DB.prepare(`DELETE FROM sessions WHERE token_hash = ?1`).bind(await sha256Hex(token)).run();
-	return json(meOf(null, env), { headers: { 'set-cookie': sessionCookie(url, '', 0) } });
+	return json(await meOf(null, env), { headers: { 'set-cookie': sessionCookie(url, '', 0) } });
 }
 
 async function recover(req: Request, env: Env) {
@@ -491,7 +506,7 @@ async function recover(req: Request, env: Env) {
 		isAdmin: !!acct?.isAdmin,
 		appleLinked: !!acct?.appleSub
 	};
-	return json(meOf(session, env), { headers: { 'set-cookie': cookie } });
+	return json(await meOf(session, env), { headers: { 'set-cookie': cookie } });
 }
 
 // --------------------------------------------------------------- account ----
@@ -528,7 +543,7 @@ async function newRecoveryCode(session: Session, env: Env) {
 async function renameAccount(req: Request, session: Session, env: Env) {
 	const name = cleanName(((await readJson(req)) as { name?: unknown })?.name);
 	await env.DB.prepare(`UPDATE accounts SET name = ?1 WHERE id = ?2`).bind(name, session.userId).run();
-	return json(meOf({ ...session, name }, env));
+	return json(await meOf({ ...session, name }, env));
 }
 
 async function deleteAccount(req: Request, session: Session, env: Env) {
@@ -537,7 +552,7 @@ async function deleteAccount(req: Request, session: Session, env: Env) {
 	if (session.kind === 'dev') throw httpError(400, 'bad_request', 'Not available in dev mode');
 	await deleteAccountData(env, session.userId);
 	const url = new URL(req.url);
-	return json(meOf(null, env), { headers: { 'set-cookie': sessionCookie(url, '', 0) } });
+	return json(await meOf(null, env), { headers: { 'set-cookie': sessionCookie(url, '', 0) } });
 }
 
 /** Route /api/auth/*; returns null when the path isn't an auth route. */
@@ -546,7 +561,7 @@ export async function handleAuth(req: Request, env: Env, path: string): Promise<
 	const m = req.method;
 	if (path === '/api/auth/me' && m === 'GET') {
 		const s = await getSession(req, env);
-		return json({ ...meOf(s, env), beta: s ? await betaStatus(env, s.userId) : null } satisfies Me);
+		return json({ ...(await meOf(s, env)), beta: s ? await betaStatus(env, s.userId) : null } satisfies Me);
 	}
 	if (path === '/api/auth/passkeys' && m === 'GET') return json(await listPasskeys(await requireSession(req, env), env));
 	const pk = /^\/api\/auth\/passkeys\/([A-Za-z0-9_-]{1,512})$/.exec(path);

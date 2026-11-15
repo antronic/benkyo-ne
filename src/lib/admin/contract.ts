@@ -6,7 +6,8 @@ export interface AdminOverview {
 	accounts: { total: number; active7d: number; new7d: number; new24h: number; disabled: number };
 	/** AI spend this calendar month (UTC), finished calls only */
 	ai: { monthUsd: number; monthCalls: number; failed24h: number };
-	signupMode: 'open' | 'closed';
+	/** invite: closed in the console, invite codes still work; closed: nobody (Worker var) */
+	signupMode: 'open' | 'invite' | 'closed';
 	/** devices still syncing with a sync key */
 	syncDevices: number;
 }
@@ -50,3 +51,39 @@ export interface AdminAccountPatch {
 
 /** Status 428 + this code: confirm with a passkey, then retry. */
 export const STEPUP_REQUIRED = 'stepup_required';
+
+export interface AdminInvite {
+	code: string;
+	label: string | null;
+	maxUses: number;
+	uses: number;
+	expiresAt: number | null;
+	createdAt: number;
+	revokedAt: number | null;
+}
+
+export interface AdminSettings {
+	signup: {
+		/** what the console set */
+		mode: 'open' | 'closed';
+		/** SIGNUP_MODE=closed on the Worker: nobody can sign up, invites included */
+		hardClosed: boolean;
+	};
+	session: {
+		/** the console setting in days, or null for the default */
+		days: number | null;
+		/** what applies now (setting, else Worker var, else default) */
+		effectiveDays: number;
+		defaultDays: number;
+	};
+	invites: AdminInvite[];
+	/** new accounts per UTC day, oldest first, last 30 days including today */
+	signupsByDay: { day: string; count: number }[];
+}
+
+/** POST /api/admin/invites */
+export interface AdminInviteInput {
+	label?: string;
+	maxUses?: number;
+	expiresInDays?: number | null;
+}

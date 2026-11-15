@@ -13,6 +13,8 @@ class Ai {
 	signedIn = $state(false);
 	account = $state<Me['account']>(null);
 	signupOpen = $state(true);
+	/** closed, but an invite code still works */
+	signupInvite = $state(false);
 	appleEnabled = $state(false);
 	credentials = $state<CredentialInfo[]>([]);
 	usage = $state<Usage | null>(null);
@@ -53,6 +55,7 @@ class Ai {
 			this.signedIn = m.signedIn;
 			this.account = m.account;
 			this.signupOpen = m.signupOpen;
+			this.signupInvite = !!m.signupInvite;
 			this.appleEnabled = !!m.appleEnabled;
 			this.beta = m.signedIn ? (m.beta ?? null) : null;
 			telemetry.setEnabled(m.signedIn && !!m.beta && m.beta.acceptedVersion === m.beta.version, m.account?.id ?? null);

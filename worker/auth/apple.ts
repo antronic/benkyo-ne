@@ -20,13 +20,15 @@
  * post only when the form's state matches that cookie, so a sign-in can't
  * be finished in another browser (login CSRF).
  *
- * New accounts follow SIGNUP_MODE and the same throttles as passkey sign-ups.
+ * New accounts need sign-ups open (worker/auth/signup.ts; invite codes are passkey-only)
+ * and pass the same throttles as passkey sign-ups.
  */
 import { b64urlEncode, randomBytes, sha256Hex } from '../crypto.ts';
 import type { Env } from '../env.ts';
 import { aiError, cookieSecure, getCookie, HttpError, httpError, json } from '../http.ts';
 import { AppleTokenError, verifyAppleIdToken, type KeyFetcher } from './appleToken.ts';
-import { cleanName, createSession, meOf, requireSession, SESSION_COOKIE, signupOpen, signupThrottle } from './passkey.ts';
+import { cleanName, createSession, meOf, requireSession, SESSION_COOKIE, signupThrottle } from './passkey.ts';
+import { signupState } from './signup.ts';
 
 const STATE_COOKIE = 'bk_apple';
 const STATE_TTL_MS = 10 * 60 * 1000;
@@ -172,7 +174,8 @@ export async function callback(req: Request, env: Env, keys?: KeyFetcher): Promi
 	}
 
 	// a new account
-	if (!signupOpen(env)) return fail('closed');
+	// invite codes only work with passkey sign-up
+	if (!(await signupState(env)).open) return fail('closed');
 	try {
 		await signupThrottle(req, env);
 	} catch (e) {
@@ -209,9 +212,9 @@ async function unlink(req: Request, env: Env) {
 		const clear = [`${SESSION_COOKIE}=`, 'HttpOnly', cookieSecure(url) ? 'Secure' : '', 'SameSite=Strict', 'Path=/api', 'Max-Age=0']
 			.filter(Boolean)
 			.join('; ');
-		return json(meOf(null, env), { headers: { 'set-cookie': clear } });
+		return json(await meOf(null, env), { headers: { 'set-cookie': clear } });
 	}
-	return json(meOf({ ...session, appleLinked: false }, env));
+	return json(await meOf({ ...session, appleLinked: false }, env));
 }
 
 export async function handleApple(req: Request, env: Env, path: string): Promise<Response | null> {

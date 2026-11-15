@@ -79,13 +79,13 @@ export function deviceName(): string {
 }
 
 /**
- * Signed out with `name`: create an account (its first passkey).
+ * Signed out with `name`: create an account (its first passkey); `invite` when sign-ups are invite-only.
  * Signed in: add another passkey to your account.
  */
-export async function registerPasskey(name?: string): Promise<{ recoveryCode?: string }> {
+export async function registerPasskey(name?: string, invite?: string): Promise<{ recoveryCode?: string }> {
 	const options = await call<Parameters<typeof startRegistration>[0]['optionsJSON']>('/api/auth/register/options', {
 		method: 'POST',
-		json: name ? { name } : {}
+		json: name ? { name, ...(invite ? { invite } : {}) } : {}
 	});
 	const response = await startRegistration({ optionsJSON: options });
 	return call('/api/auth/register/verify', { method: 'POST', json: { response, deviceName: deviceName() } });
