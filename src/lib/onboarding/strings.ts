@@ -43,6 +43,7 @@ interface Strings {
 	};
 	card: {
 		title: string;
+		perDay: (min: number) => string;
 		adjust: string;
 		hide: string;
 		done: string;
@@ -104,6 +105,7 @@ export const STRINGS: Record<Lang, Strings> = {
 		},
 		card: {
 			title: 'Your plan',
+			perDay: (m) => `${m} min a day`,
 			adjust: 'Adjust',
 			hide: 'Hide',
 			done: 'Done',
@@ -160,6 +162,7 @@ export const STRINGS: Record<Lang, Strings> = {
 		},
 		card: {
 			title: 'แผนของคุณ',
+			perDay: (m) => `วันละ ${m} นาที`,
 			adjust: 'ปรับ',
 			hide: 'ซ่อน',
 			done: 'เสร็จแล้ว',

@@ -46,7 +46,7 @@
 	<section class="glass sheen card plan rise" style:--i={i}>
 		{#if p}
 			<div class="head">
-				<div class="eyebrow">{t.card.title} · {t.steps.daily(p.minutes)}</div>
+				<div class="eyebrow">{t.card.title} · {t.card.perDay(p.minutes)}</div>
 				<span class="spacer"></span>
 				<button class="link" onclick={() => (ui.showOnboarding = true)}>{t.card.adjust}</button>
 				<button class="link" onclick={() => profile.hide()} aria-label={t.card.hide}>✕</button>
@@ -80,10 +80,25 @@
 {/if}
 
 <style>
+	/* .card padding lives in the Today page's scoped styles, so set our own to match */
 	.plan {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 4px;
+		padding: 16px 20px 10px;
+		border-radius: var(--r-l);
+	}
+	.plan:has(.nudge) {
+		padding-bottom: 16px;
+	}
+	.head {
+		margin: -4px -8px 2px 0;
+	}
+	.head .eyebrow {
+		min-width: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	.head,
 	.nudge {
@@ -102,7 +117,8 @@
 		font: inherit;
 		font-size: 14px;
 		font-weight: 600;
-		padding: 4px 6px;
+		min-height: 32px;
+		padding: 4px 8px;
 		cursor: pointer;
 	}
 	.link[aria-label] {
@@ -117,7 +133,8 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 8px 0;
+		padding: 10px 0;
+		min-height: 52px;
 		color: inherit;
 		text-decoration: none;
 	}
