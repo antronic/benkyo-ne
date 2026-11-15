@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
+	import DayBars from '#lib/admin/DayBars.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError, createInvite, getSettings, revokeInvite, setSessionDays, setSignupMode } from '#lib/admin/client.ts';
@@ -20,7 +21,6 @@
 	let label = $state('');
 	let uses = $state('1');
 	let expiry = $state('14');
-	let hover = $state<number | null>(null);
 
 	async function load() {
 		error = null;
@@ -88,24 +88,8 @@
 
 	const live = (i: AdminInvite) => !i.revokedAt && i.uses < i.maxUses && (!i.expiresAt || i.expiresAt > Date.now());
 	const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-	const dayLabel = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
-	// 30-day sign-ups bar chart geometry (viewBox units)
-	const W = 300;
-	const H = 72;
-	const peak = $derived(Math.max(1, ...(s?.signupsByDay.map((d) => d.count) ?? [1])));
 	const total = $derived(s?.signupsByDay.reduce((n, d) => n + d.count, 0) ?? 0);
-	const slot = W / 30;
-	function barPath(i: number, count: number) {
-		if (!count) return '';
-		const w = slot - 2; // 2px gap between bars
-		const h = Math.max(3, (count / peak) * (H - 4));
-		const x = i * slot + 1;
-		const y = H - h;
-		const r = Math.min(2, w / 2, h);
-		// rounded data end on top, square at the baseline
-		return `M${x},${H}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${H}Z`;
-	}
 </script>
 
 <svelte:head><title>Sign-ups and settings · Fleet</title></svelte:head>
@@ -140,32 +124,7 @@
 				<span class="row" style:gap="8px">
 					<span>New accounts, last 30 days</span><span class="spacer"></span><b class="num">{total}</b>
 				</span>
-				<figure class="chart">
-					<svg viewBox="0 0 {W} {H}" role="img" aria-label="New accounts per day over the last 30 days, {total} in total, at most {peak} in a day" onmouseleave={() => (hover = null)}>
-						<line x1="0" x2={W} y1={H - 0.5} y2={H - 0.5} class="base" />
-						{#each s.signupsByDay as d, i (d.day)}
-							<path d={barPath(i, d.count)} class="bar" class:dim={hover !== null && hover !== i} />
-							<!-- hit target wider and taller than the bar -->
-							<rect x={i * slot} y="0" width={slot} height={H} fill="transparent" role="presentation" onmouseenter={() => (hover = i)}>
-								<title>{dayLabel(d.day)}: {d.count}</title>
-							</rect>
-						{/each}
-					</svg>
-					<figcaption class="caption row">
-						<span>{dayLabel(s.signupsByDay[0].day)}</span><span class="spacer"></span>
-						{#if hover !== null}<b>{dayLabel(s.signupsByDay[hover].day)}: {s.signupsByDay[hover].count}</b><span class="spacer"></span>{/if}
-						<span>Today</span>
-					</figcaption>
-				</figure>
-				<details>
-					<summary class="caption">Show as a table</summary>
-					<table class="caption">
-						<thead><tr><th>Day (UTC)</th><th>New accounts</th></tr></thead>
-						<tbody>
-							{#each s.signupsByDay.filter((d) => d.count) as d (d.day)}<tr><td>{dayLabel(d.day)}</td><td class="num">{d.count}</td></tr>{:else}<tr><td colspan="2">None</td></tr>{/each}
-						</tbody>
-					</table>
-				</details>
+				<DayBars days={s.signupsByDay.map((d) => ({ day: d.day, value: d.count }))} label="New accounts per day" column="New accounts" />
 			</div>
 		</div>
 
@@ -224,39 +183,6 @@
 </main>
 
 <style>
-	.chart {
-		margin: 4px 0 0;
-	}
-	svg {
-		display: block;
-		width: 100%;
-		height: 72px;
-	}
-	.base {
-		stroke: var(--hairline);
-		stroke-width: 1;
-	}
-	.bar {
-		fill: var(--accent-2);
-		transition: opacity 150ms;
-	}
-	.bar.dim {
-		opacity: 0.4;
-	}
-	figcaption {
-		gap: 8px;
-		margin-top: 4px;
-	}
-	table {
-		width: 100%;
-		margin-top: 6px;
-		border-collapse: collapse;
-	}
-	th,
-	td {
-		text-align: left;
-		padding: 2px 0;
-	}
 	.code {
 		font: 600 15px ui-monospace, 'SF Mono', Menlo, monospace;
 		letter-spacing: 0.04em;

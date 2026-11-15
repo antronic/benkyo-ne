@@ -13,10 +13,13 @@ import {
 	type AdminAccountDetail,
 	type AdminAccountList,
 	type AdminAccountPatch,
+	type AdminAuditList,
 	type AdminInvite,
 	type AdminInviteInput,
 	type AdminOverview,
-	type AdminSettings
+	type AdminSettings,
+	type AdminSystem,
+	type AdminUsage
 } from './contract.ts';
 
 export type AdminErrorCode = 'access' | 'closed' | 'forbidden' | 'signin' | 'offline' | 'stepup' | 'bad' | 'server';
@@ -107,3 +110,8 @@ export const setSessionDays = (days: number | null) =>
 	withStepUp(() => call<AdminSettings>('/api/admin/settings/session', { method: 'PUT', json: { days } }));
 export const createInvite = (input: AdminInviteInput) => call<AdminInvite>('/api/admin/invites', { method: 'POST', json: input });
 export const revokeInvite = (code: string) => call<{ ok: true }>(`/api/admin/invites/${encodeURIComponent(code)}`, { method: 'DELETE' });
+
+export const getUsage = (days: 7 | 30 | 90) => call<AdminUsage>(`/api/admin/usage?days=${days}`);
+export const getSystem = () => call<AdminSystem>('/api/admin/system');
+export const getAudit = (offset = 0, action = '') =>
+	call<AdminAuditList>(`/api/admin/audit?offset=${offset}${action ? `&action=${encodeURIComponent(action)}` : ''}`);

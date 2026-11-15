@@ -12,8 +12,8 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 |---|---|---|
 | 1 | Access check, admin guard, audit table, Overview screen | merged (#7) |
 | 2 | Accounts: list, detail, disable/enable, delete, cap, revoke sessions; passkey step-up | merged (#10) |
-| 3 | Settings: sign-up switch, invite codes, session lifetime, sign-ups per day | this PR |
-| 4 | Usage and system: spend charts, build and migration info, audit log view | planned |
+| 3 | Settings: sign-up switch, invite codes, session lifetime, sign-ups per day | merged (#11) |
+| 4 | Usage, System and Audit log screens (read-only) | this PR |
 | 5 | Packages: Free / Plus / Pro, manual grants | planned |
 
 ## Security
@@ -84,6 +84,20 @@ accounts per day for the last 30 days.
 
 Emergency stops that don't need the console: set the Access policy to deny
 everyone, and `SIGNUP_MODE=closed` on the Worker.
+
+## Usage, system and audit log
+
+- **Usage** (`/admin/usage`): AI spend over 7, 30 or 90 UTC days, per day,
+  feature, model and account, plus the latest failed calls. Spend counts
+  finished calls only.
+- **System** (`/admin/system`): the deployed Worker version (the
+  `CF_VERSION_METADATA` binding in `wrangler.jsonc`), the app build, the
+  last applied D1 migration compared with the newest one this Worker was
+  built with (`LATEST_MIGRATION` in `worker/admin/insights.ts`; a test fails
+  if it falls behind `worker/migrations`), health checks and table sizes.
+  "Behind" means the deploy skipped `wrangler d1 migrations apply`.
+- **Audit log** (`/admin/audit`): every admin change, newest first, with a
+  filter by action.
 
 ## Local development
 
