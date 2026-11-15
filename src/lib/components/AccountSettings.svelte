@@ -157,6 +157,14 @@
 			<button class="btn ghost small" onclick={rename} disabled={busy}>Rename</button>
 			<button class="btn ghost small" onclick={signOut} disabled={busy}>Sign out</button>
 		</div>
+		{#if ai.account.isAdmin && !ai.account.recovery}
+			<!-- Full page load so Cloudflare Access can run its sign-in for /admin. -->
+			<a class="item link-item" href="/admin" data-sveltekit-reload>
+				<span>Fleet console</span>
+				<span class="spacer"></span>
+				<span class="caption" aria-hidden="true">›</span>
+			</a>
+		{/if}
 		{#if ai.account.recovery}
 			<div class="item warn">
 				<span class="caption">Add a new passkey now. Recovery sessions end after 12 hours.</span>
@@ -254,6 +262,10 @@
 	}
 	.item + .item {
 		border-top: 0.5px solid var(--hairline);
+	}
+	a.link-item {
+		color: inherit;
+		text-decoration: none;
 	}
 	details.item {
 		display: block;

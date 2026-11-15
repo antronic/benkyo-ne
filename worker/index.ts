@@ -7,11 +7,13 @@
  *   GET  /api/health
  *   /api/auth/*         passkey auth (worker/auth/passkey.ts)
  *   /api/ai/*           AI features behind the passkey session (worker/ai/routes.ts)
+ *   /api/admin/*        fleet console, admin only, behind Cloudflare Access (worker/admin/routes.ts)
  *
  * Everything else falls through to static assets (SPA fallback configured
  * in wrangler.jsonc).
  */
 
+import { handleAdmin } from './admin/routes.ts';
 import { handleAi } from './ai/routes.ts';
 import { handleAuth } from './auth/passkey.ts';
 import { MAX_CARDS_PUSH, pullCards, upsertCardStatements, validCard } from './cards.ts';
@@ -126,12 +128,13 @@ export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): 
 	const url = new URL(req.url);
 	try {
 		const p = url.pathname;
-		if (p.startsWith('/api/auth/') || p.startsWith('/api/ai/')) {
+		if (p.startsWith('/api/auth/') || p.startsWith('/api/ai/') || p.startsWith('/api/admin/')) {
 			// CSRF: SameSite=Strict cookie, plus same-origin check on writes.
 			const origin = req.headers.get('origin');
 			if (req.method !== 'GET' && req.method !== 'HEAD' && origin && origin !== url.origin)
 				return json({ error: 'unauthorized', message: 'Cross-origin request' }, { status: 403 });
 			if (p.startsWith('/api/ai/')) return await handleAi(req, env, ctx, url);
+			if (p.startsWith('/api/admin/')) return await handleAdmin(req, env, url);
 			const res = await handleAuth(req, env, p);
 			if (res) return res;
 		}
