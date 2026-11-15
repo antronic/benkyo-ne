@@ -31,15 +31,7 @@
 	a {
 		text-decoration: none;
 	}
-	:global(.btn.danger) {
-		background: var(--color-danger);
-		color: var(--color-on-solid);
-	}
-	:global(.btn.plain) {
-		background: none;
-		color: var(--color-link);
-		padding: 0 var(--space-2);
-	}
+	/* .btn.danger and .btn.plain live in app.css with the other variants. */
 	.spin {
 		width: 1em;
 		height: 1em;
