@@ -8,6 +8,7 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import AiSettings from '#lib/components/AiSettings.svelte';
+	import { Select } from '#lib/ui/index.ts';
 	import { version } from '$app/env';
 	import { updater } from '#lib/pwa/update.svelte.ts';
 	import { DICT_ATTRIBUTION } from '#lib/dict/attribution.ts';
@@ -125,11 +126,16 @@
 				<span class="caption">Auto puts it beside the status bar when your screen has one on the side (iOS 27, folded iPhone Duo).</span>
 			</span>
 			<span class="spacer"></span>
-			<select class="pick" aria-label="Tab bar position" value={progress.settings.navPosition} onchange={(e) => progress.saveSettings({ navPosition: e.currentTarget.value as 'auto' | 'bottom' | 'side' })}>
-				<option value="auto">Auto</option>
-				<option value="bottom">Bottom</option>
-				<option value="side">Side</option>
-			</select>
+			<Select
+				label="Tab bar position"
+				value={progress.settings.navPosition}
+				options={[
+					{ value: 'auto', label: 'Auto' },
+					{ value: 'bottom', label: 'Bottom' },
+					{ value: 'side', label: 'Side' }
+				]}
+				onchange={(v) => progress.saveSettings({ navPosition: v })}
+			/>
 		</div>
 		<label class="item">
 			<span>Play audio automatically</span><span class="spacer"></span>
@@ -266,16 +272,6 @@
 	}
 	a {
 		color: var(--accent-2);
-	}
-	.pick {
-		font: inherit;
-		font-size: 1rem;
-		height: 44px;
-		padding: 0 12px;
-		border-radius: 12px;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		color: var(--ink);
 	}
 	.link {
 		border: 0;

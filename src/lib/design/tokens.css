@@ -127,10 +127,14 @@
 			1.185, 1.209 19%, 1.196 20.6%, 1.151 22.5%, 0.989 29.2%, 0.942 32.2%, 0.931 34.8%, 0.95 38.3%,
 			1.003 45.4%, 1.019 49.1%, 1.017 54.3%, 0.998 66.2%, 1);
 	--ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
-	--dur-fast: 200ms;
-	--dur-press: 380ms;
-	--dur-base: 520ms;
-	--dur-slow: 700ms;
+	--dur-fast: 200ms; /* colour, opacity, focus ring, scrim */
+	--dur-press: 380ms; /* press-down scale on buttons, chips, cards */
+	--dur-page: 420ms; /* route change crossfade (View Transitions) */
+	--dur-toggle: 450ms; /* switch knob, stepper, selection pill */
+	--dur-base: 520ms; /* sheets, shared-element morphs */
+	--dur-slow: 700ms; /* content rising in on first show */
+	--stagger: 55ms; /* delay between siblings rising in (--i index) */
+	--press-scale: 0.96; /* buttons; icon buttons 0.9, chips 0.95 */
 
 	/* material */
 	--blur-glass: blur(28px) saturate(180%);

@@ -59,3 +59,16 @@ export const motionTokens = [
 	{ name: '--ease-spring-bouncy', use: 'Switch knob, success pops' },
 	{ name: '--ease-out', use: 'Page transitions, shakes' }
 ];
+
+/** Motion patterns used across the app, for the catalog's Motion section. */
+export const motionPatterns = [
+	{ id: 'press', name: 'Press', when: 'Every tappable thing: buttons, chips, cards, rows', spec: 'scale 0.96 · --dur-press · --ease-spring', haptic: 'selection on chips, segments, tabs' },
+	{ id: 'rise', name: 'Rise in', when: 'Content on first show of a screen, staggered top to bottom', spec: 'y 18px, blur 6px → 0 · --dur-slow · --ease-spring · --stagger × --i', haptic: 'none' },
+	{ id: 'page', name: 'Page change', when: 'Moving between tabs and screens (View Transitions)', spec: 'old: fade, scale 0.97, blur 4px · new: from scale 1.02 · --dur-page · --ease-out', haptic: 'none' },
+	{ id: 'sheet', name: 'Sheet', when: 'Card details, pickers, action sheets; dismiss by dragging down', spec: 'from below · --dur-base · ease-out · scrim fade --dur-fast', haptic: 'warning before a destructive choice' },
+	{ id: 'toast', name: 'Toast', when: 'Short confirmation after an action (“Progress erased”)', spec: 'scale 0.85 → 1, 380ms ease-out · out: fade --dur-fast', haptic: 'success' },
+	{ id: 'toggle', name: 'Toggle', when: 'Switch knob, stepper, selected segment', spec: 'knob --dur-toggle · --ease-spring-bouncy · track colour 250ms', haptic: 'selection' },
+	{ id: 'progress', name: 'Progress', when: 'Rings and bars filling after an answer or a session', spec: 'width / stroke 600ms · --ease-spring', haptic: 'success when a goal completes' },
+	{ id: 'shake', name: 'Wrong answer', when: 'A wrong answer or an invalid field', spec: 'shake ±8px · 480ms · --ease-out', haptic: 'error' },
+	{ id: 'ambient', name: 'Ambient', when: 'Splash, intro, backdrop only. Never behind study content', spec: 'drift / breathe 6–9s · ease-in-out · alternate', haptic: 'none' }
+] as const;

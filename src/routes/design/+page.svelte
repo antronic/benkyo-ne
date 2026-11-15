@@ -6,7 +6,7 @@
 	import { onMount } from 'svelte';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import { Badge, Button, Card, Chip, IconButton, ListGroup, ListRow, Notice, SectionHeader, Segmented, Select, Stepper, Switch, TextField } from '#lib/ui/index.ts';
-	import { colorGroups, motionTokens, radiusTokens, spaceTokens, textStyles } from '#lib/design/tokens.ts';
+	import { colorGroups, motionPatterns, motionTokens, radiusTokens, spaceTokens, textStyles } from '#lib/design/tokens.ts';
 
 	type Mode = 'auto' | 'light' | 'dark' | 'both';
 	let mode = $state<Mode>(matchMedia('(min-width: 900px)').matches ? 'both' : 'auto');
@@ -51,13 +51,24 @@
 		};
 	});
 
+	// Replay a motion demo: restart the CSS animation on its stage.
+	function replay(e: MouseEvent) {
+		const b = (e.target as HTMLElement).closest<HTMLElement>('[data-replay]');
+		if (!b) return;
+		const stage = b.closest('.mrow-demo')?.querySelector<HTMLElement>('.stage');
+		if (!stage) return;
+		stage.classList.remove('play');
+		void stage.offsetWidth;
+		stage.classList.add('play');
+	}
+
 	const panels = $derived(mode === 'both' ? (['light', 'dark'] as const) : (['current'] as const));
 	const px = (v: string | undefined) => (v ? v.replace(/^0$/, '0px') : '');
 </script>
 
 <svelte:head><title>Design system · Benkyo</title></svelte:head>
 
-<main class="page stack catalog" style:--gap="var(--space-4)" bind:this={root}>
+<main class="page stack catalog" style:--gap="var(--space-4)" bind:this={root} onclick={replay} role="presentation">
 	<LargeTitle title="Design system" />
 	<p class="subhead intro">
 		Tokens live in <code class="mono">lib/design/tokens.css</code>, components in <code class="mono">lib/ui</code>. Everything on this page is built from them.
@@ -144,7 +155,7 @@
 					{/each}
 				</div>
 
-				<SectionHeader title="Material and motion" />
+				<SectionHeader title="Material and easing" />
 				<div class="materials">
 					<Card padding="md"><span class="headline">Glass</span><br /><span class="caption">.glass · Card</span></Card>
 					<Card padding="md" strong><span class="headline">Glass strong</span><br /><span class="caption">Card strong</span></Card>
@@ -269,6 +280,42 @@
 						{#snippet action()}<Button size="sm" variant="ghost">Review</Button>{/snippet}
 					</Notice>
 					<Notice tone="danger">Couldn't reach the server. Your progress is saved on this device.</Notice>
+				</div>
+
+				<!-- ------------------------------------------------ motion -->
+				<SectionHeader title="Motion" />
+				<Card padding="md">
+					<div class="principles">
+						<p><strong>Springs for touch, ease-out for arrivals.</strong> Anything under the finger (presses, toggles, drags) uses a spring so it feels physical. Things that arrive on their own (pages, sheets, toasts) ease out and settle.</p>
+						<p><strong>Motion shows where things went.</strong> Sheets come up from the bottom and go back down, pages morph rather than cut, and a card that opens grows from where it was.</p>
+						<p><strong>Feedback starts at once.</strong> A press responds on touch, not on release. Keep state changes at 200ms and arrivals under 700ms.</p>
+						<p><strong>One moment per screen.</strong> Loops live on the splash, intro and backdrop only. Study screens stay still so the kana is the thing that moves.</p>
+						<p><strong>Pair motion with a haptic, never rely on it.</strong> A wrong answer shakes and buzzes and also turns red. With Reduce Motion on, everything runs in 1ms and pages swap instantly.</p>
+					</div>
+				</Card>
+				<div class="mlist">
+					{#each motionPatterns as m (m.id)}
+						<div class="glass mrow-demo">
+							<div class="mtext">
+								<span class="headline">{m.name}</span>
+								<span class="caption">{m.when}</span>
+								<code class="mono spec">{m.spec}</code>
+								<span class="caption">Haptic: {m.haptic}</span>
+							</div>
+							<div class="stage play demo-{m.id}" aria-hidden="true">
+								{#if m.id === 'press'}<span class="d-btn">Tap</span>
+								{:else if m.id === 'rise'}<span class="d-card" style:--i="0"></span><span class="d-card" style:--i="1"></span><span class="d-card" style:--i="2"></span>
+								{:else if m.id === 'page'}<span class="d-page old"></span><span class="d-page new"></span>
+								{:else if m.id === 'sheet'}<span class="d-scrim"></span><span class="d-sheet"></span>
+								{:else if m.id === 'toast'}<span class="d-toast">Saved</span>
+								{:else if m.id === 'toggle'}<span class="d-switch"></span>
+								{:else if m.id === 'progress'}<span class="d-track"><span class="d-fill"></span></span>
+								{:else if m.id === 'shake'}<span class="d-field">食る</span>
+								{:else}<span class="d-orb"></span>{/if}
+							</div>
+							{#if m.id !== 'ambient'}<button type="button" class="btn ghost small replay" data-replay>Replay</button>{/if}
+						</div>
+					{/each}
 				</div>
 			</section>
 		{/each}
@@ -490,5 +537,226 @@
 		place-items: center;
 		font-weight: var(--weight-bold);
 		font-size: var(--text-subhead);
+	}
+	/* ---- motion demos ---- */
+	.principles {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		font-size: var(--text-subhead);
+	}
+	.principles p {
+		margin: 0;
+	}
+	.mlist {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: var(--space-2);
+	}
+	.mrow-demo {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 96px;
+		grid-template-rows: auto auto;
+		gap: var(--space-2) var(--space-3);
+		padding: var(--space-3);
+		border-radius: var(--radius-card);
+	}
+	.mtext {
+		grid-row: 1 / span 2;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+	.spec {
+		font-size: var(--text-caption-2);
+		color: var(--color-info);
+	}
+	.replay {
+		grid-column: 2;
+		justify-self: center;
+		min-height: 30px;
+	}
+	.stage {
+		position: relative;
+		width: 96px;
+		height: 72px;
+		border-radius: var(--radius-md);
+		background: var(--color-fill);
+		overflow: hidden;
+		display: grid;
+		place-items: center;
+	}
+	.d-btn {
+		padding: 6px 14px;
+		border-radius: var(--radius-pill);
+		background: var(--color-accent);
+		color: var(--color-on-accent);
+		font-weight: var(--weight-semibold);
+		font-size: var(--text-footnote);
+	}
+	.play .d-btn {
+		animation: d-press 900ms var(--ease-spring) both;
+	}
+	@keyframes d-press {
+		0%, 10% { transform: scale(1); }
+		30% { transform: scale(var(--press-scale)); }
+		100% { transform: scale(1); }
+	}
+	.demo-rise {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+		padding: 10px;
+		place-items: stretch;
+	}
+	.d-card {
+		height: 12px;
+		border-radius: 4px;
+		background: var(--color-surface-strong);
+		box-shadow: var(--shadow-raised);
+	}
+	.play .d-card {
+		animation: rise var(--dur-slow) var(--ease-spring) both;
+		animation-delay: calc(var(--i) * var(--stagger) * 2);
+	}
+	.d-page {
+		position: absolute;
+		inset: 10px 18px;
+		border-radius: 8px;
+	}
+	.d-page.old {
+		background: var(--color-info);
+		opacity: 0;
+	}
+	.d-page.new {
+		background: var(--color-accent);
+	}
+	.play .d-page.old {
+		animation: d-out var(--dur-page) var(--ease-out) both;
+	}
+	.play .d-page.new {
+		animation: d-in var(--dur-page) var(--ease-out) both;
+	}
+	@keyframes d-out {
+		from { opacity: 1; transform: none; filter: none; }
+		to { opacity: 0; transform: scale(0.97); filter: blur(4px); }
+	}
+	@keyframes d-in {
+		from { opacity: 0; transform: scale(1.02); filter: blur(4px); }
+	}
+	.d-scrim {
+		position: absolute;
+		inset: 0;
+		background: rgb(0 0 0 / 0.25);
+	}
+	.d-sheet {
+		position: absolute;
+		left: 6px;
+		right: 6px;
+		bottom: 0;
+		height: 46px;
+		border-radius: 12px 12px 0 0;
+		background: var(--color-surface-strong);
+		box-shadow: var(--shadow-surface);
+	}
+	.play .d-scrim {
+		animation: d-fade var(--dur-fast) both;
+	}
+	.play .d-sheet {
+		animation: d-up var(--dur-base) cubic-bezier(0.33, 1, 0.68, 1) both;
+	}
+	@keyframes d-fade {
+		from { opacity: 0; }
+	}
+	@keyframes d-up {
+		from { transform: translateY(100%); }
+	}
+	.d-toast {
+		padding: 6px 12px;
+		border-radius: var(--radius-pill);
+		background: var(--color-surface-strong);
+		box-shadow: var(--shadow-surface);
+		font-size: var(--text-footnote);
+		font-weight: var(--weight-semibold);
+	}
+	.play .d-toast {
+		animation: d-pop 380ms cubic-bezier(0.33, 1, 0.68, 1) both;
+	}
+	@keyframes d-pop {
+		from { opacity: 0; transform: scale(0.85); }
+	}
+	.d-switch {
+		position: relative;
+		width: 51px;
+		height: 31px;
+		border-radius: var(--radius-pill);
+		background: var(--color-success);
+	}
+	.d-switch::after {
+		content: '';
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 27px;
+		height: 27px;
+		border-radius: 50%;
+		background: var(--color-knob);
+		box-shadow: var(--shadow-knob);
+		transform: translateX(20px);
+	}
+	.play .d-switch {
+		animation: d-track 250ms both;
+	}
+	.play .d-switch::after {
+		animation: d-knob var(--dur-toggle) var(--ease-spring-bouncy) both;
+	}
+	@keyframes d-track {
+		from { background: var(--color-fill-strong); }
+	}
+	@keyframes d-knob {
+		from { transform: none; }
+	}
+	.d-track {
+		width: 72px;
+		height: 8px;
+		border-radius: var(--radius-pill);
+		background: var(--color-fill-strong);
+		overflow: hidden;
+	}
+	.d-fill {
+		display: block;
+		height: 100%;
+		width: 70%;
+		border-radius: inherit;
+		background: var(--color-success);
+	}
+	.play .d-fill {
+		animation: d-grow 600ms var(--ease-spring) both;
+	}
+	@keyframes d-grow {
+		from { width: 20%; }
+	}
+	.d-field {
+		padding: 6px 14px;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--color-danger);
+		background: var(--color-surface-strong);
+		font-family: var(--font-jp);
+	}
+	.play .d-field {
+		animation: shake 480ms var(--ease-out);
+	}
+	.d-orb {
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: var(--gradient-brand);
+		filter: blur(2px);
+		animation: d-breathe 6s ease-in-out infinite alternate;
+	}
+	@keyframes d-breathe {
+		from { transform: scale(0.85); opacity: 0.7; }
+		to { transform: scale(1.1); opacity: 1; }
 	}
 </style>

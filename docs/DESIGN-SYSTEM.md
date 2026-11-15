@@ -82,6 +82,53 @@ Import from `#lib/ui/index.ts`:
 `Button` and `IconButton` reuse the global `.btn` / `.icon-btn` styles in `app.css`, so a
 migrated button and an old one look the same.
 
+## Motion and transitions
+
+The live versions of these, with replay buttons, are in the Motion section of `/design`.
+
+### Principles
+
+1. **Springs for touch, ease-out for arrivals.** Anything under the finger (presses, toggles,
+   drags) uses `--ease-spring` or `--ease-spring-bouncy`. Things that arrive by themselves
+   (pages, sheets, toasts) use `--ease-out` or `cubicOut` and settle without overshoot.
+2. **Motion shows where things went.** Sheets rise from the bottom and leave the same way,
+   routes morph with View Transitions, shared elements (`view-transition-name`) grow from
+   where they were. The tab bar never animates during a page change.
+3. **Feedback starts at once.** Presses react on touch-down. State changes take
+   `--dur-fast` (200ms); arrivals stay under `--dur-slow` (700ms).
+4. **One moment per screen.** Looping, ambient motion belongs to the splash, intro and
+   backdrop only. Study screens stay still so the kana is the thing that moves (stroke
+   animation, trace ink).
+5. **Never motion alone.** Pair it with a haptic and a visible state: a wrong answer
+   shakes, buzzes (`haptic('error')`) and turns red.
+6. **Respect the settings.** `prefers-reduced-motion` cuts every animation to 1ms and turns
+   off page morphs; `prefers-reduced-transparency` swaps glass for solid surfaces. Both are
+   global in `app.css`, so don't override them with `!important`.
+
+### Patterns
+
+| Pattern | Use for | Spec | Haptic |
+| --- | --- | --- | --- |
+| Press | Buttons, chips, cards, rows | scale `--press-scale` (0.96; icon buttons 0.9, chips 0.95), `--dur-press`, `--ease-spring` | `selection` on chips, segments, tabs |
+| Rise in | Content on a screen's first show | `.rise` with `style:--i`: y 18px + blur 6px → 0, `--dur-slow`, `--ease-spring`, `--stagger` per item | none |
+| Page change | Route changes | View Transitions: old fades to scale 0.97 + blur 4px, new from scale 1.02, `--dur-page`, `--ease-out`; shared elements 560ms spring | none |
+| Sheet | Details, pickers, action sheets | `fly` y from below, `--dur-base`, `cubicOut`, `opacity: 1`; scrim `fade` 200–220ms; drag to dismiss | `warning` before a destructive choice |
+| Toast | Confirmation after an action | `scale` from 0.85, 380ms `cubicOut`; out `fade` 200ms | `success` |
+| Toggle | Switch knob, stepper, segment | `--dur-toggle`, `--ease-spring-bouncy`; track colour 250ms | `selection` |
+| Progress | Rings and bars | width or stroke 500–600ms, `--ease-spring` | `success` when a goal completes |
+| Wrong answer | Wrong answer, invalid field | `.shake`, 480ms, `--ease-out` | `error` |
+| Ambient | Splash, intro, backdrop | drift or breathe 6–9s, `ease-in-out`, `alternate` | none |
+| Loading | Waiting on data | `Skeleton` shimmer 1.4s; spinners only inside a busy button | none |
+
+### Rules
+
+- Animate `transform`, `opacity` and `filter` only. Avoid animating layout properties
+  (`width` on progress bars is the one exception).
+- Use the tokens, not raw numbers: `--dur-*`, `--ease-*`, `--stagger`, `--press-scale`.
+- Stagger at most about 6 items; after that, show the rest at once.
+- Don't block input behind an animation. A user can tap through a rise-in or close a sheet
+  mid-flight.
+
 ## Rules of thumb
 
 - Use a semantic token for every colour, space, radius and font size. A raw hex or px
