@@ -308,6 +308,8 @@ export const en = {
 	'kuri.reactBody': 'Pops up for a moment in lessons and reviews.',
 	'kuri.lowPoly': 'Low-poly model',
 	'kuri.lowPolyBody': 'Fewer triangles and less memory for small Kuris.',
+	'kuri.sound': 'Sound',
+	'kuri.soundBody': 'Little yips and a hello. Follows the silent switch on iPhone.',
 	'kuri.replay': 'Replay Kuri’s introduction',
 	'kuri.intro1': 'I’m Kuri. I’ll study with you.',
 	'kuri.intro2': 'Your plan is ready. Tap me on Today any time.',

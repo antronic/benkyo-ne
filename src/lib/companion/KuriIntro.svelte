@@ -7,7 +7,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Kuri from './Kuri.svelte';
-	import { walkerSpot, reducedMotion, type KuriPose } from './kuri.svelte.ts';
+	import { walkerSpot, reducedMotion, kuriSound, kuriHello, type KuriPose } from './kuri.svelte.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 
@@ -25,14 +25,15 @@
 
 	onMount(() => {
 		if (still) {
+			kuriHello();
 			go?.focus();
 			return;
 		}
-		at(30, () => (step = 1));
+		at(30, () => ((step = 1), kuriSound('intro')));
 		at(650, () => ((step = 2), haptic('selection')));
-		at(1250, () => (step = 3));
+		at(1250, () => ((step = 3), kuriHello()));
 		at(2000, () => (step = 4));
-		at(2900, () => ((pose = 'happy'), (step = 5), haptic('success')));
+		at(2900, () => ((pose = 'happy'), (step = 5), haptic('success'), kuriSound('happy')));
 		at(4200, () => (pose = 'idle'));
 		at(9000, finish);
 		return () => timers.forEach(clearTimeout);
