@@ -27,6 +27,7 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import Kuri from '#lib/companion/Kuri.svelte';
+	import { kuriSound } from '#lib/companion/kuri.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 
 	ui.hue = 265;
@@ -104,6 +105,7 @@
 		const thread = current;
 		thread.msgs.push({ role: 'user', text: q });
 		busy = true;
+		kuriSound('thinking');
 		live = '';
 		await scrollDown();
 		const turns: AskTurn[] = thread.msgs.slice(-12).map((m) => ({ role: m.role, text: m.text }));

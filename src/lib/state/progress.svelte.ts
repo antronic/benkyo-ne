@@ -25,6 +25,8 @@ export interface Settings {
 	kuriReact: boolean;
 	/** small Kuris use the low-poly model (fewer triangles, less memory) */
 	kuriLowPoly: boolean;
+	/** Kuri's yips, hums and the first-meeting voice (off by default; follows the iPhone silent switch) */
+	kuriSound: boolean;
 }
 
 interface Today {
@@ -41,7 +43,7 @@ class Progress {
 	ready = $state(false);
 	cards = $state<Record<string, Card>>({});
 	completed = $state<string[]>([]);
-	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true, navPosition: 'auto', kuri: true, kuriStyle: 'bandana', kuriWalk: true, kuriReact: true, kuriLowPoly: true });
+	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true, navPosition: 'auto', kuri: true, kuriStyle: 'bandana', kuriWalk: true, kuriReact: true, kuriLowPoly: true, kuriSound: false });
 	streak = $state({ days: 0, last: '' });
 	today = $state<Today>({ date: dayKey(), reviews: 0, learned: 0 });
 	now = $state(Date.now());

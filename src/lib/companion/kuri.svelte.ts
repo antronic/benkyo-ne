@@ -2,10 +2,11 @@
  * Kuri, the Shiba companion: shared state and the typed edge of the renderer.
  *
  * Settings live in progress.settings (kuri, kuriStyle, kuriWalk, kuriReact,
- * kuriLowPoly). The renderer (shiba.ts) is only imported when a Kuri is on
+ * kuriLowPoly, kuriSound). The renderer (shiba.ts) is only imported when a Kuri is on
  * screen, so turning Kuri off means it is never downloaded.
  */
 import { progress } from '#lib/state/progress.svelte.ts';
+import { play, hello, unlock, type KuriSoundName } from './sound.ts';
 
 export type KuriPose = 'idle' | 'happy' | 'thinking' | 'encourage' | 'sleep' | 'wave' | 'walk' | 'held';
 
@@ -53,6 +54,25 @@ export const kuriPrefs = {
 		return progress.settings.kuriLowPoly ? 'low' : 'full';
 	}
 };
+
+const soundOn = () => progress.settings.kuri && progress.settings.kuriSound;
+
+/** Play one of Kuri's sounds if Kuri and Sound are both on. */
+export function kuriSound(name: KuriSoundName) {
+	if (soundOn()) play(name);
+}
+/** Kuri's "はじめまして！" for the first meeting, if Sound is on. */
+export function kuriHello() {
+	if (soundOn()) hello();
+}
+
+// Browsers keep audio locked until the first touch, so get it ready on any tap
+// while Sound is on. Later sounds (sleep, the intro timeline) can then play.
+if (typeof document !== 'undefined') {
+	const ready = () => soundOn() && unlock();
+	document.addEventListener('pointerdown', ready, { capture: true, passive: true });
+	document.addEventListener('keydown', ready, { capture: true, passive: true });
+}
 
 /** One-shot reactions from study screens (right or wrong answers). */
 export const kuriBus = $state({ seq: 0, kind: 'happy' as 'happy' | 'encourage' });

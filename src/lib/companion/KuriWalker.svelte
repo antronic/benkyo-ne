@@ -6,7 +6,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Kuri from './Kuri.svelte';
-	import { walkerSpot, reducedMotion, type KuriPose } from './kuri.svelte.ts';
+	import { walkerSpot, reducedMotion, kuriSound, type KuriPose } from './kuri.svelte.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { t, tn } from '#lib/i18n/index.svelte.ts';
@@ -76,6 +76,7 @@
 			face(0);
 			set('held');
 			haptic('selection');
+			kuriSound('held');
 		}
 		if (drag.moved) {
 			const b = bounds();
@@ -93,6 +94,7 @@
 			face(0);
 			set('react', 'happy');
 			haptic('success');
+			kuriSound(Math.random() < 0.5 ? 'tap' : 'yip');
 			reactUntil = performance.now() + 1500;
 			speak();
 		}
@@ -113,7 +115,7 @@
 			const still = reducedMotion();
 			if (sayUntil && now > sayUntil) (say = ''), (sayUntil = 0);
 			if (mode === 'react' && now > reactUntil) (set('idle'), (nextAt = now + 2500));
-			if (!hidden && !still && mode === 'idle' && now - lastTouch > 30000) set('sleep');
+			if (!hidden && !still && mode === 'idle' && now - lastTouch > 30000) (set('sleep'), kuriSound('sleep'));
 			if (!hidden && !still && progress.settings.kuriWalk && mode === 'idle' && now > nextAt) {
 				const b = bounds();
 				tx = b.left + Math.random() * (b.right - b.left);
@@ -171,7 +173,7 @@
 	tabindex="0"
 	aria-label={t('kuri.drag')}
 	onkeydown={(e) => {
-		if (e.key === 'Enter' || e.key === ' ') (e.preventDefault(), face(0), set('react', 'happy'), (reactUntil = performance.now() + 1500), speak());
+		if (e.key === 'Enter' || e.key === ' ') (e.preventDefault(), face(0), set('react', 'happy'), kuriSound('tap'), (reactUntil = performance.now() + 1500), speak());
 	}}
 >
 	<Kuri {pose} {facing} options={{ yaw: 0, pitch: 0.38, distance: 5.4, target: [0, 0.9, 0], fps: 30 }} />

@@ -13,14 +13,25 @@ Kuri (栗, after the chestnut coat) is a low-poly Shiba who studies with you.
 | Lessons and reviews | Pops up in the corner for ~1.5s on a right (happy) or wrong (encourage) answer. | React to answers |
 | First meeting | ~4s intro once: after onboarding, or the first time an existing user opens Today. Skippable; still with reduced motion. Replay from Settings. | Show Kuri |
 
-All settings live in `progress.settings` (`kuri`, `kuriStyle`, `kuriWalk`, `kuriReact`, `kuriLowPoly`). The intro is marked seen in IDB `meta/kuriIntroSeen`.
+All settings live in `progress.settings` (`kuri`, `kuriStyle`, `kuriWalk`, `kuriReact`, `kuriLowPoly`, `kuriSound`). The intro is marked seen in IDB `meta/kuriIntroSeen`.
+
+## Sound
+
+With **Sound** on (off by default), Kuri yips on a tap, squeaks when picked up, sighs falling asleep, hums while Ask AI thinks, chirps or "awoo"s for right and wrong answers, and says "はじめまして！" in the first meeting.
+
+- Everything is synthesized with Web Audio in `src/lib/companion/sound.ts` (under 2 KB gzipped). There are no audio files.
+- The voice is built from scratch: a buzzing tone through vowel filters, one syllable at a time. It copies no recording or real voice.
+- On iPhone (Safari 16.4+) the page's audio is marked `ambient`, so it follows the silent switch. Other browsers can't detect silent mode, which is why Sound starts off.
+- Browsers lock audio until the first touch. `kuri.svelte.ts` unlocks it on the first tap while Sound is on.
+- Use `kuriSound(name)` and `kuriHello()` from `kuri.svelte.ts`; they do nothing when Kuri or Sound is off.
 
 ## Files
 
 | What | Where |
 | --- | --- |
 | Renderer and geometry (no dependencies) | `src/lib/companion/shiba.ts` |
-| Types, settings helpers, reaction bus | `src/lib/companion/kuri.svelte.ts` |
+| Types, settings helpers, reaction bus, sound helpers | `src/lib/companion/kuri.svelte.ts` |
+| Synthesized sounds and voice | `src/lib/companion/sound.ts` |
 | One Kuri on a canvas | `src/lib/companion/Kuri.svelte` |
 | Today walker, intro, reaction, Settings section | `KuriWalker.svelte`, `KuriIntro.svelte`, `KuriReaction.svelte`, `KuriSettings.svelte` |
 

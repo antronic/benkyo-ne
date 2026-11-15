@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import Kuri from './Kuri.svelte';
-	import { kuriBus, type KuriInstance } from './kuri.svelte.ts';
+	import { kuriBus, kuriSound, type KuriInstance } from './kuri.svelte.ts';
 
 	let shown = $state(false);
 	let mounted = $state(false);
@@ -19,6 +19,7 @@
 		shown = true;
 		instance?.setPaused(false);
 		instance?.setPose(kuriBus.kind);
+		kuriSound(kuriBus.kind);
 		clearTimeout(timer);
 		timer = setTimeout(() => {
 			shown = false;

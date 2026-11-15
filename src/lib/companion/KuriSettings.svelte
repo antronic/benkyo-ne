@@ -8,6 +8,7 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import Kuri from './Kuri.svelte';
+	import { play } from './sound.ts';
 	import { Switch } from '#lib/ui/index.ts';
 
 	const s = $derived(progress.settings);
@@ -67,6 +68,14 @@
 			</span>
 			<span class="spacer"></span>
 			<Switch checked={s.kuriLowPoly} onchange={(v) => save({ kuriLowPoly: v })} />
+		</label>
+		<label class="item">
+			<span class="stack" style:--gap="0">
+				<span>{t('kuri.sound')}</span>
+				<span class="caption">{t('kuri.soundBody')}</span>
+			</span>
+			<span class="spacer"></span>
+			<Switch checked={s.kuriSound} onchange={(v) => (save({ kuriSound: v }), v && play('yip'))} />
 		</label>
 		<div class="item">
 			<button class="btn ghost small" onclick={replay}>▶ {t('kuri.replay')}</button>
