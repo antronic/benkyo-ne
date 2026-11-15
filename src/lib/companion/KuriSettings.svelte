@@ -75,7 +75,7 @@
 				<span class="caption">{t('kuri.soundBody')}</span>
 			</span>
 			<span class="spacer"></span>
-			<Switch checked={s.kuriSound} onchange={(v) => (save({ kuriSound: v }), v && play('yip'))} />
+			<Switch checked={s.kuriSound} onchange={(v) => (save({ kuriSound: v, kuriSoundChosen: true }), v && play('yip'))} />
 		</label>
 		<div class="item">
 			<button class="btn ghost small" onclick={replay}>▶ {t('kuri.replay')}</button>
