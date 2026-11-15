@@ -26,6 +26,8 @@ export interface AdminAccountRow {
 	monthUsd: number;
 	/** agreed to the current beta terms and hasn't withdrawn */
 	consented: boolean;
+	/** package right now (worker/plans.ts) */
+	plan: 'free' | 'plus' | 'pro';
 }
 
 export interface AdminAccountList {
@@ -41,6 +43,8 @@ export interface AdminAccountDetail extends AdminAccountRow {
 	spendByModel: { feature: string; provider: string; model: string; calls: number; usd: number }[];
 	recentCalls: { at: number; feature: string; model: string; status: string; usd: number }[];
 	consent: { version: number; acceptedAt: number; withdrawnAt: number | null } | null;
+	/** package grants, newest first */
+	grants: AdminGrant[];
 }
 
 /** PATCH /api/admin/accounts/:id */
@@ -144,4 +148,62 @@ export interface AdminAuditList {
 	next: number | null;
 	/** every action name in the log, for the filter */
 	actions: string[];
+}
+
+export type AdminPlanId = 'free' | 'plus' | 'pro';
+
+export interface AdminPlan {
+	id: AdminPlanId;
+	name: string;
+	priceMonthUsd: number;
+	priceYearUsd: number;
+	/** managed AI model cost included per month */
+	aiAllowanceUsd: number;
+	blurb: string;
+	/** offered to new people */
+	available: boolean;
+	/** accounts on it right now (Free: everyone without a live grant) */
+	accounts: number;
+	updatedAt: number;
+}
+
+export interface AdminGrant {
+	id: number;
+	accountId: number;
+	accountName: string | null;
+	plan: AdminPlanId;
+	kind: 'comp' | 'trial';
+	note: string | null;
+	startsAt: number;
+	endsAt: number | null;
+	createdAt: number;
+	endedAt: number | null;
+	/** started, not past endsAt, not ended early */
+	live: boolean;
+}
+
+/** GET /api/admin/packages */
+export interface AdminPackages {
+	plans: AdminPlan[];
+	/** live grants, soonest to end first */
+	grants: AdminGrant[];
+}
+
+/** PUT /api/admin/packages/:id (any subset) */
+export interface AdminPlanPatch {
+	name?: string;
+	priceMonthUsd?: number;
+	priceYearUsd?: number;
+	aiAllowanceUsd?: number;
+	blurb?: string;
+	available?: boolean;
+}
+
+/** POST /api/admin/accounts/:id/grants. Replaces the account's live grant. */
+export interface AdminGrantInput {
+	plan: 'plus' | 'pro';
+	kind: 'comp' | 'trial';
+	/** null: until ended */
+	days: number | null;
+	note?: string;
 }

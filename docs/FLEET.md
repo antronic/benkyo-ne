@@ -13,8 +13,8 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 | 1 | Access check, admin guard, audit table, Overview screen | merged (#7) |
 | 2 | Accounts: list, detail, disable/enable, delete, cap, revoke sessions; passkey step-up | merged (#10) |
 | 3 | Settings: sign-up switch, invite codes, session lifetime, sign-ups per day | merged (#11) |
-| 4 | Usage, System and Audit log screens (read-only) | this PR |
-| 5 | Packages: Free / Plus / Pro, manual grants | planned |
+| 4 | Usage, System and Audit log screens (read-only) | merged (#14) |
+| 5 | Packages: Free / Plus / Pro, manual grants | this PR |
 
 ## Security
 
@@ -59,7 +59,7 @@ change (`audited()` in `worker/admin/routes.ts`).
    npx wrangler secret put ACCESS_TEAM_DOMAIN   # <team>.cloudflareaccess.com
    npx wrangler secret put ACCESS_AUD           # the AUD tag
    npx wrangler secret put ADMIN_EMAILS         # optional extra allow-list, comma-separated
-   npm run cf:deploy                            # applies migrations 0006 to 0008
+   npm run cf:deploy                            # applies migrations 0006 to 0009
    ```
 
 6. In **Workers & Pages → benkyo-ne → Settings → Domains & Routes**, turn
@@ -98,6 +98,25 @@ everyone, and `SIGNUP_MODE=closed` on the Worker.
   "Behind" means the deploy skipped `wrangler d1 migrations apply`.
 - **Audit log** (`/admin/audit`): every admin change, newest first, with a
   filter by action.
+
+## Packages
+
+`/admin/packages` holds the three packages (`plans`, migration 0009),
+seeded from the pricing proposal in `docs/AI-PLAN.md`: Free, Plus ($4.99 a
+month or $39 a year, $1.50 of managed AI) and Pro ($9.99 or $79, $3.50).
+Name, description, prices, the monthly AI allowance and whether it's
+offered can be edited; Free always stays free.
+
+An account gets Plus or Pro through a grant on its page (`plan_grants`):
+**trial** (7 days to a year) or **complimentary** (also "until ended"). A
+new grant replaces the live one, and a grant can be ended early. The
+account's package is the highest live grant, else Free (`worker/plans.ts`).
+Grants and package edits need a passkey tap and are audited; deleting an
+account deletes its grants.
+
+Not built yet: nothing in the app checks the package, there's no checkout
+or payment webhook, and managed AI (the operator's key) doesn't exist. Those
+come with Phase B of `docs/AI-PLAN.md`, which will add `subscription` grants.
 
 ## Local development
 

@@ -6,8 +6,10 @@
  * Guard rails: an admin can't disable, delete or sign out themselves, and
  * admin accounts can't be disabled or deleted from the console at all
  * (the admin role is managed in D1 by hand).
+ * Packages for an account are granted in worker/admin/packages.ts.
  */
 import type {
+	AdminGrant,
 	AdminAccountDetail,
 	AdminAccountList,
 	AdminAccountPatch,
@@ -17,6 +19,7 @@ import { CONSENT_VERSION } from '../../src/lib/beta/contract.ts';
 import { accountDataStatements } from '../ai/credentials.ts';
 import type { Env } from '../env.ts';
 import { httpError, json, readJson } from '../http.ts';
+import { liveGrant, planOfSql } from '../plans.ts';
 import { audited, monthStart, requireFresh, type AdminContext } from './routes.ts';
 
 export const PAGE_SIZE = 50;
@@ -31,8 +34,19 @@ SELECT a.id, a.name, a.created_at AS createdAt, a.last_seen_at AS lastSeenAt,
        (SELECT COALESCE(SUM(l.cost_usd), 0) FROM ai_ledger l
          WHERE l.user_id = a.id AND l.at >= ?1 AND l.status = 'done') AS monthUsd,
        EXISTS (SELECT 1 FROM beta_consents c
-                WHERE c.user_id = a.id AND c.version >= ?2 AND c.withdrawn_at IS NULL) AS consented
+                WHERE c.user_id = a.id AND c.version >= ?2 AND c.withdrawn_at IS NULL) AS consented,
+       ${planOfSql('a.id')} AS plan
   FROM accounts a`;
+
+/** Package grants with the account name; ?1 = now. */
+export const GRANT_SELECT = `
+SELECT g.id, g.account_id AS accountId, a.name AS accountName, g.plan_id AS plan, g.kind, g.note,
+       g.starts_at AS startsAt, g.ends_at AS endsAt, g.created_at AS createdAt, g.ended_at AS endedAt,
+       (${liveGrant('?1')}) AS live
+  FROM plan_grants g LEFT JOIN accounts a ON a.id = g.account_id`;
+
+export const toGrant = (r: Omit<AdminGrant, 'live'> & { live: number }): AdminGrant => ({ ...r, live: !!r.live });
+
 
 type RawRow = Omit<AdminAccountRow, 'isAdmin' | 'disabled' | 'appleLinked' | 'consented'> & {
 	isAdmin: number;
@@ -70,7 +84,7 @@ export async function accountDetail(env: Env, id: number): Promise<AdminAccountD
 	const ms = monthStart(Date.now());
 	const row = await env.DB.prepare(`${ROW_SELECT} WHERE a.id = ?3`).bind(ms, CONSENT_VERSION, id).first<RawRow>();
 	if (!row) throw httpError(404, 'bad_request', 'No such account');
-	const [passkeys, sessions, recovery, byModel, recent, consent] = await env.DB.batch([
+	const [passkeys, sessions, recovery, byModel, recent, consent, grants] = await env.DB.batch([
 		env.DB.prepare(
 			`SELECT id, name, device_type AS deviceType, created_at AS createdAt, last_used_at AS lastUsedAt
 			   FROM passkeys WHERE user_id = ?1 ORDER BY created_at`
@@ -94,7 +108,8 @@ export async function accountDetail(env: Env, id: number): Promise<AdminAccountD
 		env.DB.prepare(
 			`SELECT version, accepted_at AS acceptedAt, withdrawn_at AS withdrawnAt
 			   FROM beta_consents WHERE user_id = ?1 ORDER BY accepted_at DESC LIMIT 1`
-		).bind(id)
+		).bind(id),
+		env.DB.prepare(`${GRANT_SELECT} WHERE g.account_id = ?2 ORDER BY g.id DESC LIMIT 20`).bind(Date.now(), id)
 	]);
 	const rc = (recovery.results[0] ?? {}) as { unused: number | null; total: number };
 	return {
@@ -104,7 +119,8 @@ export async function accountDetail(env: Env, id: number): Promise<AdminAccountD
 		recoveryCode: rc.unused ? 'unused' : rc.total ? 'used' : 'none',
 		spendByModel: byModel.results as AdminAccountDetail['spendByModel'],
 		recentCalls: recent.results as AdminAccountDetail['recentCalls'],
-		consent: (consent.results[0] as AdminAccountDetail['consent']) ?? null
+		consent: (consent.results[0] as AdminAccountDetail['consent']) ?? null,
+		grants: (grants.results as Parameters<typeof toGrant>[0][]).map(toGrant)
 	};
 }
 
