@@ -12,7 +12,7 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { CONSENT_DATE, CONSENT_VERSION } from '#lib/beta/contract.ts';
-	import { AGREE_LABEL, CHOICES, COLLECTED, CONSENT_INTRO, HOW_USED, NEVER_COLLECTED, RETENTION } from '#lib/beta/consentText.ts';
+	import { AGREE_LABEL, CHOICES, COLLECTED, CONSENT_INTRO, CONTACT, HOW_USED, NEVER_COLLECTED, OPERATOR, RETENTION } from '#lib/beta/consentText.ts';
 
 	let { review = false, onclose }: { review?: boolean; onclose?: () => void } = $props();
 
@@ -93,6 +93,14 @@
 			<ul>{#each RETENTION as it}<li>{it}</li>{/each}</ul>
 			<h3 class="eyebrow">Your choices</h3>
 			<ul>{#each CHOICES as it}<li>{it}</li>{/each}</ul>
+			<h3 class="eyebrow">Who we are</h3>
+			<ul>
+				<li>{CONTACT[0]}</li>
+				<li>
+					Questions, or a request to see, correct or delete your data:
+					<a href="mailto:{OPERATOR.email}?subject=Benkyo%20beta%20data">{OPERATOR.email}</a>.
+				</li>
+			</ul>
 			<p class="caption version">Beta terms version {CONSENT_VERSION} · {CONSENT_DATE}</p>
 		</section>
 

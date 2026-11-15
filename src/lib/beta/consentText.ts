@@ -84,4 +84,12 @@ export const CHOICES: string[] = [
 	'You can withdraw your agreement there too. Collection stops and your usage data is deleted. Account features stay locked until you agree again; learning offline on this device keeps working.'
 ];
 
+/** Who is responsible for the data (APPI: business operator; GDPR: controller) and how to reach them. */
+export const OPERATOR = { name: 'Jirachai Chansivanon', email: 'jirachai.c@outlook.com' };
+
+export const CONTACT: string[] = [
+	`Benkyo is run by ${OPERATOR.name}, who is responsible for this data.`,
+	`Questions, or a request to see, correct or delete your data: ${OPERATOR.email}.`
+];
+
 export const AGREE_LABEL = 'I’ve read this and agree to share my usage data as described, to take part in the beta.';

@@ -43,8 +43,12 @@ Worker, including inside AI prompts.
 These cover what Japan's APPI (notice of purpose of use, third-party
 provision, disclosure and deletion requests) and the GDPR (informed, specific,
 withdrawable consent; access, erasure, storage limitation) expect for a beta
-like this. A short privacy notice naming the operator and a contact address
-is still needed before a wide launch.
+like this.
+
+**Operator / controller:** Jirachai Chansivanon, jirachai.c@outlook.com
+(shown on the consent screen under "Who we are"; `OPERATOR` in
+`consentText.ts`). Requests by email to see, correct or delete data are
+handled by hand alongside the self-service controls in Settings.
 
 ## Endpoints
 
