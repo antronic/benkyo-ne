@@ -11,8 +11,8 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 | PR | Scope | Status |
 |---|---|---|
 | 1 | Access check, admin guard, audit table, Overview screen | merged (#7) |
-| 2 | Accounts: list, detail, disable/enable, delete, cap, revoke sessions; passkey step-up | this PR |
-| 3 | Settings: sign-up switch, invite codes, session lifetime | planned |
+| 2 | Accounts: list, detail, disable/enable, delete, cap, revoke sessions; passkey step-up | merged (#10) |
+| 3 | Settings: sign-up switch, invite codes, session lifetime, sign-ups per day | this PR |
 | 4 | Usage and system: spend charts, build and migration info, audit log view | planned |
 | 5 | Packages: Free / Plus / Pro, manual grants | planned |
 
@@ -59,7 +59,7 @@ change (`audited()` in `worker/admin/routes.ts`).
    npx wrangler secret put ACCESS_TEAM_DOMAIN   # <team>.cloudflareaccess.com
    npx wrangler secret put ACCESS_AUD           # the AUD tag
    npx wrangler secret put ADMIN_EMAILS         # optional extra allow-list, comma-separated
-   npm run cf:deploy                            # applies migrations 0006 and 0007
+   npm run cf:deploy                            # applies migrations 0006 to 0008
    ```
 
 6. In **Workers & Pages → benkyo-ne → Settings → Domains & Routes**, turn
@@ -67,6 +67,20 @@ change (`audited()` in `worker/admin/routes.ts`).
    reached through the Access-protected domain.
 7. Optional: a WAF rate-limiting rule on `/api/admin/*`, for example 60
    requests per minute per IP.
+
+## Sign-ups
+
+`/admin/settings` switches sign-ups between **open to everyone** and
+**invite only** (`app_settings.signup_mode`, cached 30 s per isolate).
+While invite-only, a passkey sign-up needs a valid code from the console
+(`BK-XXXX-XXXX`, with a use count and optional expiry; `invite_codes`), and
+the account remembers which code it used (`accounts.invite_code`). Apple
+sign-up only works while sign-ups are open. `SIGNUP_MODE=closed` on the
+Worker overrides the console and stops invites too.
+
+The same screen sets the sign-in session lifetime (`ai_settings.session_ttl_days`,
+1 to 400 days, default 400; see `worker/auth/session.ts`) and shows new
+accounts per day for the last 30 days.
 
 Emergency stops that don't need the console: set the Access policy to deny
 everyone, and `SIGNUP_MODE=closed` on the Worker.

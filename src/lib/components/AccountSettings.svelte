@@ -20,6 +20,7 @@
 	const supported = typeof window !== 'undefined' && 'PublicKeyCredential' in window;
 	let busy = $state(false);
 	let name = $state('');
+	let invite = $state('');
 	let recoverInput = $state('');
 	let recoveryCode = $state<string | null>(null);
 	let passkeys = $state<PasskeyInfo[]>([]);
@@ -71,7 +72,7 @@
 	async function create() {
 		const n = name.trim();
 		if (!n) return;
-		const r = await guard(() => api.registerPasskey(n), 'Account created');
+		const r = await guard(() => api.registerPasskey(n, !ai.signupOpen ? invite.trim() : undefined), 'Account created');
 		if (r) {
 			recoveryCode = r.recoveryCode ?? null;
 			name = '';
@@ -215,7 +216,7 @@
 		<div class="item seg-wrap">
 			<div class="seg" role="tablist" aria-label="Account">
 				<button role="tab" aria-selected={mode === 'signin'} class:on={mode === 'signin'} onclick={() => (mode = 'signin')}>Sign in</button>
-				<button role="tab" aria-selected={mode === 'create'} class:on={mode === 'create'} onclick={() => (mode = 'create')} disabled={!ai.signupOpen}>Create account</button>
+				<button role="tab" aria-selected={mode === 'create'} class:on={mode === 'create'} onclick={() => (mode = 'create')} disabled={!ai.signupOpen && !ai.signupInvite}>Create account</button>
 			</div>
 		</div>
 		{#if mode === 'signin'}
@@ -233,13 +234,16 @@
 			<div class="item caption">
 				Free, with no password and no email: your device makes a passkey. Then add your own AI key (Anthropic or OpenAI-compatible). Only your account can use it.
 			</div>
+			{#if !ai.signupOpen}
+				<div class="item"><input type="text" placeholder="Invite code" bind:value={invite} maxlength="20" autocomplete="off" autocapitalize="characters" aria-label="Invite code" /></div>
+			{/if}
 			<form class="item row" onsubmit={(e) => (e.preventDefault(), create())}>
 				<input type="text" placeholder="Your name" bind:value={name} maxlength="40" autocomplete="nickname" aria-label="Your name" />
-				<button class="btn small" disabled={busy || !name.trim()}>Create</button>
+				<button class="btn small" disabled={busy || !name.trim() || (!ai.signupOpen && !invite.trim())}>Create</button>
 			</form>
 			{#if ai.appleEnabled && ai.signupOpen}<div class="item"><AppleButton disabled={busy} /></div>{/if}
 		{/if}
-		{#if !ai.signupOpen}<div class="item caption">New sign-ups are closed right now.</div>{/if}
+		{#if !ai.signupOpen}<div class="item caption">{ai.signupInvite ? 'Sign-ups are invite-only right now.' : 'New sign-ups are closed right now.'}</div>{/if}
 	{/if}
 	{#if recoveryCode}
 		<div class="item recovery">

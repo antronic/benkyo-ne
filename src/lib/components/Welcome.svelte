@@ -22,6 +22,9 @@
 	const strokes = strokesOf('あ')?.d ?? [];
 	let mode = $state<'create' | 'signin' | 'recover'>('create');
 	let name = $state('');
+	let invite = $state('');
+	const canCreate = $derived(ai.signupOpen || ai.signupInvite);
+	const needInvite = $derived(!ai.signupOpen && ai.signupInvite);
 	let code = $state('');
 	let busy = $state(false);
 	let error = $state('');
@@ -46,7 +49,7 @@
 	async function create() {
 		const n = name.trim();
 		if (!n) return;
-		const r = await run(() => api.registerPasskey(n));
+		const r = await run(() => api.registerPasskey(n, needInvite ? invite.trim() : undefined));
 		if (!r) return;
 		haptic('success');
 		await ai.refresh();
@@ -127,19 +130,23 @@
 		{:else}
 			<div class="card glass glass-strong" in:fly|global={{ y: 16, duration: 500, delay: 120 }}>
 				<div class="seg" role="tablist" aria-label={t('welcome.account')}>
-					<button role="tab" aria-selected={mode === 'create'} class:on={mode === 'create'} onclick={() => ((mode = 'create'), (error = ''))} disabled={!ai.signupOpen}>{t('welcome.create')}</button>
+					<button role="tab" aria-selected={mode === 'create'} class:on={mode === 'create'} onclick={() => ((mode = 'create'), (error = ''))} disabled={!canCreate}>{t('welcome.create')}</button>
 					<button role="tab" aria-selected={mode !== 'create'} class:on={mode !== 'create'} onclick={() => ((mode = 'signin'), (error = ''))}>{t('welcome.signIn')}</button>
 				</div>
 
 				{#if mode === 'create'}
-					{#if ai.signupOpen}
+					{#if canCreate}
 						<form class="stack" style:--gap="10px" onsubmit={(e) => (e.preventDefault(), create())}>
+							{#if needInvite}
+								<p class="caption">{t('welcome.inviteOnly')}</p>
+								<input type="text" placeholder={t('welcome.invite')} bind:value={invite} maxlength="20" autocomplete="off" autocapitalize="characters" aria-label={t('welcome.invite')} />
+							{/if}
 							<input type="text" placeholder={t('welcome.name')} bind:value={name} maxlength="40" autocomplete="nickname" aria-label={t('welcome.name')} />
-							<button class="btn accent block" disabled={busy || !name.trim()}>
+							<button class="btn accent block" disabled={busy || !name.trim() || (needInvite && !invite.trim())}>
 								{busy ? t('welcome.waiting') : t('welcome.createPasskey')}
 							</button>
 						</form>
-						{#if ai.appleEnabled}
+						{#if ai.appleEnabled && ai.signupOpen}
 							<div class="or" aria-hidden="true"><span>{t('welcome.or')}</span></div>
 							<AppleButton disabled={busy} />
 						{/if}

@@ -33,6 +33,8 @@ export interface Me {
 	} | null;
 	/** anyone can create an account (passkey or Apple) */
 	signupOpen: boolean;
+	/** sign-ups are invite-only: a passkey account can be created with an invite code */
+	signupInvite?: boolean;
 	/** Sign in with Apple is configured on the server */
 	appleEnabled: boolean;
 	/** beta consent for the signed-in account (GET /api/auth/me only; see src/lib/beta/contract.ts) */

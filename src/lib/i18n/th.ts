@@ -284,6 +284,8 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'welcome.createPasskey': 'สร้างพาสคีย์',
 	'welcome.thenKey': 'จากนั้นเพิ่มคีย์ AI ของคุณเองในหน้าตั้งค่า คีย์ถูกเข้ารหัสและใช้ได้เฉพาะบัญชีของคุณ',
 	'welcome.full': 'ตอนนี้เบต้าเต็มแล้ว ถ้าเคยเข้าร่วมไว้ ให้เข้าสู่ระบบแทน',
+	'welcome.invite': 'รหัสเชิญ',
+	'welcome.inviteOnly': 'ตอนนี้เบต้าเปิดรับเฉพาะผู้ที่ได้รับเชิญ กรอกรหัสที่ได้รับ',
 	'welcome.signInPasskey': 'เข้าสู่ระบบด้วยพาสคีย์',
 	'welcome.lost': 'พาสคีย์หาย?',
 	'welcome.code': 'รหัสกู้คืน',

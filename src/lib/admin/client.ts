@@ -13,7 +13,10 @@ import {
 	type AdminAccountDetail,
 	type AdminAccountList,
 	type AdminAccountPatch,
-	type AdminOverview
+	type AdminInvite,
+	type AdminInviteInput,
+	type AdminOverview,
+	type AdminSettings
 } from './contract.ts';
 
 export type AdminErrorCode = 'access' | 'closed' | 'forbidden' | 'signin' | 'offline' | 'stepup' | 'bad' | 'server';
@@ -96,3 +99,11 @@ export const revokeSessions = (id: number) =>
 	withStepUp(() => call<AdminAccountDetail>(`/api/admin/accounts/${id}/revoke`, { method: 'POST', json: {} }));
 export const deleteAccount = (id: number, confirm: string) =>
 	withStepUp(() => call<{ ok: true }>(`/api/admin/accounts/${id}`, { method: 'DELETE', json: { confirm } }));
+
+export const getSettings = () => call<AdminSettings>('/api/admin/settings');
+export const setSignupMode = (mode: 'open' | 'closed') =>
+	withStepUp(() => call<AdminSettings>('/api/admin/settings/signup', { method: 'PUT', json: { mode } }));
+export const setSessionDays = (days: number | null) =>
+	withStepUp(() => call<AdminSettings>('/api/admin/settings/session', { method: 'PUT', json: { days } }));
+export const createInvite = (input: AdminInviteInput) => call<AdminInvite>('/api/admin/invites', { method: 'POST', json: input });
+export const revokeInvite = (code: string) => call<{ ok: true }>(`/api/admin/invites/${encodeURIComponent(code)}`, { method: 'DELETE' });
