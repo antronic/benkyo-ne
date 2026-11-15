@@ -18,16 +18,15 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 
 ## Security
 
-Three locks, all required:
+Four locks, all required:
 
 1. **Cloudflare Access at the edge** on `/admin*` and `/api/admin/*`.
 2. **The Worker verifies the Access JWT** (`Cf-Access-Jwt-Assertion`) on every
    `/api/admin/*` call: signature against the team's published keys, the
    application's AUD tag, issuer and expiry. If Access isn't configured, the
    API answers 503 and the console stays closed.
-3. **An admin passkey session.** Recovery-code sessions are refused, and
-   disabled accounts never get a session.
-
+3. **An admin passkey session.** Recovery-code and Apple sessions are
+   refused, and disabled accounts never get a session.
 4. **A fresh passkey tap for changes.** Disabling, enabling, changing a cap,
    signing an account out everywhere and deleting it answer
    `428 stepup_required` unless this session confirmed with one of the
