@@ -25,6 +25,8 @@
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import Kuri from '#lib/companion/Kuri.svelte';
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 
 	ui.hue = 265;
@@ -255,6 +257,11 @@
 		<button class="icon-btn" aria-label="Back" onclick={() => goto('/ai')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		</button>
+		{#if progress.settings.kuri}
+			<span class="kuri-avatar" title={busy ? t('kuri.thinking') : t('kuri.name')}>
+				<Kuri pose={busy ? 'thinking' : 'idle'} label={busy ? t('kuri.thinking') : t('kuri.name')} options={{ yaw: 0.3, pitch: 0.1, distance: 3.1, target: [0, 1.62, 0.25], fps: 30 }} />
+			</span>
+		{/if}
 		<h1 class="title-2 head-title">{current && msgs.length ? current.title : 'Ask AI'}</h1>
 		<span class="spacer"></span>
 		<button class="icon-btn" aria-label="Chat history" onclick={() => ((historyOpen = true), haptic('selection'))}>
@@ -484,6 +491,15 @@
 		border: 0;
 		background: transparent;
 		border-radius: 999px;
+	}
+	.kuri-avatar {
+		flex: none;
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		overflow: hidden;
+		background: var(--color-surface-strong);
+		border: var(--hairline-w) solid var(--color-border);
 	}
 	.head-title {
 		min-width: 0;

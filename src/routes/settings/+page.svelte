@@ -15,6 +15,7 @@
 	import { updater } from '#lib/pwa/update.svelte.ts';
 	import { DICT_ATTRIBUTION } from '#lib/dict/attribution.ts';
 	import LanguageSettings from '#lib/components/LanguageSettings.svelte';
+	import KuriSettings from '#lib/companion/KuriSettings.svelte';
 
 	ui.hue = 260;
 	let oldKey = $state<string | undefined>();
@@ -78,6 +79,8 @@
 	<LargeTitle title={t('nav.settings')} />
 
 	<LanguageSettings />
+
+	<KuriSettings />
 
 	<h2 class="eyebrow section">{t('settings.learning')}</h2>
 	<div class="glass group rise" style:--i="1">

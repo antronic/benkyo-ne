@@ -15,6 +15,16 @@ export interface Settings {
 	showRomaji: boolean;
 	/** Tab bar placement: auto = beside a side status bar when the screen has one. */
 	navPosition: 'auto' | 'bottom' | 'side';
+	/** Kuri, the Shiba companion: shown at all (when off, its script isn't even loaded) */
+	kuri: boolean;
+	/** Kuri's outfit */
+	kuriStyle: 'bandana' | 'neckerchief';
+	/** Kuri wanders around on Today */
+	kuriWalk: boolean;
+	/** Kuri pops up for right and wrong answers in lessons and reviews */
+	kuriReact: boolean;
+	/** small Kuris use the low-poly model (fewer triangles, less memory) */
+	kuriLowPoly: boolean;
 }
 
 interface Today {
@@ -31,7 +41,7 @@ class Progress {
 	ready = $state(false);
 	cards = $state<Record<string, Card>>({});
 	completed = $state<string[]>([]);
-	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true, navPosition: 'auto' });
+	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true, navPosition: 'auto', kuri: true, kuriStyle: 'bandana', kuriWalk: true, kuriReact: true, kuriLowPoly: true });
 	streak = $state({ days: 0, last: '' });
 	today = $state<Today>({ date: dayKey(), reviews: 0, learned: 0 });
 	now = $state(Date.now());

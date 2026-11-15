@@ -10,6 +10,7 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
 	import PlanCard from '#lib/components/PlanCard.svelte';
+	import KuriWalker from '#lib/companion/KuriWalker.svelte';
 
 	const hour = new Date().getHours();
 	const greeting =
@@ -117,6 +118,10 @@
 		</div>
 	</section>
 </main>
+
+{#if progress.settings.kuri}
+	<KuriWalker hidden={ui.showKuriIntro || ui.showIntro || ui.showOnboarding || ui.showWelcome} />
+{/if}
 
 <style>
 	/* Unfolded: dashboard in two columns */

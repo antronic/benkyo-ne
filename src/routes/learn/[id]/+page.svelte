@@ -3,6 +3,7 @@
 	  MEET → TRACE (per kana) → RECOGNISE (pick 1 of 4) → RECALL (draw from memory) → SCHEDULE
 -->
 <script lang="ts">
+	import { kuriReact } from '#lib/companion/kuri.svelte.ts';
 	import { t, type MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { c, scriptName, story } from '#lib/i18n/content.ts';
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
@@ -103,11 +104,13 @@
 		lastCorrect = k.romaji === target.romaji;
 		if (lastCorrect) {
 			haptic('success');
+			kuriReact('happy');
 			speak(target.char);
 			setTimeout(advance, 650);
 		} else {
 			stats[target.char].wrong++;
 			haptic('error');
+			kuriReact('encourage');
 			shaking = true;
 			setTimeout(() => (shaking = false), 480);
 		}
@@ -133,9 +136,11 @@
 		if (r.correct) {
 			stats[target.char].recallOk = true;
 			haptic('success');
+			kuriReact('happy');
 		} else {
 			stats[target.char].wrong++;
 			haptic('error');
+			kuriReact('encourage');
 			animKey++;
 		}
 	}
