@@ -13,6 +13,7 @@
 	import { Select } from '#lib/ui/index.ts';
 	import { version } from '$app/env';
 	import { updater } from '#lib/pwa/update.svelte.ts';
+	import { install } from '#lib/pwa/install.svelte.ts';
 	import { DICT_ATTRIBUTION } from '#lib/dict/attribution.ts';
 	import LanguageSettings from '#lib/components/LanguageSettings.svelte';
 	import KuriSettings from '#lib/companion/KuriSettings.svelte';
@@ -189,6 +190,36 @@
 
 	<AiSettings />
 
+	<h2 class="eyebrow section">{t('install.section')}</h2>
+	<div class="glass group rise" style:--i="3">
+		{#if install.installed}
+			<div class="item">
+				<span class="stack" style:--gap="0">
+					<span>{t('install.installedTitle')}</span>
+					<span class="caption">{t('install.installedBody')}</span>
+				</span>
+				<span class="spacer"></span>
+				<span class="ok" aria-hidden="true">✓</span>
+			</div>
+		{:else}
+			<div class="item">
+				<span class="stack" style:--gap="0">
+					<span>{t('install.settingsTitle')}</span>
+					<span class="caption">{install.justInstalled ? t('install.doneBody') : t('install.settingsBody')}</span>
+				</span>
+				<span class="spacer"></span>
+				{#if install.canPrompt}
+					<button class="btn accent small nowrap" onclick={() => install.prompt()}>{t('install.now')}</button>
+				{:else}
+					<button class="btn ghost small nowrap" onclick={() => (install.showGuide = true)}>{t('install.showMe')}</button>
+				{/if}
+			</div>
+			{#if install.canPrompt}
+				<div class="item"><button class="link" onclick={() => (install.showGuide = true)}>{t('install.howTo')}</button></div>
+			{/if}
+		{/if}
+	</div>
+
 	<h2 class="eyebrow section">{t('settings.about')}</h2>
 	<div class="glass group rise" style:--i="3">
 		<div class="item"><span>{t('settings.engine')}</span><span class="spacer"></span><span class="caption">{engine}</span></div>
@@ -212,6 +243,10 @@
 	}
 	.section {
 		margin: 16px 6px 2px;
+	}
+	.ok {
+		color: var(--color-success);
+		font-weight: 700;
 	}
 	.group {
 		padding: 4px 0;
