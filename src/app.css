@@ -221,6 +221,23 @@ button,
 	backdrop-filter: blur(20px) saturate(180%);
 	border: 0.5px solid var(--glass-edge);
 }
+/* Solid red for destructive actions (<Button variant="danger">). */
+.btn.danger {
+	background: var(--color-danger);
+	color: var(--color-on-solid);
+}
+/* Quieter destructive action: glass button with red text. Screens write
+   class="btn ghost danger"; without this rule the solid .btn.danger above
+   would paint the background red too and hide the red label. */
+.btn.ghost.danger {
+	background: var(--glass);
+	color: var(--color-danger);
+}
+.btn.plain {
+	background: none;
+	color: var(--color-link);
+	padding: 0 var(--space-2);
+}
 .btn.block {
 	width: 100%;
 }
