@@ -25,6 +25,7 @@
 	import RecallPad from '#lib/components/RecallPad.svelte';
 	import ProgressRing from '#lib/components/ProgressRing.svelte';
 	import WordQuiz from '#lib/components/WordQuiz.svelte';
+	import { DRILLS, isDrillId, pickDrill } from '#lib/practice/drills.ts';
 
 	ui.hue = 220;
 
@@ -43,9 +44,18 @@
 	}
 
 	const tag = page.url.searchParams.get('tag');
+	const practiceParam = page.url.searchParams.get('practice');
+	const practice = isDrillId(practiceParam) ? DRILLS.find((d) => d.id === practiceParam)! : null;
 	const now = Date.now();
 
 	function buildQueue(): Entry[] {
+		if (practice) {
+			const isWord = (id: string) => !!words.cards[id] && !words.cards[id].deleted;
+			return pickDrill(practice.id, progress.cards, isWord, now).map((id) => {
+				const s = progress.cards[id];
+				return { id, isNew: false, drill: s.due > now };
+			});
+		}
 		if (tag) {
 			return words
 				.byTag(tag)
@@ -81,7 +91,7 @@
 	const kana = $derived(entry?.id.startsWith('kana:') ? byChar.get(entry.id.slice(5)) : undefined);
 	const wordCard = $derived(entry && !kana ? words.cards[entry.id] : undefined);
 	const mode = $derived<Mode>(
-		!card || card.state !== 'review' || card.stability < 3 ? 'choose' : card.stability < 21 ? 'type' : 'draw'
+		practice?.id === 'lookalikes' ? 'choose' : !card || card.state !== 'review' || card.stability < 3 ? 'choose' : card.stability < 21 ? 'type' : 'draw'
 	);
 
 	function prep() {
@@ -159,6 +169,8 @@
 
 	{#if tag}
 		<div class="tagline caption">Drilling <b>{tag}</b>. Cards that aren’t due are practised without changing their schedule.</div>
+	{:else if practice}
+		<div class="tagline caption">{practice.emoji} <b>{practice.title}</b>. Cards that aren’t due are practised without changing their schedule.</div>
 	{/if}
 
 	{#if !entry || (!kana && !wordCard)}
@@ -170,13 +182,20 @@
 						<div class="caption">recalled</div>
 					</div>
 				</ProgressRing>
-				<h1 class="large-title">{total ? 'Session complete' : tag ? 'Nothing to drill' : 'All caught up'}</h1>
+				<h1 class="large-title">{total ? (practice ? 'Practice complete' : 'Session complete') : tag || practice ? 'Nothing to drill' : 'All caught up'}</h1>
 				<p class="subhead">
-					{total
+					{total && practice
+						? 'Due cards were rescheduled; the rest kept their dates. Run it again any time for more reps.'
+						: !total && practice
+							? 'Finish a lesson or add some cards first, then come back for reps.'
+							: total
 						? 'Each card is now scheduled for the day your memory of it is predicted to dip to your target.'
 						: 'Nothing is due right now. New reviews will appear as their dates come round.'}
 				</p>
-				<button class="btn accent" onclick={() => goto('/')}>Done</button>
+				<div class="row">
+					{#if practice && total}<button class="btn ghost" onclick={() => (location.href = `/review?practice=${practice.id}`)}>Again</button>{/if}
+					<button class="btn accent" onclick={() => goto(practice ? '/learn' : '/')}>Done</button>
+				</div>
 			</div>
 		</section>
 	{:else if wordCard}

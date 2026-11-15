@@ -12,12 +12,14 @@
 	import { onMount } from 'svelte';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { DRILLS, drillCounts } from '#lib/practice/drills.ts';
 
 	type Filter = string;
 	onMount(() => lessonPacks.load());
 	const FILTERS = $derived<{ id: Filter; label: string }[]>([
 		{ id: 'all', label: 'All' },
 		{ id: 'fundamentals', label: '🔤 Fundamentals' },
+		{ id: 'practice', label: '🎯 Practice' },
 		...lessonPacks.courses.map((c) => ({ id: c.id as Filter, label: `${c.emoji} ${c.title}` }))
 	]);
 	const saved = (() => {
@@ -40,6 +42,12 @@
 	/** Cards added from a unit (by hidden course tag). */
 	const addedIn = (course: string, unit: string) => words.list.filter((c) => c.tags.includes(courseTag(course, unit))).length;
 
+	/** Lessons left per script, for the placement check cards. */
+	const left = (script: 'hiragana' | 'katakana') => LESSONS.filter((l) => l.script === script && !progress.completed.includes(l.id)).length;
+	const counts = $derived(drillCounts(progress.cards, (id) => !!words.cards[id] && !words.cards[id].deleted));
+	/** Drills appear once there is something to practise (all of them under the Practice filter). */
+	const anyDrill = $derived(Object.values(counts).some((n) => n > 0));
+
 	ui.hue = 30;
 	const nextId = $derived(LESSONS.find((l) => !progress.completed.includes(l.id))?.id);
 
@@ -60,6 +68,39 @@
 			<button role="tab" aria-selected={filter === f.id} class="chip" class:on={filter === f.id} onclick={() => choose(f.id)}>{f.label}</button>
 		{/each}
 	</div>
+
+{#snippet practiceSection()}
+		<section class="practice rise" style:--h={265}>
+			<h2 class="eyebrow section">🎯 Practice · <span class="jp">れんしゅう</span></h2>
+			<p class="caption blurb">Already know some Japanese? Test out of the lessons you know, then drill what you’ve learned.</p>
+			<div class="units">
+				{#each ['hiragana', 'katakana'] as const as script}
+					{@const n = left(script)}
+					<a class="unit glass sheen" href="/learn/placement/{script}" class:done={n === 0} style:--h={script === 'hiragana' ? 8 : 220}>
+						<span class="badge">{n === 0 ? '✓' : script === 'hiragana' ? 'あ' : 'ア'}</span>
+						<span class="stack" style:--gap="1px">
+							<span class="headline">Test out of {script}</span>
+							<span class="caption">{n === 0 ? 'All lessons done' : `Placement check · ${n} ${n === 1 ? 'lesson' : 'lessons'} to skip`}</span>
+						</span>
+					</a>
+				{/each}
+				{#each anyDrill || filter === 'practice' ? DRILLS : [] as d (d.id)}
+					{@const n = counts[d.id]}
+					<a class="unit glass sheen" href="/review?practice={d.id}" class:empty={n === 0} aria-disabled={n === 0}>
+						<span class="badge">{d.emoji}</span>
+						<span class="stack" style:--gap="1px">
+							<span class="headline">{d.title}</span>
+							<span class="caption">{n ? d.blurb : 'Nothing to practise yet'}</span>
+						</span>
+						<span class="spacer"></span>
+						{#if n}<span class="caption">{Math.min(n, 20)}</span>{/if}
+					</a>
+				{/each}
+			</div>
+		</section>
+	{/snippet}
+
+	{#if filter === 'all' || filter === 'practice'}{@render practiceSection()}{/if}
 
 	{#if filter === 'all' || filter === 'fundamentals'}
 	<p class="subhead rise" style="margin:0 0 4px">Kana first: one row at a time, up to five new characters a lesson.</p>
@@ -185,6 +226,13 @@
 	}
 	.unit:active {
 		transform: scale(0.97);
+	}
+	.unit.empty {
+		opacity: 0.55;
+		pointer-events: none;
+	}
+	.practice {
+		margin-top: 4px;
 	}
 	.unit.done .badge {
 		background: var(--success);
