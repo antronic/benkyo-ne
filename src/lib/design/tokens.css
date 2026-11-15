@@ -1,0 +1,275 @@
+/*
+ * Benkyo design tokens.
+ *
+ * Three layers:
+ *   1. Primitives  (--p-*)      raw palette, never used by components directly
+ *   2. Semantic    (--color-*, --space-*, --text-*, --radius-* ...)  what components use
+ *   3. Legacy      (--bg, --ink, --accent, --r-m ...)  older names, kept as aliases
+ *                  so existing screens keep working while they migrate
+ *
+ * Theme: follows the OS by default. Put data-theme="light" or data-theme="dark"
+ * on <html>, or on any element, to force a theme for that subtree (the design
+ * catalog and the admin console use this). See /design for the visual reference.
+ */
+
+/* ------------------------------------------------------------ primitives -- */
+
+:root {
+	/* 和紙 washi paper / 墨 sumi ink */
+	--p-washi-50: #fbfaf7;
+	--p-washi-100: #f6f4ef;
+	--p-washi-200: #ece8df;
+	--p-sumi-950: #0b0b0f;
+	--p-sumi-900: #15151b;
+	--p-sumi-850: #1d1d24;
+	--p-ink: #1d1d1f;
+	--p-ink-inverse: #f5f5f7;
+
+	/* 朱 vermilion: brand accent */
+	--p-shu-300: #ff7a5c;
+	--p-shu-400: #ff6a55;
+	--p-shu-500: #e8432e;
+	--p-shu-700: #b8264f;
+
+	/* 藍 indigo: links, focus, selection */
+	--p-ai-400: #7b93ff;
+	--p-ai-500: #3b5bdb;
+
+	/* 菫 violet: words / AI */
+	--p-sumire-400: #a78bfa;
+	--p-sumire-500: #8b5cf6;
+
+	/* 抹茶 matcha: success */
+	--p-matcha-400: #5fd17a;
+	--p-matcha-500: #34a853;
+
+	/* 山吹 yamabuki: warning */
+	--p-yamabuki-400: #ffc53d;
+	--p-yamabuki-500: #f2a900;
+
+	/* 紅 beni: danger */
+	--p-beni-400: #ff6369;
+	--p-beni-500: #e5484d;
+
+	--p-white: #fff;
+	--p-black: #000;
+}
+
+/* --------------------------------------------------- theme-independent -- */
+
+:root,
+[data-theme] {
+	/* spacing: 4px grid (plus 2px and 6px for tight UI) */
+	--space-0: 0;
+	--space-px: 2px;
+	--space-1: 4px;
+	--space-1h: 6px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 20px;
+	--space-6: 24px;
+	--space-8: 32px;
+	--space-10: 40px;
+	--space-12: 48px;
+
+	/* radii */
+	--radius-xs: 4px;
+	--radius-sm: 8px;
+	--radius-md: 12px;
+	--radius-control: 14px; /* text fields, small tiles */
+	--radius-card: 22px; /* glass cards and grouped lists */
+	--radius-sheet: 32px; /* sheets, hero cards */
+	--radius-pill: 999px;
+	--radius-round: 50%;
+
+	/* type: iOS Dynamic Type sizes at the default setting */
+	--font-text: -apple-system, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+	--font-display: -apple-system, 'SF Pro Display', system-ui, sans-serif;
+	--font-jp: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif;
+	--font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+	--text-caption-2: 0.6875rem; /* 11 */
+	--text-caption: 0.75rem; /* 12 */
+	--text-footnote: 0.8125rem; /* 13 */
+	--text-subhead: 0.9375rem; /* 15 */
+	--text-callout: 1rem; /* 16 */
+	--text-body: 1.0625rem; /* 17 */
+	--text-title-3: 1.25rem; /* 20 */
+	--text-title-2: 1.375rem; /* 22 */
+	--text-title-1: 1.75rem; /* 28 */
+	--text-large-title: 2.125rem; /* 34 */
+	--text-display: clamp(2.5rem, 12vw, 4rem); /* hero glyphs */
+
+	--weight-regular: 400;
+	--weight-medium: 500;
+	--weight-semibold: 600;
+	--weight-bold: 700;
+
+	--leading-tight: 1.1;
+	--leading-snug: 1.25;
+	--leading-normal: 1.4;
+
+	--tracking-tight: -0.02em;
+	--tracking-eyebrow: 0.06em;
+
+	/* control sizes */
+	--control-xs: 28px;
+	--control-sm: 36px;
+	--control-md: 44px; /* minimum touch target */
+	--control-lg: 50px;
+	--field-h: 54px;
+
+	/* motion */
+	--ease-spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%,
+			0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001 85.3%, 1);
+	--ease-spring-bouncy: linear(0, 0.009, 0.037 1.7%, 0.153 3.6%, 0.776 10.3%, 1.001, 1.142 16%,
+			1.185, 1.209 19%, 1.196 20.6%, 1.151 22.5%, 0.989 29.2%, 0.942 32.2%, 0.931 34.8%, 0.95 38.3%,
+			1.003 45.4%, 1.019 49.1%, 1.017 54.3%, 0.998 66.2%, 1);
+	--ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
+	--dur-fast: 200ms;
+	--dur-press: 380ms;
+	--dur-base: 520ms;
+	--dur-slow: 700ms;
+
+	/* material */
+	--blur-glass: blur(28px) saturate(180%);
+	--blur-control: blur(20px) saturate(180%);
+	--hairline-w: 0.5px;
+
+	/* layers */
+	--z-nav: 50;
+	--z-banner: 60;
+	--z-sheet: 80;
+	--z-overlay: 90;
+	--z-toast: 100;
+}
+
+/* ------------------------------------------------------- semantic: light -- */
+
+:root,
+[data-theme='light'] {
+	--color-bg: var(--p-washi-100);
+	--color-bg-2: var(--p-washi-200);
+	--color-text: var(--p-ink);
+	--color-text-2: rgb(29 29 31 / 0.62);
+	--color-text-3: rgb(29 29 31 / 0.38);
+	--color-border: rgb(0 0 0 / 0.08);
+	--color-fill: rgb(29 29 31 / 0.08); /* track of switches, segmented controls */
+	--color-fill-strong: rgb(29 29 31 / 0.14);
+
+	--color-surface: rgb(255 255 255 / 0.55);
+	--color-surface-strong: rgb(255 255 255 / 0.78);
+	--color-surface-edge: rgb(255 255 255 / 0.9);
+	--shadow-surface: 0 1px 0 rgb(255 255 255 / 0.7) inset, 0 -1px 0 rgb(0 0 0 / 0.04) inset,
+		0 10px 30px -10px rgb(30 20 10 / 0.18), 0 2px 6px rgb(30 20 10 / 0.06);
+	--shadow-raised: 0 2px 6px rgb(0 0 0 / 0.12);
+	--shadow-knob: 0 3px 8px rgb(0 0 0 / 0.15);
+
+	--color-accent: var(--p-shu-500);
+	--color-on-accent: var(--p-white);
+	--color-info: var(--p-ai-500);
+	--color-violet: var(--p-sumire-500);
+	--color-success: var(--p-matcha-500);
+	--color-warning: var(--p-yamabuki-500);
+	--color-danger: var(--p-beni-500);
+	--color-on-solid: var(--p-white);
+
+	--color-primary: var(--p-ink); /* default button: ink on paper */
+	--color-on-primary: var(--p-washi-100);
+	--color-link: var(--color-info);
+	--color-focus: color-mix(in srgb, var(--color-info) 30%, transparent);
+	--color-knob: var(--p-white);
+
+	--gradient-brand: linear-gradient(135deg, var(--p-shu-300), var(--p-shu-500) 55%, var(--p-shu-700));
+	--gradient-ai: linear-gradient(90deg, var(--color-info), var(--color-violet));
+
+	color-scheme: light;
+}
+
+/* -------------------------------------------------------- semantic: dark -- */
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		--color-bg: var(--p-sumi-950);
+		--color-bg-2: var(--p-sumi-900);
+		--color-text: var(--p-ink-inverse);
+		--color-text-2: rgb(245 245 247 / 0.66);
+		--color-text-3: rgb(245 245 247 / 0.36);
+		--color-border: rgb(255 255 255 / 0.09);
+		--color-fill: rgb(245 245 247 / 0.1);
+		--color-fill-strong: rgb(245 245 247 / 0.18);
+		--color-surface: rgb(40 40 48 / 0.45);
+		--color-surface-strong: rgb(44 44 54 / 0.72);
+		--color-surface-edge: rgb(255 255 255 / 0.16);
+		--shadow-surface: 0 1px 0 rgb(255 255 255 / 0.1) inset, 0 -1px 0 rgb(0 0 0 / 0.3) inset,
+			0 14px 34px -12px rgb(0 0 0 / 0.7);
+		--shadow-raised: 0 2px 6px rgb(0 0 0 / 0.4);
+		--shadow-knob: 0 3px 8px rgb(0 0 0 / 0.3);
+		--color-accent: var(--p-shu-400);
+		--color-info: var(--p-ai-400);
+		--color-violet: var(--p-sumire-400);
+		--color-success: var(--p-matcha-400);
+		--color-primary: var(--p-ink-inverse);
+		--color-on-primary: var(--p-sumi-950);
+		color-scheme: dark;
+	}
+}
+
+[data-theme='dark'] {
+	--color-bg: var(--p-sumi-950);
+	--color-bg-2: var(--p-sumi-900);
+	--color-text: var(--p-ink-inverse);
+	--color-text-2: rgb(245 245 247 / 0.66);
+	--color-text-3: rgb(245 245 247 / 0.36);
+	--color-border: rgb(255 255 255 / 0.09);
+	--color-fill: rgb(245 245 247 / 0.1);
+	--color-fill-strong: rgb(245 245 247 / 0.18);
+	--color-surface: rgb(40 40 48 / 0.45);
+	--color-surface-strong: rgb(44 44 54 / 0.72);
+	--color-surface-edge: rgb(255 255 255 / 0.16);
+	--shadow-surface: 0 1px 0 rgb(255 255 255 / 0.1) inset, 0 -1px 0 rgb(0 0 0 / 0.3) inset,
+		0 14px 34px -12px rgb(0 0 0 / 0.7);
+	--shadow-raised: 0 2px 6px rgb(0 0 0 / 0.4);
+	--shadow-knob: 0 3px 8px rgb(0 0 0 / 0.3);
+	--color-accent: var(--p-shu-400);
+	--color-info: var(--p-ai-400);
+	--color-violet: var(--p-sumire-400);
+	--color-success: var(--p-matcha-400);
+	--color-primary: var(--p-ink-inverse);
+	--color-on-primary: var(--p-sumi-950);
+	color-scheme: dark;
+}
+
+/* ------------------------------------------------------- legacy aliases -- */
+/*
+ * Older names used across the app. Re-declared wherever a theme is set so a
+ * forced-theme subtree resolves them against its own colours. New code should
+ * use the semantic names above.
+ */
+
+:root,
+[data-theme] {
+	--bg: var(--color-bg);
+	--bg-2: var(--color-bg-2);
+	--ink: var(--color-text);
+	--ink-2: var(--color-text-2);
+	--ink-3: var(--color-text-3);
+	--hairline: var(--color-border);
+	--glass: var(--color-surface);
+	--glass-strong: var(--color-surface-strong);
+	--glass-edge: var(--color-surface-edge);
+	--glass-shadow: var(--shadow-surface);
+	--accent: var(--color-accent);
+	--accent-2: var(--color-info);
+	--success: var(--color-success);
+	--warn: var(--color-warning);
+	--danger: var(--color-danger);
+	--r-s: var(--radius-control);
+	--r-m: var(--radius-card);
+	--r-l: var(--radius-sheet);
+	--font: var(--font-text);
+	--spring: var(--ease-spring);
+	--spring-bouncy: var(--ease-spring-bouncy);
+	--dur: var(--dur-base);
+}
