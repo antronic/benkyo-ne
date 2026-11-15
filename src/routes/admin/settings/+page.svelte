@@ -206,12 +206,4 @@
 	.gone {
 		opacity: 0.55;
 	}
-	select {
-		font: inherit;
-		padding: 8px 10px;
-		border-radius: 12px;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		color: inherit;
-	}
 </style>

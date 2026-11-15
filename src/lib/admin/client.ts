@@ -14,6 +14,10 @@ import {
 	type AdminAccountList,
 	type AdminAccountPatch,
 	type AdminAuditList,
+	type AdminGrantInput,
+	type AdminPackages,
+	type AdminPlanId,
+	type AdminPlanPatch,
 	type AdminInvite,
 	type AdminInviteInput,
 	type AdminOverview,
@@ -115,3 +119,11 @@ export const getUsage = (days: 7 | 30 | 90) => call<AdminUsage>(`/api/admin/usag
 export const getSystem = () => call<AdminSystem>('/api/admin/system');
 export const getAudit = (offset = 0, action = '') =>
 	call<AdminAuditList>(`/api/admin/audit?offset=${offset}${action ? `&action=${encodeURIComponent(action)}` : ''}`);
+
+export const getPackages = () => call<AdminPackages>('/api/admin/packages');
+export const updatePackage = (id: AdminPlanId, patch: AdminPlanPatch) =>
+	withStepUp(() => call<AdminPackages>(`/api/admin/packages/${id}`, { method: 'PUT', json: patch }));
+export const grantPackage = (accountId: number, input: AdminGrantInput) =>
+	withStepUp(() => call<AdminAccountDetail>(`/api/admin/accounts/${accountId}/grants`, { method: 'POST', json: input }));
+export const endGrant = (accountId: number, grantId: number) =>
+	withStepUp(() => call<AdminAccountDetail>(`/api/admin/accounts/${accountId}/grants/${grantId}`, { method: 'DELETE' }));

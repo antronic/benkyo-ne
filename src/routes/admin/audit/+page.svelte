@@ -45,7 +45,7 @@
 		'invite.revoke': 'Revoked an invite',
 		'package.update': 'Changed a package',
 		'package.grant': 'Granted a package',
-		'package.revoke': 'Ended a package grant'
+		'package.end': 'Ended a package early'
 	};
 	const label = (a: string) => LABELS[a] ?? a;
 	const when = (t: number) => new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -118,12 +118,6 @@
 		overflow-wrap: anywhere;
 	}
 	select {
-		font: inherit;
-		padding: 10px 12px;
-		border-radius: 12px;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		color: inherit;
 		align-self: flex-start;
 	}
 </style>

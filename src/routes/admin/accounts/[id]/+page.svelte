@@ -10,8 +10,8 @@
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
-	import { AdminError, deleteAccount, getAccount, patchAccount, revokeSessions } from '#lib/admin/client.ts';
-	import type { AdminAccountDetail } from '#lib/admin/contract.ts';
+	import { AdminError, deleteAccount, endGrant, getAccount, grantPackage, patchAccount, revokeSessions } from '#lib/admin/client.ts';
+	import type { AdminAccountDetail, AdminGrant } from '#lib/admin/contract.ts';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -21,6 +21,10 @@
 	let busy = $state(false);
 	let cap = $state('');
 	let confirmName = $state('');
+	let gPlan = $state<'plus' | 'pro'>('plus');
+	let gKind = $state<'comp' | 'trial'>('trial');
+	let gDays = $state('7');
+	let gNote = $state('');
 
 	async function load() {
 		error = null;
@@ -82,6 +86,23 @@
 		}
 	}
 
+	async function give(e: SubmitEvent) {
+		e.preventDefault();
+		if (!a) return;
+		const days = gDays === '' ? null : Number(gDays);
+		const live = a.grants.find((g) => g.live);
+		if (live && !(await confirmDestructive(`Replace ${PLAN_NAMES[live.plan]}?`, `${a.name}'s current ${live.kind} ends now and the new one starts.`, 'Replace')))
+			return;
+		await act(() => grantPackage(id, { plan: gPlan, kind: gKind, days, note: gNote.trim() || undefined }), `${PLAN_NAMES[gPlan]} granted`);
+		gNote = '';
+	}
+	async function end(g: AdminGrant) {
+		if (!a || !(await confirmDestructive(`End ${PLAN_NAMES[g.plan]} now?`, `${a.name} goes back to Free.`, 'End'))) return;
+		await act(() => endGrant(id, g.id), 'Package ended');
+	}
+	const PLAN_NAMES = { free: 'Free', plus: 'Plus', pro: 'Pro' } as const;
+	const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
 	const day = (t: number | null) =>
 		t ? new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 	const usd = (n: number) => `$${n.toFixed(n < 1 ? 4 : 2)}`;
@@ -115,6 +136,50 @@
 			<div class="item"><span>Apple ID</span><span class="spacer"></span><span class="caption">{a.appleLinked ? 'Connected' : 'Not connected'}</span></div>
 			<div class="item"><span>Recovery code</span><span class="spacer"></span><span class="caption">{a.recoveryCode === 'unused' ? 'Ready' : a.recoveryCode === 'used' ? 'Used' : 'None'}</span></div>
 		</div>
+
+		<h2 class="eyebrow section">Package</h2>
+		<div class="glass group">
+			<div class="item">
+				<span>Now on</span><span class="spacer"></span>
+				<span class="pill" class:muted={a.plan === 'free'}>{PLAN_NAMES[a.plan]}</span>
+			</div>
+			{#each a.grants as g (g.id)}
+				<div class="item" class:gone={!g.live}>
+					<span class="stack" style:--gap="2px" style:min-width="0">
+						<span>{PLAN_NAMES[g.plan]} · {g.kind === 'trial' ? 'Trial' : 'Complimentary'}</span>
+						<span class="caption">
+							{g.endedAt ? `${shortDay(g.startsAt)} to ${shortDay(g.endedAt)}, ended early` : g.endsAt ? `${shortDay(g.startsAt)} to ${shortDay(g.endsAt)}` : `Since ${shortDay(g.startsAt)}, until ended`}{g.note ? ` · ${g.note}` : ''}
+						</span>
+					</span>
+					<span class="spacer"></span>
+					{#if g.live}<button class="link danger" onclick={() => end(g)} disabled={busy}>End</button>{/if}
+				</div>
+			{/each}
+			<form class="item col" onsubmit={give}>
+				<span class="row" style:gap="8px" style:flex-wrap="wrap">
+					<select bind:value={gPlan} aria-label="Package">
+						<option value="plus">Plus</option>
+						<option value="pro">Pro</option>
+					</select>
+					<select bind:value={gKind} aria-label="Kind" onchange={() => gKind === 'trial' && gDays === '' && (gDays = '7')}>
+						<option value="trial">Trial</option>
+						<option value="comp">Complimentary</option>
+					</select>
+					<select bind:value={gDays} aria-label="How long">
+						<option value="7">7 days</option>
+						<option value="30">30 days</option>
+						<option value="90">90 days</option>
+						<option value="365">1 year</option>
+						{#if gKind === 'comp'}<option value="">Until ended</option>{/if}
+					</select>
+				</span>
+				<span class="row" style:gap="8px">
+					<input type="text" bind:value={gNote} maxlength="120" placeholder="Note (optional)" aria-label="Note" style:flex="1" />
+					<button class="btn small" disabled={busy}>Grant</button>
+				</span>
+			</form>
+		</div>
+		<p class="caption" style:margin="2px 6px">Packages aren’t enforced in the app yet. This records who gets Plus or Pro for when managed AI ships.</p>
 
 		<h2 class="eyebrow section">AI this month</h2>
 		<div class="glass group">
@@ -199,6 +264,9 @@
 </main>
 
 <style>
+	.gone {
+		opacity: 0.55;
+	}
 	.danger-btn {
 		background: var(--danger);
 	}

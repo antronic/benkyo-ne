@@ -11,6 +11,7 @@
  *   DELETE /api/admin/accounts/:id {confirm}   delete it and all its data  step-up
  *   /api/admin/settings, /api/admin/invites    sign-ups, invites, session lifetime (worker/admin/settings.ts)
  *   /api/admin/usage, /system, /audit          read-only insights (worker/admin/insights.ts)
+ *   /api/admin/packages, /accounts/:id/grants  packages and grants (worker/admin/packages.ts)
  *
  * Three locks, all required (fleet console plan, "Security"):
  *   1. Cloudflare Access at the edge on /admin* and /api/admin/*.
@@ -30,6 +31,7 @@ import { STEPUP_REQUIRED } from '../../src/lib/admin/contract.ts';
 import { handleAccounts } from './accounts.ts';
 import { handleSettings } from './settings.ts';
 import { handleInsights } from './insights.ts';
+import { handlePackages } from './packages.ts';
 import { signupState } from '../auth/signup.ts';
 import { AccessError, verifyAccessJwt, type AccessIdentity } from './access.ts';
 
@@ -158,6 +160,10 @@ export async function handleAdmin(req: Request, env: Env, url: URL): Promise<Res
 	}
 	if (p === '/api/admin/usage' || p === '/api/admin/system' || p === '/api/admin/audit') {
 		const res = await handleInsights(req, env, url, ctx);
+		if (res) return res;
+	}
+	if (p.startsWith('/api/admin/packages') || /^\/api\/admin\/accounts\/\d+\/grants/.test(p)) {
+		const res = await handlePackages(req, env, url, ctx);
 		if (res) return res;
 	}
 	if (p.startsWith('/api/admin/accounts')) {

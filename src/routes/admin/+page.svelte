@@ -79,6 +79,7 @@
 			</div>
 			<a class="item nav" href="/admin/settings"><span>Sign-ups, invites and sessions</span><span class="spacer"></span><span class="caption" aria-hidden="true">›</span></a>
 			<div class="item"><span>Devices on a sync key</span><span class="spacer"></span><b>{data.syncDevices}</b></div>
+			<a class="item nav" href="/admin/packages"><span>Packages</span><span class="spacer"></span><span class="caption" aria-hidden="true">›</span></a>
 			<a class="item nav" href="/admin/system"><span>System and health</span><span class="spacer"></span><span class="caption" aria-hidden="true">›</span></a>
 			<a class="item nav" href="/admin/audit"><span>Audit log</span><span class="spacer"></span><span class="caption" aria-hidden="true">›</span></a>
 		</div>

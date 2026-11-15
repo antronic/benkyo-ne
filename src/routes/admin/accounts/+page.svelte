@@ -71,6 +71,7 @@
 						</span>
 					</span>
 					<span class="spacer"></span>
+					{#if a.plan !== 'free'}<span class="pill">{a.plan === 'pro' ? 'Pro' : 'Plus'}</span>{/if}
 					{#if a.isAdmin}<span class="pill muted">Admin</span>{/if}
 					{#if a.disabled}<span class="pill off">Disabled</span>{:else if !a.consented}<span class="pill muted">No consent</span>{/if}
 					<span class="caption" aria-hidden="true">›</span>
