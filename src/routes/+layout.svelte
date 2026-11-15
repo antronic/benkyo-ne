@@ -97,6 +97,8 @@
 	});
 
 	onMount(() => {
+		// the app is running: hide the static startup screen in app.html (Splash takes over, same look)
+		document.documentElement.classList.add('booted');
 		reloadOnStaleChunk();
 		const apple = attempt('apple', takeAppleResult, report) ?? null;
 		void boot(apple);
@@ -160,7 +162,18 @@
 
 <div class="app" use:edgeSwipeBack={{ enabled: immersive, onback: back }}>
 	{#if progress.ready && words.ready}
-		{@render children()}
+		<svelte:boundary onerror={(e) => report('screen_crash', e)}>
+			{@render children()}
+			{#snippet failed(_error, reset)}
+				<main class="page crashed" role="alert">
+					<div class="crash-icon" aria-hidden="true">😵‍💫</div>
+					<h1>{t('boot.crashTitle')}</h1>
+					<p>{t('boot.crashBody')}</p>
+					<button class="btn" type="button" onclick={reset}>{t('boot.retry')}</button>
+					<button class="btn ghost" type="button" onclick={() => location.reload()}>{t('boot.reload')}</button>
+				</main>
+			{/snippet}
+		</svelte:boundary>
 	{:else}
 		<main class="page stack boot" style:--gap="16px" aria-busy="true">
 			<div class="boot-title"></div>
@@ -224,6 +237,27 @@
 <style>
 	.app {
 		min-height: 100dvh;
+	}
+	.crashed {
+		min-height: 70dvh;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		text-align: center;
+	}
+	.crashed h1 {
+		margin: 0;
+		font-size: 1.25rem;
+	}
+	.crashed p {
+		margin: 0 0 8px;
+		color: var(--ink-2);
+		max-width: 320px;
+	}
+	.crash-icon {
+		font-size: 2.5rem;
 	}
 	.boot-title {
 		width: 46%;
