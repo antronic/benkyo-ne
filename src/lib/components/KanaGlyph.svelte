@@ -9,8 +9,10 @@
 		scene?: number;
 		color?: string;
 		weight?: number;
+		/** Optional colour per stroke (e.g. kanji components). */
+		colors?: (string | undefined)[];
 	}
-	let { char, size = 160, scene = 0, color = 'currentColor', weight = 5 }: Props = $props();
+	let { char, size = 160, scene = 0, color = 'currentColor', weight = 5, colors }: Props = $props();
 
 	const data = $derived(strokesOf(char));
 	const art = $derived(scene > 0 ? mnemonicFor(char).scene : undefined);
@@ -29,7 +31,7 @@
 	{/if}
 	{#if data}
 		<g fill="none" stroke={color} stroke-width={weight} stroke-linecap="round" stroke-linejoin="round">
-			{#each data.d as d}<path {d} />{/each}
+			{#each data.d as d, i}<path {d} stroke={colors?.[i]} />{/each}
 		</g>
 	{:else}
 		<text x="54.5" y="80" font-size="72" text-anchor="middle" class="jp" fill={color}>{char}</text>

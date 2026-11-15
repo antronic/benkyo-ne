@@ -9,6 +9,7 @@
 import { SCENES as H_SCENES } from './scenes/hiragana.ts';
 import { SCENES as K1_SCENES } from './scenes/katakana1.ts';
 import { SCENES as K2_SCENES } from './scenes/katakana2.ts';
+import { kanjiByChar } from './kanji.ts';
 
 export interface Mnemonic {
 	story: string;
@@ -181,6 +182,8 @@ export function baseOf(char: string): string | undefined {
 }
 
 export function mnemonicFor(char: string): Mnemonic {
+	const kanji = kanjiByChar.get(char);
+	if (kanji) return { story: kanji.story, scene: kanji.picture };
 	const base = baseOf(char);
 	if (base) {
 		const isP = 'ぱぴぷぺぽパピプペポ'.includes(char);

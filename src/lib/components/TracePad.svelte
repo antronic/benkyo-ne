@@ -8,7 +8,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { strokesOf } from '#lib/content/strokes.ts';
+	import { familyOf, strokesOf } from '#lib/content/strokes.ts';
 	import { getMatcher, type Matcher, type Pt } from '#lib/handwriting/match.ts';
 	import { haptic } from '#lib/state/progress.svelte.ts';
 
@@ -100,7 +100,8 @@
 
 	export function check() {
 		if (!matcher || strokes.length === 0) return;
-		const best = matcher.recognize(strokes, 3);
+		// compare kana with kana and kanji with kanji (口 and ロ are the same shape)
+		const best = matcher.recognize(strokes, 3, familyOf(char));
 		const guess = best[0]?.char;
 		// Accept if it's the top match, or close to it with the right stroke count.
 		const own = matcher.grade(char, strokes);

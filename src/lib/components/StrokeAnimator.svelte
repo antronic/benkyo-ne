@@ -16,7 +16,11 @@
 		loop?: boolean;
 		autoplay?: boolean;
 		numbers?: boolean;
+		/** faint preview of the strokes still to come */
+		ghost?: boolean;
 		scene?: number;
+		/** Optional ink colour per stroke (e.g. kanji components). */
+		colors?: (string | undefined)[];
 		ondone?: () => void;
 	}
 	let {
@@ -26,7 +30,9 @@
 		loop = false,
 		autoplay = true,
 		numbers = true,
+		ghost = true,
 		scene = 0,
+		colors,
 		ondone
 	}: Props = $props();
 
@@ -109,10 +115,10 @@
 		<path d="M54.5 4 V105 M4 54.5 H105" />
 	</g>
 	{#if art}
-		<g style:opacity={scene}>{@html art}</g>
+		<g class="art" style:opacity={scene}>{@html art}</g>
 	{/if}
 	{#if data}
-		<g class="ghost">
+		<g class="ghost" class:hidden={!ghost}>
 			{#each data.d as d}<path {d} />{/each}
 		</g>
 		<g class="ink">
@@ -121,6 +127,7 @@
 					bind:this={paths[i]}
 					{d}
 					class:active={active === i}
+					style:stroke={active === i ? undefined : colors?.[i]}
 					style:opacity={(progress[i] ?? 0) > 0 ? 1 : 0}
 					stroke-dasharray={lengths[i] ?? 400}
 					stroke-dashoffset={(lengths[i] ?? 400) * (1 - (progress[i] ?? 0))}
@@ -144,6 +151,9 @@
 		overflow: visible;
 		touch-action: manipulation;
 	}
+	.art {
+		transition: opacity 900ms var(--ease-out);
+	}
 	.grid rect {
 		fill: none;
 		stroke: var(--hairline);
@@ -154,6 +164,12 @@
 		stroke-width: 0.6;
 		stroke-dasharray: 2 3;
 		fill: none;
+	}
+	.ghost {
+		transition: opacity 600ms;
+	}
+	.ghost.hidden {
+		opacity: 0;
 	}
 	.ghost path {
 		fill: none;

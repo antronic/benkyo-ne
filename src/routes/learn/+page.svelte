@@ -13,6 +13,8 @@
 	import { words } from '#lib/state/words.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { DRILLS, drillCounts } from '#lib/practice/drills.ts';
+	import { KANJI_LESSONS, kanjiCardId } from '#lib/content/kanji.ts';
+	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 
 	type Filter = string;
 	onMount(() => lessonPacks.load());
@@ -20,6 +22,7 @@
 		{ id: 'all', label: 'All' },
 		{ id: 'fundamentals', label: '🔤 Fundamentals' },
 		{ id: 'practice', label: '🎯 Practice' },
+		{ id: 'kanji', label: '⛰️ Kanji' },
 		...lessonPacks.courses.map((c) => ({ id: c.id as Filter, label: `${c.emoji} ${c.title}` }))
 	]);
 	const saved = (() => {
@@ -51,14 +54,17 @@
 	ui.hue = 30;
 	const nextId = $derived(LESSONS.find((l) => !progress.completed.includes(l.id))?.id);
 
-	/** Average predicted recall for a lesson's kana (0..1), null if unstarted. */
-	function strength(id: string): number | null {
-		const l = LESSONS.find((x) => x.id === id)!;
-		const cs = l.chars.map((k) => progress.cards[cardId(k)]).filter(Boolean);
+	const nextKanjiId = $derived(KANJI_LESSONS.find((l) => !progress.completed.includes(l.id))?.id);
+
+	/** Average predicted recall over card ids (0..1), null if unstarted. */
+	function recall(ids: string[]): number | null {
+		const cs = ids.map((id) => progress.cards[id]).filter(Boolean);
 		if (!cs.length) return null;
 		const now = Date.now();
-		return cs.reduce((a, c) => a + (c.lastReview ? retrievability((now - c.lastReview) / 864e5, Math.max(c.stability, 0.01)) : 0), 0) / l.chars.length;
+		return cs.reduce((a, c) => a + (c.lastReview ? retrievability((now - c.lastReview) / 864e5, Math.max(c.stability, 0.01)) : 0), 0) / ids.length;
 	}
+	const strength = (id: string) => recall(LESSONS.find((x) => x.id === id)!.chars.map(cardId));
+	const kanjiStrength = (id: string) => recall(KANJI_LESSONS.find((x) => x.id === id)!.chars.map(kanjiCardId));
 </script>
 
 <main class="page stack" style:--gap="10px">
@@ -132,6 +138,36 @@
 		</section>
 	{/each}
 	</div>
+	{/if}
+
+	{#if filter === 'all' || filter === 'kanji'}
+	<section class="kanji-sec">
+		<h2 class="eyebrow section rise">kanji · <span class="jp">漢字</span></h2>
+		<p class="caption blurb rise">Each kanji starts as the picture it was drawn from, then turns into strokes. Best after the hiragana lessons.</p>
+		<ol class="path kanji-path">
+			{#each KANJI_LESSONS as l, i}
+				{@const done = progress.completed.includes(l.id)}
+				{@const s = kanjiStrength(l.id)}
+				<li class="rise" style:--i={i + 1}>
+					<a href="/learn/kanji/{l.id}" class="glass sheen lesson" class:next={l.id === nextKanjiId} class:done style:--h={l.hue}>
+						<span class="badge">{done ? '✓' : i + 1}</span>
+						<span class="stack" style:--gap="2px">
+							<span class="headline">{l.title}</span>
+							<span class="glyphs">
+								{#each l.chars as k}<KanaGlyph char={k.char} size={22} weight={7} />{/each}
+							</span>
+						</span>
+						<span class="spacer"></span>
+						{#if s !== null}
+							<span class="meter" title="Predicted recall"><span style:width="{Math.round(s * 100)}%"></span></span>
+						{:else if l.id === nextKanjiId}
+							<span class="start">Start</span>
+						{/if}
+					</a>
+				</li>
+			{/each}
+		</ol>
+	</section>
 	{/if}
 
 	{#each shownCourses as c, ci (c.id)}
@@ -290,6 +326,17 @@
 	}
 	.done .badge {
 		background: var(--success);
+	}
+	.glyphs {
+		display: flex;
+		gap: 4px;
+		color: var(--ink-2);
+	}
+	@media (min-width: 600px) {
+		.kanji-path {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
 	}
 	.kana {
 		color: var(--ink-2);
