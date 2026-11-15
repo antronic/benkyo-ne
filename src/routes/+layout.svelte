@@ -6,6 +6,8 @@
 	import { goto, onNavigate } from '$app/navigation';
 	import { updater } from '#lib/pwa/update.svelte.ts';
 	import UpdateBanner from '#lib/components/UpdateBanner.svelte';
+	import InstallGuide from '#lib/components/InstallGuide.svelte';
+	import '#lib/pwa/install.svelte.ts'; // listens for the browser's install offer from the start
 	import Splash from '#lib/components/Splash.svelte';
 	import Intro from '#lib/components/Intro.svelte';
 	import Welcome from '#lib/components/Welcome.svelte';
@@ -188,6 +190,7 @@
 {/if}
 <Splash ready={progress.ready && words.ready} />
 <UpdateBanner />
+<InstallGuide />
 <Overlays />
 
 <style>
