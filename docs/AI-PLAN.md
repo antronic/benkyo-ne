@@ -514,8 +514,12 @@ Scope chosen: **passkeys only**, each account brings its own key (BYOK).
   the device name), add or remove passkeys (never the last one), new
   recovery code, sign out, delete account (keys, passkeys, AI settings and
   usage are deleted at once).
-- **Not covered:** learning progress stays on the device and syncs with the
-  sync key as before, and Ask AI chats stay on the device. Two people
+- **Progress sync:** learning progress (review log and cards) follows the
+  signed-in account (`worker/sync.ts`). Signed out, it stays on the device.
+  An old sync key is moved into the account the first time that device syncs
+  while signed in, then retired; a retired key used while signed out gets
+  409 and the app asks you to sign in.
+- **Not covered:** Ask AI chats stay on the device. Two people
   sharing one phone share that local data.
 - **Tests:** a two-account browser test checks that one account can't see,
   delete, select or spend through another's key, that passkeys, usage and

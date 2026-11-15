@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
-	import { createSyncKey, getSyncKey, setSyncKey, sync, type SyncResult } from '#lib/sync.ts';
+	import { getSyncKey, keyWasClaimed, onSync, sync, type SyncResult } from '#lib/sync.ts';
+	import { ai } from '#lib/state/ai.svelte.ts';
 	import { getMatcher } from '#lib/handwriting/match.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
@@ -13,21 +14,41 @@
 	import { DICT_ATTRIBUTION } from '#lib/dict/attribution.ts';
 
 	ui.hue = 260;
-	let key = $state<string | undefined>();
-	let keyInput = $state('');
+	let oldKey = $state<string | undefined>();
+	let claimed = $state(false);
 	let status = $state('');
 	let engine = $state('…');
-	let showKey = $state(false);
+	let syncing = $state(false);
 
-	onMount(async () => {
-		key = await getSyncKey();
-		engine = (await getMatcher()).kind === 'wasm' ? 'WebAssembly (Rust)' : 'JavaScript fallback';
+	const readKey = async () => {
+		oldKey = await getSyncKey();
+		claimed = await keyWasClaimed();
+	};
+	onMount(() => {
+		void readKey();
+		// automatic syncs can retire the key too
+		const off = onSync(() => void readKey());
+		void (async () => (engine = (await getMatcher()).kind === 'wasm' ? 'WebAssembly (Rust)' : 'JavaScript fallback'))();
+		return off;
 	});
 
+	const ERRORS: Record<string, string> = {
+		offline: 'You’re offline. Progress syncs when you reconnect.',
+		network: 'Couldn’t reach the server. Try again in a moment.',
+		'signed-out': 'Sign in to sync your progress.',
+		'key-claimed': 'Your progress moved to your account. Sign in to keep syncing.'
+	};
 	const describe = (r: SyncResult) =>
-		'error' in r ? `Sync failed: ${r.error}` : `Synced: ${r.pushed} sent, ${r.pulled} received`;
+		'error' in r
+			? (ERRORS[r.error] ?? `Sync failed (${r.error})`)
+			: r.pushed + r.pulled
+				? `Up to date: ${r.pushed} sent, ${r.pulled} received`
+				: 'Up to date';
 
-	function report(r: SyncResult) {
+	async function syncNow() {
+		syncing = true;
+		const r = await sync();
+		syncing = false;
 		status = describe(r);
 		if ('error' in r) {
 			haptic('error');
@@ -37,31 +58,10 @@
 			toast('Synced', '✓');
 		}
 	}
-	async function enable() {
-		key = await createSyncKey();
-		report(await sync());
-	}
-	async function copyKey() {
-		if (!key) return;
-		try {
-			await navigator.clipboard.writeText(key);
-			haptic('success');
-			toast('Sync key copied', '📋');
-		} catch {
-			showKey = true;
-		}
-	}
-	async function link() {
-		if (!keyInput.trim()) return;
-		await setSyncKey(keyInput);
-		key = keyInput.trim();
-		keyInput = '';
-		report(await sync());
-	}
 	async function reset() {
 		const ok = await confirmDestructive(
 			'Erase all progress?',
-			'Cards, history and settings on this device will be deleted. Synced copies are kept.',
+			'Cards, history and settings on this device will be deleted. Progress synced to your account is kept and comes back when you sign in.',
 			'Erase Progress'
 		);
 		if (ok) {
@@ -139,29 +139,34 @@
 
 	<h2 class="eyebrow section">Sync</h2>
 	<div class="glass group rise" style:--i="2">
-		{#if key}
+		{#if ai.signedIn && ai.account}
 			<div class="item">
 				<span class="stack" style:--gap="2px">
-					<span>Sync key</span>
-					<code class="caption">{showKey ? key : '••••••••••••••••'}</code>
+					<span>Synced to {ai.account.name}</span>
+					<span class="caption">Your progress and cards follow your account. Sign in on another device to pick up where you left off.</span>
 				</span>
 				<span class="spacer"></span>
-				<button class="btn ghost small" onclick={() => (showKey = !showKey)}>{showKey ? 'Hide' : 'Show'}</button>
-				<button class="btn ghost small" onclick={copyKey}>Copy</button>
+				<button class="btn small nowrap" onclick={syncNow} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync now'}</button>
 			</div>
+		{:else if oldKey}
 			<div class="item">
-				<span class="caption">To sync another device, enter this key on it. Keep the key private.</span>
+				<span class="stack" style:--gap="2px">
+					<span>Syncing with a sync key</span>
+					<span class="caption">Sync keys are being retired. Sign in or create an account below and this device’s progress moves to it automatically. After that you won’t need the key.</span>
+				</span>
 				<span class="spacer"></span>
-				<button class="btn small" onclick={async () => report(await sync())}>Sync now</button>
+				<button class="btn ghost small nowrap" onclick={syncNow} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync now'}</button>
+			</div>
+		{:else if claimed}
+			<div class="item">
+				<span class="stack" style:--gap="2px">
+					<span>Sign in to keep syncing</span>
+					<span class="caption">This device’s sync key was moved into an account on another device. Sign in to that account below and your progress here joins it.</span>
+				</span>
 			</div>
 		{:else}
 			<div class="item">
-				<span class="caption">Your progress lives on this device. Turn on sync to back it up and use it on more than one device. No account needed.</span>
-			</div>
-			<div class="item"><button class="btn block" onclick={enable}>Turn on sync</button></div>
-			<div class="item row">
-				<input type="text" placeholder="…or paste a key from another device" bind:value={keyInput} />
-				<button class="btn ghost small" onclick={link}>Link</button>
+				<span class="caption">Your progress is saved on this device and works offline. To back it up and use it on more than one device, sign in or create an account below. It syncs on its own after that.</span>
 			</div>
 		{/if}
 		{#if status}<div class="item caption">{status}</div>{/if}
@@ -260,10 +265,6 @@
 	.switch:checked::after {
 		transform: translateX(20px);
 	}
-	code {
-		font-family: ui-monospace, monospace;
-		word-break: break-all;
-	}
 	a {
 		color: var(--accent-2);
 	}
@@ -287,5 +288,9 @@
 	}
 	.danger {
 		color: var(--danger);
+	}
+	.nowrap {
+		white-space: nowrap;
+		flex: none;
 	}
 </style>
