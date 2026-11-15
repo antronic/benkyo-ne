@@ -371,6 +371,7 @@ export const en = {
 	'kanji.onTitle': 'Reading borrowed from Chinese',
 	'kanji.lookLike': 'What does this look like?',
 	'splash.loading': 'Loading Benkyo',
+	'boot.storageFailed': "Couldn't open your saved progress on this device. Reload to try again.",
 	'kanjiLesson.introMeta': '{n} new kanji · about 6 minutes',
 	'kanjiLesson.strokeOrder': 'Kanji strokes go top to bottom and left to right, horizontal before vertical.',
 	'kanjiLesson.completeBody': '{n} kanji added to your deck. Reviews will ask for the meaning first, then for you to write them once they start to stick.',

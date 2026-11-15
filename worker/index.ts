@@ -75,10 +75,30 @@ export async function handleScheduled(env: Env) {
 	console.log(`beta retention: deleted ${n.events} events, ${n.aiCalls} AI calls`);
 }
 
+/**
+ * Static files. Unknown paths fall back to index.html so client routes work, but an app file
+ * (/_app/...) that doesn't exist must be a 404: served as HTML it breaks the script that asked
+ * for it, and the service worker would keep that page under the script's URL.
+ * (wrangler.jsonc sends /_app/* through the worker for this.)
+ */
+export async function serveAsset(req: Request, url: URL, env: Env): Promise<Response> {
+	const res = await env.ASSETS!.fetch(req);
+	if (url.pathname.startsWith('/_app/') && (res.headers.get('content-type') ?? '').includes('text/html'))
+		return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain', 'cache-control': 'no-store' } });
+	if (url.pathname.startsWith('/_app/immutable/') && res.ok) {
+		// static/_headers rules may not reach responses that pass through the worker: restate them
+		const out = new Response(res.body, res);
+		out.headers.set('cache-control', 'public, max-age=31536000, immutable');
+		out.headers.set('x-content-type-options', 'nosniff');
+		return out;
+	}
+	return res;
+}
+
 export default {
 	async fetch(req, env, ctx): Promise<Response> {
 		const url = new URL(req.url);
-		if (!url.pathname.startsWith('/api/')) return env.ASSETS!.fetch(req);
+		if (!url.pathname.startsWith('/api/')) return serveAsset(req, url, env);
 		return handleApi(req, env, ctx);
 	},
 	async scheduled(_event, env, ctx) {

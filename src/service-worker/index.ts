@@ -12,7 +12,8 @@ import { immutable, assets } from '$app/manifest';
 import { version } from '$app/env';
 
 const SHELL = `shell-${version}`;
-const RUNTIME = 'runtime-v1';
+// v2: v1 could hold an HTML page saved under a script's URL (see okFor), so it is dropped
+const RUNTIME = 'runtime-v2';
 const AUDIO = 'audio-v1';
 
 /**
@@ -62,7 +63,11 @@ self.addEventListener('activate', (event) => {
 		caches
 			.keys()
 			.then((keys) =>
-				Promise.all(keys.filter((k) => k.startsWith('shell-') && k !== SHELL).map((k) => caches.delete(k)))
+				Promise.all(
+					keys
+						.filter((k) => (k.startsWith('shell-') && k !== SHELL) || (k.startsWith('runtime-') && k !== RUNTIME))
+						.map((k) => caches.delete(k))
+				)
 			)
 			.then(() => self.clients.claim())
 	);
@@ -83,7 +88,7 @@ self.addEventListener('fetch', (event) => {
 	}
 
 	if (PRECACHE.includes(url.pathname)) {
-		event.respondWith(caches.match(req, { cacheName: SHELL }).then((r) => r ?? fetch(req)));
+		event.respondWith(fromCache(caches.match(req, { cacheName: SHELL })).then((r) => r ?? fetch(req)));
 		return;
 	}
 
@@ -95,21 +100,43 @@ self.addEventListener('fetch', (event) => {
 	event.respondWith(staleWhileRevalidate(req, event));
 });
 
+/**
+ * Cache Storage can stall in Safari. A cache read that takes too long (or fails) counts as
+ * a miss, so the request goes to the network instead of leaving the app waiting.
+ */
+const CACHE_TIMEOUT_MS = 3000;
+function fromCache<T>(p: Promise<T | undefined>): Promise<T | undefined> {
+	return Promise.race<T | undefined>([
+		p.catch(() => undefined),
+		new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), CACHE_TIMEOUT_MS))
+	]);
+}
+
+/**
+ * Only keep real files. A missing file can come back as the app's index.html with status 200
+ * (single-page fallback); saved under a script's URL, it would break that script for good.
+ */
+function okFor(req: Request, res: Response) {
+	if (!res.ok) return false;
+	const type = res.headers.get('content-type') ?? '';
+	return !(type.includes('text/html') && req.destination !== 'document');
+}
+
 async function cacheFirst(req: Request, name: string) {
-	const cache = await caches.open(name);
-	const hit = await cache.match(req);
+	const cache = await fromCache(caches.open(name));
+	const hit = cache && (await fromCache(cache.match(req)));
 	if (hit) return hit;
 	const res = await fetch(req);
-	if (res.ok) cache.put(req, res.clone());
+	if (cache && okFor(req, res)) cache.put(req, res.clone()).catch(() => {});
 	return res;
 }
 
 async function staleWhileRevalidate(req: Request, event: FetchEvent) {
-	const cache = await caches.open(RUNTIME);
-	const hit = await cache.match(req);
+	const cache = await fromCache(caches.open(RUNTIME));
+	const hit = cache && (await fromCache(cache.match(req)));
 	const network = fetch(req)
 		.then((res) => {
-			if (res.ok) cache.put(req, res.clone());
+			if (cache && okFor(req, res)) cache.put(req, res.clone()).catch(() => {});
 			return res;
 		})
 		.catch(() => hit ?? Response.error());

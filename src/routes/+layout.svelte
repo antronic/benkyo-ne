@@ -32,6 +32,7 @@
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import KuriIntro from '#lib/companion/KuriIntro.svelte';
 	import KuriReaction from '#lib/companion/KuriReaction.svelte';
+	import { attempt, bootDone, reloadOnStaleChunk, safeMode, withTimeout } from '#lib/boot.ts';
 
 	let { children } = $props();
 
@@ -60,30 +61,57 @@
 		await goto(parent);
 	}
 
+	/** how long saved progress may take to open before the app starts without it */
+	const LOAD_TIMEOUT_MS = 8000;
+	const report = (name: string, e: unknown) => telemetry.error(name, e);
+
+	/** Open saved progress. If storage fails or hangs, start anyway so the splash never sticks. */
+	async function boot(apple: ReturnType<typeof takeAppleResult>) {
+		try {
+			await withTimeout(
+				progress.load().then(() => words.load()),
+				LOAD_TIMEOUT_MS,
+				'loading saved progress'
+			);
+		} catch (e) {
+			report('boot_storage', e);
+			console.error('[boot] saved progress could not be opened', e);
+			progress.ready = true;
+			words.ready = true;
+			toast(t('boot.storageFailed'), '⚠️', 4200);
+			return; // no intros or sync without storage; they run on the next good launch
+		}
+		try {
+			if (apple) void idbPut('meta', true, 'introSeen').catch(() => {}); // you got as far as signing in
+			else if (!(await idbGet<boolean>('meta', 'introSeen'))) ui.showIntro = true;
+			// people who onboarded before Kuri existed meet Kuri once, on Today
+			if (!safeMode && !ui.showIntro && !(await idbGet<boolean>('meta', 'kuriIntroSeen'))) kuriPending = true;
+		} catch (e) {
+			report('boot_intro', e);
+		}
+		attempt('sync', startAutoSync, report);
+	}
+
+	$effect(() => {
+		if (progress.ready && words.ready) bootDone();
+	});
+
 	onMount(() => {
-		const apple = takeAppleResult();
-		progress
-			.load()
-			.then(() => words.load())
-			.then(async () => {
-				if (apple) void idbPut('meta', true, 'introSeen'); // you got as far as signing in
-				else if (!(await idbGet<boolean>('meta', 'introSeen'))) ui.showIntro = true;
-				// people who onboarded before Kuri existed meet Kuri once, on Today
-				if (!ui.showIntro && !(await idbGet<boolean>('meta', 'kuriIntroSeen'))) kuriPending = true;
-			})
-			.then(startAutoSync);
-		ai.watch();
-		if (apple) void finishApple(apple);
-		const onOnline = () => setTimeout(() => void processOutbox(), 1500);
+		reloadOnStaleChunk();
+		const apple = attempt('apple', takeAppleResult, report) ?? null;
+		void boot(apple);
+		attempt('account', () => ai.watch(), report);
+		if (apple) void finishApple(apple).catch((e) => report('boot_apple', e));
+		const onOnline = () => setTimeout(() => void processOutbox().catch(() => {}), 1500);
 		addEventListener('online', onOnline);
 		const vis = () => document.documentElement.classList.toggle('hidden', document.hidden);
 		document.addEventListener('visibilitychange', vis);
-		const stopKb = trackKeyboard();
-		updater.start();
-		insets.watch();
+		const stopKb = attempt('keyboard', trackKeyboard, report);
+		attempt('updater', () => updater.start(), report);
+		attempt('insets', () => insets.watch(), report);
 		return () => {
 			document.removeEventListener('visibilitychange', vis);
-			stopKb();
+			stopKb?.();
 		};
 	});
 
@@ -181,7 +209,7 @@
 		}}
 	/>
 {/if}
-{#if progress.settings.kuri && progress.settings.kuriReact && progress.ready}
+{#if !safeMode && progress.settings.kuri && progress.settings.kuriReact && progress.ready}
 	<KuriReaction />
 {/if}
 {#if ai.needsConsent && !ui.showIntro && !ui.showWelcome}

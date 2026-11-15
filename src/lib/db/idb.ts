@@ -9,9 +9,18 @@ export type StoreName = 'cards' | 'logs' | 'meta' | 'userCards' | 'packs' | 'out
 
 let dbp: Promise<IDBDatabase> | null = null;
 
+/** How long to wait for the database before giving up (Safari can hang here). */
+const OPEN_TIMEOUT_MS = 6000;
+
 function open(): Promise<IDBDatabase> {
-	dbp ??= new Promise((resolve, reject) => {
-		const req = indexedDB.open(DB_NAME, VERSION);
+	dbp ??= new Promise<IDBDatabase>((resolve, reject) => {
+		let req: IDBOpenDBRequest;
+		try {
+			req = indexedDB.open(DB_NAME, VERSION);
+		} catch (e) {
+			return reject(e); // storage blocked (some private modes, disabled cookies)
+		}
+		const timer = setTimeout(() => reject(new Error('IndexedDB open timed out')), OPEN_TIMEOUT_MS);
 		req.onupgradeneeded = (e) => {
 			const db = req.result;
 			const from = e.oldVersion;
@@ -28,8 +37,24 @@ function open(): Promise<IDBDatabase> {
 				db.createObjectStore('outbox', { keyPath: 'id' });
 			}
 		};
-		req.onsuccess = () => resolve(req.result);
-		req.onerror = () => reject(req.error);
+		req.onsuccess = () => {
+			clearTimeout(timer);
+			const db = req.result;
+			// another tab upgrading, or Safari dropping the connection: open afresh next time
+			db.onversionchange = () => {
+				db.close();
+				dbp = null;
+			};
+			db.onclose = () => (dbp = null);
+			resolve(db);
+		};
+		req.onerror = () => {
+			clearTimeout(timer);
+			reject(req.error);
+		};
+	}).catch((e) => {
+		dbp = null; // let the next call try again instead of failing forever
+		throw e;
 	});
 	return dbp;
 }
