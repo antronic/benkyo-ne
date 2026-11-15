@@ -10,8 +10,8 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 
 | PR | Scope | Status |
 |---|---|---|
-| 1 | Access check, admin guard, audit table, Overview screen | this PR |
-| 2 | Accounts: list, detail, disable/enable, delete, cap, revoke sessions | planned |
+| 1 | Access check, admin guard, audit table, Overview screen | merged (#7) |
+| 2 | Accounts: list, detail, disable/enable, delete, cap, revoke sessions; passkey step-up | this PR |
 | 3 | Settings: sign-up switch, invite codes, session lifetime | planned |
 | 4 | Usage and system: spend charts, build and migration info, audit log view | planned |
 | 5 | Packages: Free / Plus / Pro, manual grants | planned |
@@ -27,6 +27,17 @@ Three locks, all required:
    API answers 503 and the console stays closed.
 3. **An admin passkey session.** Recovery-code sessions are refused, and
    disabled accounts never get a session.
+
+4. **A fresh passkey tap for changes.** Disabling, enabling, changing a cap,
+   signing an account out everywhere and deleting it answer
+   `428 stepup_required` unless this session confirmed with one of the
+   admin's own passkeys in the last 5 minutes (`/api/admin/stepup/*`,
+   `sessions.stepup_at`). The console asks for the tap and retries.
+
+Guard rails: you can't disable, delete or sign out your own account, and
+admin accounts can't be disabled or deleted from the console. Deleting
+needs the account's name typed exactly and removes the same data as the
+person's own "Delete account".
 
 Every admin write is logged in `admin_audit` in the same D1 batch as the
 change (`audited()` in `worker/admin/routes.ts`).
@@ -49,7 +60,7 @@ change (`audited()` in `worker/admin/routes.ts`).
    npx wrangler secret put ACCESS_TEAM_DOMAIN   # <team>.cloudflareaccess.com
    npx wrangler secret put ACCESS_AUD           # the AUD tag
    npx wrangler secret put ADMIN_EMAILS         # optional extra allow-list, comma-separated
-   npm run cf:deploy                            # applies migration 0006_admin.sql
+   npm run cf:deploy                            # applies migrations 0006 and 0007
    ```
 
 6. In **Workers & Pages → benkyo-ne → Settings → Domains & Routes**, turn

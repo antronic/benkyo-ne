@@ -577,3 +577,76 @@ export async function handleAuth(req: Request, env: Env, path: string): Promise<
 	}
 	return null;
 }
+
+// --------------------------------------------------------------- step-up ----
+// A fresh passkey tap for dangerous fleet console actions (worker/admin/).
+// The challenge is bound to the signed-in account, only that account's
+// passkeys are offered and accepted, and success stamps the session.
+
+export const STEPUP_TTL_MS = 5 * 60 * 1000;
+
+export async function stepUpOptions(req: Request, env: Env, session: Session) {
+	const url = new URL(req.url);
+	const { results } = await env.DB.prepare(`SELECT id, transports FROM passkeys WHERE user_id = ?1`)
+		.bind(session.userId)
+		.all<{ id: string; transports: string | null }>();
+	if (!results.length) throw httpError(400, 'bad_request', 'This account has no passkey to confirm with');
+	const options = await generateAuthenticationOptions({
+		rpID: url.hostname,
+		userVerification: 'required',
+		timeout: CHALLENGE_TTL_MS,
+		allowCredentials: results.map((p) => ({ id: p.id, transports: parseTransports(p.transports) as never }))
+	});
+	await storeChallenge(env, options.challenge, 'login', { userId: session.userId });
+	return options;
+}
+
+/** Verifies the assertion and stamps `sessions.stepup_at`. Throws HttpError 401 on failure. */
+export async function stepUpVerify(req: Request, env: Env, session: Session): Promise<number> {
+	const url = new URL(req.url);
+	const response = credentialBody<AuthenticationResponseJSON>(await readJson(req));
+	const pk = await env.DB.prepare(
+		`SELECT id, public_key, sign_count, transports FROM passkeys WHERE id = ?1 AND user_id = ?2`
+	)
+		.bind(response.id, session.userId)
+		.first<{ id: string; public_key: string; sign_count: number; transports: string | null }>();
+	if (!pk) throw httpError(401, 'unauthorized', 'Use a passkey from this account');
+	let result;
+	try {
+		result = await verifyAuthenticationResponse({
+			response,
+			expectedChallenge: async (c) => (await consumeChallenge(env, c, 'login'))?.userId === session.userId,
+			expectedOrigin: url.origin,
+			expectedRPID: url.hostname,
+			requireUserVerification: true,
+			credential: {
+				id: pk.id,
+				publicKey: b64urlDecode(pk.public_key),
+				counter: pk.sign_count,
+				transports: parseTransports(pk.transports) as never
+			}
+		});
+	} catch (e) {
+		throw httpError(401, 'unauthorized', `Passkey confirmation failed: ${(e as Error).message}`);
+	}
+	if (!result.verified) throw httpError(401, 'unauthorized', 'Passkey confirmation could not be verified');
+	const now = Date.now();
+	await env.DB.batch([
+		env.DB.prepare(`UPDATE passkeys SET sign_count = ?1, last_used_at = ?2 WHERE id = ?3`).bind(
+			result.authenticationInfo.newCounter,
+			now,
+			pk.id
+		),
+		env.DB.prepare(`UPDATE sessions SET stepup_at = ?1 WHERE token_hash = ?2 AND user_id = ?3`).bind(now, session.tokenHash, session.userId)
+	]);
+	return now;
+}
+
+/** When this session last confirmed with a passkey, or null. */
+export async function stepUpAt(env: Env, session: Session): Promise<number | null> {
+	if (session.kind === 'dev') return Date.now();
+	const row = await env.DB.prepare(`SELECT stepup_at AS at FROM sessions WHERE token_hash = ?1 AND user_id = ?2`)
+		.bind(session.tokenHash, session.userId)
+		.first<{ at: number | null }>();
+	return row?.at ?? null;
+}
