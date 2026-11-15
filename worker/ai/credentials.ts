@@ -6,6 +6,7 @@ import type { CredentialInfo, CredentialInput, ProviderKind } from '../../src/li
 import { deriveKey, open, seal } from '../crypto.ts';
 import type { Env } from '../env.ts';
 import { httpError, isLocalhost } from '../http.ts';
+import { deleteSyncStatements } from '../sync.ts';
 
 export interface CredRow {
 	id: number;
@@ -111,6 +112,8 @@ export async function deleteCredential(env: Env, userId: number, id: number): Pr
 /** Delete an account and everything tied to it (keys first). */
 export async function deleteAccountData(env: Env, userId: number) {
 	await env.DB.batch([
+		// synced learning progress (worker/sync.ts); the copy on each device stays
+		...deleteSyncStatements(env.DB, userId),
 		env.DB.prepare(`DELETE FROM ai_credentials WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM ai_feature_models WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM ai_model_prices WHERE user_id = ?1`).bind(userId),

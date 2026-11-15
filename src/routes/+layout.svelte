@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Skeleton from '#lib/components/Skeleton.svelte';
 	import '../app.css';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { goto, onNavigate } from '$app/navigation';
 	import { updater } from '#lib/pwa/update.svelte.ts';
 	import UpdateBanner from '#lib/components/UpdateBanner.svelte';
@@ -15,7 +15,7 @@
 	import Overlays from '#lib/components/Overlays.svelte';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
-	import { startAutoSync } from '#lib/sync.ts';
+	import { startAutoSync, sync } from '#lib/sync.ts';
 	import { edgeSwipeBack, trackKeyboard } from '#lib/ios/gestures.ts';
 	import { insets } from '#lib/ios/device.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
@@ -23,6 +23,11 @@
 	import { processOutbox } from '#lib/words/maker.ts';
 
 	let { children } = $props();
+
+	// Progress follows the account: sync as soon as you're signed in, however you signed in.
+	$effect(() => {
+		if (ai.signedIn && ai.account?.id) untrack(() => void sync());
+	});
 
 	// Immersive screens hide the navigation and can be swiped back from.
 	const immersive = $derived(/^\/(learn\/.+|review|words\/.+|ai\/.+)/.test(page.url.pathname));

@@ -14,101 +14,11 @@
 
 import { handleAi } from './ai/routes.ts';
 import { handleAuth } from './auth/passkey.ts';
-import { MAX_CARDS_PUSH, pullCards, upsertCardStatements, validCard } from './cards.ts';
 import type { Env } from './env.ts';
 import { HttpError, json } from './http.ts';
-import type { UserCard } from '../src/lib/ai/contract.ts';
+import { handleSync } from './sync.ts';
 
 export type { Env } from './env.ts';
-
-interface LogIn {
-	id: string;
-	cardId: string;
-	grade: number;
-	reviewedAt: number;
-	elapsedDays: number;
-	durationMs: number;
-}
-
-const MAX_PUSH = 500;
-const MAX_PULL = 1000;
-
-async function sha256(text: string) {
-	const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-	return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-const validLog = (l: LogIn) =>
-	typeof l?.id === 'string' &&
-	l.id.length <= 64 &&
-	typeof l.cardId === 'string' &&
-	l.cardId.length <= 64 &&
-	Number.isInteger(l.grade) &&
-	l.grade >= 1 &&
-	l.grade <= 4 &&
-	Number.isFinite(l.reviewedAt) &&
-	Number.isFinite(l.elapsedDays) &&
-	Number.isFinite(l.durationMs);
-
-async function handleSync(req: Request, env: Env): Promise<Response> {
-	const auth = req.headers.get('authorization') ?? '';
-	const key = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
-	if (key.length < 24 || key.length > 128) return json({ error: 'bad key' }, { status: 401 });
-
-	let body: { cursor?: number; logs?: LogIn[]; cards?: UserCard[]; cardsCursor?: number };
-	try {
-		body = await req.json();
-	} catch {
-		return json({ error: 'bad json' }, { status: 400 });
-	}
-	const logs = Array.isArray(body.logs) ? body.logs.slice(0, MAX_PUSH) : [];
-	if (!logs.every(validLog)) return json({ error: 'bad log entry' }, { status: 400 });
-	const cursor = Number.isInteger(body.cursor) ? Number(body.cursor) : 0;
-	// User cards are optional; clients that don't send them get the old response shape.
-	const withCards = body.cards !== undefined || body.cardsCursor !== undefined;
-	const cards = Array.isArray(body.cards) ? body.cards.slice(0, MAX_CARDS_PUSH) : [];
-	if (!cards.every(validCard)) return json({ error: 'bad card' }, { status: 400 });
-	const cardsCursor = Number.isInteger(body.cardsCursor) ? Number(body.cardsCursor) : 0;
-
-	const now = Date.now();
-	const hash = await sha256(key);
-	// Upsert the user; first sync with a new key creates the account.
-	const user = await env.DB.prepare(
-		`INSERT INTO users (sync_key_hash, created_at, last_seen_at) VALUES (?1, ?2, ?2)
-		 ON CONFLICT (sync_key_hash) DO UPDATE SET last_seen_at = ?2
-		 RETURNING id`
-	)
-		.bind(hash, now)
-		.first<{ id: number }>();
-	if (!user) return json({ error: 'user' }, { status: 500 });
-
-	if (logs.length) {
-		const stmt = env.DB.prepare(
-			`INSERT OR IGNORE INTO review_log (user_id, id, card_id, grade, reviewed_at, elapsed_days, duration_ms)
-			 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
-		);
-		await env.DB.batch(
-			logs.map((l) =>
-				stmt.bind(user.id, l.id, l.cardId, l.grade, l.reviewedAt, l.elapsedDays, Math.round(l.durationMs))
-			)
-		);
-	}
-
-	const { results } = await env.DB.prepare(
-		`SELECT seq, id, card_id AS cardId, grade, reviewed_at AS reviewedAt,
-		        elapsed_days AS elapsedDays, duration_ms AS durationMs
-		   FROM review_log WHERE user_id = ?1 AND seq > ?2 ORDER BY seq LIMIT ?3`
-	)
-		.bind(user.id, cursor, MAX_PULL)
-		.all<LogIn & { seq: number }>();
-
-	if (cards.length) await env.DB.batch(upsertCardStatements(env.DB, user.id, cards));
-
-	const next = results.length ? results[results.length - 1].seq : cursor;
-	const out: Record<string, unknown> = { cursor: next, logs: results.map(({ seq: _s, ...l }) => l) };
-	if (withCards) Object.assign(out, await pullCards(env.DB, user.id, cardsCursor));
-	return json(out);
-}
 
 async function handleContent(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 	// Edge cache first (free), then KV (100k reads/day free), then a default.

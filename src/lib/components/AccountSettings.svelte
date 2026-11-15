@@ -116,7 +116,7 @@
 		if (
 			!(await confirmDestructive(
 				'Delete your account?',
-				'Your API keys are deleted right away, with your passkey list, AI settings and usage history. Learning progress on this device stays. This can’t be undone.',
+				'Your API keys are deleted right away, with your passkey list, AI settings, usage history and the synced copy of your progress. Learning progress on this device stays. This can’t be undone.',
 				'Delete Account'
 			))
 		)
