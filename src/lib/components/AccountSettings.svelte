@@ -12,6 +12,8 @@
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import AppleButton from './AppleButton.svelte';
+	import BetaConsent from '#lib/components/BetaConsent.svelte';
+	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 
 	let { onchange }: { onchange: () => void | Promise<void> } = $props();
 
@@ -123,7 +125,7 @@
 		if (
 			!(await confirmDestructive(
 				'Delete your account?',
-				'Your API keys are deleted right away, with your passkey list, AI settings, usage history and the synced copy of your progress. Learning progress on this device stays. This can’t be undone.',
+				'Your API keys are deleted right away, with your passkey list, AI settings, usage history, beta usage data and the synced copy of your progress. Learning progress on this device stays. This can’t be undone.',
 				'Delete Account'
 			))
 		)
@@ -132,6 +134,36 @@
 		recoveryCode = null;
 		await after();
 	}
+	// ------------------------------------------------------------ beta data --
+	let showTerms = $state(false);
+	async function downloadData() {
+		await guard(() => api.downloadBetaData(), 'Download started');
+	}
+	async function deleteData() {
+		if (
+			!(await confirmDestructive(
+				'Delete your beta usage data?',
+				'Progress events, AI requests and replies, device details and error reports collected so far are deleted. Collection continues from now on while you take part.',
+				'Delete Data'
+			))
+		)
+			return;
+		// drop what the app hasn't uploaded yet, and let an upload in flight land first
+		await guard(async () => (await telemetry.discard(), api.deleteBetaData()), 'Beta data deleted');
+	}
+	async function withdraw() {
+		if (
+			!(await confirmDestructive(
+				'Withdraw from the beta?',
+				'Collection stops and your usage data is deleted. Your account features stay locked until you agree again. Learning offline on this device keeps working.',
+				'Withdraw'
+			))
+		)
+			return;
+		await guard(async () => (await telemetry.discard(), api.withdrawConsent()), 'Withdrawn, usage data deleted');
+		await after();
+	}
+
 	async function copyCode() {
 		if (!recoveryCode) return;
 		try {
@@ -261,6 +293,36 @@
 		{/if}
 		<div class="item"><button class="btn ghost block danger" onclick={deleteAccount} disabled={busy}>Delete account</button></div>
 	</div>
+
+	{#if ai.beta?.acceptedAt && !ai.needsConsent}
+		<h3 class="eyebrow section" id="beta-data">Beta data</h3>
+		<div class="glass group">
+			<div class="item">
+				<span class="key-ico" aria-hidden="true">🧪</span>
+				<span class="stack" style:--gap="2px">
+					<span>Sharing usage data</span>
+					<span class="caption">Agreed {day(ai.beta.acceptedAt)} · kept {ai.beta.retentionDays} days</span>
+				</span>
+				<span class="spacer"></span>
+				<button class="btn ghost small" onclick={() => (showTerms = true)}>Details</button>
+			</div>
+			<div class="item">
+				<span class="caption">A copy of everything collected for your account.</span>
+				<span class="spacer"></span>
+				<button class="btn ghost small" onclick={downloadData} disabled={busy}>Download</button>
+			</div>
+			<div class="item">
+				<span class="caption">Delete what’s been collected so far.</span>
+				<span class="spacer"></span>
+				<button class="btn ghost small danger" onclick={deleteData} disabled={busy}>Delete data</button>
+			</div>
+			<div class="item"><button class="btn ghost block danger" onclick={withdraw} disabled={busy}>Withdraw from the beta</button></div>
+		</div>
+	{/if}
+{/if}
+
+{#if showTerms}
+	<BetaConsent review onclose={() => (showTerms = false)} />
 {/if}
 
 <style>

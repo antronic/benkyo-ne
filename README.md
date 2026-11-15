@@ -64,6 +64,7 @@ handwriting checked in WebAssembly, FSRS spaced repetition and a bring-your-own-
 | [`docs/OVERVIEW.md`](docs/OVERVIEW.md) | A tour of the app and how the iOS-style UI and UX are built. |
 | [`docs/PLAN.md`](docs/PLAN.md) | The learning design: curriculum, memory techniques, visuals, architecture, free-tier budget. |
 | [`docs/AI-PLAN.md`](docs/AI-PLAN.md) | The AI design: BYOK, passkeys, spend cap, prompts, decisions, and the multi-user plan. |
+| [`docs/BETA-DATA.md`](docs/BETA-DATA.md) | Beta consent after sign-in, the usage data collected (progress, AI prompts and replies, device, errors), retention and deletion. |
 
 ---
 
@@ -177,7 +178,7 @@ same Worker name and domain. It does **not** apply D1 migrations: run
 ## 🗂️ Project layout
 
 ```text
-docs/                        OVERVIEW · PLAN · AI-PLAN
+docs/                        OVERVIEW · PLAN · AI-PLAN · BETA-DATA
 src/routes/                  Today · Learn · Words · AI · Review · Kana · Settings
 src/lib/components/          StrokeAnimator, TracePad, ProgressRing, Sheet, TabBar, Intro, Splash, …
 src/lib/content/             kana, lessons, kanji (+ origin pictures), courses, mnemonics + SVG scenes, japanglish, strokes.json

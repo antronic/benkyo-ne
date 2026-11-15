@@ -30,6 +30,7 @@ import { GLOBAL_PER_MIN, getUsage, rateLimit, reserve, settle } from './ledger.t
 import { priceFor, resolveFeature } from './models.ts';
 import { callOpenAi, type OpenAiFormat } from './openai.ts';
 import type { AdapterResult, UsageEntry } from './types.ts';
+import { recordAiCall } from '../beta/routes.ts';
 
 const MAX_BODY = 8 * 1024 * 1024; // screenshots
 
@@ -85,10 +86,35 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 
 	const usage: UsageEntry[] = [];
 	let billedUnknown = false;
+	const startedAt = Date.now();
 	const finish = async (status: 'done' | 'failed') => {
 		// Outcome unknown (dropped connection/timeout): keep every reserved worst case.
 		const cost = billedUnknown ? null : usageCost(usage, model, priced.price);
 		await settle(env, reservations, { status, usage: sumUsage(usage), cost });
+		return cost;
+	};
+	// Beta usage data: the request, the prompt and the reply (only with consent; never the key).
+	const record = (status: 'done' | 'failed' | 'invalid', cost: number | null, error: string | null, outputText: string | null, result?: unknown) => {
+		const u = sumUsage(usage);
+		ctx.waitUntil(
+			recordAiCall(env, session.userId, {
+				kind,
+				feature,
+				provider: cred.provider,
+				model,
+				status,
+				error,
+				startedAt,
+				inputTokens: u.input + (u.cacheRead ?? 0) + (u.cacheWrite ?? 0),
+				outputTokens: u.output,
+				costUsd: cost,
+				request: parsed.value,
+				system: parts.system,
+				user: parts.user,
+				outputText,
+				result
+			})
+		);
 	};
 
 	try {
@@ -132,15 +158,20 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 		}
 
 		if (!result.ok) {
-			await finish('failed');
+			record('failed', await finish('failed'), `${result.error}: ${result.message}`, null);
 			return aiError(result.status, result.error, result.message);
 		}
-		await finish(validated!.ok ? 'done' : 'failed');
-		if (!validated!.ok) return aiError(502, 'invalid_output', `The model's reply was not usable: ${validated!.error}`);
+		const cost = await finish(validated!.ok ? 'done' : 'failed');
+		if (!validated!.ok) {
+			record('invalid', cost, validated!.error, result.text);
+			return aiError(502, 'invalid_output', `The model's reply was not usable: ${validated!.error}`);
+		}
+		record('done', cost, null, result.text, validated!.value);
 		return json(validated!.value);
 	} catch (e) {
 		billedUnknown = true;
 		await finish('failed').catch(() => {});
+		record('failed', null, (e as Error)?.message ?? 'error', null);
 		throw e;
 	}
 }

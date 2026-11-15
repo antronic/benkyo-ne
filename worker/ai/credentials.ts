@@ -118,6 +118,10 @@ export async function deleteAccountData(env: Env, userId: number) {
 		env.DB.prepare(`DELETE FROM ai_feature_models WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM ai_model_prices WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM ai_ledger WHERE user_id = ?1`).bind(userId),
+		// beta usage data and consent history (worker/beta/routes.ts)
+		env.DB.prepare(`DELETE FROM beta_events WHERE user_id = ?1`).bind(userId),
+		env.DB.prepare(`DELETE FROM beta_ai_calls WHERE user_id = ?1`).bind(userId),
+		env.DB.prepare(`DELETE FROM beta_consents WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM sessions WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM recovery_codes WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM auth_challenges WHERE user_id = ?1`).bind(userId),

@@ -5,6 +5,8 @@
  */
 import * as api from '#lib/ai/client.ts';
 import type { CredentialInfo, Me, Usage } from '#lib/ai/contract.ts';
+import type { BetaStatus } from '#lib/beta/contract.ts';
+import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 
 class Ai {
 	checked = $state(false);
@@ -15,10 +17,15 @@ class Ai {
 	credentials = $state<CredentialInfo[]>([]);
 	usage = $state<Usage | null>(null);
 	online = $state(typeof navigator === 'undefined' ? true : navigator.onLine);
+	/** beta consent for the signed-in account (null: signed out, or an older server) */
+	beta = $state<BetaStatus | null>(null);
+	/** signed in but hasn't agreed to the current beta consent: the consent screen shows */
+	needsConsent = $derived(this.signedIn && !!this.beta && this.beta.acceptedVersion !== this.beta.version);
 
 	available = $derived(
 		this.online &&
 			this.signedIn &&
+			!this.needsConsent &&
 			this.credentials.length > 0 &&
 			(!this.usage || this.usage.spentUsd < this.usage.capUsd)
 	);
@@ -29,7 +36,9 @@ class Ai {
 			? 'You’re offline. AI parts will run when you reconnect.'
 			: !this.signedIn
 				? 'Sign in or create an account in Settings to use AI.'
-				: this.credentials.length === 0
+				: this.needsConsent
+					? 'Agree to the beta terms to use AI.'
+					: this.credentials.length === 0
 					? 'Add an API key in Settings to use AI.'
 					: this.usage && this.usage.spentUsd >= this.usage.capUsd
 						? 'This month’s AI spending cap is reached.'
@@ -45,7 +54,13 @@ class Ai {
 			this.account = m.account;
 			this.signupOpen = m.signupOpen;
 			this.appleEnabled = !!m.appleEnabled;
-			if (m.signedIn) {
+			this.beta = m.signedIn ? (m.beta ?? null) : null;
+			telemetry.setEnabled(m.signedIn && !!m.beta && m.beta.acceptedVersion === m.beta.version, m.account?.id ?? null);
+			if (m.signedIn && this.needsConsent) {
+				// AI routes refuse until the consent is given
+				this.credentials = [];
+				this.usage = null;
+			} else if (m.signedIn) {
 				const [creds, usage] = await Promise.all([api.listCredentials(), api.getUsage()]);
 				this.credentials = creds;
 				this.usage = usage;

@@ -3,6 +3,8 @@
  * (docs/AI-PLAN.md). Imported by both sides; keep it dependency-free.
  */
 
+import type { BetaStatus } from '../beta/contract.ts';
+
 export type ProviderKind = 'anthropic' | 'openai-compatible';
 
 /** Features that each pick their own model (D13/D14). */
@@ -33,6 +35,8 @@ export interface Me {
 	signupOpen: boolean;
 	/** Sign in with Apple is configured on the server */
 	appleEnabled: boolean;
+	/** beta consent for the signed-in account (GET /api/auth/me only; see src/lib/beta/contract.ts) */
+	beta?: BetaStatus | null;
 }
 
 export interface PasskeyInfo {
@@ -205,7 +209,7 @@ export interface FillResponse {
 }
 
 export interface AiError {
-	error: 'unauthorized' | 'cap_reached' | 'rate_limited' | 'no_model' | 'no_price' | 'provider' | 'invalid_output' | 'bad_request';
+	error: 'unauthorized' | 'consent_required' | 'cap_reached' | 'rate_limited' | 'no_model' | 'no_price' | 'provider' | 'invalid_output' | 'bad_request';
 	message: string;
 }
 

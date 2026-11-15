@@ -11,7 +11,7 @@
  *
  * Generated input: worker/.embed/assets.js (scripts/embed-assets.mjs).
  */
-import { handleApi, type Env } from './index.ts';
+import { handleApi, handleScheduled, type Env } from './index.ts';
 // @ts-expect-error generated at build time
 import { ASSETS } from './.embed/assets.js';
 
@@ -68,5 +68,8 @@ export default {
 			// SPA fallback for client-side routes; real missing files 404.
 			(/\.[a-z0-9]+$/i.test(path) ? new Response('Not found', { status: 404 }) : serve(req, '/index.html')!)
 		);
+	},
+	async scheduled(_event, env, ctx) {
+		ctx.waitUntil(handleScheduled(env));
 	}
 } satisfies ExportedHandler<Env>;

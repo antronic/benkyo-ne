@@ -17,5 +17,7 @@
 		}
 	],
 	"kv_namespaces": [{ "binding": "CONTENT", "id": "f6d21a3071e54dff95ecd4034e0fe1a7" }],
+	// Daily beta usage-data retention clean-up (worker/beta/routes.ts purgeOld).
+	"triggers": { "crons": ["23 3 * * *"] },
 	"observability": { "enabled": true }
 }
