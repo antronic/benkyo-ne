@@ -97,7 +97,7 @@ async function createSession(env: Env, url: URL, userId: number, passkeyId: stri
 	return sessionCookie(url, token, SESSION_TTL_MS / 1000);
 }
 
-function sessionCookie(url: URL, value: string, maxAge: number) {
+export function sessionCookie(url: URL, value: string, maxAge: number) {
 	return [
 		`${SESSION_COOKIE}=${value}`,
 		'HttpOnly',

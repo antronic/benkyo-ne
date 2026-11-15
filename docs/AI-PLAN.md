@@ -519,6 +519,11 @@ Scope chosen: **passkeys only**, each account brings its own key (BYOK).
   An old sync key is moved into the account the first time that device syncs
   while signed in, then retired; a retired key used while signed out gets
   409 and the app asks you to sign in.
+- **Session length:** sign-ins aren't enforced to expire yet. Each sync
+  renews the session; the lifetime defaults to 400 days and is a setting
+  (`ai_settings.session_ttl_days`, else the `SESSION_TTL_DAYS` Worker var)
+  that an admin console can lower, which cuts longer sessions down at their
+  next sync (`worker/auth/session.ts`). Recovery-code sessions stay 12 hours.
 - **Not covered:** Ask AI chats stay on the device. Two people
   sharing one phone share that local data.
 - **Tests:** a two-account browser test checks that one account can't see,

@@ -3,6 +3,7 @@
  *
  * Progress belongs to the signed-in account. Signing in on any device (passkey,
  * recovery code or Apple) is all it takes; the session cookie picks the store.
+ * Each sync also renews the sign-in, so it doesn't run out while you use the app.
  *
  * Older devices still send a random sync key as `Authorization: Bearer`:
  *   - signed out: the key's store is used as before, until it is claimed;
@@ -15,6 +16,7 @@
  * two stores can't produce conflicting card states. Cards merge last-write-wins.
  */
 import { getSession } from './auth/passkey.ts';
+import { renewSession } from './auth/session.ts';
 import { MAX_CARDS_PULL, MAX_CARDS_PUSH, pullCards, upsertCardStatements, validCard } from './cards.ts';
 import type { Env } from './env.ts';
 import { json } from './http.ts';
@@ -194,5 +196,7 @@ export async function handleSync(req: Request, env: Env): Promise<Response> {
 		const c = await pullCards(env.DB, store, cardsCursor);
 		Object.assign(out, c, { more: out.more || c.cards.length === MAX_CARDS_PULL });
 	}
-	return json(out);
+	// Using the app keeps you signed in (worker/auth/session.ts).
+	const cookie = session ? await renewSession(req, env, session) : null;
+	return json(out, cookie ? { headers: { 'set-cookie': cookie } } : {});
 }

@@ -8,7 +8,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let signedInAs: number | null = null;
-vi.mock('./auth/passkey.ts', () => ({
+vi.mock('./auth/passkey.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('./auth/passkey.ts')>()),
 	getSession: async () =>
 		signedInAs === null
 			? null
@@ -73,15 +74,16 @@ const card = (id: string, updatedAt: number, gloss = id) => ({
 	deleted: false
 });
 
-async function post(body: object, opts: { key?: string; origin?: string } = {}) {
+async function post(body: object, opts: { key?: string; origin?: string; cookie?: string } = {}) {
 	const headers: Record<string, string> = { 'content-type': 'application/json' };
+	if (opts.cookie) headers.cookie = opts.cookie;
 	if (opts.key) headers.authorization = `Bearer ${opts.key}`;
 	if (opts.origin) headers.origin = opts.origin;
 	const res = await handleSync(
 		new Request('https://benkyo.test/api/sync', { method: 'POST', headers, body: JSON.stringify(body) }),
 		env as never
 	);
-	return { status: res.status, body: (await res.json()) as Record<string, any> };
+	return { status: res.status, setCookie: res.headers.get('set-cookie'), body: (await res.json()) as Record<string, any> };
 }
 
 describe('account sync', () => {
@@ -154,5 +156,49 @@ describe('account sync', () => {
 		expect(db.prepare(`SELECT COUNT(*) AS n FROM review_log`).get()).toEqual({ n: 0 });
 		expect(db.prepare(`SELECT COUNT(*) AS n FROM user_cards`).get()).toEqual({ n: 0 });
 		expect(db.prepare(`SELECT COUNT(*) AS n FROM users WHERE account_id = 1`).get()).toEqual({ n: 0 });
+	});
+});
+
+describe('staying signed in', () => {
+	const DAY = 24 * 60 * 60 * 1000;
+	const expiry = () => (db.prepare(`SELECT expires_at AS e FROM sessions WHERE token_hash = 't'`).get() as { e: number }).e;
+	beforeEach(() => {
+		// a fresh 12-hour sign-in, as createSession makes it
+		db.exec(
+			`INSERT INTO sessions (token_hash, passkey_id, kind, user_id, created_at, expires_at) VALUES ('t', 'p', 'passkey', 1, 0, ${Date.now() + DAY / 2})`
+		);
+		signedInAs = 1;
+	});
+
+	it('a sync renews a sign-in to 400 days by default', async () => {
+		const r = await post({ cursor: 0, logs: [] }, { cookie: 'bk_session=tok' });
+		expect(r.setCookie).toMatch(/^bk_session=tok;.*Max-Age=34560000/);
+		expect(expiry()).toBeGreaterThan(Date.now() + 399 * DAY);
+		// not again until half of it has passed
+		expect((await post({ cursor: 0, logs: [] }, { cookie: 'bk_session=tok' })).setCookie).toBeNull();
+	});
+
+	it('the lifetime is a setting, and lowering it cuts long sessions down', async () => {
+		await post({ cursor: 0, logs: [] }, { cookie: 'bk_session=tok' });
+		db.exec(`INSERT INTO ai_settings (key, value) VALUES ('session_ttl_days', '7')`);
+		const r = await post({ cursor: 0, logs: [] }, { cookie: 'bk_session=tok' });
+		expect(r.setCookie).toMatch(/Max-Age=604800/);
+		expect(expiry()).toBeLessThanOrEqual(Date.now() + 7 * DAY);
+	});
+
+	it('falls back to the Worker var, and ignores nonsense', async () => {
+		const { sessionTtlMs, parseSessionDays } = await import('./auth/session.ts');
+		expect(await sessionTtlMs({ ...env, SESSION_TTL_DAYS: '30' } as never)).toBe(30 * DAY);
+		expect(parseSessionDays('0')).toBe(400);
+		expect(parseSessionDays('abc')).toBe(400);
+		expect(parseSessionDays('9999')).toBe(400);
+		expect(parseSessionDays('0.5')).toBe(0.5);
+	});
+
+	it('recovery sessions are never renewed', async () => {
+		db.exec(`UPDATE sessions SET kind = 'recovery'`);
+		const { renewSession } = await import('./auth/session.ts');
+		const req = new Request('https://benkyo.test/api/sync', { headers: { cookie: 'bk_session=tok' } });
+		expect(await renewSession(req, env as never, { tokenHash: 't', kind: 'recovery' } as never)).toBeNull();
 	});
 });
