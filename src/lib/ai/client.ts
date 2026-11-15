@@ -102,6 +102,42 @@ export const newRecoveryCode = () => call<{ recoveryCode: string }>('/api/auth/r
 export const renameAccount = (name: string) => call<Me>('/api/auth/account', { method: 'PATCH', json: { name } });
 export const deleteAccount = () => call<Me>('/api/auth/account', { method: 'DELETE', json: { confirm: 'DELETE' } });
 
+/**
+ * Sign in with Apple: a full-page trip to Apple and back (worker/auth/apple.ts).
+ * `link` connects Apple to the account you're signed in to. The result comes
+ * back in the URL hash; see takeAppleResult().
+ */
+export function startApple(link = false) {
+	if (typeof navigator !== 'undefined' && !navigator.onLine) throw new AiRequestError(0, 'offline', 'You’re offline');
+	location.assign(`/api/auth/apple/start${link ? '?link=1' : ''}`);
+}
+export const disconnectApple = () => call<Me>('/api/auth/apple', { method: 'DELETE' });
+
+const APPLE_ERRORS: Record<string, string> = {
+	cancelled: '',
+	closed: 'New sign-ups are closed right now. Already joined with a passkey? Sign in with it.',
+	taken: 'That Apple ID is already connected to another Benkyo account.',
+	'other-apple': 'This account already has a different Apple ID connected.',
+	disabled: 'This account is disabled.',
+	expired: 'That took too long. Please try again.',
+	rate_limited: 'Too many sign-ups right now. Try again later.',
+	failed: 'Sign in with Apple didn’t work. Please try again.'
+};
+
+/**
+ * Read and clear the #apple=… / #apple-error=… that the Worker redirects back
+ * with. Returns null when this page load isn't the end of an Apple sign-in.
+ */
+export function takeAppleResult(): { ok: true; result: 'signed-in' | 'created' | 'linked' } | { ok: false; message: string } | null {
+	if (typeof location === 'undefined') return null;
+	const m = /^#apple(-error)?=([a-z_-]{1,20})$/.exec(location.hash);
+	if (!m) return null;
+	history.replaceState(history.state, '', location.pathname + location.search);
+	if (m[1]) return { ok: false, message: APPLE_ERRORS[m[2]] ?? APPLE_ERRORS.failed };
+	const r = m[2];
+	return r === 'signed-in' || r === 'created' || r === 'linked' ? { ok: true, result: r } : null;
+}
+
 // ----------------------------------------------------------- credentials ----
 
 export const listCredentials = () => call<CredentialInfo[]>('/api/ai/credentials');

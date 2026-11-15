@@ -141,6 +141,8 @@ No secrets live in GitHub.
 > [!IMPORTANT]
 > Secrets: `AI_MASTER_KEY` (base64 of 32 random bytes) encrypts API keys.
 > Optional: `SIGNUP_MODE=closed` stops new accounts (default: open sign-up).
+> Optional: `APPLE_CLIENT_ID` (your Services ID) turns on Sign in with Apple beside passkeys.
+> Setup: [docs/SIGN-IN-WITH-APPLE.md](docs/SIGN-IN-WITH-APPLE.md).
 
 <details>
 <summary><b>Manual deploy from your machine</b></summary>

@@ -1,8 +1,9 @@
 <!--
-	Account (docs/AI-PLAN.md wave 2, phase A): passkey-only accounts.
-	Signed out: sign in with a passkey, create an account, or use a recovery
-	code. Signed in: name, passkeys on this account, recovery code, sign out,
-	delete account. Your AI keys belong to the account.
+	Account (docs/AI-PLAN.md wave 2, phase A): passkey accounts, plus Sign in
+	with Apple when the server has it set up. Signed out: sign in with a
+	passkey or Apple, create an account, or use a recovery code. Signed in:
+	name, passkeys, Apple ID, recovery code, sign out, delete account. Your AI
+	keys belong to the account.
 -->
 <script lang="ts">
 	import * as api from '#lib/ai/client.ts';
@@ -10,6 +11,7 @@
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import AppleButton from './AppleButton.svelte';
 
 	let { onchange }: { onchange: () => void | Promise<void> } = $props();
 
@@ -96,6 +98,11 @@
 			await after();
 		}
 	}
+	async function disconnectApple() {
+		if (!(await confirmDestructive('Disconnect Apple?', 'You’ll sign in with your passkey instead.', 'Disconnect'))) return;
+		const r = await guard(() => api.disconnectApple(), 'Apple ID disconnected');
+		if (r) await after();
+	}
 	async function newCode() {
 		if (!(await confirmDestructive('Make a new recovery code?', 'Your old recovery code will stop working.', 'New Code'))) return;
 		const r = await guard(() => api.newRecoveryCode());
@@ -150,7 +157,7 @@
 			<span class="stack" style:--gap="2px">
 				<b>{ai.account.name}</b>
 				<span class="caption">
-					{#if ai.account.recovery}Signed in with a recovery code{:else}Signed in with a passkey{/if}{ai.account.isAdmin ? ' · Admin' : ''}
+					{#if ai.account.recovery}Signed in with a recovery code{:else if ai.account.via === 'apple'}Signed in with Apple{:else}Signed in with a passkey{/if}{ai.account.isAdmin ? ' · Admin' : ''}
 				</span>
 			</span>
 			<span class="spacer"></span>
@@ -174,6 +181,7 @@
 		{#if mode === 'signin'}
 			<div class="item caption">Use the passkey you made for Benkyo (Face ID, Touch ID or your password manager).</div>
 			<div class="item"><button class="btn block" onclick={signIn} disabled={busy}>Sign in with passkey</button></div>
+			{#if ai.appleEnabled}<div class="item"><AppleButton label="Sign in with Apple" disabled={busy} /></div>{/if}
 			<details class="item">
 				<summary class="caption">Lost your passkey?</summary>
 				<div class="row" style="margin-top:8px">
@@ -189,6 +197,7 @@
 				<input type="text" placeholder="Your name" bind:value={name} maxlength="40" autocomplete="nickname" aria-label="Your name" />
 				<button class="btn small" disabled={busy || !name.trim()}>Create</button>
 			</form>
+			{#if ai.appleEnabled && ai.signupOpen}<div class="item"><AppleButton disabled={busy} /></div>{/if}
 		{/if}
 		{#if !ai.signupOpen}<div class="item caption">New sign-ups are closed right now.</div>{/if}
 	{/if}
@@ -208,7 +217,7 @@
 </div>
 
 {#if ai.signedIn && ai.account}
-	<h3 class="eyebrow section">Passkeys</h3>
+	<h3 class="eyebrow section">{ai.appleEnabled || ai.account.appleLinked ? 'Ways to sign in' : 'Passkeys'}</h3>
 	<div class="glass group">
 		{#each passkeys as p (p.id)}
 			<div class="item">
@@ -218,7 +227,7 @@
 					<span class="caption">Added {day(p.createdAt)}{p.lastUsedAt ? ` · used ${day(p.lastUsedAt)}` : ''}{p.backedUp ? ' · synced' : ''}</span>
 				</span>
 				<span class="spacer"></span>
-				<button class="btn ghost small danger" onclick={() => removePasskey(p)} disabled={busy || passkeys.length < 2} aria-label="Remove {p.name ?? 'passkey'}">Remove</button>
+				<button class="btn ghost small danger" onclick={() => removePasskey(p)} disabled={busy || (passkeys.length < 2 && !ai.account.appleLinked)} aria-label="Remove {p.name ?? 'passkey'}">Remove</button>
 			</div>
 		{/each}
 		<div class="item">
@@ -226,6 +235,23 @@
 			<span class="spacer"></span>
 			<button class="btn ghost small" onclick={addPasskey} disabled={busy}>Add passkey</button>
 		</div>
+		{#if ai.appleEnabled || ai.account.appleLinked}
+			<div class="item">
+				<span class="key-ico" aria-hidden="true"><svg viewBox="0 0 17 20" width="16" height="18" fill="currentColor"><path d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.6 4.8 1.9 5.8 1 7.5c-1.9 3.3-.5 8.1 1.3 10.8.9 1.3 2 2.7 3.4 2.7 1.3-.1 1.9-.9 3.5-.9s2.1.9 3.5.8c1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.8-1.1-2.8-4.2zM11.5 3c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/></svg></span>
+				<span class="stack" style:--gap="2px">
+					<span>Sign in with Apple</span>
+					<span class="caption">
+						{#if ai.account.appleLinked}Connected{passkeys.length ? '' : '. Add a passkey before you disconnect it.'}{:else}Use your Apple ID as another way in.{/if}
+					</span>
+				</span>
+				<span class="spacer"></span>
+				{#if ai.account.appleLinked}
+					<button class="btn ghost small danger" onclick={disconnectApple} disabled={busy || !passkeys.length}>Disconnect</button>
+				{:else}
+					<AppleButton label="Connect" link small disabled={busy} />
+				{/if}
+			</div>
+		{/if}
 		{#if !ai.account.recovery}
 			<div class="item">
 				<span class="caption">Lost your recovery code?</span>

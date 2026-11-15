@@ -122,6 +122,8 @@ export async function deleteAccountData(env: Env, userId: number) {
 		env.DB.prepare(`DELETE FROM recovery_codes WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM auth_challenges WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM passkeys WHERE user_id = ?1`).bind(userId),
+		env.DB.prepare(`DELETE FROM apple_identities WHERE user_id = ?1`).bind(userId),
+		env.DB.prepare(`DELETE FROM apple_states WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM accounts WHERE id = ?1`).bind(userId)
 	]);
 }

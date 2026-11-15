@@ -11,6 +11,7 @@ class Ai {
 	signedIn = $state(false);
 	account = $state<Me['account']>(null);
 	signupOpen = $state(true);
+	appleEnabled = $state(false);
 	credentials = $state<CredentialInfo[]>([]);
 	usage = $state<Usage | null>(null);
 	online = $state(typeof navigator === 'undefined' ? true : navigator.onLine);
@@ -43,6 +44,7 @@ class Ai {
 			this.signedIn = m.signedIn;
 			this.account = m.account;
 			this.signupOpen = m.signupOpen;
+			this.appleEnabled = !!m.appleEnabled;
 			if (m.signedIn) {
 				const [creds, usage] = await Promise.all([api.listCredentials(), api.getUsage()]);
 				this.credentials = creds;

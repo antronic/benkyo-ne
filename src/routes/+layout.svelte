@@ -21,6 +21,8 @@
 	import { words } from '#lib/state/words.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { processOutbox } from '#lib/words/maker.ts';
+	import { takeAppleResult } from '#lib/ai/client.ts';
+	import { toast } from '#lib/ios/overlay.svelte.ts';
 
 	let { children } = $props();
 
@@ -42,14 +44,17 @@
 	}
 
 	onMount(() => {
+		const apple = takeAppleResult();
 		progress
 			.load()
 			.then(() => words.load())
 			.then(async () => {
-				if (!(await idbGet<boolean>('meta', 'introSeen'))) ui.showIntro = true;
+				if (apple) void idbPut('meta', true, 'introSeen'); // you got as far as signing in
+				else if (!(await idbGet<boolean>('meta', 'introSeen'))) ui.showIntro = true;
 			})
 			.then(startAutoSync);
 		ai.watch();
+		if (apple) void finishApple(apple);
 		const onOnline = () => setTimeout(() => void processOutbox(), 1500);
 		addEventListener('online', onOnline);
 		const vis = () => document.documentElement.classList.toggle('hidden', document.hidden);
@@ -62,6 +67,20 @@
 			stopKb();
 		};
 	});
+
+	/** Back from Sign in with Apple (worker/auth/apple.ts): say how it went. */
+	async function finishApple(r: NonNullable<ReturnType<typeof takeAppleResult>>) {
+		await ai.refresh();
+		if (!r.ok) {
+			if (r.message) toast(r.message, '⚠️', 3600);
+			// back to the beta screen to try again or use a passkey
+			if (!ai.signedIn) ui.showWelcome = true;
+			return;
+		}
+		if (r.result === 'linked') toast('Apple ID connected', '✓');
+		else if (r.result === 'created') toast(`Welcome to the beta, ${ai.account?.name ?? ''}`.trim(), '🎉', 2800);
+		else toast(`Welcome back, ${ai.account?.name ?? ''}`.trim(), '👋');
+	}
 
 	// Page morphs with the View Transitions API (falls back to instant swap).
 	onNavigate((navigation) => {
