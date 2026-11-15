@@ -56,6 +56,39 @@ characters**. That is about the limit of working memory for new items
 さ/ち, ぬ/め, ね/れ/わ, る/ろ, シ/ツ, ソ/ン, ク/ケ/タ. The app makes
 dedicated "spot the difference" drills from these pairs (`confusables.ts`).
 
+### Already know some Japanese? — Practice plan
+
+Not every learner starts from zero. Someone who can already read kana should
+not have to sit through MEET → TRACE for characters they know, and someone who
+has finished the lessons needs reps, not more lessons. The **🎯 Practice**
+section in Learn covers both (`src/lib/practice/`).
+
+**Placement check** (`/learn/placement/hiragana|katakana`). Three sampled
+kana from each lesson not yet done, in curriculum order, multiple choice with
+look-alike distractors and no hints.
+
+- A lesson **passes** only when all of its sampled questions are right. It is
+  marked done and all of its kana are scheduled: tested kana are graded from
+  answer speed (fast answers can be *Easy*, so known kana start with a long
+  first interval), untested ones get *Good* so a review confirms them soon.
+- The check **stops after two missed lessons in a row**: from there the
+  normal lessons are the better teacher. "Stop here" keeps what was passed.
+- Failed or unchecked lessons record nothing; kana that already have a
+  schedule are left alone. Passing kana also unparks word cards that use them.
+
+**Practice drills** (`/review?practice=…`). Up to 20 cards you have already met:
+
+| Drill | Picks |
+|---|---|
+| 🔀 Mixed kana | hiragana and katakana shuffled together |
+| 👀 Look-alikes | kana whose look-alike partner you also know, always multiple choice |
+| 🩹 Weakest first | the 20 cards with the lowest predicted recall right now |
+| 💬 Words & phrases | word and phrase cards you have started |
+
+As with tag drills (AI-PLAN D21), a card that isn't due is practised without
+changing its schedule; due cards are graded as usual. Extra reps never push
+a card's next review further out than FSRS would.
+
 ### Stage 1 — Survival Japanese
 
 Teach whole phrases before taking them apart. Each unit is built around one

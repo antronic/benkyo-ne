@@ -32,6 +32,7 @@ handwriting checked in WebAssembly, FSRS spaced repetition and a bring-your-own-
 | 🖼️ **Picture mnemonics** | All 92 basic kana have a story and a drawn scene behind the glyph (keyword method + dual coding). |
 | 🎯 **Handwriting check** | Draw on the screen; a Rust matcher compiled to WebAssembly checks shape, order and direction. |
 | 🔁 **Spaced repetition** | FSRS-5 schedules every card; grades are inferred from how you answered. |
+| 🎯 **Practice plan** | Already know some Japanese? A placement check skips the kana lessons you know, and drills (mixed kana, look-alikes, weakest first, words) give you reps without new lessons. |
 | 🧭 **Courses** | Fundamentals, Travel, Make friends and Japanglish (with a live English → katakana converter). |
 | 🔤 **Romaji everywhere** | Small grey romaji under Japanese text, hidden where it would give the answer away. |
 
@@ -179,6 +180,7 @@ src/lib/components/          StrokeAnimator, TracePad, ProgressRing, Sheet, TabB
 src/lib/content/             kana, lessons, courses, mnemonics + SVG scenes, japanglish, strokes.json
 src/lib/ai/                  API client, contract, prompts, validators, streaming format, chat threads
 src/lib/srs/fsrs.ts          scheduler
+src/lib/practice/            placement check + practice drills for learners who already know some
 src/lib/handwriting/         WASM loader + JS fallback
 src/lib/state/               runes stores backed by IndexedDB
 src/lib/ios/                 haptics, swipe-back, keyboard, action sheets, device insets
