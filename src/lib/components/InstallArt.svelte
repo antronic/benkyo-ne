@@ -30,7 +30,8 @@
 
 	let { kind, label = '' }: { kind: ArtKind; label?: string } = $props();
 
-	const host = typeof location === 'undefined' ? 'benkyo.jirachai.me' : location.host;
+	/** the address shown in the pictures: always the real one, also in previews and local dev */
+	const host = 'benkyo.jirachai.me';
 	const ICON = '/icons/icon.svg';
 </script>
 
