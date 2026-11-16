@@ -7,6 +7,8 @@
 <script lang="ts" module>
 	export type ArtKind =
 		| 'ios-share'
+		| 'ios-menu'
+		| 'ios-menu-share'
 		| 'ipad-share'
 		| 'ios-add'
 		| 'ios-confirm'
@@ -42,6 +44,22 @@
 {#snippet dots(x: number, y: number, vertical = false, cls = 'ink')}
 	<g transform="translate({x} {y}) rotate({vertical ? 90 : 0})" class={cls}>
 		<circle cx="-5" cy="0" r="1.7" /><circle cx="0" cy="0" r="1.7" /><circle cx="5" cy="0" r="1.7" />
+	</g>
+{/snippet}
+
+{#snippet burger(x: number, y: number, cls = 'ink-s')}
+	<g transform="translate({x} {y})" class={cls} fill="none" stroke-width="1.6" stroke-linecap="round">
+		<path d="M-5 -3.5 H5 M-5 0 H5 M-5 3.5 H2" />
+	</g>
+{/snippet}
+
+{#snippet newSafariBar(hlMenu: boolean)}
+	<!-- newer Safari: one floating address bar; page menu (☰) at its left end -->
+	<rect x="82" y="128" width="116" height="24" rx="12" class="pill float" />
+	{@render burger(96, 140, hlMenu ? 'hl-s' : 'ink-s')}
+	<text x="144" y="142.5" class="url" text-anchor="middle">{host}</text>
+	<g transform="translate(186 140)" class="ink-s" fill="none" stroke-width="1.3" stroke-linecap="round">
+		<path d="M3.2 -1.5 A3.6 3.6 0 1 0 3.4 1.6 M3.2 -1.5 V-4 M3.2 -1.5 H0.8" />
 	</g>
 {/snippet}
 
@@ -88,10 +106,34 @@
 		<rect x="76" y="110" width="128" height="50" class="bar" />
 		<rect x="86" y="118" width="84" height="20" rx="10" class="pill" />
 		<text x="128" y="131.5" class="url" text-anchor="middle">{host}</text>
-		{@render dots(188, 128, false, 'ink')}
-		{@render ring(188, 128, 11, true)}
 		{@render share(128, 151, 'hl-s')}
 		{@render ring(128, 150, 13)}
+	{:else if kind === 'ios-menu'}
+		{@render phone(false)}
+		{@render bars(90, 2, 96, 4, 14)}
+		<rect x="90" y="62" width="100" height="44" rx="10" class="ghost soft" />
+		{@render newSafariBar(true)}
+		{@render ring(96, 140, 12)}
+	{:else if kind === 'ios-menu-share'}
+		<!-- the page menu opens above the address bar: two items, a divider, then Share -->
+		{@render phone(false)}
+		{@render bars(90, 2, 96, 4, 14)}
+		<rect x="80" y="-6" width="108" height="130" rx="14" class="sheet" />
+		{#each [6, 24] as y}
+			<rect x="88" y={y} width="9" height="9" rx="4.5" class="ghost" />
+			<rect x="104" y={y + 1.5} width={y === 6 ? 40 : 60} height="6" rx="3" class="ghost" />
+		{/each}
+		<path d="M88 41.5 H180" class="divider" />
+		<rect x="84" y="47" width="100" height="22" rx="7" class="hl-row" />
+		{@render share(93, 59, 'hl-s')}
+		<text x="108" y="61.5" class="lbl">{t('install.art.share')}</text>
+		{@render ring(93, 58, 10)}
+		{#each [76, 94] as y}
+			<rect x="88" y={y} width="9" height="9" rx="2" class="ghost" />
+			<rect x="104" y={y + 1.5} width={y === 76 ? 56 : 48} height="6" rx="3" class="ghost" />
+		{/each}
+		<path d="M88 111.5 H180" class="divider" />
+		{@render newSafariBar(false)}
 	{:else if kind === 'ipad-share'}
 		{@render tablet()}
 		<path d="M25 29 a12 12 0 0 1 12 -12 h206 a12 12 0 0 1 12 12 V44 H25 Z" class="bar" />
@@ -300,6 +342,15 @@
 	}
 	.pill {
 		fill: var(--color-fill-strong);
+	}
+	.divider {
+		stroke: var(--color-border);
+		stroke-width: 1;
+	}
+	.pill.float {
+		fill: var(--color-surface-strong);
+		stroke: var(--color-border);
+		filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.15));
 	}
 	.ghost {
 		fill: var(--color-fill-strong);
