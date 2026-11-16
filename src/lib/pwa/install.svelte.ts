@@ -11,7 +11,7 @@
  * The beforeinstallprompt listener is added when this module loads (the
  * layout imports it), because Chrome can fire it before any screen mounts.
  */
-import { detectEnv, guideFor, noteFor, type Env } from './platform.ts';
+import { detectEnv, guideFor, noteFor, oldSafariToolbar, type Env } from './platform.ts';
 
 type InstallPromptEvent = Event & {
 	prompt(): Promise<void>;
@@ -47,6 +47,8 @@ class Install {
 		typeof navigator === 'undefined' ? { os: 'other', browser: 'other' } : detectEnv(navigator.userAgent, navigator.maxTouchPoints);
 	readonly guide = guideFor(this.env);
 	readonly note = noteFor(this.env);
+	/** Safari before 26 keeps Share in the toolbar (newer: page menu ☰ in the address bar) */
+	readonly oldSafari = typeof navigator !== 'undefined' && oldSafariToolbar(navigator.userAgent, this.env);
 
 	get canPrompt() {
 		return this.deferred !== null;

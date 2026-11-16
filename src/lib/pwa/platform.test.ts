@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectEnv, guideFor, noteFor, orderedGuides, GUIDES } from './platform.ts';
+import { detectEnv, guideFor, noteFor, oldSafariToolbar, orderedGuides, GUIDES } from './platform.ts';
 
 const UA = {
 	iphoneSafari:
@@ -58,5 +58,18 @@ describe('install guide detection', () => {
 		const o = orderedGuides('android');
 		expect(o[0]).toBe('android');
 		expect([...o].sort()).toEqual([...GUIDES].sort());
+	});
+});
+
+describe('Safari toolbar layout', () => {
+	const old = (ua: string, touch = 0) => oldSafariToolbar(ua, detectEnv(ua, touch));
+	const ios26 =
+		'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.1 Mobile/15E148 Safari/604.1';
+	it('uses the Share toolbar steps only for Safari before 26', () => {
+		expect(old(UA.iphoneSafari)).toBe(true); // Version/18.1
+		expect(old(ios26)).toBe(false);
+		expect(old(UA.ipad, 5)).toBe(true);
+		expect(old(UA.iphoneChrome)).toBe(false);
+		expect(old(UA.androidChrome)).toBe(false);
 	});
 });

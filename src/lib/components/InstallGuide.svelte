@@ -11,13 +11,13 @@
 	import { Button, Chip, Notice } from '#lib/ui/index.ts';
 	import { install } from '#lib/pwa/install.svelte.ts';
 	import { orderedGuides, type GuideId } from '#lib/pwa/platform.ts';
-	import { GUIDE_NAME, STEPS } from '#lib/pwa/steps.ts';
+	import { GUIDE_NAME, stepsFor } from '#lib/pwa/steps.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 
 	const NOTE = { inapp: 'install.note.inapp', 'ios-other': 'install.note.ios-other', samsung: 'install.note.samsung' } as const;
 	const guides = orderedGuides(install.guide);
 	let picked = $state<GuideId>(install.guide);
-	const steps = $derived(STEPS[picked]);
+	const steps = $derived(stepsFor(picked, install.oldSafari));
 
 	// opening again starts from this device's steps
 	$effect(() => {

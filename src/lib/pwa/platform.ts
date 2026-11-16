@@ -79,3 +79,15 @@ export function noteFor(env: Env): EnvNote {
 	if (env.browser === 'samsung') return 'samsung';
 	return null;
 }
+
+/**
+ * Safari 26 and later (iOS/iPadOS 26+) moved Share behind the page menu (☰)
+ * at the left end of the address bar. The OS version in the user agent is
+ * frozen, but Safari's own `Version/NN` still moves, so that decides which
+ * iPhone/iPad steps to show. Not Safari, or no version: assume the new one.
+ */
+export function oldSafariToolbar(ua: string, env: Env): boolean {
+	if (env.browser !== 'safari' || (env.os !== 'ios' && env.os !== 'ipados')) return false;
+	const v = /Version\/(\d+)/.exec(ua);
+	return !!v && Number(v[1]) < 26;
+}

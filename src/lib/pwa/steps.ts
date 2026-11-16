@@ -17,9 +17,19 @@ export const GUIDE_NAME: Record<GuideId, MessageKey> = {
 	firefox: 'install.os.firefox'
 };
 
+/** Safari before 26: Share button in the bottom toolbar. */
+export const IPHONE_OLD_SAFARI: InstallStep[] = [
+	{ art: 'ios-share', title: 'install.ios.share', body: 'install.ios.shareBody' },
+	{ art: 'ios-add', title: 'install.ios.add', body: 'install.ios.addBody' },
+	{ art: 'ios-confirm', title: 'install.ios.confirm', body: 'install.ios.confirmBody' },
+	{ art: 'phone-home', title: 'install.ios.open', body: 'install.openBody' }
+];
+
 export const STEPS: Record<GuideId, InstallStep[]> = {
+	// Safari 26+: Share lives in the page menu (☰) at the left of the address bar
 	iphone: [
-		{ art: 'ios-share', title: 'install.ios.share', body: 'install.ios.shareBody' },
+		{ art: 'ios-menu', title: 'install.ios.menu', body: 'install.ios.menuBody' },
+		{ art: 'ios-menu-share', title: 'install.ios.share', body: 'install.ios.menuShareBody' },
 		{ art: 'ios-add', title: 'install.ios.add', body: 'install.ios.addBody' },
 		{ art: 'ios-confirm', title: 'install.ios.confirm', body: 'install.ios.confirmBody' },
 		{ art: 'phone-home', title: 'install.ios.open', body: 'install.openBody' }
@@ -53,3 +63,6 @@ export const STEPS: Record<GuideId, InstallStep[]> = {
 		{ art: 'phone-home', title: 'install.android.open', body: 'install.openBody' }
 	]
 };
+
+/** Steps for a guide; `oldSafari` swaps in the toolbar-Share steps on iPhone. */
+export const stepsFor = (g: GuideId, oldSafari: boolean): InstallStep[] => (g === 'iphone' && oldSafari ? IPHONE_OLD_SAFARI : STEPS[g]);
