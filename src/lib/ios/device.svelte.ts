@@ -2,8 +2,11 @@
  * Size classes and posture, so layout follows the *space* rather than the
  * device model. On iPhone Duo:
  *   folded (outer screen, ~380–470 CSS px wide)   → compact
- *   unfolded portrait (~600–670 px)                → regular
- *   unfolded landscape (~950 px)                   → regular + wide
+ *   unfolded portrait (~600–700 px, tall)          → regular, bottom tab bar
+ *   unfolded landscape (~950 px)                   → regular + wide, side rail
+ * Unfolded portrait is regular width but tall: a side rail there would take
+ * ~15% of the width for no gain, so the tab bar stays at the bottom and the
+ * content gets the full width.
  * Fold and unfold just resize the viewport. All state lives in stores, so
  * nothing is lost and the layout re-flows mid-lesson.
  */
@@ -11,6 +14,13 @@ import { MediaQuery } from 'svelte/reactivity';
 
 export const regular = new MediaQuery('min-width: 600px');
 export const wide = new MediaQuery('min-width: 900px');
+/**
+ * Where the tab bar becomes a side rail: regular width in landscape, or any
+ * screen wide enough that the rail still leaves a roomy content column.
+ * Keep in sync with the same media query in app.css and TabBar.svelte.
+ */
+export const RAIL_QUERY = '(min-width: 600px) and (orientation: landscape), (min-width: 840px)';
+export const rail = new MediaQuery(RAIL_QUERY);
 /** Two side-by-side viewport segments (open device across the hinge). Progressive enhancement. */
 export const spanning = new MediaQuery('(horizontal-viewport-segments: 2)');
 export const standalone = new MediaQuery('(display-mode: standalone)');

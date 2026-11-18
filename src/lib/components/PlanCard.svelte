@@ -109,6 +109,11 @@
 	.nudge {
 		justify-content: space-between;
 		gap: 12px;
+		/* half-width card (unfolded iPhone Duo): the button drops under the text */
+		flex-wrap: wrap;
+	}
+	.nudge > .stack {
+		flex: 1 1 180px;
 	}
 	.link {
 		border: 0;

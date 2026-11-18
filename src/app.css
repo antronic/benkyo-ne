@@ -26,12 +26,21 @@ html.nav-side {
 	--gutter-r: max(76px, var(--safe-right));
 }
 
-/* Regular width (unfolded iPhone Duo ≥ ~600 CSS px): nav moves to a side rail. */
+/* Regular width (unfolded iPhone Duo ≥ ~600 CSS px): roomier gutters. */
 @media (min-width: 600px) {
 	:root {
-		--rail: calc(var(--rail-w) + 20px + env(safe-area-inset-left, 0px));
 		--gutter-l: 24px;
 		--gutter-r: max(24px, env(safe-area-inset-right, 0px));
+	}
+}
+/*
+ * Side rail (RAIL_QUERY in lib/ios/device.svelte.ts): regular width in
+ * landscape, or ≥ 840 px. Unfolded portrait keeps the bottom tab bar so the
+ * content gets the whole width of the tall screen.
+ */
+@media (min-width: 600px) and (orientation: landscape), (min-width: 840px) {
+	:root {
+		--rail: calc(var(--rail-w) + 20px + env(safe-area-inset-left, 0px));
 	}
 }
 
@@ -293,10 +302,14 @@ input[type='text']:focus {
 	.page {
 		max-width: none;
 		margin: 0 0 0 var(--rail);
-		padding-bottom: calc(var(--safe-bottom) + 32px);
 	}
 	.page > * {
 		max-width: 1040px;
+	}
+}
+@media (min-width: 600px) and (orientation: landscape), (min-width: 840px) {
+	.page {
+		padding-bottom: calc(var(--safe-bottom) + 32px);
 	}
 }
 
@@ -320,7 +333,8 @@ input[type='text']:focus {
 	gap: 12px;
 	width: 100%;
 }
-@media (min-width: 600px) {
+/* Side by side only when the screen is wider than tall; unfolded portrait stacks, with a bigger canvas. */
+@media (min-width: 600px) and (orientation: landscape) {
 	.split {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -330,6 +344,8 @@ input[type='text']:focus {
 }
 @media (horizontal-viewport-segments: 2) {
 	.split {
+		display: grid;
+		align-items: center;
 		grid-template-columns: env(viewport-segment-width 0 0) env(viewport-segment-width 1 0);
 		column-gap: calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0));
 	}
