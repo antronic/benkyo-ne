@@ -22,7 +22,7 @@
 		{#each ACTIONS as a, i}
 			<a class="action glass sheen rise" style:--i={i} href={a.href} class:disabled={!ai.available}>
 				<span class="icon" aria-hidden="true">{a.icon}</span>
-				<span class="stack" style:--gap="4px">
+				<span class="stack text" style:--gap="4px">
 					<span class="title-2">{t(a.title)}</span>
 					<span class="subhead">{t(a.desc)}</span>
 				</span>
@@ -48,10 +48,34 @@
 		display: grid;
 		gap: 12px;
 	}
-	/* three across only when each card stays wide enough for its text (not unfolded portrait) */
+	.text {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+	/*
+	 * Three across (unfolded iPhone Duo landscape, iPad): tiles, not rows.
+	 * Icon on top and text full width, so a ~280 px card doesn't spend a third
+	 * of its width on the icon column and chevron. (Safari sized the old row
+	 * cards from the unwrapped text, so long text spilled out of the card.)
+	 */
 	@media (min-width: 900px) {
 		.actions {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
+			align-items: stretch;
+		}
+		.action {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 10px;
+			padding: 20px;
+		}
+		.action .go {
+			display: none;
+		}
+		.icon {
+			align-self: flex-start;
+			font-size: 30px;
+			line-height: 1;
 		}
 	}
 	.action {
