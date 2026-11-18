@@ -3,7 +3,13 @@ import { prepare } from './speech.ts';
 
 describe('prepare', () => {
 	it('slows single kana and ends with 。 so the vowel is full', () => {
-		expect(prepare('あ')).toEqual({ text: 'あ。', rate: 0.55 });
+		expect(prepare('か')).toEqual({ text: 'か。', rate: 0.55 });
+	});
+	it('holds a bare vowel or ん with ー so it is not cut off', () => {
+		expect(prepare('あ')).toEqual({ text: 'あー。', rate: 0.55 });
+		expect(prepare('オ')).toEqual({ text: 'オー。', rate: 0.55 });
+		expect(prepare('ん')).toEqual({ text: 'んー。', rate: 0.55 });
+		expect(prepare('あ。')).toEqual({ text: 'あー。', rate: 0.55 });
 	});
 	it('short words get a full stop and a moderate rate', () => {
 		expect(prepare('いけ')).toEqual({ text: 'いけ。', rate: 0.7 });
