@@ -8,6 +8,9 @@
  *    warm-up utterance primes it.
  *  - A lone kana spoken at normal speed lasts ~150 ms; we slow it down and
  *    end it with "。" so the vowel is pronounced fully.
+ *  - A bare vowel (あ, い, う, え, お) or ん has no consonant to carry it, so
+ *    "あ。" is read as the tiny interjection "a." and still sounds cut off.
+ *    We hold it with "ー" ("あー。"), the way a teacher says the sound.
  */
 let voice: SpeechSynthesisVoice | null = null;
 let warmed = false;
@@ -30,10 +33,14 @@ if (typeof speechSynthesis !== 'undefined') {
 	speechSynthesis.addEventListener?.('voiceschanged', () => (voice = pickVoice()));
 }
 
+/** Kana with no consonant onset: spoken alone they are too short to hear. */
+const BARE = /^[あいうえおんアイウエオン]$/;
+
 /** Text and rate for how the item should be spoken. */
 export function prepare(text: string): { text: string; rate: number } {
 	const t = text.trim();
 	const chars = [...t.replace(/[。、！？!?.,\s]/g, '')];
+	if (chars.length <= 1 && BARE.test(chars[0] ?? '')) return { text: `${chars[0]}ー。`, rate: 0.55 }; // bare vowel: hold it
 	if (chars.length <= 1) return { text: `${t}。`, rate: 0.55 }; // single kana: slower, full vowel
 	if (chars.length <= 3) return { text: /[。！？]$/.test(t) ? t : `${t}。`, rate: 0.7 };
 	return { text: t, rate: 0.85 };
