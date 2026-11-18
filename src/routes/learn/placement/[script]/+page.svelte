@@ -235,7 +235,7 @@
 		margin: 0 auto;
 		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 16px) var(--gutter-l);
 	}
-	@media (min-width: 600px) {
+	@media (min-width: 600px) and (orientation: landscape) {
 		.placement {
 			max-width: 1040px;
 		}

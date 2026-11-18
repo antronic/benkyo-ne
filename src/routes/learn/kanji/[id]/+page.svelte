@@ -329,8 +329,8 @@
 		margin: 0 auto;
 		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 16px) var(--gutter-l);
 	}
-	/* Unfolded iPhone Duo: visual left, interaction right */
-	@media (min-width: 600px) {
+	/* Unfolded iPhone Duo, landscape: visual left, interaction right */
+	@media (min-width: 600px) and (orientation: landscape) {
 		.lesson {
 			--pad: min(42vw, 60dvh, 420px);
 			max-width: 1040px;
@@ -346,6 +346,13 @@
 		}
 		.canvas {
 			width: var(--pad) !important;
+		}
+	}
+	/* Unfolded iPhone Duo, portrait: stacked like compact, but with a larger canvas */
+	@media (min-width: 600px) and (orientation: portrait) {
+		.lesson {
+			--pad: min(72vw, 44dvh, 480px);
+			max-width: 680px;
 		}
 	}
 	.top {

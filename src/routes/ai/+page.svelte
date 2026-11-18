@@ -48,7 +48,8 @@
 		display: grid;
 		gap: 12px;
 	}
-	@media (min-width: 600px) {
+	/* three across only when each card stays wide enough for its text (not unfolded portrait) */
+	@media (min-width: 900px) {
 		.actions {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}

@@ -3,8 +3,10 @@
 	  compact (folded iPhone Duo / regular iPhones): floating Liquid-Glass tab
 	    bar at the bottom. It shrinks while you scroll down, comes back when you
 	    scroll up, and tapping the active tab scrolls to top (iOS behaviour).
-	  regular (unfolded iPhone Duo, ≥600 px): a glass side rail, following
-	    iOS 27's move of controls to the side to free vertical space.
+	  unfolded iPhone Duo, portrait: still the bottom bar (the screen is tall,
+	    so a rail would only steal width from the content).
+	  regular + landscape, or ≥ 840 px (RAIL_QUERY): a glass side rail,
+	    following iOS 27's move of controls to the side to free vertical space.
 -->
 <script lang="ts">
 	import { t as tr, type MessageKey } from '#lib/i18n/index.svelte.ts';
@@ -13,12 +15,12 @@
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { backOut, cubicIn } from 'svelte/easing';
-	import { insets, regular, SIDE_RAIL_MIN } from '#lib/ios/device.svelte.ts';
+	import { insets, rail, SIDE_RAIL_MIN } from '#lib/ios/device.svelte.ts';
 
 	// Compact screens with a right-side status column (iOS 27, folded iPhone Duo):
 	// put the tab bar in that column, under the battery.
 	const side = $derived(
-		!regular.current &&
+		!rail.current &&
 			(progress.settings.navPosition === 'side' ||
 				(progress.settings.navPosition === 'auto' && insets.right >= SIDE_RAIL_MIN))
 	);
@@ -73,7 +75,7 @@
 	 */
 	function barSlide(_node: Element, { out = false } = {}) {
 		const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-		const dir = side ? 'right' : regular.current ? 'left' : 'down';
+		const dir = side ? 'right' : rail.current ? 'left' : 'down';
 		return {
 			duration: reduce ? 0 : out ? 260 : 520,
 			easing: out ? cubicIn : backOut,
@@ -239,8 +241,8 @@
 		left: 22px;
 	}
 
-	/* ---- regular width: side rail (unfolded iPhone Duo, landscape, iPad) ---- */
-	@media (min-width: 600px) {
+	/* ---- side rail (RAIL_QUERY: unfolded iPhone Duo landscape, iPad) ---- */
+	@media (min-width: 600px) and (orientation: landscape), (min-width: 840px) {
 		.tabbar,
 		.tabbar.minimized {
 			left: calc(env(safe-area-inset-left, 0px) + 10px);

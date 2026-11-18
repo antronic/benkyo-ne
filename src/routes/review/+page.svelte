@@ -381,10 +381,17 @@
 	:global(html.keyboard) .review {
 		padding-bottom: calc(var(--kb) + 12px);
 	}
-	@media (min-width: 600px) {
+	@media (min-width: 600px) and (orientation: landscape) {
 		.review {
 			--pad: min(42vw, 60dvh, 400px);
 			max-width: 1040px !important;
+		}
+	}
+	/* Unfolded iPhone Duo, portrait: stacked like compact, but with a larger canvas */
+	@media (min-width: 600px) and (orientation: portrait) {
+		.review {
+			--pad: min(72vw, 44dvh, 460px);
+			max-width: 680px !important;
 		}
 	}
 	.tagline {
