@@ -25,6 +25,14 @@ export const IPHONE_OLD_SAFARI: InstallStep[] = [
 	{ art: 'phone-home', title: 'install.ios.open', body: 'install.openBody' }
 ];
 
+/** iPad Safari before 26: Share button at the top right. */
+export const IPAD_OLD_SAFARI: InstallStep[] = [
+	{ art: 'ipad-share', title: 'install.ios.share', body: 'install.ipad.shareBody' },
+	{ art: 'ios-add', title: 'install.ios.add', body: 'install.ios.addBody' },
+	{ art: 'ios-confirm', title: 'install.ios.confirm', body: 'install.ios.confirmBody' },
+	{ art: 'tablet-home', title: 'install.ios.open', body: 'install.openBody' }
+];
+
 export const STEPS: Record<GuideId, InstallStep[]> = {
 	// Safari 26+: Share lives in the page menu (☰) at the left of the address bar
 	iphone: [
@@ -34,8 +42,10 @@ export const STEPS: Record<GuideId, InstallStep[]> = {
 		{ art: 'ios-confirm', title: 'install.ios.confirm', body: 'install.ios.confirmBody' },
 		{ art: 'phone-home', title: 'install.ios.open', body: 'install.openBody' }
 	],
+	// iPad (and iPhones showing the desktop site, which report as iPad): same page menu
 	ipad: [
-		{ art: 'ipad-share', title: 'install.ios.share', body: 'install.ipad.shareBody' },
+		{ art: 'ios-menu', title: 'install.ios.menu', body: 'install.ios.menuBody' },
+		{ art: 'ios-menu-share', title: 'install.ios.share', body: 'install.ios.menuShareBody' },
 		{ art: 'ios-add', title: 'install.ios.add', body: 'install.ios.addBody' },
 		{ art: 'ios-confirm', title: 'install.ios.confirm', body: 'install.ios.confirmBody' },
 		{ art: 'tablet-home', title: 'install.ios.open', body: 'install.openBody' }
@@ -64,5 +74,6 @@ export const STEPS: Record<GuideId, InstallStep[]> = {
 	]
 };
 
-/** Steps for a guide; `oldSafari` swaps in the toolbar-Share steps on iPhone. */
-export const stepsFor = (g: GuideId, oldSafari: boolean): InstallStep[] => (g === 'iphone' && oldSafari ? IPHONE_OLD_SAFARI : STEPS[g]);
+/** Steps for a guide; `oldSafari` swaps in the Share-button steps of Safari before 26. */
+export const stepsFor = (g: GuideId, oldSafari: boolean): InstallStep[] =>
+	oldSafari && g === 'iphone' ? IPHONE_OLD_SAFARI : oldSafari && g === 'ipad' ? IPAD_OLD_SAFARI : STEPS[g];
