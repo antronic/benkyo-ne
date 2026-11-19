@@ -87,6 +87,8 @@ export interface AdminSettings {
 
 /** POST /api/admin/invites */
 export interface AdminInviteInput {
+	/** a name such as VIP (for /invite/vip links); left out: a random BK-XXXX-XXXX */
+	code?: string;
 	label?: string;
 	maxUses?: number;
 	expiresInDays?: number | null;

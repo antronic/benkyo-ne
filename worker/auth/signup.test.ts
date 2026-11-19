@@ -77,7 +77,13 @@ describe('invite codes', () => {
 		for (let i = 0; i < 50; i++) expect(generateInviteCode()).toMatch(/^BK-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/);
 		expect(normalizeInvite(' bk-7kq2 mx9d ')).toBe('BK-7KQ2-MX9D');
 		expect(normalizeInvite('7KQ2MX9D')).toBe('BK-7KQ2-MX9D');
-		expect(normalizeInvite('short')).toBeNull();
+		expect(normalizeInvite('BKAAAABBBB')).toBe('BK-AAAA-BBBB');
+		// named invites (Fleet): letters, digits and underscores
+		expect(normalizeInvite(' vip ')).toBe('VIP');
+		expect(normalizeInvite('songkran_vip')).toBe('SONGKRAN_VIP');
+		expect(normalizeInvite('x')).toBeNull();
+		expect(normalizeInvite('_vip')).toBeNull();
+		expect(normalizeInvite('a'.repeat(21))).toBeNull();
 		expect(normalizeInvite(42)).toBeNull();
 	});
 });

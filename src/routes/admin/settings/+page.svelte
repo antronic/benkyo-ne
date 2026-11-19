@@ -21,6 +21,8 @@
 	const busy = $derived(pending !== null);
 	let days = $state('');
 	let label = $state('');
+	/** optional name such as VIP, for /invite/vip links; empty: a random code */
+	let inviteName = $state('');
 	let uses = $state('1');
 	let expiry = $state('14');
 	const EXPIRY = [
@@ -73,19 +75,20 @@
 		e.preventDefault();
 		const inv = await act(
 			'invite',
-			() => createInvite({ label: label.trim() || undefined, maxUses: Number(uses) || 1, expiresInDays: Number(expiry) || null }),
+			() => createInvite({ code: inviteName.trim() || undefined, label: label.trim() || undefined, maxUses: Number(uses) || 1, expiresInDays: Number(expiry) || null }),
 			'Invite created'
 		);
 		if (inv && s) {
 			s.invites = [inv, ...s.invites];
 			label = '';
+			inviteName = '';
 			void copy(inv.code);
 		}
 	}
-	async function copy(code: string) {
+	async function copy(code: string, link = false) {
 		try {
-			await navigator.clipboard.writeText(code);
-			toast('Code copied', '📋');
+			await navigator.clipboard.writeText(link ? `${location.origin}/invite/${encodeURIComponent(code)}` : code);
+			toast(link ? 'Sign-up link copied' : 'Code copied', '📋');
 		} catch {
 			/* still on screen */
 		}
@@ -150,6 +153,15 @@
 				<ListGroup>
 					<form class="item col" onsubmit={newInvite}>
 						<TextField placeholder="Who it’s for (optional)" bind:value={label} maxlength={60} aria-label="Who the invite is for" />
+						<TextField
+							placeholder="Name, e.g. VIP (optional)"
+							bind:value={inviteName}
+							maxlength={20}
+							autocapitalize="characters"
+							autocomplete="off"
+							aria-label="Invite name"
+							hint={inviteName.trim() ? `Link: ${location.origin}/invite/${inviteName.trim().toUpperCase()}` : 'Leave empty for a random code.'}
+						/>
 						<FieldRow stack="narrow">
 							<TextField label="Uses" class="num-field" type="number" min="1" max="100" bind:value={uses} />
 							<span class="pick">
@@ -170,6 +182,7 @@
 								</span>
 							</span>
 							<span class="spacer"></span>
+							{#if live(inv)}<Button variant="link" onclick={() => copy(inv.code, true)}>Copy link</Button>{/if}
 							{#if !inv.revokedAt}<Button variant="link" class="danger" onclick={() => revoke(inv)} busy={pending === `revoke:${inv.code}`} disabled={busy}>Revoke</Button>{/if}
 						</div>
 					{:else}

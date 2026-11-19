@@ -65,13 +65,27 @@ export function generateInviteCode(): string {
 	return `BK-${s.slice(0, 4)}-${s.slice(4)}`;
 }
 
-/** "bk 7kq2 mx9d" → "BK-7KQ2-MX9D"; null when it can't be a code. */
+/**
+ * A random code: "bk 7kq2 mx9d" → "BK-7KQ2-MX9D". A named one, made in Fleet
+ * (Job, 2026-11-19, for links like /invite/vip): " vip " → "VIP", 3 to 20
+ * letters, digits and underscores, starting and ending with a letter or digit.
+ * Anything with 8 letters and digits after an optional BK is read as random,
+ * so Fleet refuses a name of that shape (`isRandomShape`). null when it can't be a code.
+ */
 export function normalizeInvite(raw: unknown): string | null {
-	if (typeof raw !== 'string') return null;
-	const s = raw.toUpperCase().replace(/[^0-9A-Z]/g, '');
-	const body = s.startsWith('BK') ? s.slice(2) : s;
-	return /^[0-9A-Z]{8}$/.test(body) ? `BK-${body.slice(0, 4)}-${body.slice(4)}` : null;
+	if (typeof raw !== 'string' || raw.length > 64) return null;
+	const s = raw.toUpperCase();
+	if (!s.includes('_')) {
+		const alnum = s.replace(/[^0-9A-Z]/g, '');
+		const body = alnum.startsWith('BK') && alnum.length === 10 ? alnum.slice(2) : alnum;
+		if (/^[0-9A-Z]{8}$/.test(body)) return `BK-${body.slice(0, 4)}-${body.slice(4)}`;
+	}
+	const named = s.replace(/[\s\-.]/g, '');
+	return /^[0-9A-Z][0-9A-Z_]{1,18}[0-9A-Z]$/.test(named) ? named : null;
 }
+
+/** A name that would be read as a random code (8 letters and digits, or BK + 8). */
+export const isRandomShape = (code: string) => /^BK-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(code);
 
 const VALID = `revoked_at IS NULL AND uses < max_uses AND (expires_at IS NULL OR expires_at > ?2)`;
 
