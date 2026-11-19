@@ -79,7 +79,9 @@ change (`audited()` in `worker/admin/routes.ts`).
 `/admin/settings` switches sign-ups between **open to everyone** and
 **invite only** (`app_settings.signup_mode`, cached 30 s per isolate).
 While invite-only, a passkey sign-up needs a valid code from the console
-(`BK-XXXX-XXXX`, with a use count and optional expiry; `invite_codes`), and
+(`BK-XXXX-XXXX`, or a name Job picks such as `VIP`: 3 to 20 letters, digits
+and underscores, not 8 letters which would read as a random code; with a use
+count and optional expiry; `invite_codes`), and
 the account remembers which code it used (`accounts.invite_code`). Apple
 sign-up only works while sign-ups are open. `SIGNUP_MODE=closed` on the
 Worker overrides the console and stops invites too.
@@ -171,11 +173,15 @@ record. The list shows each code's uses against its limit (`12 / 50`, or
 `12 / ∞` with no limit); tapping a code lists who redeemed it, linked to
 their account, with the date and whether that grant is still live.
 
-**Links.** Each code has a shareable link, `https://benkyo.jirachai.me/?ref=CODE` ("Copy link"
-on the code's page). Opening it takes the code off the address and keeps it on that device
-(localStorage `benkyo.promoLink`, 30 days) through the intro, sign-up, onboarding and consent;
-once the person is signed in the app redeems it once and says how it went (a toast), then
-forgets it. Offline, it waits for the next try. `src/lib/promo/link.ts`, used by the root layout.
+**Links.** Each code has a shareable link, `https://benkyo.jirachai.me/?ref=CODE` (or
+`?coupon=CODE`), and a sign-up link with an invite, `/invite/VIP?coupon=CODE`: pick the invite
+under "Link with an invite" on the code's page, or copy an invite's own link (`/invite/VIP`)
+in Settings. `/invite/<invite>` (`src/routes/invite/[code]`, a static SPA path) fills the
+invite into the sign-up sheet (sessionStorage `benkyo.inviteLink`) and opens it. The coupon is
+kept on that device (localStorage `benkyo.promoLink`, 30 days) through the intro, sign-up,
+onboarding and consent; once the person is signed in the app redeems it once and says how it
+went (a toast), then forgets it. Offline, it waits for the next try. `src/lib/promo/link.ts`,
+used by the root layout.
 
 **Editing** (`PATCH /api/admin/promos/:code`) changes the package, kind,
 days, use limit (not below the uses so far), expiry (days from today, or

@@ -92,6 +92,18 @@ describe('fleet settings', () => {
 		expect((await call('DELETE', `/api/admin/invites/${c.body.code}`)).status).toBe(404);
 		expect(audit().map((a) => a.action)).toEqual(['invite.create', 'invite.revoke']);
 	});
+
+	it('makes named invites for /invite/vip links', async () => {
+		const c = await call('POST', '/api/admin/invites', { code: ' vip ', maxUses: 50 });
+		expect(c.status).toBe(200);
+		expect(c.body).toMatchObject({ code: 'VIP', maxUses: 50, uses: 0 });
+		expect((await call('POST', '/api/admin/invites', { code: 'Vip' })).status).toBe(409);
+		expect((await call('POST', '/api/admin/invites', { code: 'x' })).status).toBe(400);
+		// 8 letters would be read as a random BK- code
+		expect((await call('POST', '/api/admin/invites', { code: 'vipguest' })).status).toBe(400);
+		expect((await call('POST', '/api/admin/invites', { code: 'vip_guest' })).body.code).toBe('VIP_GUEST');
+		expect((await call('DELETE', '/api/admin/invites/vip')).body).toEqual({ ok: true });
+	});
 });
 
 describe('fillDays', () => {

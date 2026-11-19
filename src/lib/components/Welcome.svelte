@@ -16,6 +16,7 @@
 	import { strokesOf } from '#lib/content/strokes.ts';
 	import AppleButton from './AppleButton.svelte';
 	import { Button, Card, Segmented, TextField } from '#lib/ui/index.ts';
+	import { clearPendingInvite, pendingInvite } from '#lib/promo/link.ts';
 
 	let { ondone }: { ondone: () => void } = $props();
 
@@ -23,7 +24,8 @@
 	const strokes = strokesOf('あ')?.d ?? [];
 	let mode = $state<'create' | 'signin' | 'recover'>('create');
 	let name = $state('');
-	let invite = $state('');
+	// filled in from a sign-up link (/invite/CODE)
+	let invite = $state(pendingInvite() ?? '');
 	const canCreate = $derived(ai.signupOpen || ai.signupInvite);
 	const needInvite = $derived(!ai.signupOpen && ai.signupInvite);
 	let code = $state('');
@@ -52,6 +54,7 @@
 		if (!n) return;
 		const r = await run(() => api.registerPasskey(n, needInvite ? invite.trim() : undefined));
 		if (!r) return;
+		clearPendingInvite();
 		haptic('success');
 		await ai.refresh();
 		if (r.recoveryCode) recoveryCode = r.recoveryCode;

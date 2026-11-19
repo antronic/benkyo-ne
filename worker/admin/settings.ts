@@ -11,7 +11,7 @@
  */
 import type { AdminInvite, AdminSettings } from '../../src/lib/admin/contract.ts';
 import { DEFAULT_SESSION_DAYS, sessionTtlMs } from '../auth/session.ts';
-import { generateInviteCode, normalizeInvite, setSignupMode, signupState } from '../auth/signup.ts';
+import { generateInviteCode, isRandomShape, normalizeInvite, setSignupMode, signupState } from '../auth/signup.ts';
 import type { Env } from '../env.ts';
 import { httpError, json, readJson } from '../http.ts';
 import { audited, requireFresh, type AdminContext } from './routes.ts';
@@ -71,7 +71,13 @@ export function parseInviteInput(body: unknown) {
 	const exp = b.expiresInDays === undefined || b.expiresInDays === null ? null : Number(b.expiresInDays);
 	if (exp !== null && (!Number.isFinite(exp) || exp <= 0 || exp > 365))
 		throw httpError(400, 'bad_request', 'Expiry must be 1 to 365 days, or none');
-	return { label, maxUses, expiresInDays: exp };
+	let code: string | null = null;
+	if (b.code !== undefined && b.code !== null && b.code !== '') {
+		code = normalizeInvite(b.code);
+		if (!code) throw httpError(400, 'bad_request', 'A name is 3 to 20 letters, digits and underscores, starting and ending with a letter or digit');
+		if (isRandomShape(code)) throw httpError(400, 'bad_request', 'That name looks like a random invite code. Use another length, or add an underscore');
+	}
+	return { label, maxUses, expiresInDays: exp, code };
 }
 
 export async function handleSettings(req: Request, env: Env, url: URL, ctx: AdminContext): Promise<Response | null> {
@@ -107,9 +113,11 @@ export async function handleSettings(req: Request, env: Env, url: URL, ctx: Admi
 	if (p === '/api/admin/invites' && m === 'POST') {
 		const input = parseInviteInput(await readJson(req, 2048));
 		const now = Date.now();
-		const code = generateInviteCode();
+		const code = input.code ?? generateInviteCode();
+		if (input.code && (await env.DB.prepare(`SELECT 1 AS x FROM invite_codes WHERE code = ?1`).bind(code).first()))
+			throw httpError(409, 'bad_request', 'An invite with that name already exists');
 		const expiresAt = input.expiresInDays ? now + input.expiresInDays * DAY : null;
-		await audited(env, ctx, 'invite.create', null, { code, label: input.label, maxUses: input.maxUses, expiresAt }, [
+		await audited(env, ctx, 'invite.create', null, { code, named: !!input.code, label: input.label, maxUses: input.maxUses, expiresAt }, [
 			env.DB.prepare(
 				`INSERT INTO invite_codes (code, label, max_uses, expires_at, created_at, created_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6)`
 			).bind(code, input.label, input.maxUses, expiresAt, now, ctx.session.userId)
@@ -117,7 +125,7 @@ export async function handleSettings(req: Request, env: Env, url: URL, ctx: Admi
 		return json({ code, label: input.label, maxUses: input.maxUses, uses: 0, expiresAt, createdAt: now, revokedAt: null } satisfies AdminInvite);
 	}
 
-	const inv = /^\/api\/admin\/invites\/([A-Za-z0-9-]{8,20})$/.exec(p);
+	const inv = /^\/api\/admin\/invites\/([A-Za-z0-9_-]{3,20})$/.exec(p);
 	if (inv && m === 'DELETE') {
 		const code = normalizeInvite(decodeURIComponent(inv[1]));
 		const row = code && (await env.DB.prepare(`SELECT 1 AS x FROM invite_codes WHERE code = ?1 AND revoked_at IS NULL`).bind(code).first());

@@ -49,8 +49,9 @@
 	// A promo link (?ref=CODE, src/lib/promo/link.ts): kept on this device until someone is
 	// signed in and past the welcome and consent screens, then redeemed once.
 	let redeeming = false;
+	const promoReady = () => progress.ready && words.ready && ai.checked && !ui.showIntro && !ui.showOnboarding && !ui.showWelcome && !ai.needsConsent;
 	$effect(() => {
-		const ready = progress.ready && words.ready && ai.checked && !ui.showIntro && !ui.showOnboarding && !ui.showWelcome && !ai.needsConsent;
+		const ready = promoReady();
 		const signedIn = ai.signedIn && !!ai.account?.id;
 		if (ready) untrack(() => void usePromoLink(signedIn));
 	});
@@ -61,6 +62,9 @@
 		// let the splash finish (Splash.svelte: at least 900 ms, then a 520 ms fade) so the toast is seen
 		await new Promise((r) => setTimeout(r, 1500));
 		redeeming = false;
+		// the intro or a sheet may have opened meanwhile: its closing runs this again
+		if (!promoReady()) return;
+		signedIn = ai.signedIn && !!ai.account?.id;
 		const saved = pendingPromo();
 		if (!saved || redeeming) return;
 		if (!signedIn) {

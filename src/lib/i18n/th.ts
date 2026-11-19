@@ -761,6 +761,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'promo.linkSaved': 'บันทึกโค้ด {code} ไว้แล้ว ลงชื่อเข้าใช้หรือสมัครเบต้าเพื่อใช้โค้ดนี้',
 	'promo.linkRedeemed': 'ใช้โค้ดโปรโมชันแล้ว เปิดใช้ {plan} แล้ว',
 	'promo.linkFailed': 'ไม่ได้ใช้โค้ด {code} {reason}',
+	'invite.opening': 'กำลังเปิดคำเชิญ…',
 	'promo.errTitle': 'ยังไม่ได้ใช้โค้ด',
 	'ai.reason.allowance': 'ใช้ AI ในแพ็กเกจของเดือนนี้ครบแล้ว เพิ่มคีย์ API ของคุณเองในการตั้งค่าเพื่อใช้ต่อ',
 	'ai.reason.ended': 'แพ็กเกจ {name} ของคุณสิ้นสุดแล้ว ใช้โค้ดโปรโมชันหรือเพิ่มคีย์ API ของคุณเองในการตั้งค่าเพื่อใช้ AI',

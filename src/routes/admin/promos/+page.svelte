@@ -16,6 +16,8 @@
 	import { createPromo, getPromo, listPromos, setPromoDisabled, updatePromo } from '#lib/admin/promos.ts';
 	import type { AdminPromo, AdminPromoDetail, AdminPromoInput, AdminPromoList, AdminPromoPatch } from '#lib/promo/contract.ts';
 	import { promoLink } from '#lib/promo/link.ts';
+	import { getSettings } from '#lib/admin/client.ts';
+	import type { AdminInvite } from '#lib/admin/contract.ts';
 	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
@@ -106,6 +108,7 @@
 		detail = null;
 		detailError = null;
 		edit = null;
+		void loadInvites();
 		try {
 			detail = await getPromo(code);
 		} catch (e) {
@@ -204,9 +207,26 @@
 		}
 	}
 
+	// The link can also open sign-up with an invite filled in (/invite/INVITE?coupon=CODE).
+	let invites = $state<AdminInvite[] | null>(null);
+	let linkInvite = $state('');
+	const liveInvite = (i: AdminInvite) => !i.revokedAt && i.uses < i.maxUses && (i.expiresAt === null || i.expiresAt > Date.now());
+	async function loadInvites() {
+		if (invites) return;
+		try {
+			invites = (await getSettings()).invites.filter(liveInvite);
+		} catch {
+			invites = []; // the plain link still works
+		}
+	}
+	const inviteOptions = $derived([
+		{ value: '', label: 'No invite' },
+		...(invites ?? []).map((i) => ({ value: i.code, label: i.label ? `${i.code} · ${i.label}` : i.code }))
+	]);
+
 	async function copy(code: string, what: 'code' | 'link' = 'code') {
 		try {
-			await navigator.clipboard.writeText(what === 'link' ? promoLink(code, location.origin) : code);
+			await navigator.clipboard.writeText(what === 'link' ? promoLink(code, location.origin, linkInvite || null) : code);
 			toast(what === 'link' ? 'Link copied' : 'Code copied', '📋');
 		} catch {
 			toast('Couldn’t copy. Select the code instead.', '⚠️');
@@ -397,7 +417,13 @@
 										{#snippet trailing()}<Switch label="Accept this code" checked={detail!.disabledAt === null} disabled={switching} onchange={toggle} />{/snippet}
 									</ListRow>
 								</ListGroup>
-								<span class="caption">Link: {promoLink(detail.code, location.origin)}. Opening it keeps the code through sign-up and uses it once the person is signed in.</span>
+								<ListGroup>
+									<ListRow title="Link with an invite" subtitle={invites ? 'Opens sign-up with the invite filled in' : 'Loading invites…'}>
+										{#snippet trailing()}<Select label="Link with an invite" bind:value={linkInvite} options={inviteOptions} disabled={!invites} />{/snippet}
+									</ListRow>
+								</ListGroup>
+								<span class="caption link">{promoLink(detail.code, location.origin, linkInvite || null)}</span>
+								<span class="caption">Opening the link keeps the code through sign-up and uses it once the person is signed in.</span>
 								<span class="caption">Switching a code off stops new redemptions. Packages it already gave keep running; end one on the account’s page.</span>
 								<div class="actions">
 									<Button variant="ghost" size="sm" onclick={() => copy(detail!.code)}>Copy code</Button>
@@ -433,6 +459,10 @@
 {#snippet redeemedCount()}{detail ? usage(detail) : ''}{/snippet}
 
 <style>
+	.link {
+		overflow-wrap: anywhere;
+		user-select: all;
+	}
 	.uses {
 		font-variant-numeric: tabular-nums;
 		color: var(--color-text-2);

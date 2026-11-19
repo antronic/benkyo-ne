@@ -748,6 +748,7 @@ export const en = {
 	'promo.linkSaved': 'Code {code} is saved. Sign in or join the beta to use it.',
 	'promo.linkRedeemed': 'Promo code used: {plan} is on',
 	'promo.linkFailed': 'Code {code} wasn’t used. {reason}',
+	'invite.opening': 'Opening your invite…',
 	'promo.errTitle': 'Code not redeemed',
 	'ai.reason.allowance': 'This month’s AI in your package is used up. Add your own API key in Settings to keep going.',
 	'ai.reason.ended': 'Your {name} package has ended. Redeem a code or add your own API key in Settings to use AI.',

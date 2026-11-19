@@ -1,5 +1,7 @@
 /**
- * Promo links: https://benkyo.jirachai.me/?ref=CODE. The root layout takes the
+ * Promo links: https://benkyo.jirachai.me/?ref=CODE (or ?coupon=CODE), and
+ * sign-up links /invite/INVITE?coupon=CODE (src/routes/invite/[code]) that
+ * also fill in the invite on the sign-up screen. The root layout takes the
  * code off the address when the app opens and keeps it on this device
  * (localStorage `benkyo.promoLink`) through the intro, sign-up and consent;
  * once someone is signed in it redeems it once and forgets it. Fleet copies
@@ -17,17 +19,36 @@ export function cleanRef(raw: string | null | undefined): string | null {
 	return /^[0-9A-Z][0-9A-Z_]{2,22}[0-9A-Z]$/.test(s) ? s : null;
 }
 
-/** The code in `?ref=`, and the address without it (null when nothing to take). */
+const PARAMS = ['ref', 'coupon'];
+
+/** The code in `?ref=` or `?coupon=`, and the address without them (null when nothing to take). */
 export function takeRef(url: URL): { code: string | null; rest: string } | null {
-	if (!url.searchParams.has('ref')) return null;
-	const code = cleanRef(url.searchParams.get('ref'));
+	const key = PARAMS.find((k) => url.searchParams.has(k));
+	if (!key) return null;
+	const code = cleanRef(url.searchParams.get(key));
 	const u = new URL(url);
-	u.searchParams.delete('ref');
+	for (const k of PARAMS) u.searchParams.delete(k);
 	return { code, rest: u.pathname + u.search + u.hash };
 }
 
-/** The shareable link for a code. */
-export const promoLink = (code: string, origin: string) => `${origin.replace(/\/$/, '')}/?ref=${encodeURIComponent(code)}`;
+/** An invite as worker/auth/signup.ts normalizeInvite reads it: "bk 7kq2 mx9d" → "BK-7KQ2-MX9D", "vip" → "VIP"; null when it can't be one. */
+export function cleanInvite(raw: string | null | undefined): string | null {
+	if (!raw || raw.length > 64) return null;
+	const s = raw.toUpperCase();
+	if (!s.includes('_')) {
+		const alnum = s.replace(/[^0-9A-Z]/g, '');
+		const body = alnum.startsWith('BK') && alnum.length === 10 ? alnum.slice(2) : alnum;
+		if (/^[0-9A-Z]{8}$/.test(body)) return `BK-${body.slice(0, 4)}-${body.slice(4)}`;
+	}
+	const named = s.replace(/[\s\-.]/g, '');
+	return /^[0-9A-Z][0-9A-Z_]{1,18}[0-9A-Z]$/.test(named) ? named : null;
+}
+
+const base = (origin: string) => origin.replace(/\/$/, '');
+
+/** The shareable link for a code: the app (`/?ref=`), or sign-up with an invite (`/invite/INVITE?coupon=`). */
+export const promoLink = (code: string, origin: string, invite?: string | null) =>
+	invite ? `${base(origin)}/invite/${encodeURIComponent(invite)}?coupon=${encodeURIComponent(code)}` : `${base(origin)}/?ref=${encodeURIComponent(code)}`;
 
 interface Saved {
 	code: string;
@@ -72,3 +93,27 @@ export function markPendingTold() {
 }
 
 export const clearPendingPromo = () => write(null);
+
+// The invite from a sign-up link, for the Welcome sheet's invite field.
+const INVITE_KEY = 'benkyo.inviteLink';
+export function savePendingInvite(code: string) {
+	try {
+		sessionStorage.setItem(INVITE_KEY, code);
+	} catch {
+		// storage blocked: the invite can still be typed
+	}
+}
+export function pendingInvite(): string | null {
+	try {
+		return sessionStorage.getItem(INVITE_KEY);
+	} catch {
+		return null;
+	}
+}
+export function clearPendingInvite() {
+	try {
+		sessionStorage.removeItem(INVITE_KEY);
+	} catch {
+		// nothing to clear
+	}
+}

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LINK_TTL_MS, cleanRef, clearPendingPromo, markPendingTold, pendingPromo, promoLink, savePendingPromo, takeRef } from './link.ts';
+import { LINK_TTL_MS, cleanInvite, cleanRef, clearPendingPromo, markPendingTold, pendingPromo, promoLink, savePendingPromo, takeRef } from './link.ts';
 
 describe('promo links', () => {
 	beforeEach(() => {
@@ -24,6 +24,24 @@ describe('promo links', () => {
 		expect(takeRef(new URL('https://x.test/settings?a=1&ref=ABCDEF#k'))).toEqual({ code: 'ABCDEF', rest: '/settings?a=1#k' });
 		expect(takeRef(new URL('https://x.test/?ref=!!'))).toEqual({ code: null, rest: '/' });
 		expect(takeRef(new URL('https://x.test/?a=1'))).toBeNull();
+	});
+
+	it('takes ?coupon= the same way', () => {
+		expect(takeRef(new URL('https://x.test/invite/BK-7KQ2-MX9D?coupon=songkran-27'))).toEqual({ code: 'SONGKRAN27', rest: '/invite/BK-7KQ2-MX9D' });
+	});
+
+	it('cleans an invite the way the server does', () => {
+		expect(cleanInvite('bk 7kq2 mx9d')).toBe('BK-7KQ2-MX9D');
+		expect(cleanInvite('7KQ2MX9D')).toBe('BK-7KQ2-MX9D');
+		expect(cleanInvite('vip')).toBe('VIP');
+		expect(cleanInvite('songkran_vip')).toBe('SONGKRAN_VIP');
+		expect(cleanInvite('x')).toBeNull();
+	});
+
+	it('makes the sign-up link with an invite', () => {
+		const link = promoLink('SONGKRAN_27', 'https://x.test', 'BK-7KQ2-MX9D');
+		expect(link).toBe('https://x.test/invite/BK-7KQ2-MX9D?coupon=SONGKRAN_27');
+		expect(takeRef(new URL(link))?.code).toBe('SONGKRAN_27');
 	});
 
 	it('makes the link Fleet copies', () => {
