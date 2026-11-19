@@ -29,3 +29,4 @@ export { default as Spinner } from './Spinner.svelte';
 export { default as TextArea } from './TextArea.svelte';
 export { default as PageDots } from './PageDots.svelte';
 export { default as StatTile } from './StatTile.svelte';
+export { default as PlanBadge } from './PlanBadge.svelte';
