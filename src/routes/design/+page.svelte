@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, InkReplay, InviteCard, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
+	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
 	import { fakeCommunity } from '#lib/community/fake.ts';
@@ -52,6 +52,34 @@
 		{ value: 'SONGKRAN27', label: 'SONGKRAN27 · Pro on us · 30 days' }
 	];
 	const vipPerk = $derived(vipCoupon === 'WELCOME30' ? 'Plus trial · 14 days' : vipCoupon === 'SONGKRAN27' ? 'Pro on us · 30 days' : null);
+	// Everyday Japanese drafts (docs/EVERYDAY.md): phrasebook, Writing helper, kanji you keep forgetting, domain packs, weekly report
+	let politeTarget = $state<'friend' | 'colleague' | 'boss' | 'customer'>('boss');
+	let politeFixed = $state(false);
+	const POLITE_TARGET = { friend: 0.1, colleague: 0.5, boss: 0.78, customer: 0.9 };
+	const politeYours = $derived(politeFixed ? 0.8 : 0.22);
+	const PHRASES = [
+		{ jp: 'よろしくお願いします', from: 'Writing helper · LINE', n: 23 },
+		{ jp: '資料', from: 'Photo · Slack · look-up', n: 14 },
+		{ jp: '確認します', from: 'Writing helper', n: 11 },
+		{ jp: 'お手数ですが', from: 'Photo · LINE', n: 6 }
+	];
+	const FORGOT = [
+		{ k: '議', r: 'ぎ', m: 3, w: 1 },
+		{ k: '確', r: 'かく', m: 2, w: 2 },
+		{ k: '認', r: 'にん', m: 1, w: 2 },
+		{ k: '締', r: 'し', m: 2, w: 1 },
+		{ k: '較', r: 'かく', m: 2, w: 0 },
+		{ k: '与', r: 'よ', m: 1, w: 1 }
+	];
+	const LEVELS = [
+		{ id: 'N5', name: 'Beginner', ex: 'これは わたしの ほん です。' },
+		{ id: 'N4', name: 'Basic', ex: '雨が降ったら、家で映画を見ます。' },
+		{ id: 'N3', name: 'Everyday, work', ex: '会議の資料を事前に共有してもらえますか。' },
+		{ id: 'N2', name: 'Business', ex: 'ご多忙のところ恐縮ですが、ご確認願います。' },
+		{ id: 'N1', name: 'Advanced', ex: '当該案件につき、遺憾ながら見送らせていただきます。' }
+	] as const;
+	let myLevel = $state<(typeof LEVELS)[number]['id']>('N3');
+	const weekDays = ['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22'].map((day, i) => ({ day, value: [12, 16, 8, 19, 4, 0, 11][i] }));
 	let saving = $state(false);
 	const barDays = Array.from({ length: 14 }, (_, i) => ({ day: `2026-11-${String(i + 1).padStart(2, '0')}`, value: [2, 4, 3, 6, 5, 8, 7, 4, 9, 6, 5, 7, 10, 8][i] }));
 	function fakeSave() {
@@ -322,6 +350,138 @@
 					onaccept={() => (vipPopup = false)}
 					onclose={() => (vipPopup = false)}
 				/>
+
+				<SectionHeader title="Draft · Everyday Japanese" />
+				<p class="caption">
+					Drafts for people who already use Japanese every day (docs/EVERYDAY.md). Not in the app yet: these are the pieces Job approved in the
+					Design Studio, built from the kit so the real screens can use them.
+				</p>
+
+				<SectionHeader title="Pick your level" level={3} />
+				<p class="caption">No quiz: the learner picks the hardest sentence they can read, and Learn opens there with nothing locked.</p>
+				<ListGroup>
+					{#each LEVELS as l (l.id)}
+						<ListRow title="{l.id} · {l.name}" selected={myLevel === l.id} onclick={() => (myLevel = l.id)}>
+							<span class="jp caption">{l.ex}</span>
+						</ListRow>
+					{/each}
+				</ListGroup>
+				<Segmented label="Your level" bind:value={myLevel} options={LEVELS.map((l) => ({ value: l.id, label: l.id }))} />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-2)">
+						<span class="headline">Already know this?</span>
+						<span class="caption">Answer 3 quick questions and the unit is marked done. Get one wrong and you study it as usual.</span>
+						<div class="wrap">
+							<Button size="sm" variant="ghost">Test out</Button>
+							<Button size="sm" variant="accent">Study it</Button>
+						</div>
+					</div>
+				</Card>
+
+				<SectionHeader title="Phrasebook" level={3} />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-2)">
+						<span class="caption">Read a photo: words found in a LINE screenshot are marked.</span>
+						<MarkedText
+							parts={[
+								{ text: '明日の' },
+								{ text: '定例会議', kind: 'mark' },
+								{ text: 'ですが、' },
+								{ text: '資料', kind: 'mark' },
+								{ text: 'を事前に' },
+								{ text: '共有', kind: 'mark' },
+								{ text: 'していただけますか？' }
+							]}
+						/>
+					</div>
+				</Card>
+				<ListGroup>
+					{#each PHRASES as ph, i (ph.jp)}
+						<ListRow>
+							{#snippet leading()}<span class="rank">{i + 1}</span>{/snippet}
+							<span class="jp phrase">{ph.jp}</span>
+							<span class="caption">{ph.from}</span>
+							{#snippet trailing()}<Badge tone="accent">{ph.n}×</Badge>{/snippet}
+						</ListRow>
+					{/each}
+				</ListGroup>
+
+				<SectionHeader title="Writing helper" level={3} />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-3)">
+						<Segmented
+							label="Sending to"
+							bind:value={politeTarget}
+							options={[
+								{ value: 'friend', label: 'Friend' },
+								{ value: 'colleague', label: 'Colleague' },
+								{ value: 'boss', label: 'Boss' },
+								{ value: 'customer', label: 'Customer' }
+							]}
+						/>
+						<PolitenessMeter value={politeYours} target={POLITE_TARGET[politeTarget]} targetLabel="Right for a {politeTarget}" />
+						<MarkedText
+							parts={politeFixed
+								? [{ text: '部長\nお疲れ様です。\n明日の会議の資料をお送りします。\nご確認いただけますと幸いです。\nよろしくお願いいたします。' }]
+								: [
+										{ text: '部長\n' },
+										{ text: 'お疲れ様です。', kind: 'add' },
+										{ text: '\n明日の会議の資料を' },
+										{ text: '送ります', kind: 'del' },
+										{ text: 'お送りします', kind: 'add' },
+										{ text: '。\n' },
+										{ text: '見てください', kind: 'del' },
+										{ text: 'ご確認いただけますと幸いです', kind: 'add' },
+										{ text: '。\n' },
+										{ text: 'よろしく', kind: 'del' },
+										{ text: 'よろしくお願いいたします', kind: 'add' },
+										{ text: '。' }
+									]}
+						/>
+						<SpeechBubble><b class="jp">見てください</b> is an instruction. To a boss, ask softly: <b class="jp">ご確認いただけますと幸いです</b>.</SpeechBubble>
+						<div class="wrap">
+							<Button size="sm" variant="ghost" onclick={() => (politeFixed = !politeFixed)}>{politeFixed ? 'Show changes' : 'Use suggestion'}</Button>
+						</div>
+					</div>
+				</Card>
+
+				<SectionHeader title="Kanji you keep forgetting" level={3} />
+				<div class="kanji-set">
+					{#each FORGOT as f (f.k)}<KanjiTile kanji={f.k} reading={f.r} misread={f.m} unwritten={f.w} />{/each}
+				</div>
+				<p class="caption">Red dots: misread in review. Blue dots: couldn’t write it by hand. The drill uses InkPad inside a word from the phrasebook.</p>
+
+				<SectionHeader title="Domain packs" level={3} />
+				<ListGroup>
+					<ListRow title="IT and tech" subtitle="Meetings, specs, bugs · 120 words" href="#domain-it">
+						{#snippet leading()}<span class="domain" aria-hidden="true">💻</span>{/snippet}
+						{#snippet trailing()}<Badge tone="success">38 known</Badge>{/snippet}
+					</ListRow>
+					<ListRow title="Office and email" subtitle="Greetings, requests, keigo · 90 words" href="#domain-office">
+						{#snippet leading()}<span class="domain" aria-hidden="true">💼</span>{/snippet}
+						{#snippet trailing()}<Badge tone="success">51 known</Badge>{/snippet}
+					</ListRow>
+					<ListRow title="Medical" subtitle="Clinic, symptoms, forms · 110 words" href="#domain-medical">
+						{#snippet leading()}<span class="domain" aria-hidden="true">🏥</span>{/snippet}
+					</ListRow>
+				</ListGroup>
+
+				<SectionHeader title="Weekly report" level={3} />
+				<div class="ui-stats">
+					<StatTile label="Read" value={14} note="photos and messages" />
+					<StatTile label="Wrote" value={9} note="checked messages" />
+					<StatTile label="Saved" value={23} note="new phrases" />
+				</div>
+				<BarChart days={weekDays} label="Minutes a day this week" column="Minutes" format={(n) => `${n} min`} />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-2)">
+						<Badge tone="accent" variant="tag">One thing to work on</Badge>
+						<span class="headline">Humble forms (<span class="jp">謙譲語</span>)</span>
+						<span class="caption">4 of your 9 messages to your boss used plain forms like <span class="jp">送ります</span>.</span>
+						<SpeechBubble>9 messages checked and 23 phrases saved! Let’s work on humble forms next.</SpeechBubble>
+						<div class="wrap"><Button size="sm" variant="accent">5 minute practice</Button></div>
+					</div>
+				</Card>
 
 				<SectionHeader title="Stat tiles" />
 				<div class="ui-stats">
@@ -1028,5 +1188,28 @@
 	@keyframes d-breathe {
 		from { transform: scale(0.85); opacity: 0.7; }
 		to { transform: scale(1.1); opacity: 1; }
+	}
+	.rank {
+		width: 22px;
+		text-align: end;
+		font-weight: var(--weight-bold);
+		color: var(--color-text-3);
+	}
+	.phrase {
+		font-weight: var(--weight-semibold);
+	}
+	.kanji-set {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: var(--space-3);
+	}
+	.domain {
+		width: 36px;
+		height: 36px;
+		border-radius: var(--radius-md);
+		background: var(--color-fill);
+		display: grid;
+		place-items: center;
+		font-size: 20px;
 	}
 </style>
