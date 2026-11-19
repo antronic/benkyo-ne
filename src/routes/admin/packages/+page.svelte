@@ -319,7 +319,7 @@
 			{/each}
 		</ListGroup>
 		<p class="caption foot">
-			Packages aren’t enforced in the app yet: there’s no checkout, and managed AI comes later. Changes ask for your passkey and go in the audit log.
+			A package’s AI allowance and models apply as soon as an account has the package. There’s no checkout yet: packages come from grants and promo codes. Changes ask for your passkey and go in the audit log.
 		</p>
 	{/if}
 </main>

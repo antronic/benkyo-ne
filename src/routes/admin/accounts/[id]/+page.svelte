@@ -207,7 +207,7 @@
 						</FieldRow>
 					</form>
 				</ListGroup>
-				<p class="caption" style:margin="var(--space-px) var(--space-1h)">Packages aren’t enforced in the app yet. This records who gets a paid package for when managed AI ships.</p>
+				<p class="caption" style:margin="var(--space-px) var(--space-1h)">A paid package runs this account’s AI on your provider keys, up to the package’s monthly allowance. There’s no checkout yet: packages come from grants here and promo codes.</p>
 			</section>
 			<section>
 				<SectionHeader title="AI this month" />
