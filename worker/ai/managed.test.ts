@@ -111,6 +111,19 @@ describe('managed AI', () => {
 		expect(JSON.stringify(s.body)).not.toContain(PLATFORM_KEY);
 	});
 
+	it('uses a package model with no listed price (self-hosted) instead of the learner’s own key', async () => {
+		grant(2);
+		await addOwnKey(2);
+		db.exec(`UPDATE plan_models SET model = 'my-gpu-model', input_per_m = NULL, output_per_m = NULL`);
+		const r = await call('POST', '/api/ai/fill', fillBody);
+		expect(r.status).toBe(200);
+		expect(anthropicCalls).toEqual([{ model: 'my-gpu-model', key: PLATFORM_KEY }]);
+		expect(ledger()).toEqual([{ source: 'package', planId: 'plus', status: 'done', model: 'my-gpu-model' }]);
+		const s = await call('GET', '/api/ai/managed');
+		expect(s.body).toMatchObject({ active: 'package', spentUsd: 0, calls: 1 });
+		expect(s.body.byFeature.find((b: any) => b.feature === 'fill')).toEqual({ feature: 'fill', source: 'package' });
+	});
+
 	it('keeps learners without a package on their own key', async () => {
 		await addOwnKey(2);
 		expect((await call('POST', '/api/ai/fill', fillBody)).status).toBe(200);

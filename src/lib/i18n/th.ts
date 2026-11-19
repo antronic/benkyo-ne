@@ -315,6 +315,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'ai.setup': 'ตั้งค่า AI ได้ในหน้าตั้งค่า',
 	'ai.openSettings': 'เปิดหน้าตั้งค่า ›',
 	'ai.usage': 'เดือนนี้: {spent} จาก {cap} · {n} ครั้ง',
+	'ai.usagePackage': '✨ แพ็กเกจ {name} · เดือนนี้: {spent} จาก {cap} · {n} ครั้ง',
 	// Kuri คู่หูชิบะ
 	'kuri.name': 'คุริ',
 	'kuri.section': 'คู่หู',
