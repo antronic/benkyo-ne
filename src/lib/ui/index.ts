@@ -41,3 +41,8 @@ export { default as InkPad } from './InkPad.svelte';
 export { default as InkReplay } from './InkReplay.svelte';
 export { default as InviteCard } from './InviteCard.svelte';
 export { emptyInk, inkDuration, sampleInk, type Ink, type InkPoint } from './ink.ts';
+export { default as PolitenessMeter } from './PolitenessMeter.svelte';
+export { default as MarkedText } from './MarkedText.svelte';
+export type { MarkedPart } from './MarkedText.svelte';
+export { default as KanjiTile } from './KanjiTile.svelte';
+export { default as SpeechBubble } from './SpeechBubble.svelte';

@@ -94,6 +94,10 @@ Import from `#lib/ui/index.ts`:
 | `Columns` | `min` (column width, default 340px); `<section>` children stack their header and content; `.span-all` takes the row | side-by-side sections on desktop, stacked on phones (Fleet) |
 | `DataTable` | `columns` (key, label, align, width), `rows`, `key`, `label`, `cell` snippet, `href` (whole row opens it) | records in columns; under 560px of its own width each row stacks with labels |
 | `Breadcrumbs` | `items` (label, href); last is the current page; phones show only `‹ parent` | where you are and the way back, below a section's top page |
+| `PolitenessMeter` (draft) | `value`, `target` 0 casual → 1 keigo, `steps`, `valueLabel`, `targetLabel` | Writing helper: how polite a message is against who it is for ([EVERYDAY.md](EVERYDAY.md)) |
+| `MarkedText` (draft) | `parts` (`text`, `kind` mark · add · del), `size` | words found in a photo; a suggested rewrite |
+| `KanjiTile` (draft) | `kanji`, `reading`, `misread`, `unwritten` | "Kanji you keep forgetting" set |
+| `SpeechBubble` (draft) | children, `avatar` snippet (default Kuri), `label` | a short line from Kuri |
 
 ### Kit only
 
