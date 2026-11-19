@@ -24,6 +24,8 @@ import type {
 	ModelInfo,
 	ProposeRequest,
 	ProposeResponse,
+	TranslateRequest,
+	TranslateResponse,
 	Usage
 } from './contract.ts';
 import type { BetaStatus } from '../beta/contract.ts';
@@ -201,6 +203,8 @@ export const propose = (r: ProposeRequest) => call<ProposeResponse>('/api/ai/pro
 export const fill = (r: FillRequest) => call<FillResponse>('/api/ai/fill', { method: 'POST', json: r });
 export const lesson = (r: LessonRequest) => call<LessonResponse>('/api/ai/lesson', { method: 'POST', json: r });
 export const ask = (r: AskRequest) => call<AskResponse>('/api/ai/ask', { method: 'POST', json: r });
+/** Translate a community note or reply (the Worker reads the text). */
+export const translate = (r: TranslateRequest) => call<TranslateResponse>('/api/ai/translate', { method: 'POST', json: r });
 
 /**
  * Ask AI, streamed: `ondelta` gets the reply text as the model writes it.

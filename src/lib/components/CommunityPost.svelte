@@ -4,12 +4,19 @@
 	your own). A note also opens its replies here, one level deep. Everything
 	happens in place (no sheet), so it works inside the card sheet too.
 
-	  <CommunityPost kind="post" item={post} {api} canReply onremoved={…} onblocked={…} />
+	文A translates someone else's note or reply into your interface language
+	with your AI (icon only, the tooltip says Translate). It shows when
+	`canTranslate` is set and the text is in another language; the result is
+	kept on this device (#lib/community/translations.ts).
+
+	  <CommunityPost kind="post" item={post} {api} canReply canTranslate onremoved={…} onblocked={…} />
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { t, tn, fmtDate, type MessageKey } from '#lib/i18n/index.svelte.ts';
-	import { Badge, Button, Chip, IconButton, Notice, Skeleton, TextArea, TextField } from '#lib/ui/index.ts';
+	import { t, tn, fmtDate, i18n, type MessageKey } from '#lib/i18n/index.svelte.ts';
+	import { Badge, Button, Chip, IconButton, Notice, Skeleton, Spinner, TextArea, TextField } from '#lib/ui/index.ts';
+	import { AiRequestError } from '#lib/ai/client.ts';
+	import { cachedTranslation, saveTranslation, translationKey } from '#lib/community/translations.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { problemKey, type CommunityApi } from '#lib/community/client.ts';
 	import { guessLang, REPLY_MAX, REPORT_DETAIL_MAX, REPORT_REASONS, type Post, type Reply, type ReportReason } from '#lib/community/contract.ts';
@@ -21,12 +28,14 @@
 		api: CommunityApi;
 		/** you have a handle and may write replies */
 		canReply?: boolean;
+		/** AI is set up and reachable: offer 文A on other people's text */
+		canTranslate?: boolean;
 		/** your note or reply was deleted */
 		onremoved?: () => void;
 		/** you blocked the author: hide everything of theirs */
 		onblocked?: (handle: string) => void;
 	};
-	let { kind, item, api, canReply = false, onremoved, onblocked }: Props = $props();
+	let { kind, item, api, canReply = false, canTranslate = false, onremoved, onblocked }: Props = $props();
 
 	// local copies so a heart or a new reply shows at once
 	// (rows are keyed by id, so the first value is the one to start from)
@@ -48,6 +57,39 @@
 	let replies = $state<Reply[] | null>(null);
 	let repliesFailed = $state(false);
 	let draft = $state('');
+
+	// Translate (文A): into the interface language, cached on the device
+	const to = $derived(i18n.locale);
+	const trKey = $derived(translationKey(kind, item.id, ('editedAt' in item ? item.editedAt : null) ?? item.createdAt, to));
+	let translation = $state<string | null>(null);
+	let showOriginal = $state(false);
+	let translating = $state(false);
+	let trError = $state<string | null>(null);
+	const offerTranslate = $derived(canTranslate && !item.mine && item.lang !== to);
+
+	async function translate() {
+		if (translation) {
+			showOriginal = !showOriginal;
+			return;
+		}
+		const hit = cachedTranslation(trKey);
+		if (hit) {
+			translation = hit;
+			showOriginal = false;
+			return;
+		}
+		translating = true;
+		trError = null;
+		try {
+			translation = await api.translate(kind, item.id, to);
+			saveTranslation(trKey, translation);
+			showOriginal = false;
+		} catch (e) {
+			trError = e instanceof AiRequestError ? e.message : t('community.translateFailed');
+		} finally {
+			translating = false;
+		}
+	}
 
 	const STATUS: Record<string, MessageKey> = { hidden: 'community.status.hidden', removed: 'community.status.removed' };
 
@@ -158,7 +200,12 @@
 			<IconButton size="sm" label={t('community.more')} aria-expanded={menu} onclick={() => ((menu = !menu), (reporting = false), (confirmDelete = false))}>•••</IconButton>
 		</span>
 	</header>
-	<p class="body" lang={item.lang}>{item.body}</p>
+	{#if translation && !showOriginal}
+		<p class="body" lang={to}>{translation}</p>
+		<p class="caption">{t('community.translated')}</p>
+	{:else}
+		<p class="body" lang={item.lang}>{item.body}</p>
+	{/if}
 
 	<div class="row actions">
 		<Button variant="ghost" size="sm" busy={liking} aria-pressed={liked} onclick={toggleLike} disabled={item.status !== 'published'}>
@@ -168,7 +215,25 @@
 		{#if kind === 'post'}
 			<Button variant="ghost" size="sm" aria-expanded={open} onclick={toggleReplies}>💬 {tn('community.replies', replyCount)}</Button>
 		{/if}
+		{#if offerTranslate}
+			<span class="end">
+				{#if translating}
+					<Spinner size="sm" label={t('community.translating')} />
+				{:else}
+					<IconButton
+						size="sm"
+						label={translation && !showOriginal ? t('community.showOriginal') : t('community.translate')}
+						aria-pressed={!!translation && !showOriginal}
+						onclick={translate}><span class="tr" aria-hidden="true">文A</span></IconButton
+					>
+				{/if}
+			</span>
+		{/if}
 	</div>
+
+	{#if trError}
+		<Notice tone="warning">{trError}</Notice>
+	{/if}
 
 	{#if reported}
 		<Notice tone="success">{t('community.reported')}</Notice>
@@ -227,6 +292,7 @@
 						kind="reply"
 						item={r}
 						{api}
+						{canTranslate}
 						onremoved={() => ((replies = replies!.filter((x) => x.id !== r.id)), (replyCount = Math.max(0, replyCount - 1)))}
 						onblocked={(h) => (replies = replies!.filter((x) => x.handle !== h))}
 					/>
@@ -281,6 +347,11 @@
 	}
 	.on {
 		color: var(--color-accent);
+	}
+	.tr {
+		font-size: var(--text-caption);
+		font-weight: 700;
+		letter-spacing: -0.02em;
 	}
 	.menu,
 	.replies {

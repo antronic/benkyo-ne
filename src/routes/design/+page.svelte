@@ -456,13 +456,13 @@
 				</div>
 
 				<SectionHeader title="Community notes (under My note)" />
-				<p class="caption">Notes other learners shared on the same item, most liked first, with hearts, replies and a ••• menu to report or block. The first share asks for a public handle and the guidelines. Made-up learners; nothing is sent.</p>
+				<p class="caption">Notes other learners shared on the same item, most liked first, with hearts, replies and a ••• menu to report or block. The first share asks for a public handle and the guidelines. 文A (tooltip "Translate") on a note in another language translates it with your AI. Made-up learners; nothing is sent.</p>
 				<div class="stack" style:--gap="var(--space-2)">
-					<CommunityNotes subject="kanji:日" label="日" note={demoNote} api={demoCommunity} signedIn accountId={-1} />
-					<CommunityNotes subject="kanji:日" label="日" note={demoNote} api={demoCommunityNew} signedIn accountId={-2} />
-					<CommunityNotes subject="kanji:日" label="日" note="" api={demoCommunityEmpty} signedIn accountId={-3} />
-					<CommunityNotes subject="kanji:日" label="日" note="" api={demoCommunityFail} signedIn accountId={-4} />
-					<CommunityNotes subject="kanji:日" label="日" note="" signedIn={false} />
+					<CommunityNotes subject="kanji:日" label="日" note={demoNote} api={demoCommunity} signedIn accountId={-1} canTranslate />
+					<CommunityNotes subject="kanji:日" label="日" note={demoNote} api={demoCommunityNew} signedIn accountId={-2} canTranslate={false} />
+					<CommunityNotes subject="kanji:日" label="日" note="" api={demoCommunityEmpty} signedIn accountId={-3} canTranslate={false} />
+					<CommunityNotes subject="kanji:日" label="日" note="" api={demoCommunityFail} signedIn accountId={-4} canTranslate={false} />
+					<CommunityNotes subject="kanji:日" label="日" note="" signedIn={false} canTranslate={false} />
 				</div>
 
 				<SectionHeader title="Promo code (Settings)" />

@@ -2,6 +2,8 @@
  * Browser client for the community API (worker/community.ts). Errors carry the
  * server's `problem`, so screens can say what happened in the learner's language.
  */
+import { translate as aiTranslate } from '#lib/ai/client.ts';
+import type { TranslateLang } from '#lib/ai/contract.ts';
 import type { Blocked, CommunityError, CommunityProblem, Lang, Me, Post, Reply, ReportReason, SubjectNotes, TargetKind, Thread } from './contract.ts';
 
 export class CommunityRequestError extends Error {
@@ -51,7 +53,10 @@ export const listBlocks = () => call<Blocked[]>('GET', '/api/community/blocks');
 export const unblock = (handle: string) => call<{ ok: true }>('DELETE', `/api/community/blocks/${encodeURIComponent(handle)}`);
 
 /** Everything the community screens call, as one object so /design can pass a fake. */
-export const communityApi = { subjectNotes, shareNote, getThread, deletePost, postReply, deleteReply, setLike, report, block, setProfile, communityMe };
+/** Translate a note or reply into `to` with the learner's AI (POST /api/ai/translate). */
+const translate = async (kind: TargetKind, id: number, to: TranslateLang): Promise<string> => (await aiTranslate({ kind, id, to })).text;
+
+export const communityApi = { subjectNotes, shareNote, getThread, deletePost, postReply, deleteReply, setLike, report, block, setProfile, communityMe, translate };
 export type CommunityApi = typeof communityApi;
 
 /** What to tell the learner when a call fails, as a message key. */

@@ -45,7 +45,7 @@ import {
 import { SUBJECT_RE } from '../src/lib/notes/contract.ts';
 import { rateLimit } from './ai/ledger.ts';
 import { getSession, type Session } from './auth/passkey.ts';
-import { deletePostsStatements } from './communityData.ts';
+import { deletePostsStatements, visible } from './communityData.ts';
 import { hasBlockedWords } from './communityWords.ts';
 import type { Env } from './env.ts';
 import { HttpError, httpError, json, readJson } from './http.ts';
@@ -80,17 +80,6 @@ export const communityError = (problem: CommunityProblem) =>
 	} as never);
 
 // ------------------------------------------------------------ visibility ----
-
-/**
- * SQL: content row `t` (with author `t.author_id`) is visible to viewer ?1:
- * yours in any state but removed, or published by an active author you haven't blocked.
- */
-const visible = (t: string) => `(
-	(${t}.author_id = ?1 AND ${t}.status != 'removed')
-	OR (${t}.status = 'published'
-	    AND EXISTS (SELECT 1 FROM accounts va WHERE va.id = ${t}.author_id AND va.disabled = 0)
-	    AND NOT EXISTS (SELECT 1 FROM community_profiles vp WHERE vp.account_id = ${t}.author_id AND vp.status = 'banned')
-	    AND NOT EXISTS (SELECT 1 FROM community_blocks vb WHERE vb.account_id = ?1 AND vb.blocked_id = ${t}.author_id)))`;
 
 const POST_COLS = `p.id, p.type, p.subject, p.label, p.body, p.lang, p.status, p.like_count AS likes, p.reply_count AS replies,
 	p.created_at AS createdAt, p.edited_at AS editedAt, pr.handle, p.author_id = ?1 AS mine,

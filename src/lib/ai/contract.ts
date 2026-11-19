@@ -8,7 +8,7 @@ import type { BetaStatus } from '../beta/contract.ts';
 export type ProviderKind = 'anthropic' | 'openai-compatible';
 
 /** Features that each pick their own model (D13/D14). */
-export type Feature = 'fill' | 'propose' | 'vision';
+export type Feature = 'fill' | 'propose' | 'vision' | 'translate';
 
 /** Bilingual text: English plus the optional second language (D22). */
 export interface Bi {
@@ -211,6 +211,30 @@ export interface AskResponse {
 	answer2: string | null;
 	/** Japanese examples mentioned in the answer */
 	examples: { jp: string; reading: string; en: string }[];
+}
+
+// ------------------------------------------------------------- translate ----
+
+/** Languages a community note or reply is written in or translated into. */
+export type TranslateLang = 'en' | 'th' | 'ja';
+
+/** POST /api/ai/translate: the Worker reads the text itself, so only ids travel. */
+export interface TranslateRequest {
+	kind: 'post' | 'reply';
+	id: number;
+	to: TranslateLang;
+}
+
+/** What the prompt is built from, after the Worker loaded the text. */
+export interface TranslateSource {
+	text: string;
+	from: TranslateLang;
+	to: TranslateLang;
+}
+
+export interface TranslateResponse {
+	text: string;
+	to: TranslateLang;
 }
 
 /**
