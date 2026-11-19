@@ -7,6 +7,7 @@
 	import { t, type MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { c, scriptName, story } from '#lib/i18n/content.ts';
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
+	import ContentFeedback from '#lib/components/ContentFeedback.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -329,6 +330,7 @@
 							<p class="subhead">
 								{t('lesson.completeBody', { n: chars.length })}
 							</p>
+							<ContentFeedback subject="lesson:{lesson.id}" label={c(lesson.title)} />
 						</div>
 					</div>
 				{/if}

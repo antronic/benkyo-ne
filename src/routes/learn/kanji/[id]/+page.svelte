@@ -27,6 +27,7 @@
 	import KanjiInfo from '#lib/components/KanjiInfo.svelte';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
+	import ContentFeedback from '#lib/components/ContentFeedback.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
 	import { Button, Card, IconButton } from '#lib/ui/index.ts';
 
@@ -227,6 +228,7 @@
 									loading={!notes.ready}
 									onsave={(b) => notes.save(`kanji:${current.char}`, current.char, b)}
 								/>
+								<ContentFeedback subject={`kanji:${current.char}`} label={current.char} />
 								<CommunityNotes subject={`kanji:${current.char}`} label={current.char} note={notes.text(`kanji:${current.char}`)} />
 							{/key}
 						</div>
@@ -315,6 +317,7 @@
 						<div class="pane text">
 							<h1 class="large-title">{t('lesson.complete')}</h1>
 							<p class="subhead">{t('kanjiLesson.completeBody', { n: chars.length })}</p>
+							<ContentFeedback subject="lesson:{lesson.id}" label={c(lesson.title)} />
 						</div>
 					</div>
 				{/if}

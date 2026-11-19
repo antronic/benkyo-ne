@@ -11,6 +11,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import StrokeAnimator from '#lib/components/StrokeAnimator.svelte';
+	import ContentFeedback from '#lib/components/ContentFeedback.svelte';
 	import TracePad from '#lib/components/TracePad.svelte';
 	import KanjiOrigin from '#lib/components/KanjiOrigin.svelte';
 	import KanjiInfo from '#lib/components/KanjiInfo.svelte';
@@ -153,6 +154,7 @@
 				{#if k.kun.length}<span class="caption"><b>{t('levels.kun')}</b> <span class="jp" lang="ja">{k.kun.slice(0, 4).join('・')}</span></span>{/if}
 			</Card>
 		{/if}
+		<ContentFeedback subject="kanji:{k.char}" label={k.char} />
 
 		<section class="stack" style:--gap="var(--space-2)">
 			<SectionHeader title={t('browse.taughtIn')} />

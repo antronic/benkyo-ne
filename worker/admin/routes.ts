@@ -15,6 +15,7 @@
  *   /api/admin/ai/*                     platform AI providers and their models (worker/admin/providers.ts)
  *   /api/admin/promos                  promo codes (worker/admin/promos.ts)
  *   /api/admin/community               community reports and moderation (worker/admin/community.ts)
+ *   /api/admin/feedback                content thumbs and reports (worker/admin/feedback.ts)
  *
  * Three locks, all required (fleet console plan, "Security"):
  *   1. Cloudflare Access at the edge on /admin* and /api/admin/*.
@@ -38,6 +39,7 @@ import { handlePackages } from './packages.ts';
 import { handleProviders } from './providers.ts';
 import { handlePromos } from './promos.ts';
 import { handleCommunityAdmin } from './community.ts';
+import { handleFeedbackAdmin } from './feedback.ts';
 import { signupState } from '../auth/signup.ts';
 import { AccessError, verifyAccessJwt, type AccessIdentity } from './access.ts';
 
@@ -182,6 +184,10 @@ export async function handleAdmin(req: Request, env: Env, url: URL): Promise<Res
 	}
 	if (p.startsWith('/api/admin/community')) {
 		const res = await handleCommunityAdmin(req, env, url, ctx);
+		if (res) return res;
+	}
+	if (p.startsWith('/api/admin/feedback')) {
+		const res = await handleFeedbackAdmin(req, env, url, ctx);
 		if (res) return res;
 	}
 	if (p.startsWith('/api/admin/accounts')) {

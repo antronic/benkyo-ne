@@ -101,6 +101,19 @@ const community = {
 	]
 };
 
+const feedback = {
+	up: 41, down: 6, open: 2,
+	subjects: [
+		{ subject: 'grammar:n5-16-te-kudasai', label: '〜てください', up: 3, down: 2, open: 1 },
+		{ subject: 'word:1358280', label: '食べる', up: 5, down: 1, open: 1 },
+		{ subject: 'unit:n5-01', label: 'Greetings', up: 12, down: 0, open: 0 }
+	],
+	reports: [
+		{ id: 1, subject: 'grammar:n5-16-te-kudasai', label: '〜てください', reason: 'translation', detail: 'The Thai example says the opposite of the Japanese one, I think it should be กรุณา', locale: 'th', createdAt: now - D },
+		{ id: 2, subject: 'word:1358280', label: '食べる', reason: 'audio', detail: '', locale: 'en', createdAt: now - D / 2 }
+	]
+};
+
 const INK = { aspect: 2.4, strokes: [[[0.1, 0.5, 0], [0.3, 0.3, 120], [0.5, 0.6, 240], [0.7, 0.3, 360], [0.9, 0.5, 480]]] };
 const invites = {
 	invites: [
@@ -122,6 +135,7 @@ export const FLEET_FIXTURES = {
 	'/api/admin/accounts': { accounts: [{ ...account, passkeyList: undefined }], next: null },
 	'/api/admin/accounts/3': account,
 	'/api/admin/community': community,
+	'/api/admin/feedback': feedback,
 	'/api/admin/promos/WELCOME30': { ...promos.promos[0], redemptions: [{ accountId: 3, accountName: 'Example Learner', redeemedAt: now - D, grantId: 1, live: true }] }
 };
 
@@ -142,6 +156,7 @@ export const FLEET_SCREENS = [
 	{ path: '/admin/invitations', open: ['＋ New VIP'], label: 'new VIP' },
 	{ path: '/admin/invitations', open: ['Edit'], label: 'edit VIP' },
 	{ path: '/admin/community', open: [] },
+	{ path: '/admin/feedback', open: [] },
 	{ path: '/admin/accounts/3', open: [] }
 ];
 

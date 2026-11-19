@@ -19,7 +19,7 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | --- | --- | --- |
 | Static assets | The SvelteKit SPA from `build/`, served without Worker code | `src/`, `adapter-static` |
 | Worker `fetch` | `/api/*` and missing `/_app/*` files (`run_worker_first`) | `worker/index.ts` |
-| Worker `scheduled` | Daily cron `23 3 * * *`: beta data retention (180 days), community retention (removed content 90 days, handled reports 180 days) | `worker/index.ts`, `worker/beta/` |
+| Worker `scheduled` | Daily cron `23 3 * * *`: beta data retention (180 days), community retention (removed content 90 days, handled reports 180 days), content feedback retention (handled reports 180 days) | `worker/index.ts`, `worker/beta/`, `worker/community.ts`, `worker/feedback.ts` |
 | Bindings | `DB` (D1 `benkyo`), `CONTENT` (KV), `ASSETS`, `CF_VERSION_METADATA` | `wrangler.jsonc`, `worker/env.ts` |
 | Embedded variant | Same Worker with assets bundled in the script | `wrangler.embedded.jsonc`, `worker/embedded.ts` |
 
@@ -37,6 +37,7 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | Words and packs | learner | `/api/sync` | `user_cards` | `worker/cards.ts`, `worker/sync.ts` | `src/lib/words/`, `src/lib/state/{words,lessonPacks}.svelte.ts`, `src/routes/words/` |
 | Personal notes ([NOTES.md](NOTES.md)) | learner | `/api/sync` (`notes`, `notesCursor`) | `user_notes` | `worker/notes.ts`, `worker/sync.ts` | `src/lib/notes/`, `src/lib/state/notes.svelte.ts`, `NoteCard.svelte`, Words → Notes |
 | Community notes ([COMMUNITY.md](COMMUNITY.md)) | signed-in learner, Job | `/api/community/*`, `/api/ai/translate` (文A), `/api/admin/community[/content,/author]` | `community_profiles`, `community_posts`, `community_replies`, `community_likes`, `community_reports`, `community_blocks` | `worker/community.ts`, `worker/communityData.ts`, `worker/communityWords.ts`, `worker/admin/community.ts` | `src/lib/community/` (incl. `translations.ts`, the device cache), `src/lib/state/community.svelte.ts`, `CommunityNotes.svelte`, `CommunityPost.svelte`, `CommunitySettings.svelte`, `src/routes/admin/community/` |
+| Content feedback ([FEEDBACK.md](FEEDBACK.md)): 👍/👎 and Report a problem | signed-in learner, Job | `/api/feedback/{mine,vote,report}`, `/api/admin/feedback[/report]` | `content_votes`, `content_reports` (migration 0019) | `worker/feedback.ts`, `worker/admin/feedback.ts` | `src/lib/feedback/`, `src/lib/state/feedback.svelte.ts`, `ContentFeedback.svelte` (on kana, kana and kanji lessons, course and level units, grammar points, word rows, Words card, kanji page), `src/routes/admin/feedback/` |
 | Progress sync | signed-in learner | `/api/sync` | `users`, `review_log`, `user_cards`, `user_notes` | `worker/sync.ts` | `src/lib/state/progress.svelte.ts`, idb `outbox` |
 | Passkey accounts, recovery | everyone | `/api/auth/{register,login}/{options,verify}`, `/api/auth/{me,logout,account,passkeys,recover,recovery-code}` | `accounts`, `passkeys`, `recovery_codes`, `sessions`, `auth_challenges` | `worker/auth/{passkey,session,signup}.ts` | `Welcome.svelte`, `AccountSettings.svelte` |
 | Sign in with Apple (off: no `APPLE_CLIENT_ID`) | everyone | `/api/auth/apple/{start,callback}` | `apple_identities`, `apple_states` | `worker/auth/{apple,appleToken}.ts` | `AppleButton.svelte` |

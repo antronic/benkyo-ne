@@ -16,6 +16,7 @@ export const FLEET_NAV: SideNavItem[] = [
 	{ href: '/admin', label: 'Overview', icon: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z' },
 	{ href: '/admin/accounts', label: 'Accounts', group: 'People', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20a7.5 7.5 0 0 1 15 0' },
 	{ href: '/admin/community', label: 'Community', group: 'People', icon: 'M7 10h10M7 14h6M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4V6a2 2 0 0 1 2-2z' },
+	{ href: '/admin/feedback', label: 'Feedback', group: 'People', icon: 'M7 11v9H4v-9zM7 11l4-7a2 2 0 0 1 3 2l-1 4h6a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 17.8 20H7' },
 	{ href: '/admin/invitations', label: 'Invitations', group: 'People', icon: 'M3 7l9 6 9-6M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z' },
 	{ href: '/admin/settings', label: 'Sign-up settings', group: 'People', icon: 'M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l4-4-4-4M14 12H4' },
 	{ href: '/admin/packages', label: 'Packages', group: 'Plans', icon: 'M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9' },

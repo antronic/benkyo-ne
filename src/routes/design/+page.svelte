@@ -7,6 +7,8 @@
 	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
+	import ContentFeedback from '#lib/components/ContentFeedback.svelte';
+	import { fakeFeedback } from '#lib/feedback/fake.ts';
 	import { fakeCommunity } from '#lib/community/fake.ts';
 	import PromoCode from '#lib/components/PromoCode.svelte';
 	import { PromoRequestError } from '#lib/promo/client.ts';
@@ -33,6 +35,8 @@
 	let picked = $state('');
 	let sheetOpen = $state(false);
 	const demoCommunity = fakeCommunity();
+	const demoFeedback = fakeFeedback();
+	const demoFeedbackFail = fakeFeedback({ fail: true });
 	const demoCommunityNew = fakeCommunity({ joined: false });
 	const demoCommunityEmpty = fakeCommunity({ empty: true });
 	const demoCommunityFail = fakeCommunity({ fail: true });
@@ -698,6 +702,15 @@
 					<CommunityNotes subject="kanji:日" label="日" note="" api={demoCommunityEmpty} signedIn accountId={-3} canTranslate={false} />
 					<CommunityNotes subject="kanji:日" label="日" note="" api={demoCommunityFail} signedIn accountId={-4} canTranslate={false} />
 					<CommunityNotes subject="kanji:日" label="日" note="" signedIn={false} canTranslate={false} />
+				</div>
+
+				<SectionHeader title="Content feedback (lessons, units, grammar, kanji, words)" />
+				<p class="caption">Thumbs up or down and Report a problem on anything the app teaches; Job reads them in Fleet → Feedback. A thumb down opens the report form. The full bar sits under the content; compact (•••) sits in a list row and opens a sheet. The second bar fails as if offline; the last is signed out. Nothing is sent.</p>
+				<div class="stack" style:--gap="var(--space-2)">
+					<Card padding="sm"><ContentFeedback subject="kanji:日" label="日" api={demoFeedback} signedIn accountId={-1} /></Card>
+					<Card padding="sm"><ContentFeedback subject="unit:n5-01" label="Greetings" api={demoFeedbackFail} signedIn accountId={-1} /></Card>
+					<Card padding="sm" class="row" style="--gap: var(--space-2)"><span class="headline" lang="ja">たべる 食べる</span><ContentFeedback compact subject="word:demo" label="食べる" api={demoFeedback} signedIn accountId={-1} /></Card>
+					<Card padding="sm"><ContentFeedback subject="grammar:demo" label="〜てください" signedIn={false} /></Card>
 				</div>
 
 				<SectionHeader title="Promo code (Settings)" />

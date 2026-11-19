@@ -20,6 +20,7 @@
 	import TracePad from '#lib/components/TracePad.svelte';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
+	import ContentFeedback from '#lib/components/ContentFeedback.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
 	import { Button, Card, IconButton, LargeTitle, Segmented, Sheet } from '#lib/ui/index.ts';
 
@@ -85,6 +86,7 @@
 	</div>
 	{#key k.char}
 		<NoteCard value={notes.text(`kana:${k.char}`)} loading={!notes.ready} onsave={(b) => notes.save(`kana:${k.char}`, k.char, b)} />
+		<ContentFeedback subject={`kana:${k.char}`} label={k.char} />
 		<CommunityNotes subject={`kana:${k.char}`} label={k.char} note={notes.text(`kana:${k.char}`)} />
 	{/key}
 {/snippet}

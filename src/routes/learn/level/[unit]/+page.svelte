@@ -13,6 +13,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Romaji from '#lib/components/Romaji.svelte';
+	import ContentFeedback from '#lib/components/ContentFeedback.svelte';
 	import { speak } from '#lib/content/kana.ts';
 	import { LEVELS, isDraft, levelById, thaiUnchecked, type LevelUnit } from '#lib/content/levels/index.ts';
 	import { levels } from '#lib/state/levels.svelte.ts';
@@ -162,6 +163,7 @@
 							</li>
 						{/each}
 					</ul>
+					<ContentFeedback subject="grammar:{g.id}" label={g.pattern} />
 				</Card>
 			{/each}
 		</section>
@@ -229,6 +231,7 @@
 								<span class="gloss">{i18n.locale === 'th' ? c.word.gloss.th : gloss(c.gloss)}</span>
 							</div>
 							{#if have}<span class="check" aria-label={t('unit.addedOne')}>✓</span>{/if}
+							<ContentFeedback compact subject={c.key} label={c.written[0] ?? c.reading} />
 						</Card>
 					{/each}
 				</ul>
@@ -245,6 +248,7 @@
 			{#if toAdd.length && !done}<p class="caption center">{t('levels.finishFirst')}</p>{/if}
 		</section>
 
+		<Card padding="sm"><ContentFeedback subject="unit:{unit.id}" label={et(unit.title)} /></Card>
 		<p class="caption credit">{t('levels.creditLevels')}</p>
 	</main>
 {/if}
