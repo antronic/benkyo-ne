@@ -33,11 +33,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # The repository secret GITHUB_PACKAGES_TOKEN (read:packages) installs the avatar engine.
+      # The repository secret PACKAGES_TOKEN (read:packages; GitHub forbids GITHUB_ names) installs the avatar engine.
       # Without it, GITHUB_TOKEN works once the package grants this repository Actions access.
       - run: npm ci
         env:
-          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
       - run: npm run check
       - run: npm run lint:ui
       - run: npm test

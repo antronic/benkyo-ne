@@ -40,7 +40,7 @@ committed.
 ## Drawing
 
 The engine is `@antronic/coreva-render` (Job's Coreva Render, from GitHub Packages; `.npmrc`
-reads `GITHUB_PACKAGES_TOKEN` from the environment). Benkyo ships its own style pack,
+reads `GITHUB_PACKAGES_TOKEN` from the environment; CI maps the repository secret `PACKAGES_TOKEN` to it). Benkyo ships its own style pack,
 `src/lib/avatar/pack/benkyo-style.js` (id `benkyo-v1`, the Coreva flat style in Benkyo colours,
 with head coverings, hats and 16 hairstyles). `render.ts` wraps it:
 
