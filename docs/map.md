@@ -41,6 +41,7 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | AI keys, models, prices, cap | AI user | `/api/ai/{credentials,models,prices,features,cap,usage}` | `ai_credentials`, `ai_feature_models`, `ai_model_prices`, `ai_settings` | `worker/ai/{credentials,models,cost}.ts`, `worker/crypto.ts` | `AiSettings.svelte`, `src/lib/state/ai.svelte.ts` |
 | Plans and packages | Job | `/api/admin/packages`, `/api/admin/accounts/:id/grants` | `plans`, `plan_grants` | `worker/plans.ts`, `worker/admin/packages.ts` | `src/routes/admin/packages/` |
 | Promo codes | Job, signed-in learner | `/api/promo`, `/api/promo/redeem`, `/api/admin/promos[/:code]` | `promo_codes`, `promo_redemptions` (+ `plan_grants`) | `worker/promo.ts`, `worker/admin/promos.ts` | `src/lib/promo/`, `PromoCode.svelte` (Settings), `src/routes/admin/promos/` |
+| Today greeting and package badge | signed-in learner | `/api/auth/me` (name), `/api/promo` (package) | `accounts`, `plan_grants` (read) | `worker/promo.ts` | `src/lib/greeting.ts`, `src/lib/state/plan.svelte.ts`, `PlanBadge` (kit), `src/routes/+page.svelte` |
 | Beta consent and usage data | signed-in learner | `/api/beta/{status,consent,events,data,export}` | `beta_consents`, `beta_events`, `beta_ai_calls` | `worker/beta/` | `src/lib/beta/`, `BetaConsent.svelte` |
 | Fleet console | Job (Cloudflare Access + step-up) | `/api/admin/{overview,usage,audit,system,stepup/*,accounts,invites,settings,packages,promos,ai/*}` | `admin_audit`, `ai_providers`, `plan_models` (+ reads most tables) | `worker/admin/` | `src/routes/admin/` (shell: `+layout.svelte`), `src/lib/admin/` (nav: `nav.ts`, `FleetNav.svelte`, `FleetTrail.svelte`) |
 | Session length | Job | `/api/admin/settings/session` | `ai_settings` (`session_ttl_days`) | `worker/auth/session.ts` | `src/routes/admin/settings/` |
@@ -62,7 +63,8 @@ beta data.
 | `outbox` | Changes waiting to sync | `progress.svelte.ts` |
 
 localStorage keys: `benkyo.locale` (interface language), `benkyo.boot` (startup safe mode),
-`benkyo.installCard` (install card dismissed).
+`benkyo.installCard` (install card dismissed), `benkyo.plan` (last known package, grant end and name of the signed-in account, for the Today badge offline;
+`src/lib/state/plan.svelte.ts`).
 
 ## Shared things
 

@@ -18,6 +18,7 @@
 	import BetaConsent from '#lib/components/BetaConsent.svelte';
 	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 	import { Badge, Button, FieldRow, ListGroup, ListRow, Segmented, TextField } from '#lib/ui/index.ts';
+	import { plan } from '#lib/state/plan.svelte.ts';
 
 	let { onchange }: { onchange: () => void | Promise<void> } = $props();
 
@@ -344,7 +345,7 @@
 	</ListGroup>
 
 	<div id="promo"><SectionHeader title={t('promo.section')} level={3} /></div>
-	<PromoCode />
+	<PromoCode onredeemed={(r) => plan.set(r)} />
 
 	{#if ai.beta?.acceptedAt && !ai.needsConsent}
 		<h3 class="eyebrow section" id="beta-data">{t('beta.section')}</h3>

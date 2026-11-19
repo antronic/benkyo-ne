@@ -15,8 +15,14 @@
 
 	let {
 		load = promoStatus,
-		redeem = redeemPromo
-	}: { load?: () => Promise<PromoStatus>; redeem?: (code: string) => Promise<PromoRedeemed> } = $props();
+		redeem = redeemPromo,
+		onredeemed
+	}: {
+		load?: () => Promise<PromoStatus>;
+		redeem?: (code: string) => Promise<PromoRedeemed>;
+		/** after a code works, with the new package (Settings updates the Today badge) */
+		onredeemed?: (r: PromoRedeemed) => void;
+	} = $props();
 
 	let status = $state<PromoStatus | null>(null);
 	let loadFailed = $state(false);
@@ -55,6 +61,7 @@
 			const r = await redeem(code.trim());
 			done = r;
 			status = r;
+			onredeemed?.(r);
 			code = '';
 			haptic('success');
 		} catch (err) {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { t, tn, fmtDate } from '#lib/i18n/index.svelte.ts';
 	import { c, scriptName } from '#lib/i18n/content.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
@@ -12,15 +13,28 @@
 	import PlanCard from '#lib/components/PlanCard.svelte';
 	import InstallCard from '#lib/components/InstallCard.svelte';
 	import KuriWalker from '#lib/companion/KuriWalker.svelte';
-	import { Card } from '#lib/ui/index.ts';
+	import { Card, PlanBadge } from '#lib/ui/index.ts';
+	import { ai } from '#lib/state/ai.svelte.ts';
+	import { plan } from '#lib/state/plan.svelte.ts';
+	import { greetingFor, greetName } from '#lib/greeting.ts';
 
-	const hour = new Date().getHours();
-	const greeting =
-		hour < 11
-			? { jp: 'おはよう', en: 'home.morning' as const }
-			: hour < 18
-				? { jp: 'こんにちは', en: 'home.afternoon' as const }
-				: { jp: 'こんばんは', en: 'home.evening' as const };
+	const greeting = greetingFor(new Date().getHours());
+	const name = $derived(greetName(ai.signedIn ? ai.account?.name : plan.name));
+
+	// The package badge follows the signed-in account (Fleet grant or promo code).
+	// Track only who is signed in: the store's own state must not re-run this.
+	$effect(() => {
+		const id = ai.signedIn ? (ai.account?.id ?? null) : null;
+		const accountName = ai.account?.name ?? '';
+		const reached = ai.reached;
+		untrack(() => {
+			if (id !== null) void plan.load(id, accountName);
+			// the server says nobody is signed in: forget the cached package
+			else if (reached) void plan.load(null);
+			// offline launch, server unreachable or not asked yet: last known package on this device
+			else plan.restore();
+		});
+	});
 
 	const next = $derived(LESSONS.find((l) => !progress.completed.includes(l.id)));
 	const goal = $derived(progress.settings.newPerDay + Math.max(10, progress.due.length));
@@ -38,9 +52,15 @@
 			{fmtDate(new Date(), { weekday: 'long', month: 'long', day: 'numeric' })}
 		</div>
 		<LargeTitle title={greeting.jp} jp />
-		<p class="subhead rise" style="margin:var(--space-1) 0 0">
-			{t('home.greetingLine', { greeting: t(greeting.en), tagline: t('home.tagline') })}
-		</p>
+		<div class="hello row rise">
+			<span class="title-3">{name ? t('home.greetName', { greeting: t(greeting.key), name }) : t(greeting.key)}</span>
+			{#if plan.loading}
+				<PlanBadge plan="free" name="" loading loadingLabel={t('home.planLoading')} />
+			{:else if plan.value}
+				<PlanBadge plan={plan.value.plan} name={plan.value.planName} />
+			{/if}
+		</div>
+		<p class="subhead rise" style="margin:var(--space-1) 0 0">{t('home.tagline')}</p>
 	</header>
 
 	<Card as="section" sheen padding="lg" radius="large" class="hero rise" style="--i: 1">
@@ -149,6 +169,12 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-5);
+	}
+	.hello {
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2);
+		margin-top: var(--space-1);
 	}
 	.ring-num {
 		font-family: var(--font-display);

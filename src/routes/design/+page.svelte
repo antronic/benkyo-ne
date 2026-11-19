@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, ProgressRing, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
+	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
 	import PromoCode from '#lib/components/PromoCode.svelte';
 	import { PromoRequestError } from '#lib/promo/client.ts';
 	import type { PromoStatus } from '#lib/promo/contract.ts';
@@ -245,6 +245,27 @@
 						<Badge variant="tag">N5</Badge>
 						<Badge variant="tag" tone="warning">Check</Badge>
 						<Badge variant="tag" tone="info">New</Badge>
+					</div>
+				</Card>
+
+				<SectionHeader title="Package badge" />
+				<p class="caption">The learner's package beside the Today greeting. Paid packages shine every few seconds (no motion when the device asks for reduced motion); Free stays quiet, and a shimmering pill shows while the package loads.</p>
+				<Card padding="md">
+					<div class="wrap">
+						<PlanBadge plan="pro" name="Pro" />
+						<PlanBadge plan="plus" name="Plus" />
+						<PlanBadge plan="exam-sprint-k3x9a" name="Exam sprint" />
+						<PlanBadge plan="free" name="Free" />
+						<PlanBadge plan="free" name="" loading />
+					</div>
+					<div class="wrap">
+						<PlanBadge plan="pro" name="Pro" size="sm" />
+						<PlanBadge plan="plus" name="Plus" size="sm" />
+						<PlanBadge plan="plus" name="Plus, no shine" shine={false} />
+					</div>
+					<div class="row hello-demo">
+						<span class="title-3">Good evening, Job</span>
+						<PlanBadge plan="pro" name="Pro" />
 					</div>
 				</Card>
 
@@ -635,6 +656,11 @@
 		100% {
 			transform: translateX(100px);
 		}
+	}
+	.hello-demo {
+		align-items: center;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
 	}
 	.wrap {
 		display: flex;
