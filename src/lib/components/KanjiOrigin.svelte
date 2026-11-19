@@ -72,7 +72,7 @@
 		bottom: 6%;
 		translate: -50% 0;
 		white-space: nowrap;
-		padding: 4px 12px;
+		padding: var(--space-1) var(--space-3);
 		border-radius: 999px;
 		background: var(--glass-strong);
 		-webkit-backdrop-filter: blur(12px);

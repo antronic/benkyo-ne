@@ -43,10 +43,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 8px;
+		gap: var(--space-2);
 		width: 100%;
 		min-height: 50px;
-		padding: 0 18px;
+		padding: 0 var(--space-5);
 		border: 0;
 		border-radius: 14px;
 		background: #000;
@@ -60,7 +60,7 @@
 	.apple.small {
 		width: auto;
 		min-height: 36px;
-		padding: 0 14px;
+		padding: 0 var(--space-4);
 		border-radius: 10px;
 		font-size: 0.9375rem;
 	}
@@ -75,7 +75,7 @@
 		width: 15px;
 		height: 18px;
 		fill: currentColor;
-		margin-top: -2px;
+		margin-top: calc(-1 * var(--space-px));
 	}
 	.small svg {
 		width: 13px;

@@ -217,7 +217,7 @@
 		box-shadow: var(--shadow-raised);
 		font-size: var(--text-caption);
 		font-weight: var(--weight-semibold);
-		padding: 6px 10px;
+		padding: var(--space-1h) var(--space-3);
 		border-radius: var(--radius-md);
 		white-space: nowrap;
 		pointer-events: none;

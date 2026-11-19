@@ -92,7 +92,7 @@
 	}
 </script>
 
-<main class="page stack" style:--gap="14px">
+<main class="page stack" style:--gap="var(--space-4)">
 	<LargeTitle title={tr('nav.words')}>
 		{#snippet trailing()}
 			<button class="btn accent small" onclick={() => goto('/words/new')}>{tr('words.make')}</button>
@@ -103,7 +103,7 @@
 		<p class="caption hint">✨ {ai.reason} {tr('words.dictStillWorks')}</p>
 	{/if}
 
-	<section class="stack" style:--gap="8px">
+	<section class="stack" style:--gap="var(--space-2)">
 		<h2 class="eyebrow">{tr('words.canRead')}</h2>
 		{#if progress.knownKana.size < MIN_KANA}
 			<div class="glass card">{tr('words.unlock')}</div>
@@ -126,7 +126,7 @@
 	</section>
 
 	{#if words.tags.length}
-		<section class="stack" style:--gap="8px">
+		<section class="stack" style:--gap="var(--space-2)">
 			<h2 class="eyebrow">{tr('words.tags')}</h2>
 			<div class="chips">
 				{#each words.tags as t}
@@ -143,7 +143,7 @@
 		</section>
 	{/if}
 
-	<section class="stack" style:--gap="8px">
+	<section class="stack" style:--gap="var(--space-2)">
 		<div class="row">
 			<h2 class="eyebrow">{tr('words.yourCards', { n: words.list.length })}</h2>
 			<span class="spacer"></span>
@@ -201,19 +201,19 @@
 		margin: 0;
 	}
 	.card {
-		padding: 16px;
+		padding: var(--space-4);
 		border-radius: var(--r-m);
 	}
 	.packs {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.pack {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 14px;
+		gap: var(--space-1);
+		padding: var(--space-4);
 		border-radius: var(--r-m);
 		text-decoration: none;
 		color: inherit;
@@ -230,17 +230,17 @@
 	.chips {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.chip-wrap {
 		display: inline-flex;
-		gap: 4px;
+		gap: var(--space-1);
 	}
 	.chip {
 		border: 0.5px solid var(--hairline);
 		background: var(--glass);
 		border-radius: 999px;
-		padding: 8px 14px;
+		padding: var(--space-2) var(--space-4);
 		min-height: 36px;
 		font-size: 0.9375rem;
 		cursor: pointer;
@@ -248,7 +248,7 @@
 		color: inherit;
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--space-1h);
 	}
 	.chip.on {
 		background: var(--accent-2);
@@ -270,9 +270,9 @@
 	.item {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--space-3);
 		width: 100%;
-		padding: 12px 16px;
+		padding: var(--space-3) var(--space-4);
 		min-height: 56px;
 		border: 0;
 		background: none;
@@ -294,7 +294,7 @@
 	}
 	.pill {
 		font-size: 0.75rem;
-		padding: 3px 8px;
+		padding: var(--space-1) var(--space-2);
 		border-radius: 999px;
 		background: var(--hairline);
 		color: var(--ink-2);
@@ -308,14 +308,14 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 6px;
+		gap: var(--space-1h);
 	}
 	.need {
 		display: inline-flex;
 		flex-direction: column;
 		align-items: center;
 		min-width: 34px;
-		padding: 4px 6px;
+		padding: var(--space-1) var(--space-1h);
 		border-radius: 10px;
 		background: var(--glass-strong);
 		border: 0.5px solid var(--hairline);

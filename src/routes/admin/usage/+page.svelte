@@ -45,7 +45,7 @@
 
 <svelte:head><title>Usage · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-3)">
 	<LargeTitle title="Usage" />
 
 	<div class="segmented" role="group" aria-label="Time window">
@@ -76,7 +76,7 @@
 		<div class="glass group">
 			{#each u.byFeature as f (f.feature)}
 				<div class="item">
-					<span class="stack" style:--gap="2px">
+					<span class="stack" style:--gap="var(--space-px)">
 						<span>{FEATURES[f.feature] ?? f.feature}</span>
 						<span class="caption">{plural(f.calls, 'call')} · {share(f.usd)}% of spend</span>
 					</span>
@@ -91,7 +91,7 @@
 		<div class="glass group">
 			{#each u.byModel as m (m.provider + m.model)}
 				<div class="item">
-					<span class="stack" style:--gap="2px" style:min-width="0">
+					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 						<span class="ellipsis">{m.model}</span>
 						<span class="caption">{m.provider} · {plural(m.calls, 'call')} · {tokens(m.inputTokens)} in, {tokens(m.outputTokens)} out</span>
 					</span>
@@ -106,7 +106,7 @@
 		<div class="glass group">
 			{#each u.topAccounts as a (a.id)}
 				<a class="item" href="/admin/accounts/{a.id}">
-					<span class="stack" style:--gap="2px" style:min-width="0">
+					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 						<span class="ellipsis">{a.name} <span class="caption">#{a.id}</span></span>
 						<span class="caption">{plural(a.calls, 'call')}</span>
 					</span>
@@ -121,7 +121,7 @@
 		<div class="glass group">
 			{#each u.failures as f, i (i)}
 				<div class="item">
-					<span class="stack" style:--gap="2px" style:min-width="0">
+					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 						<span>{FEATURES[f.feature] ?? f.feature} <span class="caption">· {f.model}</span></span>
 						<span class="caption">
 							{when(f.at)} ·

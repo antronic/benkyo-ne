@@ -191,7 +191,7 @@
 
 	{#if !entry || (!kana && !kanji && !wordCard)}
 		<section class="stage" in:scale={{ start: 0.94, duration: 400 }}>
-			<div class="stack center" style:--gap="16px">
+			<div class="stack center" style:--gap="var(--space-4)">
 				<ProgressRing value={total ? correctCount / Math.max(done, 1) : 1} size={140}>
 					<div>
 						<div class="big-num">{total ? Math.round((correctCount / Math.max(done, 1)) * 100) : 100}%</div>
@@ -265,7 +265,7 @@
 								<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
 									<KanjiInfo kanji={kanji} compact />
 									{#if result.guess && result.guess !== kanji.char}
-										<p class="caption" style="margin:6px 0 0">{t('review.drewCloser')} <span class="jp">{result.guess}</span></p>
+										<p class="caption" style="margin:var(--space-1h) 0 0">{t('review.drewCloser')} <span class="jp">{result.guess}</span></p>
 									{/if}
 								</div>
 							{/if}
@@ -350,7 +350,7 @@
 							<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
 								<p style="margin:0">{story(kana.char)}</p>
 								{#if result.guess && result.guess !== kana.char}
-									<p class="caption" style="margin:6px 0 0">{t('review.drewCloser')} <span class="jp">{result.guess}</span><Romaji text={result.guess} inline /></p>
+									<p class="caption" style="margin:var(--space-1h) 0 0">{t('review.drewCloser')} <span class="jp">{result.guess}</span><Romaji text={result.guess} inline /></p>
 								{/if}
 								{#if confusablesOf(kana.char).length}
 									<div class="row confuse">
@@ -379,7 +379,7 @@
 	}
 	/* Keep the answer field above the iOS keyboard */
 	:global(html.keyboard) .review {
-		padding-bottom: calc(var(--kb) + 12px);
+		padding-bottom: calc(var(--kb) + var(--space-3));
 	}
 	@media (min-width: 600px) and (orientation: landscape) {
 		.review {
@@ -396,7 +396,7 @@
 	}
 	.tagline {
 		text-align: center;
-		margin-top: 8px;
+		margin-top: var(--space-2);
 	}
 	.review {
 		--pad: min(78vw, 320px);
@@ -405,12 +405,12 @@
 		flex-direction: column;
 		max-width: 560px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 16px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--space-4)) var(--gutter-l);
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.bar {
 		flex: 1;
@@ -435,7 +435,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 20px 0;
+		padding: var(--space-5) 0;
 	}
 	.center {
 		align-items: center;
@@ -467,7 +467,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
+		gap: var(--space-1h);
 		border-radius: var(--r-l);
 		backface-visibility: hidden;
 		-webkit-backface-visibility: hidden;
@@ -490,7 +490,7 @@
 	.choices {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 10px;
+		gap: var(--space-3);
 		width: 100%;
 	}
 	.choice {
@@ -502,24 +502,24 @@
 	}
 	.choice.small-text {
 		font-size: 1.0625rem;
-		padding: 6px 10px;
+		padding: var(--space-1h) var(--space-3);
 	}
 	.choice:active {
 		transform: scale(0.95);
 	}
 	.feedback {
 		width: 100%;
-		padding: 14px 16px;
+		padding: var(--space-4) var(--space-4);
 		text-align: left;
 	}
 	.confuse {
-		margin-top: 10px;
+		margin-top: var(--space-3);
 		flex-wrap: wrap;
-		--gap: 10px;
+		--gap: var(--space-3);
 	}
 	.pair {
 		display: inline-flex;
 		align-items: center;
-		gap: 2px;
+		gap: var(--space-px);
 	}
 </style>

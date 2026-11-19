@@ -73,7 +73,7 @@
 
 <svelte:head><title>Packages · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-3)">
 	<LargeTitle title="Packages" />
 
 	{#if error}
@@ -91,22 +91,22 @@
 						<input id="blurb-{p.id}" type="text" bind:value={edit.blurb} maxlength="200" />
 						{#if p.id !== 'free'}
 							<span class="fields">
-								<span class="stack" style:--gap="4px">
+								<span class="stack" style:--gap="var(--space-1)">
 									<label class="caption" for="m-{p.id}">Per month ($)</label>
 									<input id="m-{p.id}" type="number" min="0" max="1000" step="0.01" bind:value={edit.month} required />
 								</span>
-								<span class="stack" style:--gap="4px">
+								<span class="stack" style:--gap="var(--space-1)">
 									<label class="caption" for="y-{p.id}">Per year ($)</label>
 									<input id="y-{p.id}" type="number" min="0" max="1000" step="0.01" bind:value={edit.year} required />
 								</span>
-								<span class="stack" style:--gap="4px">
+								<span class="stack" style:--gap="var(--space-1)">
 									<label class="caption" for="a-{p.id}">AI each month ($)</label>
 									<input id="a-{p.id}" type="number" min="0" max="100" step="0.1" bind:value={edit.allowance} required />
 								</span>
 							</span>
 							<label class="row check"><input type="checkbox" bind:checked={edit.available} /> <span>Offered to new people</span></label>
 						{/if}
-						<span class="row" style:gap="8px">
+						<span class="row" style:gap="var(--space-2)">
 							<span class="spacer"></span>
 							<button type="button" class="btn small ghost" onclick={() => (edit = null)} disabled={busy}>Cancel</button>
 							<button class="btn small" disabled={busy}>Save</button>
@@ -114,7 +114,7 @@
 					</form>
 				{:else}
 					<div class="item col">
-						<span class="row" style:gap="8px">
+						<span class="row" style:gap="var(--space-2)">
 							<b class="plan">{p.name}</b>
 							{#if !p.available}<span class="pill muted">Not offered</span>{/if}
 							<span class="spacer"></span>
@@ -123,7 +123,7 @@
 						<span class="caption">{p.blurb}</span>
 					</div>
 					<div class="item">
-						<span class="stack" style:--gap="2px">
+						<span class="stack" style:--gap="var(--space-px)">
 							<span>{p.priceMonthUsd ? `${usd(p.priceMonthUsd)} a month · ${usd(p.priceYearUsd)} a year` : 'No charge'}</span>
 							{#if yearlySaving(p) > 0}<span class="caption">Yearly saves {yearlySaving(p)}%</span>{/if}
 						</span>
@@ -140,7 +140,7 @@
 		<div class="glass group">
 			{#each data.grants as g (g.id)}
 				<a class="item" href="/admin/accounts/{g.accountId}">
-					<span class="stack" style:--gap="2px" style:min-width="0">
+					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 						<span class="ellipsis">{g.accountName ?? `#${g.accountId}`} <span class="caption">#{g.accountId}</span></span>
 						<span class="caption">{g.kind === 'trial' ? 'Trial' : 'Complimentary'} · {g.endsAt ? `until ${shortDay(g.endsAt)}` : 'until ended'}{g.note ? ` · ${g.note}` : ''}</span>
 					</span>
@@ -165,14 +165,14 @@
 	.fields {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.fields input {
 		width: 100%;
 		box-sizing: border-box;
 	}
 	.check {
-		gap: 8px;
+		gap: var(--space-2);
 		align-items: center;
 	}
 </style>

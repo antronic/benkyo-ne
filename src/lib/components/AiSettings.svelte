@@ -148,7 +148,7 @@
 
 <div class="glass group">
 	<div class="item">
-		<span class="stack" style:--gap="2px">
+		<span class="stack" style:--gap="var(--space-px)">
 			<span>{t('ai.explainLang')}</span>
 			<span class="caption">{t('ai.explainLangBody')}</span>
 		</span>
@@ -168,7 +168,7 @@
 		{@const pct = Math.min(1, ai.usage.spentUsd / Math.max(ai.usage.capUsd, 0.0001))}
 		<div class="glass group">
 			<div class="item">
-				<span class="stack" style:--gap="6px" style="flex:1">
+				<span class="stack" style:--gap="var(--space-1h)" style="flex:1">
 					<span class="row"><span>{t('ai.thisMonth')}</span><span class="spacer"></span><b>{t('ai.spentOf', { spent: fmt(ai.usage.spentUsd), cap: fmt(ai.usage.capUsd) })}</b></span>
 					<span class="meter" class:warn={pct > 0.8}><span style:width="{pct * 100}%"></span></span>
 					<span class="caption">{t('ai.callsCap', { n: ai.usage.calls })}</span>
@@ -186,7 +186,7 @@
 	<div class="glass group">
 		{#each ai.credentials as c (c.id)}
 			<div class="item">
-				<span class="stack" style:--gap="2px">
+				<span class="stack" style:--gap="var(--space-px)">
 					<span>{c.label}</span>
 					<span class="caption">{c.provider === 'anthropic' ? 'Anthropic' : c.baseUrl} · ••••{c.last4}</span>
 				</span>
@@ -219,7 +219,7 @@
 		<div class="glass group">
 			{#each FEATURES as f}
 				<div class="item feature">
-					<span class="stack" style:--gap="2px"><span>{t(f.label)}</span><span class="caption">{t(f.hint)}</span></span>
+					<span class="stack" style:--gap="var(--space-px)"><span>{t(f.label)}</span><span class="caption">{t(f.hint)}</span></span>
 					<select aria-label={t('ai.modelFor', { feature: t(f.label) })} value={current(f.id)} onchange={(e) => choose(f.id, e.currentTarget.value)} disabled={loadingModels}>
 						{#each groups as g}
 							<optgroup label={g.c.label}>
@@ -261,17 +261,17 @@
 
 <style>
 	.section {
-		margin: 16px 6px 2px;
+		margin: var(--space-4) var(--space-1h) var(--space-px);
 	}
 	.group {
-		padding: 4px 0;
+		padding: var(--space-1) 0;
 		border-radius: var(--r-m);
 	}
 	.item {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 16px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		min-height: 48px;
 	}
 	.item + .item {
@@ -286,10 +286,10 @@
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.add .row {
-		--gap: 10px;
+		--gap: var(--space-3);
 		align-items: stretch;
 	}
 	.add select {
@@ -314,7 +314,7 @@
 		font-size: 1rem;
 		height: 48px;
 		min-height: 48px;
-		padding: 0 14px;
+		padding: 0 var(--space-4);
 		border-radius: 12px;
 		border: 0.5px solid var(--hairline);
 		background: var(--glass-strong);
@@ -322,7 +322,7 @@
 		box-sizing: border-box;
 	}
 	select {
-		padding-right: 32px;
+		padding-right: var(--space-8);
 		appearance: none;
 		-webkit-appearance: none;
 		background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
@@ -338,7 +338,7 @@
 	.item.feature {
 		flex-direction: column;
 		align-items: stretch;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.feature select {
 		width: 100%;
@@ -375,15 +375,15 @@
 		min-height: 32px;
 	}
 	.model-list {
-		margin: 8px 0;
+		margin: var(--space-2) 0;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.model {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.model > .stack {
 		flex: 1;
@@ -400,7 +400,7 @@
 		border: 0.5px solid var(--hairline);
 		background: var(--glass-strong);
 		border-radius: 10px;
-		padding: 6px 10px;
+		padding: var(--space-1h) var(--space-3);
 		font-size: 0.8125rem;
 		display: flex;
 		flex-direction: column;

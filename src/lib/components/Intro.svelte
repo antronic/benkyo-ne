@@ -113,7 +113,7 @@
 		z-index: 150;
 		display: flex;
 		flex-direction: column;
-		padding: calc(var(--safe-top) + 12px) max(20px, var(--safe-right)) calc(var(--safe-bottom) + 20px) max(20px, var(--safe-left));
+		padding: calc(var(--safe-top) + var(--space-3)) max(var(--space-5), var(--safe-right)) calc(var(--safe-bottom) + var(--space-5)) max(var(--space-5), var(--safe-left));
 		background: var(--bg);
 		overflow: hidden;
 		touch-action: pan-y;
@@ -141,7 +141,7 @@
 		-webkit-backdrop-filter: blur(20px);
 		backdrop-filter: blur(20px);
 		border-radius: 999px;
-		padding: 0 16px;
+		padding: 0 var(--space-4);
 		min-height: 36px;
 		font-weight: 600;
 		color: var(--ink-2);
@@ -165,14 +165,14 @@
 		position: relative;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--space-4);
 		text-align: center;
 		max-width: 460px;
 		width: 100%;
 		margin: 0 auto;
 	}
 	.copy h2 {
-		margin: 0 0 6px;
+		margin: 0 0 var(--space-1h);
 	}
 	.copy p {
 		margin: 0;
@@ -180,7 +180,7 @@
 	.dots {
 		display: flex;
 		justify-content: center;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.dots button {
 		width: 8px;
@@ -249,7 +249,7 @@
 		background: var(--glass-strong);
 		border: 0.5px solid var(--glass-edge);
 		box-shadow: 0 40px 60px -30px hsl(var(--h) 60% 30% / 0.6);
-		padding: 22px;
+		padding: var(--space-6);
 		transform: rotateX(28deg) rotateZ(-6deg);
 	}
 	.paper svg {
@@ -375,7 +375,7 @@
 		/* counter-rotate so the words stay upright while orbiting */
 		animation: upright 7s linear infinite;
 		animation-delay: calc(var(--o) * -2.33s);
-		padding: 6px 12px;
+		padding: var(--space-1h) var(--space-3);
 		border-radius: 999px;
 		background: var(--glass-strong);
 		border: 0.5px solid var(--glass-edge);

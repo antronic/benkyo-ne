@@ -78,7 +78,7 @@
 	}
 </script>
 
-<main class="page stack settings" style:--gap="10px">
+<main class="page stack settings" style:--gap="var(--space-3)">
 	<LargeTitle title={t('nav.settings')} />
 
 	<LanguageSettings />
@@ -157,7 +157,7 @@
 	<div class="glass group rise" style:--i="2">
 		{#if ai.signedIn && ai.account}
 			<div class="item">
-				<span class="stack" style:--gap="2px">
+				<span class="stack" style:--gap="var(--space-px)">
 					<span>{t('sync.syncedTo', { name: ai.account.name })}</span>
 					<span class="caption">{t('sync.accountBody')}</span>
 				</span>
@@ -166,7 +166,7 @@
 			</div>
 		{:else if oldKey}
 			<div class="item">
-				<span class="stack" style:--gap="2px">
+				<span class="stack" style:--gap="var(--space-px)">
 					<span>{t('sync.keyTitle')}</span>
 					<span class="caption">{t('sync.keyBody')}</span>
 				</span>
@@ -175,7 +175,7 @@
 			</div>
 		{:else if claimed}
 			<div class="item">
-				<span class="stack" style:--gap="2px">
+				<span class="stack" style:--gap="var(--space-px)">
 					<span>{t('sync.claimedTitle')}</span>
 					<span class="caption">{t('sync.claimedBody')}</span>
 				</span>
@@ -236,27 +236,25 @@
 </main>
 
 <style>
-	@media (min-width: 600px) {
-		.settings > :global(*) {
-			max-width: 680px;
-		}
+	.settings {
+		--page-max: 680px;
 	}
 	.section {
-		margin: 16px 6px 2px;
+		margin: var(--space-4) var(--space-1h) var(--space-px);
 	}
 	.ok {
 		color: var(--color-success);
 		font-weight: 700;
 	}
 	.group {
-		padding: 4px 0;
+		padding: var(--space-1) 0;
 		border-radius: var(--r-m);
 	}
 	.item {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 16px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		min-height: 48px;
 	}
 	.item + .item {
@@ -273,15 +271,15 @@
 	.stepper {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--space-3);
 		border-radius: 10px;
-		padding: 2px;
+		padding: var(--space-px);
 	}
 	.stepper button {
 		border: 0;
 		background: none;
-		width: 34px;
-		height: 30px;
+		width: 36px;
+		height: 32px;
 		font-size: 20px;
 		cursor: pointer;
 	}

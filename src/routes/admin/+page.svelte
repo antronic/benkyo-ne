@@ -35,7 +35,7 @@
 
 <svelte:head><title>Fleet · Benkyo</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-3)">
 	<LargeTitle title="Fleet" />
 
 	{#if error}

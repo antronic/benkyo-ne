@@ -9,7 +9,7 @@ of truth is the code: routes in `worker/index.ts` and each module's routes, tabl
 setting updates the matching row here in the same PR. If the map and the code disagree, the code
 is right: fix the map.
 
-Seen on the default branch at 618cfe9 (2026-11-19).
+Seen on the default branch at 0a6a974 (2026-11-19).
 
 ## Deployable
 
@@ -70,6 +70,7 @@ Announce a change to any of these to the other threads ([teamwork.md](guides/tea
 | Thing | Where | Rule |
 | --- | --- | --- |
 | Design tokens | `src/lib/design/tokens.css`, `tokens.ts` | Old names (`--bg`, `--ink`, `--accent`) are aliases; do not remove them while screens use them |
+| Spacing checks | `scripts/check-spacing.mjs`, `scripts/check-layout.mjs`, `.claude/settings.json` | Spacing uses `var(--space-*)`; a new screen goes into `SCREENS` in `check-layout.mjs` |
 | UI kit | `src/lib/ui/` (import from `#lib/ui/index.ts`), shown on `/design` | New component: add it to `/design` |
 | UI strings | `src/lib/i18n/{en,th}.ts`, `t()` / `tn()` | Append keys; `th.ts` may be partial (falls back to English) |
 | Lesson content Thai | `src/lib/i18n/content.th.ts` | `i18n.test.ts` fails on a missing entry |

@@ -39,12 +39,12 @@
 	.wc {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 		text-align: left;
 		width: 100%;
 	}
 	.head {
-		--gap: 8px;
+		--gap: var(--space-2);
 		flex-wrap: wrap;
 	}
 	.front {
@@ -88,17 +88,17 @@
 		font-size: 0.9375rem;
 		background: color-mix(in srgb, var(--accent-2) 8%, transparent);
 		border-radius: 12px;
-		padding: 8px 10px;
+		padding: var(--space-2) var(--space-3);
 	}
 	.example {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--space-px);
 		text-align: left;
 		border: 0.5px solid var(--hairline);
 		background: var(--glass);
 		border-radius: 12px;
-		padding: 10px 12px;
+		padding: var(--space-3) var(--space-3);
 		cursor: pointer;
 	}
 	.example .jp {
@@ -111,7 +111,7 @@
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		padding: 3px 8px;
+		padding: var(--space-1) var(--space-2);
 		border-radius: 999px;
 		background: var(--hairline);
 		color: var(--ink-2);

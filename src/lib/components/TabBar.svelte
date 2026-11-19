@@ -120,7 +120,7 @@
 		border-radius: 999px;
 		display: grid;
 		grid-template-columns: repeat(var(--n), 1fr);
-		padding: 5px;
+		padding: var(--space-1h);
 		view-transition-name: tabbar;
 		transition:
 			width 520ms var(--spring),
@@ -153,7 +153,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 2px;
+		gap: var(--space-px);
 		min-height: 44px;
 		text-decoration: none;
 		color: var(--ink-2);
@@ -200,7 +200,7 @@
 		left: 15px;
 		min-width: 18px;
 		height: 18px;
-		padding: 0 5px;
+		padding: 0 var(--space-1h);
 		border-radius: 9px;
 		background: var(--accent);
 		color: #fff;
@@ -223,7 +223,7 @@
 		border-radius: 30px;
 		grid-template-columns: 1fr;
 		grid-auto-rows: 52px;
-		padding: 4px;
+		padding: var(--space-1);
 	}
 	.tabbar.side .label {
 		display: none;
@@ -254,7 +254,7 @@
 			border-radius: 26px;
 			grid-template-columns: 1fr;
 			grid-auto-rows: 62px;
-			padding: 6px;
+			padding: var(--space-1h);
 		}
 		.tabbar.minimized .label {
 			opacity: 1;

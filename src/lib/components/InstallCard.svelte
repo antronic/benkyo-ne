@@ -27,11 +27,11 @@
 			<img src="/icons/icon.svg" alt="" width="44" height="44" />
 			<span class="plus">+</span>
 		</div>
-		<div class="stack" style:--gap="2px">
+		<div class="stack" style:--gap="var(--space-px)">
 			<div class="eyebrow">{t('install.cardEyebrow', { device: t(GUIDE_NAME[install.guide]) })}</div>
 			<div class="headline">{t('install.cardTitle')}</div>
 			<div class="caption">{t('install.cardBody')}</div>
-			<div class="row actions" style:--gap="8px">
+			<div class="row actions" style:--gap="var(--space-2)">
 				<button class="btn accent small" onclick={go}>{install.canPrompt ? t('install.now') : t('install.showMe')}</button>
 				{#if install.canPrompt}
 					<button class="link" onclick={() => (install.showGuide = true)}>{t('install.howTo')}</button>
@@ -51,13 +51,13 @@
 		font-size: 0.9375rem;
 		font-weight: 600;
 		min-height: 32px;
-		padding: 4px 8px;
+		padding: var(--space-1) var(--space-2);
 		cursor: pointer;
 	}
 	.install {
 		display: flex;
-		gap: 14px;
-		padding: 18px;
+		gap: var(--space-4);
+		padding: var(--space-5);
 		border-radius: var(--r-l);
 		align-items: flex-start;
 		position: relative;
@@ -88,13 +88,13 @@
 		box-shadow: var(--shadow-raised);
 	}
 	.install > .stack {
-		padding-right: 18px;
+		padding-right: var(--space-5);
 	}
 	.caption {
 		color: var(--color-text-2);
 	}
 	.actions {
-		margin-top: 8px;
+		margin-top: var(--space-2);
 		align-items: center;
 	}
 	.close {

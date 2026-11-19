@@ -41,7 +41,7 @@
 			{/if}
 			{#if !m.scene && !peeking}<span class="placeholder">💭</span>{/if}
 		</div>
-		<div class="stack" style:--gap="6px">
+		<div class="stack" style:--gap="var(--space-1h)">
 			<p class="story">{story(char)}</p>
 			<button class="btn ghost small" onclick={peek} disabled={peeking}>👀 {t('hint.peek')}</button>
 		</div>
@@ -52,8 +52,8 @@
 	.hint {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 10px 12px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-3);
 		border-radius: var(--r-m);
 		width: 100%;
 		max-width: 440px;

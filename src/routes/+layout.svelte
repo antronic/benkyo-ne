@@ -175,7 +175,7 @@
 			{/snippet}
 		</svelte:boundary>
 	{:else}
-		<main class="page stack boot" style:--gap="16px" aria-busy="true">
+		<main class="page stack boot" style:--gap="var(--space-4)" aria-busy="true">
 			<div class="boot-title"></div>
 			<Skeleton variant="card" count={1} label={t('common.loadingProgress')} />
 			<Skeleton variant="row" count={3} />
@@ -244,7 +244,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 12px;
+		gap: var(--space-3);
 		text-align: center;
 	}
 	.crashed h1 {
@@ -252,7 +252,7 @@
 		font-size: 1.25rem;
 	}
 	.crashed p {
-		margin: 0 0 8px;
+		margin: 0 0 var(--space-2);
 		color: var(--ink-2);
 		max-width: 320px;
 	}

@@ -16,18 +16,35 @@
 	} as const;
 </script>
 
-<div class="glass group" role="alert">
-	<div class="item col">
-		<b>{TITLES[error.code]}</b>
-		<span class="caption">{error.message}</span>
-		<span class="row" style:gap="8px" style:margin-top="4px">
-			{#if error.code === 'access'}
-				<button class="btn small" onclick={() => location.reload()}>Sign in again</button>
-			{:else if error.code === 'signin'}
-				<a class="btn small" href="/settings#account">Go to Settings</a>
-			{:else}
-				<button class="btn ghost small" onclick={onretry}>Try again</button>
-			{/if}
-		</span>
+<div class="glass error" role="alert">
+	<b class="title">{TITLES[error.code]}</b>
+	<p class="caption message">{error.message}</p>
+	<div class="row actions" style:--gap="var(--space-2)">
+		{#if error.code === 'access'}
+			<button class="btn small" onclick={() => location.reload()}>Sign in again</button>
+		{:else if error.code === 'signin'}
+			<a class="btn small" href="/settings#account">Go to Settings</a>
+		{:else}
+			<button class="btn ghost small" onclick={onretry}>Try again</button>
+		{/if}
 	</div>
 </div>
+
+<style>
+	.error {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		padding: var(--space-5) var(--space-6);
+		border-radius: var(--radius-card);
+	}
+	.title {
+		font-size: 1.0625rem;
+	}
+	.message {
+		margin: 0;
+	}
+	.actions {
+		margin-top: var(--space-2);
+	}
+</style>

@@ -123,7 +123,7 @@
 </script>
 
 {#if !script}
-	<main class="page"><h1 class="large-title">{t('placement.notFound')}</h1><a href="/learn">{t('unit.backToLearn')}</a></main>
+	<main class="page stack"><h1 class="large-title">{t('placement.notFound')}</h1><a href="/learn">{t('unit.backToLearn')}</a></main>
 {:else}
 	<main class="placement" style:--h={hue}>
 		<header class="top">
@@ -139,7 +139,7 @@
 		{#key phase + bi + '-' + qi}
 			<section class="stage" in:fly={{ x: 40, duration: 380, easing: cubicOut, opacity: 0 }}>
 				{#if phase === 'intro'}
-					<div class="text stack" style:--gap="10px">
+					<div class="text stack" style:--gap="var(--space-3)">
 						<div class="eyebrow">{scriptName(script)} · {t('placement.eyebrow')}</div>
 						<h1 class="large-title">{t('placement.title', { script: scriptName(script) })}</h1>
 						{#if todo.length}
@@ -181,7 +181,7 @@
 						</div>
 					</div>
 				{:else if phase === 'done' && outcome}
-					<div class="text stack" style:--gap="10px">
+					<div class="text stack" style:--gap="var(--space-3)">
 						<h1 class="large-title">{outcome.passed.length ? tn('placement.skipped', outcome.passed.length) : t('placement.startLessons')}</h1>
 						<p class="subhead">
 							{outcome.passed.length
@@ -233,7 +233,7 @@
 		flex-direction: column;
 		max-width: 560px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 16px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--space-4)) var(--gutter-l);
 	}
 	@media (min-width: 600px) and (orientation: landscape) {
 		.placement {
@@ -242,13 +242,13 @@
 		.bottom {
 			width: 50%;
 			margin-left: auto;
-			padding-left: 16px;
+			padding-left: var(--space-4);
 		}
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.bar {
 		flex: 1;
@@ -273,20 +273,20 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 20px 0;
+		padding: var(--space-5) 0;
 	}
 	.text {
 		max-width: 520px;
 		width: 100%;
 	}
 	.big {
-		padding: 22px;
+		padding: var(--space-6);
 		border-radius: var(--r-l);
 	}
 	.choices {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 10px;
+		gap: var(--space-3);
 		width: 100%;
 	}
 	.choice {
@@ -316,27 +316,27 @@
 	}
 	.feedback {
 		width: 100%;
-		margin-top: 12px;
-		padding: 14px;
+		margin-top: var(--space-3);
+		padding: var(--space-4);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.results {
 		list-style: none;
-		margin: 6px 0 0;
+		margin: var(--space-1h) 0 0;
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--space-1h);
 		max-height: 46dvh;
 		overflow-y: auto;
 	}
 	.result {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 10px 14px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 	}
 	.mark {
 		width: 22px;

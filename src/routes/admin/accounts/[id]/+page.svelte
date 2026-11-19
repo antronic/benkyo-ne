@@ -110,7 +110,7 @@
 
 <svelte:head><title>{a?.name ?? 'Account'} · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-3)">
 	<LargeTitle title={a?.name ?? 'Account'} />
 
 	{#if error}
@@ -145,7 +145,7 @@
 			</div>
 			{#each a.grants as g (g.id)}
 				<div class="item" class:gone={!g.live}>
-					<span class="stack" style:--gap="2px" style:min-width="0">
+					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 						<span>{PLAN_NAMES[g.plan]} · {g.kind === 'trial' ? 'Trial' : 'Complimentary'}</span>
 						<span class="caption">
 							{g.endedAt ? `${shortDay(g.startsAt)} to ${shortDay(g.endedAt)}, ended early` : g.endsAt ? `${shortDay(g.startsAt)} to ${shortDay(g.endsAt)}` : `Since ${shortDay(g.startsAt)}, until ended`}{g.note ? ` · ${g.note}` : ''}
@@ -156,7 +156,7 @@
 				</div>
 			{/each}
 			<form class="item col" onsubmit={give}>
-				<span class="row" style:gap="8px" style:flex-wrap="wrap">
+				<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
 					<select bind:value={gPlan} aria-label="Package">
 						<option value="plus">Plus</option>
 						<option value="pro">Pro</option>
@@ -173,13 +173,13 @@
 						{#if gKind === 'comp'}<option value="">Until ended</option>{/if}
 					</select>
 				</span>
-				<span class="row" style:gap="8px">
+				<span class="row" style:gap="var(--space-2)">
 					<input type="text" bind:value={gNote} maxlength="120" placeholder="Note (optional)" aria-label="Note" style:flex="1" />
 					<button class="btn small" disabled={busy}>Grant</button>
 				</span>
 			</form>
 		</div>
-		<p class="caption" style:margin="2px 6px">Packages aren’t enforced in the app yet. This records who gets Plus or Pro for when managed AI ships.</p>
+		<p class="caption" style:margin="var(--space-px) var(--space-1h)">Packages aren’t enforced in the app yet. This records who gets Plus or Pro for when managed AI ships.</p>
 
 		<h2 class="eyebrow section">AI this month</h2>
 		<div class="glass group">
@@ -193,7 +193,7 @@
 			</form>
 			{#each a.spendByModel as m (m.feature + m.provider + m.model)}
 				<div class="item">
-					<span class="stack" style:--gap="2px"><span>{m.model}</span><span class="caption">{m.feature} · {m.provider} · {m.calls} {m.calls === 1 ? "call" : "calls"}</span></span>
+					<span class="stack" style:--gap="var(--space-px)"><span>{m.model}</span><span class="caption">{m.feature} · {m.provider} · {m.calls} {m.calls === 1 ? "call" : "calls"}</span></span>
 					<span class="spacer"></span><span class="num">{usd(m.usd)}</span>
 				</div>
 			{/each}
@@ -204,7 +204,7 @@
 			<div class="glass group">
 				{#each a.recentCalls as c, i (i)}
 					<div class="item">
-						<span class="stack" style:--gap="2px"><span>{c.feature} · {c.model}</span><span class="caption">{day(c.at)}</span></span>
+						<span class="stack" style:--gap="var(--space-px)"><span>{c.feature} · {c.model}</span><span class="caption">{day(c.at)}</span></span>
 						<span class="spacer"></span>
 						<span class="pill" class:off={c.status === 'failed'} class:muted={c.status === 'reserved'}>{c.status}</span>
 						<span class="num caption">{usd(c.usd)}</span>
@@ -217,7 +217,7 @@
 		<div class="glass group">
 			{#each a.passkeyList as p (p.id)}
 				<div class="item">
-					<span class="stack" style:--gap="2px"><span>{p.name ?? 'Passkey'}</span><span class="caption">Added {day(p.createdAt)} · last used {day(p.lastUsedAt)}</span></span>
+					<span class="stack" style:--gap="var(--space-px)"><span>{p.name ?? 'Passkey'}</span><span class="caption">Added {day(p.createdAt)} · last used {day(p.lastUsedAt)}</span></span>
 				</div>
 			{:else}
 				<div class="item caption">No passkeys</div>
@@ -242,7 +242,7 @@
 			<h2 class="eyebrow section">Danger zone</h2>
 			<div class="glass group">
 				<div class="item">
-					<span class="stack" style:--gap="2px">
+					<span class="stack" style:--gap="var(--space-px)">
 						<span>{a.disabled ? 'Enable account' : 'Disable account'}</span>
 						<span class="caption">{a.disabled ? 'They can sign in again.' : 'Signs them out everywhere. You can undo this.'}</span>
 					</span>
@@ -252,7 +252,7 @@
 				<div class="item col">
 					<span>Delete account</span>
 					<span class="caption">Deletes the account and all its data for good. Type <b>{a.name}</b> to confirm.</span>
-					<span class="row" style:gap="8px">
+					<span class="row" style:gap="var(--space-2)">
 						<input type="text" bind:value={confirmName} placeholder={a.name} aria-label="Type the account name" style:flex="1" />
 						<button class="btn small danger-btn" onclick={remove} disabled={busy || confirmName !== a.name}>Delete</button>
 					</span>

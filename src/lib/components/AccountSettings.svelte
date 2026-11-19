@@ -188,7 +188,7 @@
 	{:else if ai.signedIn && ai.account}
 		<div class="item">
 			<span class="avatar" aria-hidden="true">{initial}</span>
-			<span class="stack" style:--gap="2px">
+			<span class="stack" style:--gap="var(--space-px)">
 				<b>{ai.account.name}</b>
 				<span class="caption">
 					{#if ai.account.recovery}{t('account.viaRecovery')}{:else if ai.account.via === 'apple'}{t('account.viaApple')}{:else}{t('account.viaPasskey')}{/if}{ai.account.isAdmin ? ` · ${t('account.admin')}` : ''}
@@ -226,7 +226,7 @@
 			{#if ai.appleEnabled}<div class="item"><AppleButton label={t('apple.signIn')} disabled={busy} /></div>{/if}
 			<details class="item">
 				<summary class="caption">{t('account.lost')}</summary>
-				<div class="row" style="margin-top:8px">
+				<div class="row" style="margin-top:var(--space-2)">
 					<input type="text" placeholder={t('account.recoveryCode')} bind:value={recoverInput} autocomplete="off" autocapitalize="characters" aria-label={t('account.recoveryCode')} />
 					<button class="btn ghost small" onclick={useRecovery} disabled={busy || !recoverInput.trim()}>{t('account.use')}</button>
 				</div>
@@ -246,12 +246,12 @@
 	{/if}
 	{#if recoveryCode}
 		<div class="item recovery">
-			<span class="stack" style:--gap="4px">
+			<span class="stack" style:--gap="var(--space-1)">
 				<b>{t('account.codeOnce')}</b>
 				<code>{recoveryCode}</code>
 				<span class="caption">{t('account.codeHelp')}</span>
 			</span>
-			<span class="stack" style:--gap="6px">
+			<span class="stack" style:--gap="var(--space-1h)">
 				<button class="btn ghost small" onclick={copyCode}>{t('common.copy')}</button>
 				<button class="btn ghost small" onclick={() => (recoveryCode = null)}>{t('common.done')}</button>
 			</span>
@@ -265,7 +265,7 @@
 		{#each passkeys as p (p.id)}
 			<div class="item">
 				<span class="key-ico" aria-hidden="true">🔑</span>
-				<span class="stack" style:--gap="2px">
+				<span class="stack" style:--gap="var(--space-px)">
 					<span>{p.name ?? t('account.passkey')}{#if p.current}<span class="badge">{t('account.thisDevice')}</span>{/if}</span>
 					<span class="caption">{t('account.added', { date: day(p.createdAt) })}{p.lastUsedAt ? ` · ${t('account.used', { date: day(p.lastUsedAt) })}` : ''}{p.backedUp ? ` · ${t('account.synced')}` : ''}</span>
 				</span>
@@ -281,7 +281,7 @@
 		{#if ai.appleEnabled || ai.account.appleLinked}
 			<div class="item">
 				<span class="key-ico" aria-hidden="true"><svg viewBox="0 0 17 20" width="16" height="18" fill="currentColor"><path d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.6 4.8 1.9 5.8 1 7.5c-1.9 3.3-.5 8.1 1.3 10.8.9 1.3 2 2.7 3.4 2.7 1.3-.1 1.9-.9 3.5-.9s2.1.9 3.5.8c1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.8-1.1-2.8-4.2zM11.5 3c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/></svg></span>
-				<span class="stack" style:--gap="2px">
+				<span class="stack" style:--gap="var(--space-px)">
 					<span>{t('apple.signIn')}</span>
 					<span class="caption">
 						{#if ai.account.appleLinked}{passkeys.length ? t('account.appleOn') : t('account.appleOnNoPasskey')}{:else}{t('account.appleHelp')}{/if}
@@ -310,7 +310,7 @@
 		<div class="glass group">
 			<div class="item">
 				<span class="key-ico" aria-hidden="true">🧪</span>
-				<span class="stack" style:--gap="2px">
+				<span class="stack" style:--gap="var(--space-px)">
 					<span>{t('beta.sharing')}</span>
 					<span class="caption">{t('beta.agreedKept', { date: day(ai.beta.acceptedAt), days: ai.beta.retentionDays })}</span>
 				</span>
@@ -338,17 +338,17 @@
 
 <style>
 	.section {
-		margin: 16px 6px 2px;
+		margin: var(--space-4) var(--space-1h) var(--space-px);
 	}
 	.group {
-		padding: 4px 0;
+		padding: var(--space-1) 0;
 		border-radius: var(--r-m);
 	}
 	.item {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 16px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		min-height: 48px;
 	}
 	.item + .item {
@@ -362,9 +362,9 @@
 		display: block;
 	}
 	.item .row {
-		--gap: 10px;
+		--gap: var(--space-3);
 		display: flex;
-		gap: 10px;
+		gap: var(--space-3);
 		align-items: stretch;
 		width: 100%;
 	}
@@ -378,7 +378,7 @@
 		font-size: 1rem;
 		height: 48px;
 		min-height: 48px;
-		padding: 0 14px;
+		padding: 0 var(--space-4);
 		border-radius: 12px;
 		border: 0.5px solid var(--hairline);
 		background: var(--glass-strong);
@@ -419,8 +419,8 @@
 		text-align: center;
 	}
 	.badge {
-		margin-left: 8px;
-		padding: 1px 7px;
+		margin-left: var(--space-2);
+		padding: 1px var(--space-2);
 		border-radius: 8px;
 		font-size: 0.6875rem;
 		font-weight: 600;
@@ -432,12 +432,12 @@
 		background: color-mix(in srgb, var(--warn) 14%, transparent);
 	}
 	.seg-wrap {
-		padding-bottom: 4px;
+		padding-bottom: var(--space-1);
 	}
 	.seg {
 		display: flex;
 		width: 100%;
-		padding: 2px;
+		padding: var(--space-px);
 		border-radius: 10px;
 		background: color-mix(in srgb, var(--ink) 8%, transparent);
 	}

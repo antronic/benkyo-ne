@@ -377,38 +377,38 @@
 		min-height: 100dvh;
 		max-width: 760px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + 96px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + 96px) var(--gutter-l); /* ui-ok: 96px clears the fixed composer */
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.msgs {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.empty {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.chip {
 		border: 0.5px solid var(--hairline);
 		background: var(--glass);
 		border-radius: 18px;
-		padding: 10px 14px;
+		padding: var(--space-3) var(--space-4);
 		text-align: left;
 		cursor: pointer;
 	}
 	.bubble {
 		max-width: 88%;
-		padding: 10px 14px;
+		padding: var(--space-3) var(--space-4);
 		border-radius: 20px;
 	}
 	.bubble.user {
@@ -429,14 +429,14 @@
 		line-height: 1.45;
 	}
 	.second {
-		margin-top: 8px;
+		margin-top: var(--space-2);
 		color: var(--ink-2);
 	}
 	.examples {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		margin-top: 10px;
+		gap: var(--space-1h);
+		margin-top: var(--space-3);
 	}
 	.ex {
 		display: flex;
@@ -444,7 +444,7 @@
 		align-items: flex-start;
 		gap: 1px;
 		text-align: left;
-		padding: 8px 10px;
+		padding: var(--space-2) var(--space-3);
 		border-radius: 12px;
 		border: 0.5px solid var(--hairline);
 		background: var(--glass);
@@ -455,8 +455,8 @@
 	}
 	.typing {
 		display: flex;
-		gap: 5px;
-		padding: 14px 16px;
+		gap: var(--space-1h);
+		padding: var(--space-4) var(--space-4);
 	}
 	.typing span {
 		width: 8px;
@@ -492,8 +492,8 @@
 		max-width: 736px;
 		margin: 0 auto;
 		display: flex;
-		gap: 8px;
-		padding: 6px;
+		gap: var(--space-2);
+		padding: var(--space-1h);
 		border-radius: 999px;
 	}
 	.composer input {
@@ -534,7 +534,7 @@
 		right: -3px;
 		min-width: 17px;
 		height: 17px;
-		padding: 0 4px;
+		padding: 0 var(--space-1);
 		border-radius: 9px;
 		background: var(--accent);
 		color: #fff;
@@ -551,7 +551,7 @@
 		display: inline-block;
 		width: 0.5em;
 		height: 1.05em;
-		margin-left: 2px;
+		margin-left: var(--space-px);
 		vertical-align: -0.15em;
 		border-radius: 2px;
 		background: var(--accent-2);
@@ -563,7 +563,7 @@
 		}
 	}
 	.note {
-		margin: 6px 0 0;
+		margin: var(--space-1h) 0 0;
 		font-style: italic;
 	}
 	.stop {
@@ -573,8 +573,8 @@
 	.hist-head {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 0 2px 6px;
+		gap: var(--space-2);
+		padding: 0 var(--space-px) var(--space-1h);
 	}
 	.hist-head h2 {
 		margin: 0;
@@ -584,17 +584,17 @@
 		height: 40px;
 		min-height: 40px;
 		border-radius: 12px;
-		padding: 0 12px;
+		padding: 0 var(--space-3);
 		border: 0.5px solid var(--hairline);
 		background: color-mix(in srgb, var(--ink) 6%, transparent);
 		flex: none;
 	}
 	.empty-hist {
 		text-align: center;
-		padding: 24px 12px;
+		padding: var(--space-6) var(--space-3);
 	}
 	.sec-name {
-		margin: 6px 6px 6px;
+		margin: var(--space-1h) var(--space-1h) var(--space-1h);
 	}
 	.group {
 		border-radius: var(--r-m);
@@ -626,10 +626,10 @@
 		position: relative;
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--space-px);
 		width: 100%;
 		text-align: left;
-		padding: 11px 16px;
+		padding: var(--space-3) var(--space-4);
 		border: 0;
 		background: linear-gradient(var(--glass-strong), var(--glass-strong)), var(--bg);
 		color: inherit;
@@ -646,7 +646,7 @@
 	}
 	.row-top {
 		display: flex;
-		gap: 8px;
+		gap: var(--space-2);
 		align-items: baseline;
 	}
 	.row-title {

@@ -85,17 +85,17 @@
 
 <style>
 	.section {
-		margin: 16px 6px 2px;
+		margin: var(--space-4) var(--space-1h) var(--space-px);
 	}
 	.group {
-		padding: 4px 0;
+		padding: var(--space-1) 0;
 		border-radius: var(--r-m);
 	}
 	.item {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 16px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		min-height: 48px;
 	}
 	.item + .item {
@@ -115,9 +115,9 @@
 	}
 	.style {
 		display: grid;
-		gap: 4px;
+		gap: var(--space-1);
 		justify-items: center;
-		padding: 6px 6px 10px;
+		padding: var(--space-1h) var(--space-1h) var(--space-3);
 		border-radius: var(--radius-control);
 		border: 2px solid transparent;
 		background: var(--color-fill);

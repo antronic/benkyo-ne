@@ -80,7 +80,7 @@
 
 <main class="page">
 	<div class="layout" class:has-detail={regular.current}>
-		<div class="stack" style:--gap="14px">
+		<div class="stack" style:--gap="var(--space-4)">
 			<LargeTitle title={t('nav.kana')} />
 
 			<div class="segmented glass rise" style:--i="1" style:--pos={script === 'hiragana' ? 0 : 1} role="tablist">
@@ -151,7 +151,7 @@
 		.layout.has-detail {
 			display: grid;
 			grid-template-columns: minmax(0, 1.35fr) minmax(240px, 1fr);
-			gap: 24px;
+			gap: var(--space-6);
 			align-items: start;
 		}
 	}
@@ -164,11 +164,11 @@
 	.side {
 		position: sticky;
 		top: calc(var(--safe-top) + 60px);
-		padding: 18px;
+		padding: var(--space-5);
 		border-radius: var(--r-l);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--space-3);
 		max-height: calc(100dvh - var(--safe-top) - 80px);
 		overflow: auto;
 	}
@@ -186,7 +186,7 @@
 		position: relative;
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		padding: 4px;
+		padding: var(--space-1);
 		border-radius: 14px;
 	}
 	.segmented .thumb {
@@ -206,7 +206,7 @@
 		border: 0;
 		background: none;
 		min-height: 36px;
-		padding: 8px;
+		padding: var(--space-2);
 		font-weight: 600;
 		font-size: 0.9375rem;
 		color: var(--ink-2);
@@ -219,7 +219,7 @@
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.cell {
 		aspect-ratio: 1;
@@ -261,7 +261,7 @@
 		font-weight: 600;
 	}
 	.head {
-		--gap: 8px;
+		--gap: var(--space-2);
 	}
 	.detail-canvas {
 		width: min(100%, 340px);

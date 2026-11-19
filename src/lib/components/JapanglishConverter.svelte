@@ -117,12 +117,12 @@
 
 <style>
 	.conv {
-		padding: 14px;
+		padding: var(--space-4);
 		border-radius: var(--r-m);
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		margin-bottom: 10px;
+		gap: var(--space-3);
+		margin-bottom: var(--space-3);
 	}
 	input {
 		height: 48px;
@@ -132,13 +132,13 @@
 	.results {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.real {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 10px;
+		gap: var(--space-3);
+		padding: var(--space-3);
 		border-radius: 14px;
 		background: color-mix(in srgb, var(--success) 10%, transparent);
 	}
@@ -161,15 +161,15 @@
 	.guess {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
-		padding: 0 4px;
+		gap: var(--space-px);
+		padding: 0 var(--space-1);
 	}
 	.steps {
 		margin: 0;
-		padding-left: 22px;
+		padding-left: var(--space-6);
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--space-1);
 		font-size: 0.9375rem;
 	}
 	.ok {
@@ -181,16 +181,16 @@
 	}
 	.rules {
 		list-style: none;
-		margin: 6px 0 0;
+		margin: var(--space-1h) 0 0;
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.rules li {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--space-px);
 		font-size: 0.9375rem;
 	}
 	.ex {

@@ -82,7 +82,7 @@
 		<h1 class="title-2">{t('aiLesson.title')}</h1>
 	</header>
 
-	<form class="stack" style:--gap="10px" onsubmit={(e) => (e.preventDefault(), generate())}>
+	<form class="stack" style:--gap="var(--space-3)" onsubmit={(e) => (e.preventDefault(), generate())}>
 		<input type="text" bind:value={topic} placeholder={t('aiLesson.placeholder')} aria-label={t('aiLesson.topic')} enterkeyhint="go" autocomplete="off" />
 		<div class="ideas">
 			{#each IDEAS as idea}<button type="button" class="chip" onclick={() => (topic = idea)}>{idea}</button>{/each}
@@ -92,13 +92,13 @@
 	</form>
 
 	{#if busy}
-		<div class="stack" style:--gap="10px">
+		<div class="stack" style:--gap="var(--space-3)">
 			<div class="caption">✨ {t('aiLesson.designingTopic', { topic })}</div>
 			<Skeleton variant="card" count={1} />
 			<Skeleton variant="row" count={5} />
 		</div>
 	{:else if draft}
-		<section class="stack draft" style:--gap="10px" in:fly={{ y: 16, duration: 350 }}>
+		<section class="stack draft" style:--gap="var(--space-3)" in:fly={{ y: 16, duration: 350 }}>
 			<div>
 				<h2 class="title-2">{draft.title.en}</h2>
 				{#if draft.title.second}<p class="caption">{draft.title.second}</p>{/if}
@@ -108,7 +108,7 @@
 				<div class="item glass">
 					<button class="say" aria-label={t('common.listen')} onclick={() => speak(i.reading)}>🔊</button>
 					<div class="body">
-						<div class="row" style:--gap="6px">
+						<div class="row" style:--gap="var(--space-1h)">
 							<span class="jp reading">{i.reading}</span>
 							{#if i.kind === 'phrase'}<span class="tag">{t('card.phrase')}</span>{/if}
 							{#if !i.verified}<span class="tag warn">{t('card.unverified')}</span>{/if}
@@ -133,34 +133,34 @@
 		min-height: 100dvh;
 		max-width: 760px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + 24px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + var(--space-6)) var(--gutter-l);
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--space-4);
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.ideas {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.chip {
 		border: 0.5px solid var(--hairline);
 		background: var(--glass);
 		border-radius: 999px;
-		padding: 0 14px;
+		padding: 0 var(--space-4);
 		min-height: 36px;
 		font-size: 0.875rem;
 		cursor: pointer;
 	}
 	.item {
 		display: flex;
-		gap: 12px;
-		padding: 12px 14px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		border-radius: var(--r-m);
 	}
 	.say {
@@ -175,7 +175,7 @@
 	.body {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--space-px);
 		min-width: 0;
 	}
 	.reading {
@@ -189,7 +189,7 @@
 		font-size: 0.6875rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		padding: 2px 7px;
+		padding: var(--space-px) var(--space-2);
 		border-radius: 999px;
 		background: var(--hairline);
 	}

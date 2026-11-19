@@ -13,7 +13,7 @@
 	] as const;
 </script>
 
-<main class="page stack" style:--gap="14px">
+<main class="page stack" style:--gap="var(--space-4)">
 	<LargeTitle title={t('nav.ai')} />
 	{#if ai.checked && !ai.available}
 		<a class="glass warn" href="/settings#ai">✨ {ai.reason || t('ai.setup')} <b>{t('ai.openSettings')}</b></a>
@@ -22,7 +22,7 @@
 		{#each ACTIONS as a, i}
 			<a class="action glass sheen rise" style:--i={i} href={a.href} class:disabled={!ai.available}>
 				<span class="icon" aria-hidden="true">{a.icon}</span>
-				<span class="stack" style:--gap="4px">
+				<span class="stack" style:--gap="var(--space-1)">
 					<span class="title-2">{t(a.title)}</span>
 					<span class="subhead">{t(a.desc)}</span>
 				</span>
@@ -38,7 +38,7 @@
 <style>
 	.warn {
 		display: block;
-		padding: 14px 16px;
+		padding: var(--space-4) var(--space-4);
 		border-radius: var(--r-m);
 		color: inherit;
 		text-decoration: none;
@@ -46,7 +46,7 @@
 	}
 	.actions {
 		display: grid;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	/* three across only when each card stays wide enough for its text (not unfolded portrait) */
 	@media (min-width: 900px) {
@@ -57,8 +57,8 @@
 	.action {
 		display: flex;
 		align-items: center;
-		gap: 14px;
-		padding: 18px;
+		gap: var(--space-4);
+		padding: var(--space-5);
 		border-radius: var(--r-l);
 		text-decoration: none;
 		color: inherit;

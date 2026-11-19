@@ -78,7 +78,7 @@
 	const kanjiStrength = (id: string) => recall(KANJI_LESSONS.find((x) => x.id === id)!.chars.map(kanjiCardId));
 </script>
 
-<main class="page stack" style:--gap="10px">
+<main class="page stack" style:--gap="var(--space-3)">
 	<LargeTitle title={t('nav.learn')} />
 	<div class="filters" role="tablist" aria-label={t('learn.filter')}>
 		{#each FILTERS as f}
@@ -120,7 +120,7 @@
 	{#if filter === 'all' || filter === 'practice'}{@render practiceSection()}{/if}
 
 	{#if filter === 'all' || filter === 'fundamentals'}
-	<p class="subhead rise" style="margin:0 0 4px">{t('learn.kanaFirst')}</p>
+	<p class="subhead rise" style="margin:0 0 var(--space-1)">{t('learn.kanaFirst')}</p>
 	<div class="columns">
 	{#each ['hiragana', 'katakana'] as script, si}
 		<section>
@@ -162,7 +162,7 @@
 				<li class="rise" style:--i={i + 1}>
 					<a href="/learn/kanji/{l.id}" class="glass sheen lesson" class:next={l.id === nextKanjiId} class:done style:--h={l.hue}>
 						<span class="badge">{done ? '✓' : i + 1}</span>
-						<span class="stack" style:--gap="2px">
+						<span class="stack" style:--gap="var(--space-px)">
 							<span class="headline">{tc(l.title)}</span>
 							<span class="glyphs">
 								{#each l.chars as k}<KanaGlyph char={k.char} size={22} weight={7} />{/each}
@@ -207,10 +207,10 @@
 <style>
 	.filters {
 		display: flex;
-		gap: 8px;
+		gap: var(--space-2);
 		overflow-x: auto;
-		margin: 0 calc(-1 * var(--gutter-r)) 6px calc(-1 * var(--gutter-l));
-		padding: 2px var(--gutter-r) 6px var(--gutter-l);
+		margin: 0 calc(-1 * var(--gutter-r)) var(--space-1h) calc(-1 * var(--gutter-l));
+		padding: var(--space-px) var(--gutter-r) var(--space-1h) var(--gutter-l);
 		scrollbar-width: none;
 		-webkit-overflow-scrolling: touch;
 		scroll-snap-type: x proximity;
@@ -226,7 +226,7 @@
 		-webkit-backdrop-filter: blur(20px);
 		backdrop-filter: blur(20px);
 		border-radius: 999px;
-		padding: 0 16px;
+		padding: 0 var(--space-4);
 		min-height: 40px;
 		font-size: 0.9375rem;
 		font-weight: 600;
@@ -246,15 +246,15 @@
 		color: var(--bg);
 	}
 	.course {
-		margin-top: 8px;
+		margin-top: var(--space-2);
 	}
 	.blurb {
-		margin: -2px 4px 8px;
+		margin: calc(-1 * var(--space-px)) var(--space-1) var(--space-2);
 	}
 	.units {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	@media (min-width: 600px) {
 		.units {
@@ -264,8 +264,8 @@
 	.unit {
 		display: flex;
 		align-items: center;
-		gap: 14px;
-		padding: 14px 16px;
+		gap: var(--space-4);
+		padding: var(--space-4) var(--space-4);
 		min-height: 56px;
 		text-decoration: none;
 		color: inherit;
@@ -279,7 +279,7 @@
 		pointer-events: none;
 	}
 	.practice {
-		margin-top: 4px;
+		margin-top: var(--space-1);
 	}
 	.unit.done .badge {
 		background: var(--success);
@@ -289,7 +289,7 @@
 		.columns {
 			display: grid;
 			grid-template-columns: repeat(2, minmax(0, 1fr));
-			gap: 24px;
+			gap: var(--space-6);
 			align-items: start;
 		}
 	}
@@ -297,7 +297,7 @@
 		min-height: 56px;
 	}
 	.section {
-		margin: 18px 4px 4px;
+		margin: var(--space-5) var(--space-1) var(--space-1);
 	}
 	.path {
 		list-style: none;
@@ -305,13 +305,13 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.lesson {
 		display: flex;
 		align-items: center;
-		gap: 14px;
-		padding: 14px 16px;
+		gap: var(--space-4);
+		padding: var(--space-4) var(--space-4);
 		text-decoration: none;
 		color: inherit;
 		transition: transform 450ms var(--spring);
@@ -340,7 +340,7 @@
 	}
 	.glyphs {
 		display: flex;
-		gap: 4px;
+		gap: var(--space-1);
 		color: var(--ink-2);
 	}
 	@media (min-width: 600px) {

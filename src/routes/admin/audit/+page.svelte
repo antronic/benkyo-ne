@@ -70,7 +70,7 @@
 
 <svelte:head><title>Audit log · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-3)">
 	<LargeTitle title="Audit log" />
 
 	{#if actions.length > 1}
@@ -90,7 +90,7 @@
 		<ol class="glass group">
 			{#each rows as r (r.id)}
 				<li class="item col">
-					<span class="row" style:gap="8px">
+					<span class="row" style:gap="var(--space-2)">
 						<b>{label(r.action)}</b><span class="spacer"></span><span class="caption">{when(r.at)}</span>
 					</span>
 					{#if r.targetId !== null}

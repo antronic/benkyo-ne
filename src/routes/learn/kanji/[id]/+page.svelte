@@ -163,7 +163,7 @@
 </script>
 
 {#if !lesson}
-	<main class="page"><h1 class="large-title">{t('lesson.notFound')}</h1><a href="/learn">{t('common.back')}</a></main>
+	<main class="page stack"><h1 class="large-title">{t('lesson.notFound')}</h1><a href="/learn">{t('common.back')}</a></main>
 {:else}
 	<main class="lesson" style:--h={lesson.hue}>
 		<header class="top">
@@ -248,7 +248,7 @@
 								<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
 									<div class="row">
 										<KanaGlyph char={current.char} size={56} scene={0.9} />
-										<div class="stack" style:--gap="2px">
+										<div class="stack" style:--gap="var(--space-px)">
 											<b>{gloss(current.meaning)}</b>
 											<span class="caption">{c(current.story)}</span>
 										</div>
@@ -327,7 +327,7 @@
 		flex-direction: column;
 		max-width: 560px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 16px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--space-4)) var(--gutter-l);
 	}
 	/* Unfolded iPhone Duo, landscape: visual left, interaction right */
 	@media (min-width: 600px) and (orientation: landscape) {
@@ -342,7 +342,7 @@
 		.bottom {
 			width: 50%;
 			margin-left: auto;
-			padding-left: 16px;
+			padding-left: var(--space-4);
 		}
 		.canvas {
 			width: var(--pad) !important;
@@ -358,7 +358,7 @@
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.bar {
 		flex: 1;
@@ -384,11 +384,11 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 20px 0;
+		padding: var(--space-5) 0;
 	}
 	.hero-chars {
 		display: flex;
-		gap: 6px;
+		gap: var(--space-1h);
 		flex-wrap: wrap;
 		justify-content: center;
 	}
@@ -407,7 +407,7 @@
 	.canvas {
 		width: min(72vw, 300px);
 		aspect-ratio: 1;
-		padding: 18px;
+		padding: var(--space-5);
 		border-radius: var(--r-l);
 	}
 	.romaji {
@@ -422,18 +422,18 @@
 		color: var(--ink-2);
 	}
 	.big {
-		padding: 22px;
+		padding: var(--space-6);
 		border-radius: var(--r-l);
 	}
 	.choices {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 10px;
+		gap: var(--space-3);
 		width: 100%;
 	}
 	.choice {
 		min-height: 64px;
-		padding: 6px 10px;
+		padding: var(--space-1h) var(--space-3);
 		font-size: 1.0625rem;
 		font-weight: 600;
 		cursor: pointer;
@@ -459,26 +459,26 @@
 	}
 	.feedback {
 		width: 100%;
-		padding: 14px;
+		padding: var(--space-4);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--space-3);
 		text-align: left;
 	}
 	.celebrate {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
-		gap: 4px;
+		gap: var(--space-1);
 	}
 	.tile {
 		display: grid;
 		place-items: center;
-		padding: 6px;
+		padding: var(--space-1h);
 		border-radius: 14px;
 	}
 	.hero-k .caption {
-		margin-top: 4px;
+		margin-top: var(--space-1);
 	}
 	.pop-in {
 		animation: rise 700ms var(--spring-bouncy) both;

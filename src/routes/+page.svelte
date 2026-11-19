@@ -30,13 +30,13 @@
 	});
 </script>
 
-<main class="page stack dash" style:--gap="18px">
+<main class="page stack dash" style:--gap="var(--space-5)">
 	<header class="rise">
 		<div class="eyebrow">
 			{fmtDate(new Date(), { weekday: 'long', month: 'long', day: 'numeric' })}
 		</div>
 		<LargeTitle title={greeting.jp} jp />
-		<p class="subhead" style="margin:4px 0 0">
+		<p class="subhead" style="margin:var(--space-1) 0 0">
 			{t('home.greetingLine', { greeting: t(greeting.en), tagline: t('home.tagline') })}
 		</p>
 	</header>
@@ -48,10 +48,10 @@
 				<div class="caption">{t('home.of', { n: goal })}</div>
 			</div>
 		</ProgressRing>
-		<div class="stack" style:--gap="4px">
+		<div class="stack" style:--gap="var(--space-1)">
 			<div class="headline">{t('nav.today')}</div>
 			<div class="subhead">{t('home.reviewedNew', { r: progress.today.reviews, n: progress.today.learned })}</div>
-			<div class="row stats" style:--gap="16px">
+			<div class="row stats" style:--gap="var(--space-4)">
 				<div><b>{progress.streak.days}</b><span class="caption">{t('home.streak')}</span></div>
 				<div><b>{progress.learnedCount}</b><span class="caption">{t('home.learned')}</span></div>
 				<div><b>{Math.round(progress.settings.retention * 100)}%</b><span class="caption">{t('home.target')}</span></div>
@@ -65,7 +65,7 @@
 
 	{#if progress.due.length > 0}
 		<a href="/review" class="glass sheen card review rise" style:--i="2">
-			<div class="stack" style:--gap="2px">
+			<div class="stack" style:--gap="var(--space-px)">
 				<div class="eyebrow" style="color:var(--accent)">{t('home.reviewsDue')}</div>
 				<div class="title-2">{tn('home.cards', progress.due.length)}</div>
 				<div class="subhead">{t('home.reviewsBody')}</div>
@@ -76,7 +76,7 @@
 
 	{#if words.newQueue.length > 0 || words.list.length > 0}
 		<a href={words.newQueue.length ? '/review' : '/words'} class="glass sheen card review rise" style:--i="2">
-			<div class="stack" style:--gap="2px">
+			<div class="stack" style:--gap="var(--space-px)">
 				<div class="eyebrow" style="color:#8b5cf6">{t('nav.words')}</div>
 				<div class="title-2">
 					{words.newQueue.length ? tn('home.newWordsReady', words.newQueue.length) : tn('home.cards', words.list.length)}
@@ -94,7 +94,7 @@
 					<span style:--j={i}><KanaGlyph char={k.char} size="100%" color="#fff" weight={6} /></span>
 				{/each}
 			</div>
-			<div class="stack" style:--gap="2px">
+			<div class="stack" style:--gap="var(--space-px)">
 				<div class="eyebrow" style="color:rgb(255 255 255 / .75)">
 					{progress.completed.length ? t('home.upNext') : t('home.startHere')} · {scriptName(next.script)}
 				</div>
@@ -115,7 +115,7 @@
 	<section class="glass sheen card tip rise" style:--i="4">
 		<div>
 			<div class="eyebrow">{t('home.howTitle')}</div>
-			<p style="margin:6px 0 0">
+			<p style="margin:var(--space-1h) 0 0">
 				{@html t('home.howBody')}
 			</p>
 		</div>
@@ -146,8 +146,8 @@
 	.hero {
 		display: flex;
 		align-items: center;
-		gap: 20px;
-		padding: 20px;
+		gap: var(--space-5);
+		padding: var(--space-5);
 		border-radius: var(--r-l);
 	}
 	.ring-num {
@@ -157,7 +157,7 @@
 		line-height: 1;
 	}
 	.stats {
-		margin-top: 8px;
+		margin-top: var(--space-2);
 	}
 	.stats div {
 		display: flex;
@@ -168,8 +168,8 @@
 	}
 	.card {
 		display: flex;
-		gap: 16px;
-		padding: 20px;
+		gap: var(--space-4);
+		padding: var(--space-5);
 		border-radius: var(--r-l);
 		text-decoration: none;
 		color: inherit;

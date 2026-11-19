@@ -61,14 +61,14 @@
 		margin: 0 auto;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.group {
 		border-radius: 16px;
 		overflow: hidden;
 	}
 	.head {
-		padding: 14px 16px;
+		padding: var(--space-4) var(--space-4);
 		text-align: center;
 		border-bottom: 0.5px solid var(--hairline);
 	}
@@ -80,7 +80,7 @@
 	.m {
 		font-size: 0.8125rem;
 		color: var(--ink-2);
-		margin-top: 2px;
+		margin-top: var(--space-px);
 	}
 	.act {
 		display: block;
@@ -112,12 +112,12 @@
 		top: calc(var(--safe-top) + 12px);
 		left: calc(var(--safe-left) + (100% - var(--safe-left) - var(--safe-right)) / 2);
 		translate: -50% 0;
-		padding: 10px 18px;
+		padding: var(--space-3) var(--space-5);
 		border-radius: 999px;
 		font-weight: 600;
 		font-size: 0.9375rem;
 		display: flex;
-		gap: 8px;
+		gap: var(--space-2);
 		align-items: center;
 		white-space: nowrap;
 	}

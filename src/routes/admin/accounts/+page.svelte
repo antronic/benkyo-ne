@@ -49,7 +49,7 @@
 
 <svelte:head><title>Accounts · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-3)">
 	<LargeTitle title="Accounts" />
 
 	<input type="search" placeholder="Search by name or #id" bind:value={q} oninput={search} aria-label="Search accounts" />
@@ -64,7 +64,7 @@
 		<div class="glass group">
 			{#each rows as a (a.id)}
 				<a class="item" href="/admin/accounts/{a.id}">
-					<span class="stack" style:--gap="2px" style:min-width="0">
+					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 						<b class="name">{a.name} <span class="caption">#{a.id}</span></b>
 						<span class="caption">
 							Seen {ago(a.lastSeenAt)} · {usd(a.monthUsd)} of {usd(a.capUsd)} this month

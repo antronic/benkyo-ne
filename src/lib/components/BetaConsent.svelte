@@ -70,7 +70,7 @@
 				<details class="row">
 					<summary>
 						<span class="ico" aria-hidden="true">{s.icon}</span>
-						<span class="stack" style:--gap="2px">
+						<span class="stack" style:--gap="var(--space-px)">
 							<b>{s.title}</b>
 							<span class="caption">{s.summary}</span>
 						</span>
@@ -133,7 +133,7 @@
 		z-index: 160;
 		display: flex;
 		justify-content: center;
-		padding: calc(var(--safe-top) + 16px) max(16px, var(--safe-right)) calc(var(--safe-bottom) + 20px) max(16px, var(--safe-left));
+		padding: calc(var(--safe-top) + var(--space-4)) max(var(--space-4), var(--safe-right)) calc(var(--safe-bottom) + var(--space-5)) max(var(--space-4), var(--safe-left));
 		background: var(--bg);
 		overflow-y: auto;
 		-webkit-overflow-scrolling: touch;
@@ -143,17 +143,17 @@
 		max-width: 520px;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--space-4);
 		margin: 0 auto;
-		padding-bottom: 12px;
+		padding-bottom: var(--space-3);
 	}
 	.hero {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
-		gap: 8px;
-		padding-top: 8px;
+		gap: var(--space-2);
+		padding-top: var(--space-2);
 	}
 	.hero h2,
 	.hero p {
@@ -163,7 +163,7 @@
 		max-width: 40ch;
 	}
 	.beta {
-		padding: 2px 10px;
+		padding: var(--space-px) var(--space-3);
 		border-radius: 999px;
 		font-size: 0.6875rem;
 		font-weight: 800;
@@ -174,19 +174,19 @@
 	.card {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 14px 16px;
+		gap: var(--space-2);
+		padding: var(--space-4) var(--space-4);
 		border-radius: 20px;
 	}
 	.card h3 {
-		margin: 6px 0 0;
+		margin: var(--space-1h) 0 0;
 	}
 	.card h3:first-child {
 		margin-top: 0;
 	}
 	details.row {
 		border-top: 0.5px solid var(--hairline);
-		padding-top: 8px;
+		padding-top: var(--space-2);
 	}
 	details.row:first-of-type {
 		border-top: 0;
@@ -194,7 +194,7 @@
 	}
 	summary {
 		display: flex;
-		gap: 12px;
+		gap: var(--space-3);
 		align-items: flex-start;
 		cursor: pointer;
 		list-style: none;
@@ -218,17 +218,17 @@
 		line-height: 1.2;
 	}
 	ul {
-		margin: 4px 0 2px;
-		padding-left: 20px;
+		margin: var(--space-1) 0 var(--space-px);
+		padding-left: var(--space-5);
 		font-size: 0.9375rem;
 		line-height: 1.4;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--space-1);
 	}
 	details ul {
-		margin-left: 34px;
-		padding-left: 16px;
+		margin-left: 34px; /* ui-ok: lines up with the text after the 22px check mark */
+		padding-left: var(--space-4);
 	}
 	ul.plain {
 		list-style: none;
@@ -237,14 +237,14 @@
 	.version,
 	.center {
 		text-align: center;
-		margin: 4px 0 0;
+		margin: var(--space-1) 0 0;
 	}
 	ul a {
 		color: var(--accent-2);
 	}
 	.agree {
 		display: flex;
-		gap: 12px;
+		gap: var(--space-3);
 		align-items: flex-start;
 		font-size: 0.9375rem;
 		line-height: 1.4;
@@ -265,7 +265,7 @@
 		background: none;
 		font: inherit;
 		cursor: pointer;
-		padding: 8px;
+		padding: var(--space-2);
 		color: var(--ink-2);
 		font-size: 0.9375rem;
 		align-self: center;

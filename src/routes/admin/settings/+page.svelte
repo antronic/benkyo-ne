@@ -94,7 +94,7 @@
 
 <svelte:head><title>Sign-ups and settings · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-3)">
 	<LargeTitle title="Settings" />
 
 	{#if error}
@@ -111,7 +111,7 @@
 				</div>
 			{/if}
 			<div class="item">
-				<span class="stack" style:--gap="2px">
+				<span class="stack" style:--gap="var(--space-px)">
 					<span>{s.signup.mode === 'open' ? 'Open to everyone' : 'Invite only'}</span>
 					<span class="caption">{s.signup.mode === 'open' ? 'Anyone can create an account.' : 'New accounts need an invite code. Apple sign-up is off.'}</span>
 				</span>
@@ -121,7 +121,7 @@
 				</button>
 			</div>
 			<div class="item col">
-				<span class="row" style:gap="8px">
+				<span class="row" style:gap="var(--space-2)">
 					<span>New accounts, last 30 days</span><span class="spacer"></span><b class="num">{total}</b>
 				</span>
 				<DayBars days={s.signupsByDay.map((d) => ({ day: d.day, value: d.count }))} label="New accounts per day" column="New accounts" />
@@ -132,7 +132,7 @@
 		<div class="glass group">
 			<form class="item col" onsubmit={newInvite}>
 				<input type="text" placeholder="Who it’s for (optional)" bind:value={label} maxlength="60" aria-label="Who the invite is for" />
-				<span class="row" style:gap="8px" style:flex-wrap="wrap">
+				<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
 					<label class="caption" for="uses">Uses</label>
 					<input id="uses" class="n" type="number" min="1" max="100" bind:value={uses} />
 					<label class="caption" for="exp">Expires</label>
@@ -148,7 +148,7 @@
 			</form>
 			{#each s.invites as inv (inv.code)}
 				<div class="item" class:gone={!live(inv)}>
-					<span class="stack" style:--gap="2px" style:min-width="0">
+					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 						<button class="code" onclick={() => copy(inv.code)} title="Copy">{inv.code}</button>
 						<span class="caption">
 							{inv.label ? `${inv.label} · ` : ''}{inv.uses} of {inv.maxUses} used ·
@@ -166,7 +166,7 @@
 		<h2 class="eyebrow section">Sign-in sessions</h2>
 		<div class="glass group">
 			<form class="item" onsubmit={(e) => (e.preventDefault(), saveDays(Number(days)))}>
-				<span class="stack" style:--gap="2px">
+				<span class="stack" style:--gap="var(--space-px)">
 					<label for="days">Session lifetime (days)</label>
 					<span class="caption">Now {s.session.effectiveDays} days{s.session.days === null ? ' (default)' : ''}. Renewed while the app is used.</span>
 				</span>
@@ -197,7 +197,7 @@
 		flex: none;
 		box-sizing: border-box;
 		width: 64px;
-		padding: 8px 4px;
+		padding: var(--space-2) var(--space-1);
 		text-align: center;
 	}
 	.fleet input.n.wide {

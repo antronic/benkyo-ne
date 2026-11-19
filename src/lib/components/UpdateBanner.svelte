@@ -34,8 +34,8 @@
 		width: min(420px, calc(100% - 24px - var(--safe-left) - var(--safe-right)));
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 8px 8px 8px 14px;
+		gap: var(--space-3);
+		padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
 		border-radius: 999px;
 	}
 	.dot {

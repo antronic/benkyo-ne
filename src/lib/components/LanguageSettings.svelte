@@ -44,17 +44,17 @@
 
 <style>
 	.section {
-		margin: 16px 6px 2px;
+		margin: var(--space-4) var(--space-1h) var(--space-px);
 	}
 	.group {
-		padding: 4px 0;
+		padding: var(--space-1) 0;
 		border-radius: var(--r-m);
 	}
 	.item {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 16px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		min-height: 48px;
 	}
 	.item + .item {
@@ -64,7 +64,7 @@
 		font: inherit;
 		font-size: 1rem;
 		height: 44px;
-		padding: 0 12px;
+		padding: 0 var(--space-3);
 		border-radius: 12px;
 		border: 0.5px solid var(--hairline);
 		background: var(--glass-strong);

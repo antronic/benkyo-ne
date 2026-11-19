@@ -176,8 +176,8 @@
 							{@const missing = unknownKanaIn(c.reading, progress.knownKana)}
 							<button class="cand glass" class:on={chosen.has(c.key)} onclick={() => toggle(c.key)} aria-pressed={chosen.has(c.key)}>
 								<span class="check" aria-hidden="true">{chosen.has(c.key) ? '✓' : ''}</span>
-								<span class="stack body" style:--gap="2px">
-									<span class="row" style:--gap="6px">
+								<span class="stack body" style:--gap="var(--space-px)">
+									<span class="row" style:--gap="var(--space-1h)">
 										<span class="jp reading">{c.reading}</span>
 										{#if c.text !== c.reading}<span class="jp written">{c.text}</span>{/if}
 										{#if c.kind === 'phrase'}<span class="tag">{t('card.phrase')}</span>{/if}
@@ -221,22 +221,22 @@
 		min-height: 100dvh;
 		max-width: 1040px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + 24px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + var(--space-6)) var(--gutter-l);
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--space-4);
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.modes {
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
-		padding: 4px;
+		padding: var(--space-1);
 		border-radius: 14px;
-		gap: 2px;
+		gap: var(--space-px);
 	}
 	.modes button {
 		border: 0;
@@ -274,14 +274,14 @@
 		position: relative;
 		display: grid;
 		place-items: center;
-		gap: 4px;
+		gap: var(--space-1);
 		min-height: 180px;
 		border-radius: var(--r-m);
 		border: 1.5px dashed var(--hairline);
 		text-align: center;
 		cursor: pointer;
 		overflow: hidden;
-		padding: 12px;
+		padding: var(--space-3);
 	}
 	.drop img {
 		max-width: 100%;
@@ -297,13 +297,13 @@
 	.results {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.cand {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
-		padding: 12px 14px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		border-radius: var(--r-m);
 		text-align: left;
 		cursor: pointer;
@@ -329,7 +329,7 @@
 		font-size: 14px;
 		font-weight: 700;
 		color: #fff;
-		margin-top: 2px;
+		margin-top: var(--space-px);
 	}
 	.on .check {
 		background: var(--accent-2);
@@ -354,7 +354,7 @@
 		font-size: 0.6875rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		padding: 2px 7px;
+		padding: var(--space-px) var(--space-2);
 		border-radius: 999px;
 		background: var(--hairline);
 	}
@@ -363,24 +363,24 @@
 	}
 	.listen {
 		flex: none;
-		padding: 6px;
+		padding: var(--space-1h);
 		cursor: pointer;
 	}
 	.packname {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
-		padding: 10px 12px;
+		gap: var(--space-px);
+		padding: var(--space-3) var(--space-3);
 		border-radius: var(--r-m);
 		background: color-mix(in srgb, var(--accent-2) 10%, transparent);
 	}
 	.tags {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--space-1);
 	}
 	.empty {
-		padding: 16px;
+		padding: var(--space-4);
 		border-radius: var(--r-m);
 	}
 </style>

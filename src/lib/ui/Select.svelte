@@ -30,7 +30,7 @@
 		font-size: var(--text-callout);
 		line-height: 1.2;
 		height: var(--control-md);
-		padding: 0 calc(var(--space-3) + 20px) 0 var(--space-3);
+		padding: 0 calc(var(--space-3) + var(--space-5)) 0 var(--space-3);
 		border-radius: var(--radius-md);
 		border: var(--hairline-w) solid var(--color-border);
 		background: var(--color-surface-strong);
@@ -49,7 +49,7 @@
 		top: 50%;
 		width: 12px;
 		height: 12px;
-		margin-top: -6px;
+		margin-top: calc(-1 * var(--space-1h));
 		pointer-events: none;
 		background: var(--color-text-2);
 		-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;

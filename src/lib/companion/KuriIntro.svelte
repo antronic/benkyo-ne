@@ -104,7 +104,7 @@
 		top: 32%;
 		width: 60px;
 		height: 60px;
-		margin: -30px;
+		margin: -30px; /* ui-ok: centres the 60px orb on its point */
 		border-radius: 50%;
 		opacity: 0;
 	}
@@ -184,7 +184,7 @@
 		top: 58%;
 		text-align: center;
 		display: grid;
-		gap: 6px;
+		gap: var(--space-1h);
 	}
 	.lines > * {
 		opacity: 0;
@@ -244,7 +244,7 @@
 		font: inherit;
 		font-size: var(--text-footnote);
 		border-radius: var(--radius-pill);
-		padding: 6px 14px;
+		padding: var(--space-1h) var(--space-4);
 		min-height: 32px;
 		cursor: pointer;
 	}

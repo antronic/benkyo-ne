@@ -136,7 +136,7 @@
 
 				{#if mode === 'create'}
 					{#if canCreate}
-						<form class="stack" style:--gap="10px" onsubmit={(e) => (e.preventDefault(), create())}>
+						<form class="stack" style:--gap="var(--space-3)" onsubmit={(e) => (e.preventDefault(), create())}>
 							{#if needInvite}
 								<p class="caption">{t('welcome.inviteOnly')}</p>
 								<input type="text" placeholder={t('welcome.invite')} bind:value={invite} maxlength="20" autocomplete="off" autocapitalize="characters" aria-label={t('welcome.invite')} />
@@ -159,7 +159,7 @@
 					{#if ai.appleEnabled}<AppleButton label={t('welcome.signInApple')} disabled={busy} />{/if}
 					<button class="link" onclick={() => ((mode = 'recover'), (error = ''))}>{t('welcome.lost')}</button>
 				{:else}
-					<form class="stack" style:--gap="10px" onsubmit={(e) => (e.preventDefault(), recover())}>
+					<form class="stack" style:--gap="var(--space-3)" onsubmit={(e) => (e.preventDefault(), recover())}>
 						<input type="text" placeholder={t('welcome.code')} bind:value={code} autocomplete="off" autocapitalize="characters" aria-label={t('welcome.code')} />
 						<button class="btn accent block" disabled={busy || !code.trim()}>{t('welcome.recover')}</button>
 					</form>
@@ -184,7 +184,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: calc(var(--safe-top) + 16px) max(20px, var(--safe-right)) calc(var(--safe-bottom) + 20px) max(20px, var(--safe-left));
+		padding: calc(var(--safe-top) + var(--space-4)) max(var(--space-5), var(--safe-right)) calc(var(--safe-bottom) + var(--space-5)) max(var(--space-5), var(--safe-left));
 		background: var(--bg);
 		overflow-y: auto;
 	}
@@ -209,7 +209,7 @@
 		max-width: 420px;
 		display: flex;
 		flex-direction: column;
-		gap: 18px;
+		gap: var(--space-5);
 		margin: auto;
 	}
 	.hero {
@@ -217,10 +217,10 @@
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.hero h2 {
-		margin: 6px 0 0;
+		margin: var(--space-1h) 0 0;
 	}
 	.hero p {
 		margin: 0;
@@ -265,8 +265,8 @@
 		}
 	}
 	.beta {
-		margin-top: 4px;
-		padding: 2px 10px;
+		margin-top: var(--space-1);
+		padding: var(--space-px) var(--space-3);
 		border-radius: 999px;
 		font-size: 0.6875rem;
 		font-weight: 800;
@@ -277,8 +277,8 @@
 	.card {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 16px;
+		gap: var(--space-3);
+		padding: var(--space-4);
 		border-radius: 24px;
 	}
 	.card p {
@@ -286,7 +286,7 @@
 	}
 	.seg {
 		display: flex;
-		padding: 2px;
+		padding: var(--space-px);
 		border-radius: 10px;
 		background: color-mix(in srgb, var(--ink) 8%, transparent);
 	}
@@ -315,7 +315,7 @@
 		font-size: 1.0625rem;
 		height: 50px;
 		min-height: 50px;
-		padding: 0 16px;
+		padding: 0 var(--space-4);
 		border-radius: 14px;
 		border: 0.5px solid var(--hairline);
 		background: var(--glass-strong);
@@ -329,7 +329,7 @@
 	}
 	.row {
 		display: flex;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.grow {
 		flex: 1;
@@ -339,7 +339,7 @@
 		font-size: 1.125rem;
 		letter-spacing: 0.05em;
 		text-align: center;
-		padding: 12px;
+		padding: var(--space-3);
 		border-radius: 12px;
 		background: color-mix(in srgb, var(--warn) 16%, transparent);
 		word-break: break-all;
@@ -350,7 +350,7 @@
 		background: none;
 		font: inherit;
 		cursor: pointer;
-		padding: 6px;
+		padding: var(--space-1h);
 	}
 	.link {
 		color: var(--accent-2);
@@ -364,7 +364,7 @@
 	.or {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--space-3);
 		color: var(--ink-2);
 		font-size: 0.8125rem;
 	}

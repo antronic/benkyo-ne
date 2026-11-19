@@ -25,8 +25,8 @@
 		border: 0;
 		background: none;
 		color: inherit;
-		width: 34px;
-		height: 30px;
+		width: 36px;
+		height: 32px;
 		font-size: 20px;
 		cursor: pointer;
 	}

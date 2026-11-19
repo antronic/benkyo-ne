@@ -78,7 +78,7 @@
 	</header>
 
 	{#if !pack && !missing}
-		<div class="stack" style:--gap="12px" style="margin-top:20px"><Skeleton variant="card" count={1} label={t('pack.opening')} /><Skeleton variant="line" count={2} /></div>
+		<div class="stack" style:--gap="var(--space-3)" style="margin-top:var(--space-5)"><Skeleton variant="card" count={1} label={t('pack.opening')} /><Skeleton variant="line" count={2} /></div>
 	{:else if missing}
 		<p class="subhead">{t('pack.missing')}</p>
 	{:else if pack && item}
@@ -132,15 +132,15 @@
 		min-height: 100dvh;
 		max-width: 1040px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 20px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--space-5)) var(--gutter-l);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.bar {
 		flex: 1;
@@ -179,7 +179,7 @@
 	.back {
 		width: 100%;
 		max-width: 440px;
-		padding: 16px;
+		padding: var(--space-4);
 		border-radius: var(--r-l);
 	}
 </style>

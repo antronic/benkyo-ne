@@ -43,7 +43,7 @@
 		font: inherit;
 		width: 100%;
 		min-height: var(--field-h);
-		padding: 0 18px;
+		padding: 0 var(--space-5);
 		border-radius: var(--radius-control);
 		border: var(--hairline-w) solid var(--color-border);
 		background: var(--color-surface-strong);

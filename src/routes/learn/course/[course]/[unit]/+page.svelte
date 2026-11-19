@@ -86,7 +86,7 @@
 </script>
 
 {#if !course || !unit}
-	<main class="page"><h1 class="large-title">{t('unit.notFound')}</h1><a href="/learn">{t('unit.backToLearn')}</a></main>
+	<main class="page stack"><h1 class="large-title">{t('unit.notFound')}</h1><a href="/learn">{t('unit.backToLearn')}</a></main>
 {:else}
 	<main class="unit-page" style:--h={course.hue}>
 		<header class="top">
@@ -108,7 +108,7 @@
 				<li class="glass item rise" style:--i={i} class:have>
 					<button class="say" aria-label={t('a11y.listenTo', { text: c.reading })} onclick={() => speak(c.reading)}>🔊</button>
 					<div class="body">
-						<div class="row" style:--gap="8px">
+						<div class="row" style:--gap="var(--space-2)">
 							<span class="jp reading">{c.reading}</span>
 							{#if c.kind === 'phrase'}<span class="tag">{t('card.phrase')}</span>{/if}
 							{#if !c.verified}<span class="tag warn">{t('card.unverified')}</span>{/if}
@@ -151,13 +151,13 @@
 		min-height: 100dvh;
 		max-width: 760px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 200px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + 200px) var(--gutter-l); /* ui-ok: 200px clears the fixed start bar */
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		margin-bottom: 14px;
+		gap: var(--space-3);
+		margin-bottom: var(--space-4);
 	}
 	.items {
 		list-style: none;
@@ -165,13 +165,13 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.item {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
-		padding: 12px 14px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		border-radius: var(--r-m);
 	}
 	.item.have {
@@ -193,7 +193,7 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--space-px);
 	}
 	.reading {
 		font-size: 1.375rem;
@@ -216,7 +216,7 @@
 		font-size: 0.6875rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		padding: 2px 7px;
+		padding: var(--space-px) var(--space-2);
 		border-radius: 999px;
 		background: var(--hairline);
 	}
@@ -231,16 +231,16 @@
 		bottom: calc(var(--safe-bottom) + 12px);
 		max-width: 560px;
 		margin: 0 auto;
-		padding: 12px;
+		padding: var(--space-3);
 		border-radius: var(--r-l);
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.now {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 		justify-content: space-between;
 	}
 	.center {

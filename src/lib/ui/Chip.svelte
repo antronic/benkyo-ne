@@ -29,7 +29,7 @@
 		align-items: center;
 		gap: var(--space-1h);
 		min-height: var(--control-sm);
-		padding: 0 14px;
+		padding: 0 var(--space-4);
 		border: var(--hairline-w) solid var(--color-border);
 		border-radius: var(--radius-pill);
 		background: var(--color-surface);

@@ -36,7 +36,7 @@
 
 <svelte:head><title>System · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-3)">
 	<LargeTitle title="System" />
 
 	{#if error}
@@ -47,7 +47,7 @@
 		<h2 class="eyebrow section">Deployed</h2>
 		<div class="glass group">
 			<div class="item">
-				<span class="stack" style:--gap="2px" style:min-width="0">
+				<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 					<span>Worker</span>
 					<span class="caption ellipsis">{s.worker ? `${s.worker.tag ?? s.worker.id}` : 'Local dev, no version metadata'}</span>
 				</span>
@@ -57,7 +57,7 @@
 				<span>App build</span><span class="spacer"></span><span class="caption">{appBuilt}</span>
 			</div>
 			<div class="item">
-				<span class="stack" style:--gap="2px" style:min-width="0">
+				<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 					<span>Database migrations</span>
 					<span class="caption wrap">
 						{#if s.migrations.applied}Last applied {s.migrations.applied}{#if s.migrations.appliedAt}, {when(s.migrations.appliedAt)}{/if}{:else}No migration record{/if}
@@ -74,7 +74,7 @@
 			{#each s.checks as c (c.name)}
 				<div class="item">
 					<span class="dot" class:bad={!c.ok} aria-hidden="true"></span>
-					<span class="stack" style:--gap="2px" style:min-width="0">
+					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 						<span>{c.name}</span>
 						<span class="caption">{c.detail}</span>
 					</span>
@@ -89,7 +89,7 @@
 			<div class="item"><span>Accounts with their own AI key</span><span class="spacer"></span><b class="num">{s.ai.accountsWithKey}</b></div>
 			{#each s.ai.featureModels as m (m.feature + m.model)}
 				<div class="item">
-					<span class="stack" style:--gap="2px" style:min-width="0">
+					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 						<span>{FEATURES[m.feature] ?? m.feature}</span>
 						<span class="caption ellipsis">{m.model}</span>
 					</span>

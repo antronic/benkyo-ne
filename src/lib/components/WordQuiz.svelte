@@ -159,7 +159,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 14px;
+		gap: var(--space-4);
 		width: 100%;
 	}
 	.front,
@@ -171,8 +171,8 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		padding: 18px;
+		gap: var(--space-1h);
+		padding: var(--space-5);
 		cursor: pointer;
 		text-align: center;
 	}
@@ -187,7 +187,7 @@
 	.back {
 		width: 100%;
 		max-width: 440px;
-		padding: 16px;
+		padding: var(--space-4);
 		border-radius: var(--r-l);
 	}
 	.back.wrong {
@@ -196,12 +196,12 @@
 			var(--glass-shadow);
 	}
 	.verdict {
-		margin: 0 0 6px;
+		margin: 0 0 var(--space-1h);
 	}
 	.choices {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 8px;
+		gap: var(--space-2);
 		width: 100%;
 		max-width: 440px;
 	}
@@ -210,7 +210,7 @@
 		font-size: 1.0625rem;
 		font-weight: 600;
 		cursor: pointer;
-		padding: 8px 14px;
+		padding: var(--space-2) var(--space-4);
 		transition: transform 380ms var(--spring);
 	}
 	.choice:active {

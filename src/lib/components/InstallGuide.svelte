@@ -33,7 +33,7 @@
 <Sheet open={install.showGuide} label={t('install.title')} onclose={() => (install.showGuide = false)}>
 	{#snippet header()}
 		<div class="head">
-			<div class="stack" style:--gap="2px">
+			<div class="stack" style:--gap="var(--space-px)">
 				<div class="title-2">{t('install.title')}</div>
 				<div class="caption">{t('install.lead')}</div>
 			</div>
@@ -48,7 +48,7 @@
 		<Notice tone="success" title={t('install.doneTitle')}>{t('install.doneBody')}</Notice>
 	{:else if install.canPrompt}
 		<div class="quick glass">
-			<div class="stack" style:--gap="2px">
+			<div class="stack" style:--gap="var(--space-px)">
 				<div class="headline">{t('install.quickTitle')}</div>
 				<div class="caption">{t('install.quickBody')}</div>
 			</div>
@@ -79,7 +79,7 @@
 				<InstallArt kind={s.art} label={s.artLabel ? t(s.artLabel) : ''} />
 				<div class="text">
 					<span class="num" aria-hidden="true">{n + 1}</span>
-					<div class="stack" style:--gap="2px">
+					<div class="stack" style:--gap="var(--space-px)">
 						<div class="headline">{t(s.title)}</div>
 						{#if s.body}<div class="caption body">{t(s.body)}</div>{/if}
 					</div>
@@ -101,20 +101,20 @@
 		font-size: 0.9375rem;
 		font-weight: 600;
 		min-height: 32px;
-		padding: 4px 8px;
+		padding: var(--space-1) var(--space-2);
 		cursor: pointer;
 	}
 	.content {
 		flex: none;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.head {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
-		padding: 4px 4px 10px;
+		gap: var(--space-3);
+		padding: var(--space-1) var(--space-1) var(--space-3);
 	}
 	.head .link {
 		margin-left: auto;
@@ -123,8 +123,8 @@
 	.quick {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 14px 16px;
+		gap: var(--space-3);
+		padding: var(--space-4) var(--space-4);
 		border-radius: var(--radius-card);
 	}
 	.quick :global(.btn) {
@@ -133,10 +133,10 @@
 	}
 	.chips {
 		display: flex;
-		gap: 8px;
+		gap: var(--space-2);
 		overflow-x: auto;
-		padding: 2px 2px 4px;
-		margin: 0 -2px;
+		padding: var(--space-px) var(--space-px) var(--space-1);
+		margin: 0 calc(-1 * var(--space-px));
 		scrollbar-width: none;
 	}
 	.chips :global(.chip) {
@@ -147,14 +147,14 @@
 		font-size: var(--text-footnote);
 	}
 	.sub {
-		margin: 4px 6px 0;
+		margin: var(--space-1) var(--space-1h) 0;
 	}
 	.steps {
 		list-style: none;
 		margin: 0;
 		padding: 0;
 		display: grid;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	@media (min-width: 520px) {
 		.steps {
@@ -162,17 +162,17 @@
 		}
 	}
 	.step {
-		padding: 10px;
+		padding: var(--space-3);
 		border-radius: var(--radius-card);
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.text {
 		display: flex;
-		gap: 10px;
+		gap: var(--space-3);
 		align-items: flex-start;
-		padding: 0 4px 4px;
+		padding: 0 var(--space-1) var(--space-1);
 	}
 	.num {
 		flex: none;
@@ -190,7 +190,7 @@
 		color: var(--color-text-2);
 	}
 	.why {
-		margin: 2px 6px 8px;
+		margin: var(--space-px) var(--space-1h) var(--space-2);
 		color: var(--color-text-2);
 	}
 </style>

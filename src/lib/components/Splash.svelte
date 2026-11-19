@@ -50,7 +50,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 18px;
+		gap: var(--space-5);
 		background: radial-gradient(120% 80% at 50% 30%, color-mix(in srgb, var(--accent) 22%, var(--bg)), var(--bg) 70%);
 	}
 	.tile {

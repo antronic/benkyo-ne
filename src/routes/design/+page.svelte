@@ -325,11 +325,7 @@
 <style>
 	.catalog {
 		--panel-max: 640px;
-	}
-	@media (min-width: 600px) {
-		.catalog > :global(*) {
-			max-width: 1280px;
-		}
+		--page-max: 1280px;
 	}
 	.intro {
 		margin: 0;
@@ -565,7 +561,7 @@
 		grid-row: 1 / span 2;
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--space-px);
 		min-width: 0;
 	}
 	.spec {
@@ -575,7 +571,7 @@
 	.replay {
 		grid-column: 2;
 		justify-self: center;
-		min-height: 30px;
+		min-height: 32px;
 	}
 	.stage {
 		position: relative;
@@ -588,7 +584,7 @@
 		place-items: center;
 	}
 	.d-btn {
-		padding: 6px 14px;
+		padding: var(--space-1h) var(--space-4);
 		border-radius: var(--radius-pill);
 		background: var(--color-accent);
 		color: var(--color-on-accent);
@@ -606,8 +602,8 @@
 	.demo-rise {
 		display: flex;
 		flex-direction: column;
-		gap: 5px;
-		padding: 10px;
+		gap: var(--space-1h);
+		padding: var(--space-3);
 		place-items: stretch;
 	}
 	.d-card {
@@ -673,7 +669,7 @@
 		from { transform: translateY(100%); }
 	}
 	.d-toast {
-		padding: 6px 12px;
+		padding: var(--space-1h) var(--space-3);
 		border-radius: var(--radius-pill);
 		background: var(--color-surface-strong);
 		box-shadow: var(--shadow-surface);
@@ -738,7 +734,7 @@
 		from { width: 20%; }
 	}
 	.d-field {
-		padding: 6px 14px;
+		padding: var(--space-1h) var(--space-4);
 		border-radius: var(--radius-sm);
 		border: 1px solid var(--color-danger);
 		background: var(--color-surface-strong);
