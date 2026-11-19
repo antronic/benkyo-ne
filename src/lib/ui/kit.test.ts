@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { kitCoverage, lintComponent } from '../../../scripts/check-ui.mjs';
+import { kitCoverage, lintComponent, lintSpin } from '../../../scripts/check-ui.mjs';
 
 const rules = (src: string) => lintComponent(src, 'x.svelte').map((p) => `${p.line}:${p.rule}`);
 
@@ -33,6 +34,22 @@ describe('UI kit lint (scripts/check-ui.mjs)', () => {
 		expect(rules(busy)).toEqual([]);
 		const local = '<script>\n\tonMount(async () => (x = await meta.get("k"))); // ui-ok: instant local read\n</script>';
 		expect(rules(local)).toEqual([]);
+	});
+
+	it('flags full-turn spins on an element box (they wobble in Safari)', () => {
+		const spin = (src: string) => lintSpin(src, 'x.svelte').map((p) => `${p.line}:${p.rule}`);
+		expect(spin('@keyframes spin {\n\tto { transform: rotate(1turn); }\n}')).toEqual(['2:spin-box']);
+		expect(spin('to { transform: rotate( 360deg ) }')).toEqual(['1:spin-box']);
+		expect(spin('to { transform: rotate(-1turn); } /* spin-ok: inside an svg */')).toEqual([]);
+		// Small tilts and 3D turns are not spinners.
+		expect(spin('50% { transform: scale(1.1) rotate(6deg); }\nto { transform: rotateY(360deg); }')).toEqual([]);
+	});
+
+	it('the Spinner turns an SVG <g> around its centre, not its own box', () => {
+		const src = readFileSync(new URL('./Spinner.svelte', import.meta.url), 'utf8');
+		expect(src).toMatch(/<g class="turn">/);
+		expect(src).toMatch(/\.turn \{[^}]*transform-origin: 12px 12px;[^}]*animation: spinner-turn/);
+		expect(src).not.toMatch(/\.(ring|spinner) \{[^}]*animation:/);
 	});
 
 	it('every kit component is exported and shown on /design', () => {
