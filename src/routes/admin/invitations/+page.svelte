@@ -68,7 +68,7 @@
 		}
 	}
 
-	const live = (i: AdminInvite) => !i.revokedAt && i.uses < i.maxUses && (!i.expiresAt || i.expiresAt > Date.now());
+	const live = (i: AdminInvite) => !i.revokedAt && !i.usedUp && (!i.expiresAt || i.expiresAt > Date.now());
 	const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 	const vips = $derived((invites ?? []).filter((i) => i.card));
 	const codes = $derived((invites ?? []).filter((i) => !i.card));
@@ -210,6 +210,9 @@
 	}
 	const usage = (inv: AdminInvite) =>
 		`${inv.uses} of ${inv.maxUses} used · ${inv.revokedAt ? 'revoked' : inv.expiresAt && inv.expiresAt <= Date.now() ? 'expired' : inv.expiresAt ? `until ${shortDay(inv.expiresAt)}` : 'no expiry'}`;
+	/** the promo code's redemptions against its limit, for a VIP that has one */
+	const couponUsage = (inv: AdminInvite) =>
+		inv.coupon && inv.couponUses !== null ? `${inv.coupon}: ${inv.couponUses} of ${inv.couponMaxUses ?? '∞'} redeemed` : '';
 </script>
 
 <svelte:head><title>Invitations · Fleet</title></svelte:head>
@@ -235,12 +238,14 @@
 							<span class="row" style:gap="var(--space-2)">
 								<span class="code">{inv.code}</span>
 								{#if inv.coupon}<Badge tone="violet">{inv.coupon}</Badge>{:else}<Badge>No promo code</Badge>{/if}
+								{#if inv.usedUp && !inv.revokedAt}<Badge tone="warning">Used up</Badge>{/if}
 							</span>
 							<span class="note">“{inv.card?.note}”{inv.card?.from ? ` · ${inv.card.from}` : ''}{inv.card?.ink ? ' · ✍️ drawing' : ''}</span>
-							<span class="caption">{inv.label ? `${inv.label} · ` : ''}{usage(inv)}</span>
+							<span class="caption">{inv.label ? `${inv.label} · ` : ''}{usage(inv)}{couponUsage(inv) ? ` · ${couponUsage(inv)}` : ''}</span>
+							{#if inv.usedUp === 'coupon' && !inv.revokedAt}<span class="caption">Off: its promo code has no redemptions left. Raise the code’s limit or pick another code to turn it back on.</span>{:else if inv.usedUp === 'invite' && !inv.revokedAt}<span class="caption">Off: every use is taken. The link now says the invite is full.</span>{/if}
 							<span class="row actions">
 								{#if live(inv)}<Button size="sm" variant="ghost" onclick={() => copy(inv.code, true)}>Copy link</Button>{/if}
-								{#if live(inv)}<Button size="sm" variant="ghost" onclick={() => openVip(inv)} disabled={busy}>Edit</Button>{/if}
+								{#if !inv.revokedAt}<Button size="sm" variant="ghost" onclick={() => openVip(inv)} disabled={busy}>Edit</Button>{/if}
 								{#if !inv.revokedAt}<Button size="sm" variant="ghost-danger" onclick={() => revoke(inv)} busy={pending === `revoke:${inv.code}`} disabled={busy}>Revoke</Button>{/if}<Button size="sm" variant="ghost-danger" onclick={() => remove(inv)} busy={pending === `delete:${inv.code}`} disabled={busy}>Delete</Button>
 							</span>
 						</div>
@@ -268,7 +273,7 @@
 					{#each codes as inv (inv.code)}
 						<div class="item" class:gone={!live(inv)}>
 							<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
-								<span class="code">{inv.code}</span>
+								<span class="row" style:gap="var(--space-2)"><span class="code">{inv.code}</span>{#if inv.usedUp && !inv.revokedAt}<Badge tone="warning">Used up</Badge>{/if}</span>
 								<span class="caption">{inv.label ? `${inv.label} · ` : ''}{usage(inv)}</span>
 							</span>
 							<span class="spacer"></span>

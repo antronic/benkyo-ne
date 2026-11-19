@@ -11,6 +11,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import * as api from '#lib/ai/client.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
+	import { avatar } from '#lib/state/avatar.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { strokesOf } from '#lib/content/strokes.ts';
@@ -56,6 +57,8 @@
 		if (!r) return;
 		clearPendingInvite();
 		haptic('success');
+		// the avatar step follows the recovery code and the beta consent (docs/AVATAR.md)
+		avatar.afterSignup = true;
 		await ai.refresh();
 		if (r.recoveryCode) recoveryCode = r.recoveryCode;
 		else finish();

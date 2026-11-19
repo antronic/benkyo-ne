@@ -55,7 +55,8 @@ export const COLLECTED: ConsentSection[] = [
 		items: [
 			'Error messages and where in the app they happened',
 			'Failed requests (which address, status and message, never what you typed into a form)',
-			'Screens you open, when the app opens or goes to the background, settings you change'
+			'Screens you open, when the app opens or goes to the background, settings you change',
+			'The avatar parts you save (like “bob, round glasses”) and whether you used a selfie or picked them yourself. Never the photo'
 		]
 	}
 ];
@@ -63,7 +64,8 @@ export const COLLECTED: ConsentSection[] = [
 export const NEVER_COLLECTED: string[] = [
 	'Your AI API keys. They stay encrypted and are never part of usage data',
 	'Your passkey or recovery code',
-	'Your email, contacts, photos, exact location, or anything outside Benkyo'
+	'Your email, contacts, photos, exact location, or anything outside Benkyo',
+	'Your selfie. It is read on your phone to suggest avatar parts, never uploaded, and gone once the avatar is made'
 ];
 
 export const HOW_USED: string[] = [

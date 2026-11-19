@@ -87,7 +87,15 @@ export function normalizeInvite(raw: unknown): string | null {
 /** A name that would be read as a random code (8 letters and digits, or BK + 8). */
 export const isRandomShape = (code: string) => /^BK-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(code);
 
-const VALID = `deleted_at IS NULL AND revoked_at IS NULL AND uses < max_uses AND (expires_at IS NULL OR expires_at > ?2)`;
+/**
+ * SQL on invite_codes: every use is taken, the invite's own or, for a VIP with a
+ * promo code, the code's last redemption (Job, 2026-11-19: a VIP turns off once
+ * its quota is used). Raising either limit turns it back on.
+ */
+export const INVITE_USED_UP = `(invite_codes.uses >= invite_codes.max_uses OR EXISTS (SELECT 1 FROM promo_codes pc WHERE pc.code = invite_codes.coupon AND pc.max_uses IS NOT NULL AND pc.uses >= pc.max_uses))`;
+/** SQL on invite_codes: the invite can still be used at ?2. */
+export const INVITE_VALID = `invite_codes.deleted_at IS NULL AND invite_codes.revoked_at IS NULL AND NOT ${INVITE_USED_UP} AND (invite_codes.expires_at IS NULL OR invite_codes.expires_at > ?2)`;
+const VALID = INVITE_VALID;
 
 /** Throws 403 unless the code exists and still has a use left. */
 export async function checkInvite(env: Env, code: string | null) {

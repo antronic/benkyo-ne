@@ -46,7 +46,7 @@ person counts once, and the server decides (a hidden bar is not a check).
 | `GET /api/admin/feedback` | totals, the 100 subjects with the most open reports then thumbs down, the 100 oldest open reports |
 | `POST /api/admin/feedback/report {id, status}` | `fixed`, `dismissed` or `open`; audited as `feedback.<status>` |
 
-Tables (migration `0019_content_feedback.sql`): `content_votes` (one row per
+Tables (migration `0020_content_feedback.sql`): `content_votes` (one row per
 subject and account) and `content_reports`. `label` is what the learner saw the
 item called, kept only for Fleet. Limits per account per day: 500 votes, 30
 reports (`FEEDBACK_LIMITS`). The daily cron deletes reports handled more than

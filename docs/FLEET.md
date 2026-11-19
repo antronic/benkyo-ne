@@ -195,6 +195,14 @@ a card needs a name, a promo code needs a card). Edit changes the card and the p
 checks the shape and size) and `coupon` (the promo code as stored; migration 0017). A VIP is an
 invite with a card; `GET /api/admin/invites` lists them all.
 
+**Used up.** A VIP turns itself off once its quota is used: every use of the invite is taken, or
+its promo code has no redemptions left (`INVITE_USED_UP` in `worker/auth/signup.ts`, used by
+sign-up and the card). Nothing is stored: raising either limit, or picking another promo code in
+Edit, turns it back on. Fleet shows a "Used up" badge, the invite's uses and the promo code's
+redemptions against their limits (`AdminInvite.usedUp`, `couponUses`, `couponMaxUses`). The link
+answers 410 with `reason: 'full'`, and the app says the invite is full and opens sign-up without
+filling in the code (revoked, expired or deleted say it has ended).
+
 **Deleting.** VIPs and invite codes have Delete next to Revoke (`POST /api/admin/invites/:code/delete`,
 step-up, a confirm dialog, audited `invite.delete` with `{code, vip, uses}`); promo codes have
 "Delete this code" on their sheet (`DELETE /api/admin/promos/:code`, step-up, confirm, audited

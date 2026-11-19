@@ -8,6 +8,14 @@ import { CommunityRequestError } from './client.ts';
 import { GUIDELINES_VERSION, type Me, type Post, type Reply } from './contract.ts';
 
 const DAY = 86_400_000;
+/** made-up avatars for the made-up learners (src/lib/avatar/person.ts parts) */
+const AVATARS: Record<string, Post['avatar']> = {
+	sakura_learns: { hair: 'bob', hairColor: 'black', skin: 's2', eyes: 'happy' },
+	'mai.th': { hair: 'long', hairColor: 'dark', skin: 's5', glasses: 'round', cloth: 'sumire' },
+	kenji_92: { hair: 'short', hairColor: 'black', skin: 's3', cloth: 'matcha' },
+	ren_studies: null,
+	you_learn: { hair: 'curly', skin: 's6', cloth: 'shu' }
+};
 
 export function fakeCommunity({ joined = true, empty = false, fail = false } = {}): CommunityApi {
 	let me: Me = joined
@@ -23,6 +31,7 @@ export function fakeCommunity({ joined = true, empty = false, fail = false } = {
 		body,
 		lang,
 		handle,
+		avatar: AVATARS[handle] ?? null,
 		mine: false,
 		liked: false,
 		likes,
@@ -42,10 +51,10 @@ export function fakeCommunity({ joined = true, empty = false, fail = false } = {
 	let mine: Post | null = null;
 	const replies: Record<number, Reply[]> = {
 		1: [
-			{ id: 11, postId: 1, body: 'This helped a lot, thanks!', lang: 'en', handle: 'mai.th', mine: false, liked: false, likes: 1, status: 'published', createdAt: now - 2 * DAY },
-			{ id: 12, postId: 1, body: 'And 月 is the moon, same idea.', lang: 'en', handle: 'kenji_92', mine: false, liked: false, likes: 0, status: 'published', createdAt: now - DAY }
+			{ id: 11, postId: 1, body: 'This helped a lot, thanks!', lang: 'en', handle: 'mai.th', avatar: AVATARS['mai.th'] ?? null, mine: false, liked: false, likes: 1, status: 'published', createdAt: now - 2 * DAY },
+			{ id: 12, postId: 1, body: 'And 月 is the moon, same idea.', lang: 'en', handle: 'kenji_92', avatar: AVATARS['kenji_92'] ?? null, mine: false, liked: false, likes: 0, status: 'published', createdAt: now - DAY }
 		],
-		3: [{ id: 13, postId: 3, body: 'So Japan is the land of the rising sun!', lang: 'en', handle: 'ren_studies', mine: false, liked: false, likes: 0, status: 'published', createdAt: now - 6 * DAY }]
+		3: [{ id: 13, postId: 3, body: 'So Japan is the land of the rising sun!', lang: 'en', handle: 'ren_studies', avatar: AVATARS['ren_studies'] ?? null, mine: false, liked: false, likes: 0, status: 'published', createdAt: now - 6 * DAY }]
 	};
 	const wait = <T>(v: T, ms = 450) => new Promise<T>((r) => setTimeout(() => r(v), ms));
 	const failing = () => new Promise<never>((_, no) => setTimeout(() => no(new CommunityRequestError(0, 'network', 'network')), 450));
@@ -68,7 +77,7 @@ export function fakeCommunity({ joined = true, empty = false, fail = false } = {
 			return wait({ ok: true as const });
 		},
 		postReply: async (postId: number, body: string, lang) =>
-			wait({ id: nextId++, postId, body, lang, handle: me.profile?.handle ?? 'you_learn', mine: true, liked: false, likes: 0, status: 'published' as const, createdAt: Date.now() }),
+			wait({ id: nextId++, postId, body, lang, handle: me.profile?.handle ?? 'you_learn', avatar: AVATARS.you_learn ?? null, mine: true, liked: false, likes: 0, status: 'published' as const, createdAt: Date.now() }),
 		deleteReply: async () => wait({ ok: true as const }),
 		setLike: async (_kind, id: number, on: boolean) => {
 			const p = posts.find((x) => x.id === id);

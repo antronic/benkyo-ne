@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  # @antronic/coreva-render comes from GitHub Packages (.npmrc, docs/AVATAR.md)
+  packages: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -31,7 +33,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # The repository secret PACKAGES_TOKEN (read:packages; GitHub forbids GITHUB_ names) installs the avatar engine.
+      # Without it, GITHUB_TOKEN works once the package grants this repository Actions access.
       - run: npm ci
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
       - run: npm run check
       - run: npm run lint:ui
       - run: npm test

@@ -14,7 +14,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { t, tn, fmtDate, i18n, type MessageKey } from '#lib/i18n/index.svelte.ts';
-	import { Badge, Button, Chip, IconButton, Notice, Skeleton, Spinner, TextArea, TextField } from '#lib/ui/index.ts';
+	import { Avatar, Badge, Button, Chip, IconButton, Notice, Skeleton, Spinner, TextArea, TextField } from '#lib/ui/index.ts';
 	import { AiRequestError } from '#lib/ai/client.ts';
 	import { cachedTranslation, saveTranslation, translationKey } from '#lib/community/translations.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
@@ -192,6 +192,7 @@
 
 <article class="cp {kind}" aria-label={t('community.by', { handle: item.handle })}>
 	<header class="row">
+		<Avatar person={item.avatar} name={item.handle} size={kind === 'reply' ? 24 : 32} label="" />
 		<span class="handle">@{item.handle}</span>
 		<span class="caption">{fmtDate(item.createdAt, { day: 'numeric', month: 'short' })}</span>
 		{#if item.mine}<Badge tone="neutral">{t('community.you')}</Badge>{/if}

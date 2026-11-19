@@ -9,6 +9,7 @@
  *   POST   /api/auth/login/verify      AuthenticationResponseJSON → Me + cookie
  *   POST   /api/auth/logout            → Me, cookie cleared
  *   GET    /api/auth/me                → Me
+ *   PUT    /api/auth/avatar            → Me (worker/avatar.ts)
  *   POST   /api/auth/recover {code}    → Me + cookie; the code is consumed
  *   GET    /api/auth/passkeys          → PasskeyInfo[]
  *   DELETE /api/auth/passkeys/:id      (not the last one)
@@ -34,6 +35,7 @@ import {
 } from '@simplewebauthn/server';
 import type { Me, PasskeyInfo } from '../../src/lib/ai/contract.ts';
 import { b64urlDecode, b64urlEncode, randomBytes, randomToken, sha256Hex } from '../crypto.ts';
+import { parseAvatar, putAvatar } from '../avatar.ts';
 import type { Env } from '../env.ts';
 import { aiError, cookieSecure, getCookie, httpError, isLocalhost, json, readJson } from '../http.ts';
 import { rateLimit } from '../ai/ledger.ts';
@@ -68,6 +70,9 @@ export interface Session {
 	isAdmin: boolean;
 	/** an Apple ID is connected to this account */
 	appleLinked: boolean;
+	/** accounts.avatar (JSON parts) and avatar_asked_at; undefined: not loaded yet, meOf reads them */
+	avatar?: string | null;
+	avatarAskedAt?: number | null;
 }
 
 // --------------------------------------------------------------- session ----
@@ -87,7 +92,7 @@ export async function getSession(req: Request, env: Env): Promise<Session | null
 	const tokenHash = await sha256Hex(token);
 	const row = await env.DB.prepare(
 		`SELECT s.token_hash AS tokenHash, s.passkey_id AS passkeyId, s.kind AS kind, s.user_id AS userId,
-		        a.name AS name, a.is_admin AS isAdmin, p.id AS livePasskey, ap.sub AS appleSub, s.apple_sub AS sessionAppleSub
+		        a.name AS name, a.is_admin AS isAdmin, a.avatar AS avatar, a.avatar_asked_at AS avatarAskedAt, p.id AS livePasskey, ap.sub AS appleSub, s.apple_sub AS sessionAppleSub
 		   FROM sessions s
 		   JOIN accounts a ON a.id = s.user_id AND a.disabled = 0
 		   LEFT JOIN passkeys p ON p.id = s.passkey_id AND p.user_id = s.user_id
@@ -115,7 +120,9 @@ export async function getSession(req: Request, env: Env): Promise<Session | null
 		userId: row.userId,
 		name: row.name,
 		isAdmin: !!row.isAdmin,
-		appleLinked: !!row.appleSub
+		appleLinked: !!row.appleSub,
+		avatar: row.avatar ?? null,
+		avatarAskedAt: row.avatarAskedAt ?? null
 	};
 }
 
@@ -154,6 +161,12 @@ export function sessionCookie(url: URL, value: string, maxAge: number) {
 
 export async function meOf(session: Session | null, env: Env): Promise<Me> {
 	const signup = await signupState(env);
+	if (session && (session.avatar === undefined || session.avatarAskedAt === undefined)) {
+		const a = await env.DB.prepare(`SELECT avatar, avatar_asked_at AS avatarAskedAt FROM accounts WHERE id = ?1`)
+			.bind(session.userId)
+			.first<{ avatar: string | null; avatarAskedAt: number | null }>();
+		session = { ...session, avatar: a?.avatar ?? null, avatarAskedAt: a?.avatarAskedAt ?? null };
+	}
 	return {
 		signedIn: !!session,
 		account: session
@@ -163,7 +176,9 @@ export async function meOf(session: Session | null, env: Env): Promise<Me> {
 					isAdmin: session.isAdmin,
 					recovery: session.kind === 'recovery',
 					via: session.kind,
-					appleLinked: session.appleLinked
+					appleLinked: session.appleLinked,
+					avatar: parseAvatar(session.avatar),
+					avatarAsked: !!session.avatarAskedAt || !!session.avatar
 				}
 			: null,
 		signupOpen: signup.open,
@@ -570,6 +585,7 @@ export async function handleAuth(req: Request, env: Env, path: string): Promise<
 		await deletePasskey(await requireSession(req, env), env, pk[1]);
 		return json({ ok: true });
 	}
+	if (path === '/api/auth/avatar' && m === 'PUT') return putAvatar(req, env);
 	if (path === '/api/auth/account') {
 		if (m === 'PATCH') return renameAccount(req, await requireSession(req, env), env);
 		if (m === 'DELETE') return deleteAccount(req, await requireSession(req, env), env);
