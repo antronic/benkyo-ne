@@ -1,7 +1,7 @@
 <!-- Fleet console: accounts list with search and paging. -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Button, LargeTitle, ListGroup, ListRow, Skeleton, Spinner, TextField } from '#lib/ui/index.ts';
+	import { Button, DataTable, LargeTitle, ListGroup, ListRow, Skeleton, Spinner, TextField, type DataColumn } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { AdminError, getPackages, listAccounts } from '#lib/admin/client.ts';
@@ -56,6 +56,13 @@
 		return `${Math.round(h / 24)} days ago`;
 	};
 	const usd = (n: number) => `$${n.toFixed(2)}`;
+	const COLUMNS: DataColumn[] = [
+		{ key: 'name', label: 'Account', width: '30%' },
+		{ key: 'plan', label: 'Package' },
+		{ key: 'status', label: 'Status' },
+		{ key: 'seen', label: 'Last seen' },
+		{ key: 'ai', label: 'AI this month', align: 'end' }
+	];
 </script>
 
 <svelte:head><title>Accounts · Fleet</title></svelte:head>
@@ -75,21 +82,15 @@
 	{:else if !rows.length}
 		<ListGroup><ListRow subtitle="No accounts match." /></ListGroup>
 	{:else}
-		<ListGroup>
-			{#each rows as a (a.id)}
-				<ListRow href="/admin/accounts/{a.id}">
-					<b class="name">{a.name} <span class="caption">#{a.id}</span></b>
-					<span class="caption">
-						Seen {ago(a.lastSeenAt)} · {usd(a.monthUsd)} of {usd(a.capUsd)} this month
-					</span>
-					{#snippet trailing()}
-						{#if a.plan !== 'free'}<span class="pill">{planNames[a.plan] ?? a.plan}</span>{/if}
-						{#if a.isAdmin}<span class="pill muted">Admin</span>{/if}
-						{#if a.disabled}<span class="pill off">Disabled</span>{:else if !a.consented}<span class="pill muted">No consent</span>{/if}
-					{/snippet}
-				</ListRow>
-			{/each}
-		</ListGroup>
+		<DataTable columns={COLUMNS} {rows} key={(a) => a.id} label="Accounts" href={(a) => `/admin/accounts/${a.id}`}>
+			{#snippet cell(a, c)}
+				{#if c.key === 'name'}<b class="name">{a.name}</b> <span class="caption">#{a.id}</span>
+				{:else if c.key === 'plan'}{#if a.plan !== 'free'}<span class="pill">{planNames[a.plan] ?? a.plan}</span>{:else}<span class="caption">Free</span>{/if}
+				{:else if c.key === 'status'}{#if a.disabled}<span class="pill off">Disabled</span>{:else if a.isAdmin}<span class="pill muted">Admin</span>{:else if !a.consented}<span class="pill muted">No consent</span>{:else}<span class="caption">Active</span>{/if}
+				{:else if c.key === 'seen'}<span class="caption">{ago(a.lastSeenAt)}</span>
+				{:else}<span class="num">{usd(a.monthUsd)}</span> <span class="caption">of {usd(a.capUsd)}</span>{/if}
+			{/snippet}
+		</DataTable>
 		{#if next !== null}
 			<Button variant="ghost" onclick={() => load(true)} busy={loading && more} disabled={loading}>{loading && more ? 'Loading…' : 'Show more'}</Button>
 		{/if}

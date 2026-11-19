@@ -34,3 +34,6 @@ export { default as Breadcrumbs } from './Breadcrumbs.svelte';
 export { default as MenuBar } from './MenuBar.svelte';
 export { default as SideNav } from './SideNav.svelte';
 export type { SideNavItem } from './SideNav.svelte';
+export { default as Columns } from './Columns.svelte';
+export { default as DataTable } from './DataTable.svelte';
+export type { DataColumn } from './DataTable.svelte';

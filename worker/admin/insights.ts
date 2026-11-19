@@ -59,7 +59,7 @@ async function usage(env: Env, days: number): Promise<AdminUsage> {
 	const now = Date.now();
 	const since = startOfUtcDay(now) - (days - 1) * DAY;
 	const q = (sql: string) => env.DB.prepare(sql).bind(since);
-	const [byDay, byFeature, byModel, top, failures] = await env.DB.batch<Record<string, never>>([
+	const [byDay, byFeature, byModel, top, failures, bySource, byPackage] = await env.DB.batch<Record<string, never>>([
 		q(
 			`SELECT strftime('%Y-%m-%d', at / 1000, 'unixepoch') AS day,
 			        COALESCE(SUM(CASE WHEN status = 'done' THEN cost_usd END), 0) AS usd,
@@ -85,6 +85,16 @@ async function usage(env: Env, days: number): Promise<AdminUsage> {
 			`SELECT l.at, l.feature, l.model, l.user_id AS accountId, a.name AS name
 			   FROM ai_ledger l LEFT JOIN accounts a ON a.id = l.user_id
 			  WHERE l.at >= ?1 AND l.status = 'failed' ORDER BY l.at DESC LIMIT 20`
+		),
+		q(
+			`SELECT source, COUNT(*) AS calls, SUM(cost_usd) AS usd
+			   FROM ai_ledger WHERE at >= ?1 AND status = 'done' GROUP BY source ORDER BY source`
+		),
+		q(
+			`SELECT l.plan_id AS planId, COALESCE(p.name, l.plan_id) AS name, COUNT(*) AS calls, SUM(l.cost_usd) AS usd,
+			        COUNT(DISTINCT l.user_id) AS accounts, COALESCE(p.ai_allowance_usd, 0) AS allowanceUsd
+			   FROM ai_ledger l LEFT JOIN plans p ON p.id = l.plan_id
+			  WHERE l.at >= ?1 AND l.status = 'done' AND l.source = 'package' GROUP BY l.plan_id ORDER BY usd DESC`
 		)
 	]);
 	const filled = fillUsageDays(byDay.results as never, now, days);
@@ -99,7 +109,9 @@ async function usage(env: Env, days: number): Promise<AdminUsage> {
 		byFeature: byFeature.results as never,
 		byModel: byModel.results as never,
 		topAccounts: top.results as never,
-		failures: failures.results as never
+		failures: failures.results as never,
+		bySource: bySource.results as never,
+		byPackage: byPackage.results as never
 	};
 }
 

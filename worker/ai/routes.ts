@@ -11,6 +11,8 @@
  *   PUT    /api/ai/features              {feature, credentialId, model} → FeatureModel
  *   GET    /api/ai/usage                 → Usage
  *   PUT    /api/ai/cap                   {capUsd} → Usage
+ *   GET    /api/ai/managed               → ManagedAi (the package's AI, allowance, which AI is in use)
+ *   PUT    /api/ai/managed               {prefer: 'package' | 'own'} → ManagedAi
  *   POST   /api/ai/propose               ProposeRequest → ProposeResponse
  *   POST   /api/ai/fill                  FillRequest → FillResponse
  *   POST   /api/ai/lesson                LessonRequest → LessonResponse
@@ -25,6 +27,7 @@ import { getUsage, setCap } from './ledger.ts';
 import { dropModelCache, featureModels, listAllModels, setFeatureModel, setManualPrice } from './models.ts';
 import { handleGenerate } from './run.ts';
 import { handleAskStream } from './ask.ts';
+import { managedStatus, setPreference } from './managed.ts';
 import { requireConsent } from '../beta/routes.ts';
 
 export async function handleAi(req: Request, env: Env, ctx: ExecutionContext, url: URL): Promise<Response> {
@@ -68,6 +71,13 @@ export async function handleAi(req: Request, env: Env, ctx: ExecutionContext, ur
 			throw httpError(400, 'bad_request', 'capUsd must be a number between 0 and 1000');
 		await setCap(env, uid, cap);
 		return json(await getUsage(env, uid));
+	}
+	if (path === '/api/ai/managed') {
+		if (m === 'GET') return json(await managedStatus(env, uid));
+		if (m === 'PUT') {
+			await setPreference(env, uid, await readJson(req));
+			return json(await managedStatus(env, uid));
+		}
 	}
 	if (path === '/api/ai/propose' && m === 'POST') return handleGenerate('propose', req, env, ctx, session);
 	if (path === '/api/ai/fill' && m === 'POST') return handleGenerate('fill', req, env, ctx, session);

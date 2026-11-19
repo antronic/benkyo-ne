@@ -64,7 +64,7 @@ right beats one that is beautiful and once wrong.
 
 - Empty, loading (Skeleton, Spinner or busy button), offline and error states handled.
 - Every control comes from the kit and every kit component you added is on `/design`.
-- Phone, iPad and desktop layouts checked, no horizontal scroll.
+- Phone, iPad and desktop layouts checked, no horizontal scroll. On desktop the screen uses the width: records in a `DataTable`, sections in `Columns`.
 - Reachable and placed: the screen is in its nav (tab bar, or Fleet's `src/lib/admin/nav.ts`), the nav marks it current, and a screen below the top shows the way back (Breadcrumbs or a back button). Walk there from the home screen, do not open the URL.
 - Light and dark, English and Thai, keyboard focus visible.
 - Gate green, and you walked the flow in a real browser and attached screenshots.

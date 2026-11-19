@@ -4,9 +4,11 @@
  * automatically (same origin), so no token is ever readable from JS.
  */
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
-import { t } from '#lib/i18n/index.svelte.ts';
+import { i18n, t } from '#lib/i18n/index.svelte.ts';
 import type {
 	AiError,
+	AiSource,
+	ManagedAi,
 	PasskeyInfo,
 	AskRequest,
 	AskResponse,
@@ -37,6 +39,16 @@ export class AiRequestError extends Error {
 	}
 }
 
+/** Managed AI errors in the interface language (the server's text is English). */
+function managedMessage(code: AiError['error']): string | null {
+	if (i18n.locale === 'en') return null;
+	if (code === 'allowance_reached') return t('ai.err.allowance');
+	if (code === 'package_ended') return t('ai.err.packageEnded');
+	if (code === 'no_model') return t('ai.err.noModel');
+	if (code === 'rate_limited') return t('ai.err.rateLimited');
+	return null;
+}
+
 async function call<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
 	if (typeof navigator !== 'undefined' && !navigator.onLine) throw new AiRequestError(0, 'offline', t('sync.offline'));
 	let res: Response;
@@ -58,7 +70,9 @@ async function call<T>(path: string, init: RequestInit & { json?: unknown } = {}
 		// path, status and the server's message only: request bodies (which can hold an API key) are never sent
 		telemetry.track('error', 'api_error', { path, method: init.method ?? 'GET', status: res.status, code: e?.error ?? null, message: e?.message ?? null });
 		if (e?.error === 'consent_required') void import('../state/ai.svelte.ts').then((m) => m.ai.refresh());
-		throw new AiRequestError(res.status, (e?.error as AiError['error']) ?? 'provider', e?.message ?? `HTTP ${res.status}`);
+		const code = (e?.error as AiError['error']) ?? 'provider';
+		if (code === 'allowance_reached' || code === 'package_ended') void import('../state/ai.svelte.ts').then((m) => m.ai.refresh());
+		throw new AiRequestError(res.status, code, managedMessage(code) ?? e?.message ?? `HTTP ${res.status}`);
 	}
 	return body as T;
 }
@@ -177,6 +191,9 @@ export const getFeatures = () => call<FeatureModel[]>('/api/ai/features');
 export const setFeature = (f: FeatureModel) => call('/api/ai/features', { method: 'PUT', json: f });
 export const getUsage = () => call<Usage>('/api/ai/usage');
 export const setCap = (capUsd: number) => call('/api/ai/cap', { method: 'PUT', json: { capUsd } });
+/** the package's AI (managed AI), its allowance, and which AI is in use */
+export const getManaged = () => call<ManagedAi>('/api/ai/managed');
+export const setAiSource = (prefer: AiSource) => call<ManagedAi>('/api/ai/managed', { method: 'PUT', json: { prefer } });
 
 // ------------------------------------------------------------ generation ----
 
@@ -206,7 +223,9 @@ export async function askStream(r: AskRequest, ondelta: (text: string) => void, 
 	}
 	if (!res.ok || !res.body) {
 		const body = (await res.json().catch(() => null)) as Partial<AiError> | null;
-		throw new AiRequestError(res.status, (body?.error as AiError['error']) ?? 'provider', body?.message ?? `HTTP ${res.status}`);
+		const code = (body?.error as AiError['error']) ?? 'provider';
+		if (code === 'allowance_reached' || code === 'package_ended') void import('../state/ai.svelte.ts').then((m) => m.ai.refresh());
+		throw new AiRequestError(res.status, code, managedMessage(code) ?? body?.message ?? `HTTP ${res.status}`);
 	}
 	const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
 	let buf = '';

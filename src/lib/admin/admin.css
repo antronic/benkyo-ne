@@ -49,9 +49,15 @@
 .fleet {
 	--page-max: 820px;
 }
+/* Desktop beside the sidebar: a wide column for tables and side-by-side sections (Columns, DataTable). */
+@media (min-width: 1200px) {
+	.fleet {
+		--page-max: 1160px;
+	}
+}
 .fleet .tiles {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
 	gap: var(--space-3);
 }
 /* Stat tiles are <Card class="tile">; the extra class beats the Card's own display. */

@@ -7,6 +7,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import LargeTitle from '#lib/ui/LargeTitle.svelte';
+	import { Columns } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { Badge, Button, Card, Chip, ListGroup, ListRow, SectionHeader, Switch, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
@@ -196,85 +197,87 @@
 	{:else if !data}
 		<ListGroup><ListRow subtitle="Loading…" /></ListGroup>
 	{:else}
-		{#each data.plans as p (p.id)}
-			<ListGroup>
-				{#if edit?.id === p.id}
-					<ListRow>
-						<div class="stack" style:--gap="var(--space-3)">
-							<TextField id="name-{p.id}" label="Name" bind:value={edit.name} maxlength={30} />
-							<TextField id="blurb-{p.id}" label="What’s included" bind:value={edit.blurb} maxlength={200} />
-							{#if p.id !== 'free'}
-								<span class="fields">
-									<TextField id="m-{p.id}" label="Per month ($)" type="number" min="0" max="1000" step="0.01" bind:value={edit.month} />
-									<TextField id="y-{p.id}" label="Per year ($)" type="number" min="0" max="1000" step="0.01" bind:value={edit.year} />
-									<TextField id="a-{p.id}" label="AI each month ($)" type="number" min="0" max="100" step="0.1" bind:value={edit.allowance} />
-								</span>
-							{/if}
-						</div>
-					</ListRow>
-					{#if p.id !== 'free'}
-						<ListRow title="Offered to new people">
-							{#snippet trailing()}<Switch label="Offered to new people" bind:checked={edit!.available} />{/snippet}
-						</ListRow>
-					{/if}
-					<ListRow>
-						<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
-							{#if !p.builtin}<Button variant="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Delete package</Button>{/if}
-							<span class="spacer"></span>
-							<Button variant="ghost" size="sm" onclick={() => (edit = null)} disabled={busy}>Cancel</Button>
-							<Button size="sm" onclick={save} {busy}>Save</Button>
-						</span>
-					</ListRow>
-				{:else}
-					<ListRow>
-						<b class="plan">{p.name}</b>
-						{#if p.blurb}<span class="caption">{p.blurb}</span>{/if}
-						{#snippet trailing()}
-							{#if !p.available}<Badge>Not offered</Badge>{/if}
-							<Button variant="plain" size="sm" onclick={() => open(p)} disabled={busy || edit !== null}>Edit</Button>
-						{/snippet}
-					</ListRow>
-					<ListRow
-						title={p.priceMonthUsd ? `${usd(p.priceMonthUsd)} a month · ${usd(p.priceYearUsd)} a year` : 'No charge'}
-						subtitle={yearlySaving(p) > 0 ? `Yearly saves ${yearlySaving(p)}%` : undefined}
-					/>
-					{#if p.id !== 'free'}
-						<ListRow title="Managed AI each month" subtitle={p.priceMonthUsd > 0 ? `Keeps ${usd(keeps(p))} a month after AI, before payment fees` : undefined}>
-							{#snippet trailing()}<b class="num">{usd(p.aiAllowanceUsd)}</b>{/snippet}
-						</ListRow>
-					{/if}
-					<ListRow title="Accounts on it">
-						{#snippet trailing()}<b class="num">{p.accounts}</b>{/snippet}
-					</ListRow>
-				{/if}
-				{#if p.id !== 'free'}
-					{#if picking?.id === p.id}
-						{@render picker()}
-					{:else}
+		<Columns min="420px">
+			{#each data.plans as p (p.id)}
+				<ListGroup>
+					{#if edit?.id === p.id}
 						<ListRow>
-							<div class="stack" style:--gap="var(--space-2)">
-								<span class="row" style:gap="var(--space-2)">
-									<span class="eyebrow">AI models</span>
-									<span class="spacer"></span>
-									<Button variant="plain" size="sm" onclick={() => pick(p)} disabled={busy || picking !== null}>{p.models.length ? 'Change' : 'Choose models'}</Button>
-								</span>
-								{#each p.models as m (m.providerId + m.model)}
-									<span class="row" style:gap="var(--space-2)" style:align-items="flex-start">
-										<span class="stack" style:--gap="var(--space-px)" style:min-width="0" style:flex="1">
-											<span class="ellipsis">{m.label} <span class="caption">· {m.providerLabel ?? 'removed provider'}</span></span>
-											<span class="caption">{priceLabel(m)}</span>
-										</span>
-										<span class="chips">{#each m.features as f (f)}<Badge variant="tag">{FEATURE_SHORT[f]}</Badge>{/each}</span>
+							<div class="stack" style:--gap="var(--space-3)">
+								<TextField id="name-{p.id}" label="Name" bind:value={edit.name} maxlength={30} />
+								<TextField id="blurb-{p.id}" label="What’s included" bind:value={edit.blurb} maxlength={200} />
+								{#if p.id !== 'free'}
+									<span class="fields">
+										<TextField id="m-{p.id}" label="Per month ($)" type="number" min="0" max="1000" step="0.01" bind:value={edit.month} />
+										<TextField id="y-{p.id}" label="Per year ($)" type="number" min="0" max="1000" step="0.01" bind:value={edit.year} />
+										<TextField id="a-{p.id}" label="AI each month ($)" type="number" min="0" max="100" step="0.1" bind:value={edit.allowance} />
 									</span>
-								{:else}
-									<span class="caption">No models yet. Pick some from your <a href="/admin/ai">AI providers</a>.</span>
-								{/each}
+								{/if}
 							</div>
 						</ListRow>
+						{#if p.id !== 'free'}
+							<ListRow title="Offered to new people">
+								{#snippet trailing()}<Switch label="Offered to new people" bind:checked={edit!.available} />{/snippet}
+							</ListRow>
+						{/if}
+						<ListRow>
+							<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
+								{#if !p.builtin}<Button variant="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Delete package</Button>{/if}
+								<span class="spacer"></span>
+								<Button variant="ghost" size="sm" onclick={() => (edit = null)} disabled={busy}>Cancel</Button>
+								<Button size="sm" onclick={save} {busy}>Save</Button>
+							</span>
+						</ListRow>
+					{:else}
+						<ListRow>
+							<b class="plan">{p.name}</b>
+							{#if p.blurb}<span class="caption">{p.blurb}</span>{/if}
+							{#snippet trailing()}
+								{#if !p.available}<Badge>Not offered</Badge>{/if}
+								<Button variant="plain" size="sm" onclick={() => open(p)} disabled={busy || edit !== null}>Edit</Button>
+							{/snippet}
+						</ListRow>
+						<ListRow
+							title={p.priceMonthUsd ? `${usd(p.priceMonthUsd)} a month · ${usd(p.priceYearUsd)} a year` : 'No charge'}
+							subtitle={yearlySaving(p) > 0 ? `Yearly saves ${yearlySaving(p)}%` : undefined}
+						/>
+						{#if p.id !== 'free'}
+							<ListRow title="Managed AI each month" subtitle={p.priceMonthUsd > 0 ? `Keeps ${usd(keeps(p))} a month after AI, before payment fees` : undefined}>
+								{#snippet trailing()}<b class="num">{usd(p.aiAllowanceUsd)}</b>{/snippet}
+							</ListRow>
+						{/if}
+						<ListRow title="Accounts on it">
+							{#snippet trailing()}<b class="num">{p.accounts}</b>{/snippet}
+						</ListRow>
 					{/if}
-				{/if}
-			</ListGroup>
-		{/each}
+					{#if p.id !== 'free'}
+						{#if picking?.id === p.id}
+							{@render picker()}
+						{:else}
+							<ListRow>
+								<div class="stack" style:--gap="var(--space-2)">
+									<span class="row" style:gap="var(--space-2)">
+										<span class="eyebrow">AI models</span>
+										<span class="spacer"></span>
+										<Button variant="plain" size="sm" onclick={() => pick(p)} disabled={busy || picking !== null}>{p.models.length ? 'Change' : 'Choose models'}</Button>
+									</span>
+									{#each p.models as m (m.providerId + m.model)}
+										<span class="row" style:gap="var(--space-2)" style:align-items="flex-start">
+											<span class="stack" style:--gap="var(--space-px)" style:min-width="0" style:flex="1">
+												<span class="ellipsis">{m.label} <span class="caption">· {m.providerLabel ?? 'removed provider'}</span></span>
+												<span class="caption">{priceLabel(m)}</span>
+											</span>
+											<span class="chips">{#each m.features as f (f)}<Badge variant="tag">{FEATURE_SHORT[f]}</Badge>{/each}</span>
+										</span>
+									{:else}
+										<span class="caption">No models yet. Pick some from your <a href="/admin/ai">AI providers</a>.</span>
+									{/each}
+								</div>
+							</ListRow>
+						{/if}
+					{/if}
+				</ListGroup>
+			{/each}
+		</Columns>
 
 		{#if making}
 			<Card padding="md">
@@ -316,7 +319,7 @@
 			{/each}
 		</ListGroup>
 		<p class="caption foot">
-			Packages aren’t enforced in the app yet: there’s no checkout, and managed AI comes later. Changes ask for your passkey and go in the audit log.
+			A package’s AI allowance and models apply as soon as an account has the package. There’s no checkout yet: packages come from grants and promo codes. Changes ask for your passkey and go in the audit log.
 		</p>
 	{/if}
 </main>
