@@ -28,6 +28,8 @@ beforeEach(() => {
 		(${NOW}, 'propose', 'anthropic', 'haiku', 'failed', 0, NULL, NULL, 3),
 		(${NOW - 40 * DAY}, 'fill', 'anthropic', 'haiku', 'done', 9, 1, 1, 2),
 		(${NOW - 3_600_000}, 'fill', 'anthropic', 'haiku', 'reserved', 0.1, NULL, NULL, 2)`);
+	// Mika's first call ran on the Plus package's managed AI
+	db.exec(`UPDATE ai_ledger SET source = 'package', plan_id = 'plus' WHERE id = 1`);
 	env = { DB: d1(db), DEV_AUTH_BYPASS: '1', CONTENT: { get: async () => null } };
 	session = { tokenHash: 't', passkeyId: 'pk1', kind: 'passkey', userId: 1, name: 'Owner', isAdmin: true, appleLinked: false };
 });
@@ -59,6 +61,11 @@ describe('usage', () => {
 			['Mika', 0.75]
 		]);
 		expect(r.body.failures).toMatchObject([{ feature: 'propose', name: 'Aoi', accountId: 3 }]);
+		expect(r.body.bySource).toEqual([
+			{ source: 'own', calls: 2, usd: 1.5 },
+			{ source: 'package', calls: 1, usd: 0.25 }
+		]);
+		expect(r.body.byPackage).toEqual([{ planId: 'plus', name: 'Plus', calls: 1, usd: 0.25, accounts: 1, allowanceUsd: 1.5 }]);
 	});
 
 	it('takes 90 days and refuses other windows', async () => {

@@ -1,9 +1,9 @@
 /**
  * POST /api/ai/propose and /api/ai/fill.
  *
- * auth (caller) → rate limit → resolve feature model ('vision' when an image
- * is attached) → price known? (409 no_price) → reserve worst case under the cap
- * (402 cap_reached) → call provider → settle ledger with actual usage →
+ * auth (caller) → rate limit → pick the package's AI or the learner's own key
+ * for the feature ('vision' when an image is attached; worker/ai/managed.ts) →
+ * reserve worst case under the allowance or cap (402 allowance_reached / cap_reached) → call provider → settle ledger with actual usage →
  * validate output (502 invalid_output) → respond.
  */
 import type { AskRequest, Feature, FillRequest, LessonRequest, ProposeRequest } from '../../src/lib/ai/contract.ts';
@@ -25,9 +25,8 @@ import { aiError, json, readJson } from '../http.ts';
 import type { Session } from '../auth/passkey.ts';
 import { callAnthropic } from './anthropic.ts';
 import { sumUsage, usageCost, worstCaseForCall } from './cost.ts';
-import { decryptKey } from './credentials.ts';
-import { GLOBAL_PER_MIN, getUsage, rateLimit, reserve, settle } from './ledger.ts';
-import { priceFor, resolveFeature } from './models.ts';
+import { GLOBAL_PER_MIN, rateLimit, settle } from './ledger.ts';
+import { reserveFor, startCall } from './managed.ts';
 import { callOpenAi, type OpenAiFormat } from './openai.ts';
 import type { AdapterResult, UsageEntry } from './types.ts';
 import { recordAiCall } from '../beta/routes.ts';
@@ -63,26 +62,21 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 	// lesson packs and Ask AI use the "Suggestions" model
 	const feature: Feature = parts.image ? 'vision' : kind === 'fill' ? 'fill' : 'propose';
 
-	const target = await resolveFeature(env, session.userId, feature);
-	if (!target) return aiError(409, 'no_model', `No model is set for "${feature}". Add an API key in Settings.`);
-	const { cred, model } = target;
-
-	const priced = await priceFor(env, ctx, cred, model);
-	if (!priced) return aiError(409, 'no_price', `Set a price for ${model} to use it under the spend cap.`);
-
-	const apiKey = await decryptKey(env, cred);
-	const worst = worstCaseForCall(parts, cred.provider, model, priced.price);
-	const reservations: number[] = [];
-	const first = await reserve(env, session.userId, { feature, provider: cred.provider, model, worstUsd: worst });
-	if (first === null) {
-		const u = await getUsage(env, session.userId);
-		return aiError(
-			402,
-			'cap_reached',
-			`Monthly AI cap reached ($${u.spentUsd.toFixed(3)} of $${u.capUsd.toFixed(2)} used; this call could cost up to $${worst.toFixed(3)}).`
-		);
+	// the package's AI or the learner's own key (worker/ai/managed.ts), worst case reserved
+	const started = await startCall(env, ctx, session.userId, feature, (t) => worstCaseForCall(parts, t.provider, t.model, t.price));
+	if (!started.ok) return started.res;
+	const { target, worst } = started;
+	const { model } = target;
+	const priced = { price: target.price };
+	let apiKey: string;
+	try {
+		apiKey = await target.key();
+	} catch (e) {
+		// nothing was sent: release the reservation
+		await settle(env, [started.reservation], { status: 'failed', usage: { input: 0, output: 0 }, cost: 0 }).catch(() => {});
+		throw e;
 	}
-	reservations.push(first);
+	const reservations: number[] = [started.reservation];
 
 	const usage: UsageEntry[] = [];
 	let billedUnknown = false;
@@ -100,7 +94,7 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 			recordAiCall(env, session.userId, {
 				kind,
 				feature,
-				provider: cred.provider,
+				provider: target.provider,
 				model,
 				status,
 				error,
@@ -120,8 +114,8 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 	try {
 		let format: OpenAiFormat | undefined; // remembered so the retry skips a rejected json_schema
 		const call = async (retry: boolean): Promise<AdapterResult> => {
-			if (cred.provider === 'anthropic') return callAnthropic(parts, model, apiKey);
-			const r = await callOpenAi(parts, model, cred.base_url!, apiKey, { retry, format });
+			if (target.provider === 'anthropic') return callAnthropic(parts, model, apiKey);
+			const r = await callOpenAi(parts, model, target.baseUrl!, apiKey, { retry, format });
 			format = r.format ?? format;
 			return r;
 		};
@@ -146,8 +140,8 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 
 		// OpenAI-compatible: one retry on malformed output, under its own reservation.
 		const malformed = (result.ok && validated && !validated.ok) || (!result.ok && result.error === 'invalid_output');
-		if (cred.provider === 'openai-compatible' && malformed) {
-			const again = await reserve(env, session.userId, { feature, provider: cred.provider, model, worstUsd: worst });
+		if (target.provider === 'openai-compatible' && malformed) {
+			const again = await reserveFor(env, session.userId, target, feature, worst);
 			if (again !== null) {
 				reservations.push(again);
 				result = await call(true);

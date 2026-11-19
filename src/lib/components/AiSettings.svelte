@@ -4,12 +4,12 @@
 	prices, the monthly cap meter, and the second explanation language.
 -->
 <script lang="ts">
-	import { i18n, t, type MessageKey } from '#lib/i18n/index.svelte.ts';
-	import { Button, FieldRow, ListGroup, ListRow, Select, Skeleton, TextField } from '#lib/ui/index.ts';
+	import { fmtDate, i18n, t, type MessageKey } from '#lib/i18n/index.svelte.ts';
+	import { Badge, Button, FieldRow, ListGroup, ListRow, Notice, Segmented, Select, Skeleton, Spinner, TextField } from '#lib/ui/index.ts';
 	import AccountSettings from '#lib/components/AccountSettings.svelte';
 	import { onMount } from 'svelte';
 	import * as api from '#lib/ai/client.ts';
-	import type { Feature, FeatureModel, ModelInfo, ProviderKind } from '#lib/ai/contract.ts';
+	import type { AiSource, Feature, FeatureModel, ModelInfo, ProviderKind } from '#lib/ai/contract.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
@@ -136,6 +136,25 @@
 		await guard(() => api.setPrice({ provider: m.provider, model: m.id, inputPerM: +i, outputPerM: +o }), t('ai.priceSaved'), `price${m.credentialId}|${m.id}`);
 		await loadModels();
 	}
+	/** Switch between the package's AI and the learner's own key. */
+	async function chooseSource(prefer: AiSource) {
+		if (ai.managed?.prefer === prefer) return;
+		const r = await guard(() => api.setAiSource(prefer), t('managed.switched'), 'source');
+		if (r) ai.managed = r;
+	}
+	const day = (ms: number) => fmtDate(ms, { day: 'numeric', month: 'short', year: 'numeric' });
+	const sourceOptions = $derived<{ value: AiSource; label: string; disabled?: boolean }[]>([
+		{ value: 'package', label: t('managed.usePackage'), disabled: busy },
+		{ value: 'own', label: t('managed.useOwn'), disabled: busy || ai.credentials.length === 0 }
+	]);
+	const inUse = $derived(
+		!ai.managed?.active
+			? t('managed.inUseNone')
+			: ai.managed.active === 'package'
+				? t('managed.inUsePackage', { name: ai.managed.plan?.name ?? '' })
+				: t('managed.inUseOwn')
+	);
+
 	async function saveCap() {
 		await guard(() => api.setCap(Math.max(0, capInput)), t('ai.capUpdated'), 'cap');
 		await ai.refresh();
@@ -179,12 +198,58 @@
 </ListGroup>
 
 {#if ai.signedIn}
+	{#if !ai.checked}
+		<Skeleton variant="row" count={2} label={t('managed.loading')} />
+	{:else if ai.managed?.plan}
+		{@const m = ai.managed}
+		{@const plan = m.plan!}
+		{@const pct = Math.min(1, m.spentUsd / Math.max(m.allowanceUsd, 0.0001))}
+		<h3 class="eyebrow section">{t('managed.section')}</h3>
+		{#if m.blocked === 'allowance'}
+			<Notice tone="warning" title={t('managed.usedUpTitle')}>
+				{ai.credentials.length ? t('managed.usedUp', { date: day(m.resetsAt) }) : t('managed.usedUpNoKey', { date: day(m.resetsAt) })}
+			</Notice>
+		{/if}
+		<ListGroup>
+			<ListRow title={t('managed.included', { name: plan.name })} subtitle={plan.endsAt ? t('managed.until', { date: day(plan.endsAt) }) : undefined}>
+				{#snippet trailing()}<Badge tone="accent">✨ {plan.name}</Badge>{/snippet}
+			</ListRow>
+			<ListRow>
+				<span class="stack" style:--gap="var(--space-1h)">
+					<span class="row"><span>{t('managed.allowance')}</span><span class="spacer"></span><b class="nowrap">{t('managed.allowanceOf', { spent: fmt(m.spentUsd), cap: fmt(m.allowanceUsd) })}</b></span>
+					<span class="meter" class:warn={pct > 0.8}><span style:width="{pct * 100}%"></span></span>
+					<span class="caption">{t('managed.resets', { n: m.calls, date: day(m.resetsAt) })}</span>
+				</span>
+			</ListRow>
+			<ListRow>
+				<span class="stack source" style:--gap="var(--space-2)" aria-busy={pending === 'source'}>
+					<span class="row"><span>{t('managed.useFrom')}</span><span class="spacer"></span>{#if pending === 'source'}<Spinner size="sm" label={t('common.loading')} />{/if}</span>
+					<Segmented label={t('managed.useAria')} options={sourceOptions} value={m.prefer} onchange={chooseSource} />
+					<span class="caption"><b>{t('managed.inUse', { what: inUse })}</b></span>
+					<span class="caption">
+						{ai.credentials.length === 0 ? t('managed.needKey') : m.prefer === 'own' ? t('managed.ownHint') : t('managed.packageHint')}
+					</span>
+				</span>
+			</ListRow>
+			{#each FEATURES as f}
+				{@const pm = m.models.find((x) => x.feature === f.id)}
+				<ListRow title={t(f.label)}>
+					{#snippet trailing()}<span class="caption">{pm ? pm.label : t('managed.notIncluded')}</span>{/snippet}
+				</ListRow>
+			{/each}
+		</ListGroup>
+	{:else if ai.managed?.ended}
+		<Notice tone="warning" title={t('managed.endedTitle', { name: ai.managed.ended.name })}>
+			{t('managed.ended', { date: day(ai.managed.ended.endedAt) })}
+		</Notice>
+	{/if}
+
 	{#if ai.usage}
 		{@const pct = Math.min(1, ai.usage.spentUsd / Math.max(ai.usage.capUsd, 0.0001))}
 		<ListGroup>
 			<ListRow>
 				<span class="stack" style:--gap="var(--space-1h)">
-					<span class="row"><span>{t('ai.thisMonth')}</span><span class="spacer"></span><b>{t('ai.spentOf', { spent: fmt(ai.usage.spentUsd), cap: fmt(ai.usage.capUsd) })}</b></span>
+					<span class="row"><span>{ai.managed?.plan ? t('ai.ownThisMonth') : t('ai.thisMonth')}</span><span class="spacer"></span><b>{t('ai.spentOf', { spent: fmt(ai.usage.spentUsd), cap: fmt(ai.usage.capUsd) })}</b></span>
 					<span class="meter" class:warn={pct > 0.8}><span style:width="{pct * 100}%"></span></span>
 					<span class="caption">{t('ai.callsCap', { n: ai.usage.calls })}</span>
 				</span>
@@ -294,6 +359,12 @@
 	}
 	.cap {
 		display: flex;
+	}
+	.source {
+		width: 100%;
+	}
+	.nowrap {
+		white-space: nowrap;
 	}
 	.cap :global(.num) {
 		width: 88px;

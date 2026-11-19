@@ -18,9 +18,8 @@ import { aiError, readJson } from '../http.ts';
 import type { Session } from '../auth/passkey.ts';
 import { streamAnthropic } from './anthropic.ts';
 import { sumUsage, usageCost, worstCaseForCall } from './cost.ts';
-import { decryptKey } from './credentials.ts';
-import { GLOBAL_PER_MIN, getUsage, rateLimit, reserve, settle } from './ledger.ts';
-import { priceFor, resolveFeature } from './models.ts';
+import { GLOBAL_PER_MIN, rateLimit, settle } from './ledger.ts';
+import { startCall } from './managed.ts';
 import { streamOpenAi } from './openai.ts';
 import type { AdapterResult, UsageEntry } from './types.ts';
 import { recordAiCall } from '../beta/routes.ts';
@@ -38,22 +37,19 @@ export async function handleAskStream(req: Request, env: Env, ctx: ExecutionCont
 
 	const parts = buildAskStreamPrompt(ask);
 	const feature = 'propose' as const; // Ask AI uses the "Suggestions" model
-	const target = await resolveFeature(env, session.userId, feature);
-	if (!target) return aiError(409, 'no_model', `No model is set for "${feature}". Add an API key in Settings.`);
-	const { cred, model } = target;
-	const priced = await priceFor(env, ctx, cred, model);
-	if (!priced) return aiError(409, 'no_price', `Set a price for ${model} to use it under the spend cap.`);
-
-	const apiKey = await decryptKey(env, cred);
-	const worst = worstCaseForCall(parts, cred.provider, model, priced.price);
-	const reservation = await reserve(env, session.userId, { feature, provider: cred.provider, model, worstUsd: worst });
-	if (reservation === null) {
-		const u = await getUsage(env, session.userId);
-		return aiError(
-			402,
-			'cap_reached',
-			`Monthly AI cap reached ($${u.spentUsd.toFixed(3)} of $${u.capUsd.toFixed(2)} used; this call could cost up to $${worst.toFixed(3)}).`
-		);
+	// the package's AI or the learner's own key (worker/ai/managed.ts), worst case reserved
+	const started = await startCall(env, ctx, session.userId, feature, (t) => worstCaseForCall(parts, t.provider, t.model, t.price));
+	if (!started.ok) return started.res;
+	const { target, reservation } = started;
+	const { model } = target;
+	const priced = { price: target.price };
+	let apiKey: string;
+	try {
+		apiKey = await target.key();
+	} catch (e) {
+		// nothing was sent: release the reservation
+		await settle(env, [started.reservation], { status: 'failed', usage: { input: 0, output: 0 }, cost: 0 }).catch(() => {});
+		throw e;
 	}
 
 	const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
@@ -82,9 +78,9 @@ export async function handleAskStream(req: Request, env: Env, ctx: ExecutionCont
 		let result: AdapterResult;
 		try {
 			result =
-				cred.provider === 'anthropic'
+				target.provider === 'anthropic'
 					? await streamAnthropic(parts, model, apiKey, onText, abort.signal)
-					: await streamOpenAi(parts, model, cred.base_url!, apiKey, onText, { signal: abort.signal });
+					: await streamOpenAi(parts, model, target.baseUrl!, apiKey, onText, { signal: abort.signal });
 		} catch (e) {
 			result = { ok: false, status: 502, error: 'provider', message: (e as Error)?.message ?? 'AI call failed', usage: [], billedUnknown: true };
 		}
@@ -104,7 +100,7 @@ export async function handleAskStream(req: Request, env: Env, ctx: ExecutionCont
 		await recordAiCall(env, session.userId, {
 			kind: 'ask_stream',
 			feature,
-			provider: cred.provider,
+			provider: target.provider,
 			model,
 			status: gone ? 'stopped' : reply ? 'done' : result.ok ? 'invalid' : 'failed',
 			error: result.ok ? null : `${result.error}: ${result.message}`,

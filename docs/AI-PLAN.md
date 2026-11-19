@@ -441,6 +441,35 @@ Decided 2026-11-13. Phase A ships first; Phase B follows when billing is set up.
 
 ## Phase B: subscriptions with a managed key
 
+**Managed AI is built (2026-11-19, `worker/ai/managed.ts`, migration 0012).** What
+shipped differs from the plan below in three ways: the operator's keys live
+encrypted in D1 (`ai_providers`, set in Fleet), not as a Worker secret; packages
+come from Fleet grants and promo codes, not checkout; and the learner chooses
+in Settings which AI to use.
+
+- A learner on a live paid package with an allowance and at least one model
+  (`plan_models`) runs AI on the package's model for each feature, through the
+  operator's provider key. Learners without a package keep using their own key.
+- **Which AI:** `accounts.ai_source` is `package` (default) or `own`, switched
+  in Settings ("Use AI from: My package / My own key"). With `package`, a call
+  falls back to the learner's own key when the feature isn't in the package, the
+  allowance is used up, or the managed daily limit is hit. With `own`, the
+  package is used only when they have no key for that feature.
+- **Allowance:** the same worst-case reservation as the BYOK cap. `ai_ledger.source`
+  (`own` / `package`) keeps the two budgets apart; `plan_id` records the package
+  billed. The allowance is per calendar month (UTC), all packages together.
+- **Limits:** on top of the general 30 per minute per account and 300 per minute
+  overall, managed AI allows 15 per minute and 300 per UTC day per account, and
+  120 per minute across all accounts.
+- **Errors:** `402 allowance_reached` (with the reset date) and
+  `402 package_ended` (a package ended in the last 30 days) when there is no own
+  key to fall back on; `409 no_model` names a feature the package leaves out.
+- **Endpoints:** `GET /api/ai/managed` (package, models per feature, allowance
+  left, which AI is active) and `PUT /api/ai/managed {prefer}`. Fleet's Usage
+  page shows "Who paid" and "Managed AI by package".
+
+The original plan:
+
 - **Plans and entitlements.** `plans`, `subscriptions` and `entitlements`
   tables. The webhook from Stripe (and from the local gateway) is the only
   writer. Checkout and the customer portal are hosted by the provider, so no

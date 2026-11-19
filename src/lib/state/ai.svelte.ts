@@ -1,10 +1,10 @@
 /**
  * AI availability for the UI. AI is optional everywhere: features degrade to
- * dictionary-only when you're signed out, offline, have no key, or the
- * monthly cap is reached.
+ * dictionary-only when you're signed out, offline, have neither a package
+ * with AI nor a key of your own, or the allowance and cap are used up.
  */
 import * as api from '#lib/ai/client.ts';
-import type { CredentialInfo, Me, Usage } from '#lib/ai/contract.ts';
+import type { CredentialInfo, ManagedAi, Me, Usage } from '#lib/ai/contract.ts';
 import type { BetaStatus } from '#lib/beta/contract.ts';
 import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 import { t } from '#lib/i18n/index.svelte.ts';
@@ -19,6 +19,11 @@ class Ai {
 	appleEnabled = $state(false);
 	credentials = $state<CredentialInfo[]>([]);
 	usage = $state<Usage | null>(null);
+	/** the package's AI (managed AI) and which AI is in use; null: signed out or an older server */
+	managed = $state<ManagedAi | null>(null);
+	/** AI runs on the package right now */
+	onPackage = $derived(this.managed?.active === 'package');
+	ownUsable = $derived(this.credentials.length > 0 && (!this.usage || this.usage.spentUsd < this.usage.capUsd));
 	online = $state(typeof navigator === 'undefined' ? true : navigator.onLine);
 	/** beta consent for the signed-in account (null: signed out, or an older server) */
 	beta = $state<BetaStatus | null>(null);
@@ -29,8 +34,7 @@ class Ai {
 		this.online &&
 			this.signedIn &&
 			!this.needsConsent &&
-			this.credentials.length > 0 &&
-			(!this.usage || this.usage.spentUsd < this.usage.capUsd)
+			(this.onPackage || this.ownUsable)
 	);
 
 	/** Why AI isn't available, for a friendly inline hint. */
@@ -41,11 +45,17 @@ class Ai {
 				? t('ai.reason.signIn')
 				: this.needsConsent
 					? t('ai.reason.consent')
-					: this.credentials.length === 0
-					? t('ai.reason.noKey')
-					: this.usage && this.usage.spentUsd >= this.usage.capUsd
-						? t('ai.reason.cap')
-						: ''
+					: this.onPackage
+						? ''
+						: this.managed?.blocked === 'allowance' && !this.ownUsable
+							? t('ai.reason.allowance')
+							: this.managed?.ended && this.credentials.length === 0
+								? t('ai.reason.ended', { name: this.managed.ended.name })
+								: this.credentials.length === 0
+									? t('ai.reason.noKey')
+									: this.usage && this.usage.spentUsd >= this.usage.capUsd
+										? t('ai.reason.cap')
+										: ''
 	);
 
 	async refresh() {
@@ -64,13 +74,21 @@ class Ai {
 				// AI routes refuse until the consent is given
 				this.credentials = [];
 				this.usage = null;
+				this.managed = null;
 			} else if (m.signedIn) {
-				const [creds, usage] = await Promise.all([api.listCredentials(), api.getUsage()]);
+				const [creds, usage, managed] = await Promise.all([
+					api.listCredentials(),
+					api.getUsage(),
+					// an older Worker without managed AI: behave as before
+					api.getManaged().catch(() => null)
+				]);
 				this.credentials = creds;
 				this.usage = usage;
+				this.managed = managed;
 			} else {
 				this.credentials = [];
 				this.usage = null;
+				this.managed = null;
 			}
 		} catch {
 			// API unreachable: treat as unavailable, keep last known state

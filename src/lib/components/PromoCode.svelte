@@ -10,6 +10,7 @@
 	import { Badge, Button, Card, Notice, TextField } from '#lib/ui/index.ts';
 	import Skeleton from '#lib/ui/Skeleton.svelte';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { ai } from '#lib/state/ai.svelte.ts';
 	import { PromoRequestError, promoStatus, redeemPromo } from '#lib/promo/client.ts';
 	import type { PromoRedeemed, PromoStatus } from '#lib/promo/contract.ts';
 
@@ -57,6 +58,8 @@
 			status = r;
 			code = '';
 			haptic('success');
+			// a package can bring managed AI: Settings and the AI screens pick it up
+			void ai.refresh();
 		} catch (err) {
 			const p = err instanceof PromoRequestError ? err.problem : 'other';
 			problem = t(`promo.err.${ERR_KEYS.has(p) ? p : 'other'}` as MessageKey);
