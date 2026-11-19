@@ -31,6 +31,7 @@ import {
 	type AdminSystem,
 	type AdminUsage
 } from './contract.ts';
+import type { AdminCommunity, AdminContentAction, CommunityStatus, TargetKind } from '#lib/community/contract.ts';
 
 export type AdminErrorCode = 'access' | 'closed' | 'forbidden' | 'signin' | 'offline' | 'stepup' | 'bad' | 'server';
 
@@ -150,3 +151,14 @@ export const removeProvider = (id: number) =>
 export const getProviderModels = (id: number, refresh = false) =>
 	call<AdminModels>(`/api/admin/ai/providers/${id}/models${refresh ? '?refresh=1' : ''}`);
 export const getAllModels = (refresh = false) => call<AdminModels>(`/api/admin/ai/models${refresh ? '?refresh=1' : ''}`);
+
+// community moderation (worker/admin/community.ts)
+export const getCommunity = () => call<AdminCommunity>('/api/admin/community');
+export const moderateContent = (kind: TargetKind, id: number, action: AdminContentAction) => {
+	const go = () => call<{ ok: true }>('/api/admin/community/content', { method: 'POST', json: { kind, id, action } });
+	return action === 'remove' ? withStepUp(go) : go();
+};
+export const setCommunityStatus = (accountId: number, status: CommunityStatus) => {
+	const go = () => call<{ ok: true }>('/api/admin/community/author', { method: 'POST', json: { accountId, status } });
+	return status === 'active' ? go() : withStepUp(go);
+};

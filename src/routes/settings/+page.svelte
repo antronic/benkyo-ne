@@ -10,6 +10,7 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import LargeTitle from '#lib/ui/LargeTitle.svelte';
 	import AiSettings from '#lib/components/AiSettings.svelte';
+	import CommunitySettings from '#lib/components/CommunitySettings.svelte';
 	import { Button, ListGroup, ListRow, Select, Slider, Spinner, Stepper, Switch } from '#lib/ui/index.ts';
 	import { version } from '$app/env';
 	import { updater } from '#lib/pwa/update.svelte.ts';
@@ -166,6 +167,8 @@
 	</ListGroup>
 
 	<AiSettings />
+
+	<CommunitySettings />
 
 	<h2 class="eyebrow section">{t('install.section')}</h2>
 	<ListGroup class="rise">

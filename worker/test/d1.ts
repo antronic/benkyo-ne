@@ -18,7 +18,12 @@ export function d1(db: DatabaseSync) {
 			const r = db.prepare(sql).run(...(args as never[]));
 			return { meta: { changes: Number(r.changes) } };
 		},
-		exec: () => ({ results: db.prepare(sql).all(...(args as never[])) })
+		exec: () => {
+			// like D1's batch: rows for reads (and RETURNING), changes for writes
+			if (/^\s*(SELECT|WITH)\b/i.test(sql) || /\bRETURNING\b/i.test(sql)) return { results: db.prepare(sql).all(...(args as never[])), meta: { changes: 0 } };
+			const r = db.prepare(sql).run(...(args as never[]));
+			return { results: [], meta: { changes: Number(r.changes) } };
+		}
 	});
 	return {
 		prepare: (sql: string) => stmt(sql),

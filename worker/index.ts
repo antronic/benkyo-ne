@@ -9,6 +9,7 @@
  *   /api/ai/*           AI features behind the passkey session (worker/ai/routes.ts)
  *   /api/beta/*         beta consent and usage data (worker/beta/routes.ts)
  *   /api/promo/*        promo codes: the account's package, redeem a code (worker/promo.ts)
+ *   /api/community/*    shared notes, replies, likes, reports, blocks (worker/community.ts)
  *   /api/admin/*        fleet console, admin only, behind Cloudflare Access (worker/admin/routes.ts)
  *
  * Everything else falls through to static assets (SPA fallback configured
@@ -21,6 +22,7 @@ import { handleAuth } from './auth/passkey.ts';
 import { handleBeta, purgeOld } from './beta/routes.ts';
 import type { Env } from './env.ts';
 import { HttpError, json } from './http.ts';
+import { handleCommunity, purgeCommunity } from './community.ts';
 import { handlePromo } from './promo.ts';
 import { handleSync } from './sync.ts';
 
@@ -42,7 +44,7 @@ export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): 
 	const url = new URL(req.url);
 	try {
 		const p = url.pathname;
-		if (p.startsWith('/api/auth/') || p.startsWith('/api/ai/') || p.startsWith('/api/beta/') || p.startsWith('/api/admin/') || p.startsWith('/api/promo')) {
+		if (p.startsWith('/api/auth/') || p.startsWith('/api/ai/') || p.startsWith('/api/beta/') || p.startsWith('/api/admin/') || p.startsWith('/api/promo') || p.startsWith('/api/community/')) {
 			// CSRF: SameSite=Strict cookie, plus same-origin check on writes. The one exception is
 			// Apple's form_post back to us, which is cross-site by design and checked instead by
 			// its single-use state cookie (worker/auth/apple.ts).
@@ -59,6 +61,11 @@ export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): 
 			if (p.startsWith('/api/admin/')) return await handleAdmin(req, env, url);
 			if (p.startsWith('/api/promo')) {
 				const res = await handlePromo(req, env, p);
+				if (res) return res;
+				return json({ error: 'not found' }, { status: 404 });
+			}
+			if (p.startsWith('/api/community/')) {
+				const res = await handleCommunity(req, env, url);
 				if (res) return res;
 				return json({ error: 'not found' }, { status: 404 });
 			}
@@ -80,6 +87,8 @@ export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): 
 export async function handleScheduled(env: Env) {
 	const n = await purgeOld(env);
 	console.log(`beta retention: deleted ${n.events} events, ${n.aiCalls} AI calls`);
+	const c = await purgeCommunity(env);
+	console.log(`community retention: deleted ${c.posts} posts, ${c.replies} replies, ${c.reports} reports`);
 }
 
 /**

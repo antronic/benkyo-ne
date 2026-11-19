@@ -6,6 +6,8 @@
 	import { onMount } from 'svelte';
 	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
+	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
+	import { fakeCommunity } from '#lib/community/fake.ts';
 	import PromoCode from '#lib/components/PromoCode.svelte';
 	import { PromoRequestError } from '#lib/promo/client.ts';
 	import type { PromoStatus } from '#lib/promo/contract.ts';
@@ -30,6 +32,10 @@
 	let confirmName = $state('');
 	let picked = $state('');
 	let sheetOpen = $state(false);
+	const demoCommunity = fakeCommunity();
+	const demoCommunityNew = fakeCommunity({ joined: false });
+	const demoCommunityEmpty = fakeCommunity({ empty: true });
+	const demoCommunityFail = fakeCommunity({ fail: true });
 	let demoNote = $state("Think tabe-ru = table.\nPast: 食べた, not 食べった.");
 	let dotPage = $state(1);
 	let saving = $state(false);
@@ -447,6 +453,16 @@
 					<NoteCard value="" onsave={async () => {}} />
 					<NoteCard value="" loading onsave={async () => {}} />
 					<NoteCard peek value={demoNote || 'Looks like 大 with a dot: the dog’s ear.'} onsave={async () => {}} />
+				</div>
+
+				<SectionHeader title="Community notes (under My note)" />
+				<p class="caption">Notes other learners shared on the same item, most liked first, with hearts, replies and a ••• menu to report or block. The first share asks for a public handle and the guidelines. Made-up learners; nothing is sent.</p>
+				<div class="stack" style:--gap="var(--space-2)">
+					<CommunityNotes subject="kanji:日" label="日" note={demoNote} api={demoCommunity} signedIn accountId={-1} />
+					<CommunityNotes subject="kanji:日" label="日" note={demoNote} api={demoCommunityNew} signedIn accountId={-2} />
+					<CommunityNotes subject="kanji:日" label="日" note="" api={demoCommunityEmpty} signedIn accountId={-3} />
+					<CommunityNotes subject="kanji:日" label="日" note="" api={demoCommunityFail} signedIn accountId={-4} />
+					<CommunityNotes subject="kanji:日" label="日" note="" signedIn={false} />
 				</div>
 
 				<SectionHeader title="Promo code (Settings)" />
