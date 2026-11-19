@@ -10,6 +10,7 @@
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError, createInvite, getSettings, revokeInvite, setSessionDays, setSignupMode } from '#lib/admin/client.ts';
 	import type { AdminInvite, AdminSettings } from '#lib/admin/contract.ts';
+	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -108,7 +109,8 @@
 <svelte:head><title>Sign-ups and settings · Fleet</title></svelte:head>
 
 <main class="page stack fleet" style:--gap="var(--space-3)">
-	<LargeTitle title="Settings" />
+	<FleetTrail />
+	<LargeTitle title="Sign-ups and sessions" />
 
 	{#if error}
 		<ErrorCard {error} onretry={load} />

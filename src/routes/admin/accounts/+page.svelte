@@ -6,6 +6,7 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { AdminError, getPackages, listAccounts } from '#lib/admin/client.ts';
 	import type { AdminAccountRow } from '#lib/admin/contract.ts';
+	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -60,6 +61,7 @@
 <svelte:head><title>Accounts · Fleet</title></svelte:head>
 
 <main class="page stack fleet" style:--gap="var(--space-3)">
+	<FleetTrail />
 	<LargeTitle title="Accounts" />
 
 	<TextField type="search" placeholder="Search by name or #id" bind:value={q} oninput={search} aria-label="Search accounts" />
