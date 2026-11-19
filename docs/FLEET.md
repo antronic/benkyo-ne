@@ -15,6 +15,7 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 | 3 | Settings: sign-up switch, invite codes, session lifetime, sign-ups per day | merged (#11) |
 | 4 | Usage, System and Audit log screens (read-only) | merged (#14) |
 | 5 | Packages: Free / Plus / Pro, manual grants | merged (#15) |
+| 6 | Promo codes: made in the console, redeemed in Settings | this PR |
 
 ## Security
 
@@ -117,6 +118,31 @@ account deletes its grants.
 Not built yet: nothing in the app checks the package, there's no checkout
 or payment webhook, and managed AI (the operator's key) doesn't exist. Those
 come with Phase B of `docs/AI-PLAN.md`, which will add `subscription` grants.
+
+## Promo codes
+
+`/admin/promos` makes codes that give a package for a while (`promo_codes`,
+migration 0011). A code is **random** (10 letters and digits without
+look-alikes such as 0/O and 1/I) or **typed in** (4 to 24 letters and
+digits; case, spaces and dashes are ignored, so `songkran-27` is saved and
+redeemed as `SONGKRAN27`). Each code sets the package (any paid one), trial
+or complimentary, how many days the package lasts from redeeming (or until
+ended, complimentary only), an optional use limit, an optional expiry, and
+a note only the admin sees. Making a code and switching it off or on need a
+passkey tap and are audited (`promo.create`, `promo.disable`,
+`promo.enable`). Codes are never deleted, so their redemptions stay on
+record; tapping a code lists who redeemed it.
+
+Learners redeem a code in Settings, under Account (`POST /api/promo/redeem`,
+signed in, 10 tries an hour per account). A redemption is a normal
+`plan_grants` row with the note `Promo <code>`, so it shows under Packages
+and on the account's page and can be ended there. Rules: once per account;
+it replaces a lower live grant; it is refused when the account already has
+the same package or a better one, so a code never takes anything away. The
+claim, the use count and the grant are written in one D1 batch whose
+statements only run while the code is still redeemable, so two people
+can't both take the last use. Deleting an account deletes its redemptions
+but keeps the code's use count.
 
 ## Local development
 
