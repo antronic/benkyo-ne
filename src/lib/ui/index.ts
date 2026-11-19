@@ -30,3 +30,7 @@ export { default as TextArea } from './TextArea.svelte';
 export { default as PageDots } from './PageDots.svelte';
 export { default as StatTile } from './StatTile.svelte';
 export { default as PlanBadge } from './PlanBadge.svelte';
+export { default as Breadcrumbs } from './Breadcrumbs.svelte';
+export { default as MenuBar } from './MenuBar.svelte';
+export { default as SideNav } from './SideNav.svelte';
+export type { SideNavItem } from './SideNav.svelte';

@@ -22,12 +22,23 @@
  * A second pass signs the fleet console "in" with synthetic data
  * (scripts/layout-fixtures.mjs) and checks its lists, forms and the model
  * picker opened.
+ * A navigation (flow) pass then walks between screens, which the per-screen
+ * checks above never do (PR #31 and #33 missed that Fleet had no nav at all):
+ *   - every Fleet page under src/routes/admin is reachable: a static page is
+ *     a link in the Fleet nav (sidebar, or the phone menu opened), a detail
+ *     page is linked from its parent page;
+ *   - every Fleet page shows where you are: an h1, exactly one current
+ *     (aria-current="page") nav link that is the page or its section, and
+ *     below the overview a visible breadcrumb link to its parent;
+ *   - the Fleet nav has a way back out to the app;
+ *   - every top-level app screen under src/routes is in the tab bar.
  * Set LAYOUT_URL to check a server that is already running.
  */
 import { spawn } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readdirSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { chromium } from 'playwright';
-import { FLEET_FIXTURES, FLEET_SCREENS } from './layout-fixtures.mjs';
+import { FLEET_FIXTURES, FLEET_SAMPLES, FLEET_SCREENS } from './layout-fixtures.mjs';
 
 const PORT = 4179;
 const BASE = process.env.LAYOUT_URL ?? `http://localhost:${PORT}`;
@@ -144,6 +155,42 @@ function inspectNavbar() {
 	return out;
 }
 
+/** Route patterns ('/admin/accounts/[id]') for every +page.svelte under a routes folder. */
+export function routesUnder(dir, base = 'src/routes') {
+	const out = [];
+	const walk = (d) => {
+		for (const name of readdirSync(d)) {
+			const p = join(d, name);
+			if (statSync(p).isDirectory()) walk(p);
+			else if (name === '+page.svelte') out.push('/' + relative(base, d).split('\\').join('/').replace(/\/?\([^)]+\)/g, ''));
+		}
+	};
+	walk(dir);
+	return out.map((r) => r.replace(/\/$/, '') || '/').sort();
+}
+/** Top-level app screens that are deliberately not in the tab bar, and why. */
+const OFF_TAB_BAR = { '/design': 'developer catalog', '/admin': 'Fleet, opened from Settings' };
+
+/** Runs in the page: hrefs of the visible links in navs matching `sel`. */
+function navLinks(sel) {
+	return [...document.querySelectorAll(sel)].flatMap((nav) =>
+		[...nav.querySelectorAll('a[href]')].filter((a) => a.getBoundingClientRect().width > 0).map((a) => ({ href: new URL(a.href).pathname, current: a.getAttribute('aria-current') === 'page', text: a.textContent.trim().replace(/\s+/g, ' ') }))
+	);
+}
+
+/** Runs in the page: what tells you where you are. */
+function whereAmI(parent) {
+	const out = [];
+	const title = [...document.querySelectorAll('main h1')].find((h) => h.getBoundingClientRect().height > 0)?.textContent.trim() ?? '';
+	const h1 = [...document.querySelectorAll('main h1')].find((h) => h.getBoundingClientRect().height > 0 && h.textContent.trim());
+	if (!h1) out.push('no visible page title (h1)');
+	if (parent) {
+		const crumbs = [...document.querySelectorAll('main nav[aria-label*="breadcrumb" i] a[href]')].filter((a) => a.getBoundingClientRect().width > 0);
+		if (!crumbs.some((a) => new URL(a.href).pathname === parent)) out.push(`no visible breadcrumb link back to ${parent}`);
+	}
+	return { problems: out, title };
+}
+
 /** Runs in the page: mark the first-run intro, onboarding and Kuri's hello as seen. */
 function skipIntro() {
 	return new Promise((done) => {
@@ -206,6 +253,13 @@ async function main() {
 					await page.screenshot({ path: `${SHOTS}/${label}${path.replace(/\//g, '_') || '_'}.png`, fullPage: true });
 				}
 			}
+
+			// Every top-level app screen is in the tab bar.
+			await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+			const tabs = (await page.evaluate(navLinks, 'nav.tabbar')).map((l) => l.href);
+			for (const r of routesUnder('src/routes').filter((r) => r.split('/').length === 2 && !(r in OFF_TAB_BAR))) {
+				if (!tabs.includes(r)) problems.push(`${r} @ ${label} ${width}px: not reachable, it is not in the tab bar (src/lib/components/TabBar.svelte)`);
+			}
 			await ctx.close();
 
 			// Fleet console with synthetic data, forms opened.
@@ -241,6 +295,60 @@ async function main() {
 					await fpage.screenshot({ path: `${SHOTS}/fleet-${label}${s.path.replace(/\//g, '_')}${s.label ? '-' + s.label.replace(/\W+/g, '-') : ''}.png`, fullPage: true });
 				}
 			}
+
+			// Navigation (flow) pass: reachability and "where am I" for every Fleet page.
+			const FLEET_NAV_SEL = 'nav[aria-label="Fleet"]';
+			const openNav = async () => {
+				if ((await fpage.evaluate(navLinks, FLEET_NAV_SEL)).length) return true;
+				const pill = fpage.locator('[aria-haspopup="dialog"][aria-label^="Fleet menu"]').first();
+				if (!(await pill.count())) return false;
+				await pill.click();
+				await fpage.waitForTimeout(400);
+				return (await fpage.evaluate(navLinks, FLEET_NAV_SEL)).length > 0;
+			};
+			const closeNav = async () => {
+				if (await fpage.locator('[role="dialog"][aria-label="Fleet menu"]').count()) {
+					await fpage.keyboard.press('Escape');
+					await fpage.waitForTimeout(400);
+				}
+			};
+			const routes = routesUnder('src/routes/admin');
+			const urlOf = (r) => (r.includes('[') ? FLEET_SAMPLES[r] : r);
+			await fpage.goto(BASE + '/admin', { waitUntil: 'networkidle' });
+			await fpage.waitForTimeout(300);
+			const at = `@ ${label} ${width}px`;
+			if (!(await openNav())) problems.push(`/admin ${at}: no Fleet navigation (a nav labelled "Fleet", or a "Fleet menu" button that opens it)`);
+			const navHrefs = (await fpage.evaluate(navLinks, FLEET_NAV_SEL)).map((l) => l.href);
+			if (!navHrefs.some((h) => !h.startsWith('/admin'))) problems.push(`/admin ${at}: the Fleet nav has no way back to the app`);
+			await closeNav();
+			for (const r of routes) {
+				const url = urlOf(r);
+				if (!url) {
+					problems.push(`${r}: no sample URL for this dynamic route (add it to FLEET_SAMPLES in scripts/layout-fixtures.mjs)`);
+					continue;
+				}
+				const isDetail = r.includes('[');
+				const parent = r === '/admin' ? null : isDetail ? url.slice(0, url.lastIndexOf('/')) : '/admin';
+				if (!isDetail && !navHrefs.includes(r)) problems.push(`${r} ${at}: not reachable, it is not in the Fleet nav (src/lib/admin/nav.ts)`);
+				if (isDetail) {
+					await fpage.goto(BASE + parent, { waitUntil: 'networkidle' });
+					await fpage.waitForTimeout(300);
+					const prefix = parent + '/';
+					const linked = await fpage.evaluate((pre) => [...document.querySelectorAll('main a[href]')].some((a) => new URL(a.href).pathname.startsWith(pre)), prefix);
+					if (!linked) problems.push(`${r} ${at}: not reachable, ${parent} has no link to a ${prefix}… page`);
+				}
+				await fpage.goto(BASE + url, { waitUntil: 'networkidle' });
+				await fpage.waitForTimeout(300);
+				const { problems: found, title } = await fpage.evaluate(whereAmI, parent);
+				if (await openNav()) {
+					const current = (await fpage.evaluate(navLinks, FLEET_NAV_SEL)).filter((l) => l.current);
+					if (current.length !== 1) found.push(`${current.length} current links in the Fleet nav, expected 1 (aria-current="page")`);
+					else if (!(url === current[0].href || url.startsWith(current[0].href + '/'))) found.push(`the Fleet nav marks ${current[0].href} as current`);
+					else if (!isDetail && r !== '/admin' && current[0].text !== title) found.push(`the nav calls this page "${current[0].text}" but its title says "${title}"`);
+					await closeNav();
+				} else found.push('no Fleet navigation on this page');
+				for (const f of found) problems.push(`${url} ${at}: ${f}`);
+			}
 			await fctx.close();
 		}
 	} finally {
@@ -252,7 +360,7 @@ async function main() {
 		console.error(`\nLayout check: ${problems.length} problem(s). See docs/DESIGN-SYSTEM.md (Spacing).`);
 		process.exit(1);
 	}
-	console.log(`Layout check: ${SCREENS.length} screens and ${FLEET_SCREENS.length} Fleet views with data × ${WIDTHS.length} widths, no problems.`);
+	console.log(`Layout check: ${SCREENS.length} screens and ${FLEET_SCREENS.length} Fleet views with data × ${WIDTHS.length} widths, plus navigation for ${routesUnder('src/routes/admin').length} Fleet pages and the tab bar, no problems.`);
 }
 
 await main();

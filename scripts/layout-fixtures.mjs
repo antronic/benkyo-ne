@@ -90,6 +90,7 @@ export const FLEET_FIXTURES = {
 	'/api/admin/ai/models': models,
 	'/api/admin/packages': packages,
 	'/api/admin/promos': promos,
+	'/api/admin/accounts': { accounts: [{ ...account, passkeyList: undefined }], next: null },
 	'/api/admin/accounts/3': account,
 	'/api/admin/promos/WELCOME30': { ...promos.promos[0], redemptions: [{ accountId: 3, accountName: 'Example Learner', redeemedAt: now - D, grantId: 1, live: true }] }
 };
@@ -109,3 +110,12 @@ export const FLEET_SCREENS = [
 	{ path: '/admin/promos', open: [] },
 	{ path: '/admin/accounts/3', open: [] }
 ];
+
+/**
+ * A sample URL for each dynamic Fleet route, for the navigation (flow) pass.
+ * A new dynamic page under src/routes/admin needs an entry here and fixtures above.
+ */
+export const FLEET_SAMPLES = {
+	'/admin/accounts/[id]': '/admin/accounts/3',
+	'/admin/ai/[id]': '/admin/ai/1'
+};
