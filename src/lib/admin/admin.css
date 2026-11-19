@@ -47,7 +47,7 @@
 	font: inherit;
 	cursor: pointer;
 }
-.fleet .danger {
+.fleet .danger:not(.btn) {
 	color: var(--danger);
 }
 .fleet input[type='text'],

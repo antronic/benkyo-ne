@@ -78,6 +78,7 @@ Import from `#lib/ui/index.ts`:
 | `Select` | `options`, `bind:value`, `label` | `.pick` in settings |
 | `Stepper` | `bind:value`, `min`, `max`, `step`, `label` | `.stepper` in settings |
 | `Notice` | `tone`, `title`, `action` snippet | new |
+| `StatTile` | `label`, `value`, `note`, `tone` default · danger; lay out in `<div class="ui-stats">` | `.tile` in the fleet console |
 
 `Button` and `IconButton` reuse the global `.btn` / `.icon-btn` styles in `app.css`, so a
 migrated button and an old one look the same.

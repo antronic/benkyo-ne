@@ -8,6 +8,7 @@
 	import { onMount } from 'svelte';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
+	import { Badge, Button, Card, Chip, ListGroup, ListRow, SectionHeader, Switch, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError, createPackage, deletePackage, getAllModels, getPackages, setPackageModels, updatePackage } from '#lib/admin/client.ts';
@@ -53,8 +54,7 @@
 		};
 	}
 
-	async function save(e: SubmitEvent) {
-		e.preventDefault();
+	async function save() {
 		if (!edit) return;
 		const patch: AdminPlanPatch = { name: edit.name, blurb: edit.blurb };
 		if (edit.id !== 'free') {
@@ -137,14 +137,14 @@
 		for (const p of data?.plans ?? []) for (const m of p.models) if (m.providerLabel) out.set(m.providerId, m.providerLabel);
 		return out;
 	});
-	const results = $derived.by(() => {
+	const matches = $derived.by(() => {
 		const needle = mq.trim().toLowerCase();
 		const all = catalog?.models ?? [];
-		return (needle ? all.filter((m) => m.id.toLowerCase().includes(needle) || m.label.toLowerCase().includes(needle)) : all).slice(0, 40);
+		return needle ? all.filter((m) => m.id.toLowerCase().includes(needle) || m.label.toLowerCase().includes(needle)) : all;
 	});
+	const results = $derived(matches.slice(0, 40));
 
-	async function make(e: SubmitEvent) {
-		e.preventDefault();
+	async function make() {
 		if (!making) return;
 		const r = await run(
 			() =>
@@ -192,148 +192,127 @@
 	{#if error}
 		<ErrorCard {error} onretry={load} />
 	{:else if !data}
-		<div class="glass group" aria-busy="true"><div class="item caption">Loading…</div></div>
+		<ListGroup><ListRow subtitle="Loading…" /></ListGroup>
 	{:else}
 		{#each data.plans as p (p.id)}
-			<div class="glass group">
+			<ListGroup>
 				{#if edit?.id === p.id}
-					<form class="item col" onsubmit={save}>
-						<label class="caption" for="name-{p.id}">Name</label>
-						<input id="name-{p.id}" type="text" bind:value={edit.name} maxlength="30" required />
-						<label class="caption" for="blurb-{p.id}">What’s included</label>
-						<input id="blurb-{p.id}" type="text" bind:value={edit.blurb} maxlength="200" />
-						{#if p.id !== 'free'}
-							<span class="fields">
-								<span class="stack" style:--gap="4px">
-									<label class="caption" for="m-{p.id}">Per month ($)</label>
-									<input id="m-{p.id}" type="number" min="0" max="1000" step="0.01" bind:value={edit.month} required />
+					<ListRow>
+						<div class="stack" style:--gap="12px">
+							<TextField id="name-{p.id}" label="Name" bind:value={edit.name} maxlength={30} />
+							<TextField id="blurb-{p.id}" label="What’s included" bind:value={edit.blurb} maxlength={200} />
+							{#if p.id !== 'free'}
+								<span class="fields">
+									<TextField id="m-{p.id}" label="Per month ($)" type="number" min="0" max="1000" step="0.01" bind:value={edit.month} />
+									<TextField id="y-{p.id}" label="Per year ($)" type="number" min="0" max="1000" step="0.01" bind:value={edit.year} />
+									<TextField id="a-{p.id}" label="AI each month ($)" type="number" min="0" max="100" step="0.1" bind:value={edit.allowance} />
 								</span>
-								<span class="stack" style:--gap="4px">
-									<label class="caption" for="y-{p.id}">Per year ($)</label>
-									<input id="y-{p.id}" type="number" min="0" max="1000" step="0.01" bind:value={edit.year} required />
-								</span>
-								<span class="stack" style:--gap="4px">
-									<label class="caption" for="a-{p.id}">AI each month ($)</label>
-									<input id="a-{p.id}" type="number" min="0" max="100" step="0.1" bind:value={edit.allowance} required />
-								</span>
-							</span>
-							<label class="row check"><input type="checkbox" bind:checked={edit.available} /> <span>Offered to new people</span></label>
-						{/if}
-						<span class="row" style:gap="8px">
-							{#if !p.builtin}<button type="button" class="link danger" onclick={() => remove(p)} disabled={busy}>Delete package</button>{/if}
-							<span class="spacer"></span>
-							<button type="button" class="btn small ghost" onclick={() => (edit = null)} disabled={busy}>Cancel</button>
-							<button class="btn small" disabled={busy}>Save</button>
-						</span>
-					</form>
-				{:else}
-					<div class="item col">
-						<span class="row" style:gap="8px">
-							<b class="plan">{p.name}</b>
-							{#if !p.available}<span class="pill muted">Not offered</span>{/if}
-							<span class="spacer"></span>
-							<button class="link" onclick={() => open(p)} disabled={busy || edit !== null}>Edit</button>
-						</span>
-						<span class="caption">{p.blurb}</span>
-					</div>
-					<div class="item">
-						<span class="stack" style:--gap="2px">
-							<span>{p.priceMonthUsd ? `${usd(p.priceMonthUsd)} a month · ${usd(p.priceYearUsd)} a year` : 'No charge'}</span>
-							{#if yearlySaving(p) > 0}<span class="caption">Yearly saves {yearlySaving(p)}%</span>{/if}
-						</span>
-					</div>
-					{#if p.id !== 'free'}
-						<div class="item">
-							<span class="stack" style:--gap="2px">
-								<span>Managed AI each month</span>
-								{#if p.priceMonthUsd > 0}<span class="caption">Keeps {usd(keeps(p))} a month after AI, before payment fees</span>{/if}
-							</span>
-							<span class="spacer"></span><b class="num">{usd(p.aiAllowanceUsd)}</b>
+							{/if}
 						</div>
+					</ListRow>
+					{#if p.id !== 'free'}
+						<ListRow title="Offered to new people">
+							{#snippet trailing()}<Switch label="Offered to new people" bind:checked={edit!.available} />{/snippet}
+						</ListRow>
 					{/if}
-					<div class="item"><span>Accounts on it</span><span class="spacer"></span><b class="num">{p.accounts}</b></div>
+					<ListRow>
+						<span class="row" style:gap="8px" style:flex-wrap="wrap">
+							{#if !p.builtin}<Button variant="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Delete package</Button>{/if}
+							<span class="spacer"></span>
+							<Button variant="ghost" size="sm" onclick={() => (edit = null)} disabled={busy}>Cancel</Button>
+							<Button size="sm" onclick={save} {busy}>Save</Button>
+						</span>
+					</ListRow>
+				{:else}
+					<ListRow>
+						<b class="plan">{p.name}</b>
+						{#if p.blurb}<span class="caption">{p.blurb}</span>{/if}
+						{#snippet trailing()}
+							{#if !p.available}<Badge>Not offered</Badge>{/if}
+							<Button variant="plain" size="sm" onclick={() => open(p)} disabled={busy || edit !== null}>Edit</Button>
+						{/snippet}
+					</ListRow>
+					<ListRow
+						title={p.priceMonthUsd ? `${usd(p.priceMonthUsd)} a month · ${usd(p.priceYearUsd)} a year` : 'No charge'}
+						subtitle={yearlySaving(p) > 0 ? `Yearly saves ${yearlySaving(p)}%` : undefined}
+					/>
+					{#if p.id !== 'free'}
+						<ListRow title="Managed AI each month" subtitle={p.priceMonthUsd > 0 ? `Keeps ${usd(keeps(p))} a month after AI, before payment fees` : undefined}>
+							{#snippet trailing()}<b class="num">{usd(p.aiAllowanceUsd)}</b>{/snippet}
+						</ListRow>
+					{/if}
+					<ListRow title="Accounts on it">
+						{#snippet trailing()}<b class="num">{p.accounts}</b>{/snippet}
+					</ListRow>
 				{/if}
 				{#if p.id !== 'free'}
 					{#if picking?.id === p.id}
 						{@render picker()}
 					{:else}
-						<div class="item col">
-							<span class="row" style:gap="8px">
-								<span class="eyebrow">AI models</span>
-								<span class="spacer"></span>
-								<button class="link" onclick={() => pick(p)} disabled={busy || picking !== null}>{p.models.length ? 'Change' : 'Choose models'}</button>
-							</span>
-							{#each p.models as m (m.providerId + m.model)}
-								<span class="row" style:gap="8px" style:align-items="flex-start">
-									<span class="stack" style:--gap="2px" style:min-width="0" style:flex="1">
-										<span class="ellipsis">{m.label} <span class="caption">· {m.providerLabel ?? 'removed provider'}</span></span>
-										<span class="caption">{priceLabel(m)}</span>
-									</span>
-									<span class="chips">{#each m.features as f (f)}<span class="pill muted">{FEATURE_SHORT[f]}</span>{/each}</span>
+						<ListRow>
+							<div class="stack" style:--gap="8px">
+								<span class="row" style:gap="8px">
+									<span class="eyebrow">AI models</span>
+									<span class="spacer"></span>
+									<Button variant="plain" size="sm" onclick={() => pick(p)} disabled={busy || picking !== null}>{p.models.length ? 'Change' : 'Choose models'}</Button>
 								</span>
-							{:else}
-								<span class="caption">No models yet. Pick some from your <a href="/admin/ai">AI providers</a>.</span>
-							{/each}
-						</div>
+								{#each p.models as m (m.providerId + m.model)}
+									<span class="row" style:gap="8px" style:align-items="flex-start">
+										<span class="stack" style:--gap="2px" style:min-width="0" style:flex="1">
+											<span class="ellipsis">{m.label} <span class="caption">· {m.providerLabel ?? 'removed provider'}</span></span>
+											<span class="caption">{priceLabel(m)}</span>
+										</span>
+										<span class="chips">{#each m.features as f (f)}<Badge variant="tag">{FEATURE_SHORT[f]}</Badge>{/each}</span>
+									</span>
+								{:else}
+									<span class="caption">No models yet. Pick some from your <a href="/admin/ai">AI providers</a>.</span>
+								{/each}
+							</div>
+						</ListRow>
 					{/if}
 				{/if}
-			</div>
+			</ListGroup>
 		{/each}
 
 		{#if making}
-			<form class="glass group" onsubmit={make}>
-				<div class="item col">
+			<Card padding="md">
+				<div class="stack" style:--gap="12px">
 					<b>New package</b>
-					<label class="caption" for="new-name">Name</label>
-					<input id="new-name" type="text" bind:value={making.name} maxlength="30" required placeholder="Exam Sprint" />
-					<label class="caption" for="new-blurb">What’s included</label>
-					<input id="new-blurb" type="text" bind:value={making.blurb} maxlength="200" />
+					<TextField id="new-name" label="Name" bind:value={making.name} maxlength={30} placeholder="Exam Sprint" />
+					<TextField id="new-blurb" label="What’s included" bind:value={making.blurb} maxlength={200} />
 					<span class="fields">
-						<span class="stack" style:--gap="4px">
-							<label class="caption" for="new-m">Per month ($)</label>
-							<input id="new-m" type="number" min="0" max="1000" step="0.01" bind:value={making.month} required />
-						</span>
-						<span class="stack" style:--gap="4px">
-							<label class="caption" for="new-y">Per year ($)</label>
-							<input id="new-y" type="number" min="0" max="1000" step="0.01" bind:value={making.year} required />
-						</span>
-						<span class="stack" style:--gap="4px">
-							<label class="caption" for="new-a">AI each month ($)</label>
-							<input id="new-a" type="number" min="0" max="100" step="0.1" bind:value={making.allowance} required />
-						</span>
+						<TextField id="new-m" label="Per month ($)" type="number" min="0" max="1000" step="0.01" bind:value={making.month} />
+						<TextField id="new-y" label="Per year ($)" type="number" min="0" max="1000" step="0.01" bind:value={making.year} />
+						<TextField id="new-a" label="AI each month ($)" type="number" min="0" max="100" step="0.1" bind:value={making.allowance} />
 					</span>
 					<span class="caption">It starts hidden from new people. Choose its models, then turn on “Offered”.</span>
 					<span class="row" style:gap="8px">
 						<span class="spacer"></span>
-						<button type="button" class="btn small ghost" onclick={() => (making = null)} disabled={busy}>Cancel</button>
-						<button class="btn small" disabled={busy}>Make package</button>
+						<Button variant="ghost" size="sm" onclick={() => (making = null)} disabled={busy}>Cancel</Button>
+						<Button size="sm" onclick={make} {busy} disabled={!making.name.trim()}>Make package</Button>
 					</span>
 				</div>
-			</form>
+			</Card>
 		{:else}
-			<div class="glass group">
-				<button class="item link" onclick={() => (making = { name: '', blurb: '', month: '4.99', year: '39', allowance: '1.5' })} disabled={busy || edit !== null}>
-					＋ New package
-				</button>
-			</div>
+			<ListGroup>
+				<ListRow tone="link" title="＋ New package" onclick={() => !busy && edit === null && (making = { name: '', blurb: '', month: '4.99', year: '39', allowance: '1.5' })} />
+			</ListGroup>
 		{/if}
 
-		<h2 class="eyebrow section">Granted now</h2>
-		<div class="glass group">
+		<SectionHeader title="Granted now" />
+		<ListGroup>
 			{#each data.grants as g (g.id)}
-				<a class="item" href="/admin/accounts/{g.accountId}">
-					<span class="stack" style:--gap="2px" style:min-width="0">
-						<span class="ellipsis">{g.accountName ?? `#${g.accountId}`} <span class="caption">#{g.accountId}</span></span>
-						<span class="caption">{g.kind === 'trial' ? 'Trial' : 'Complimentary'} · {g.endsAt ? `until ${shortDay(g.endsAt)}` : 'until ended'}{g.note ? ` · ${g.note}` : ''}</span>
-					</span>
-					<span class="spacer"></span>
-					<span class="pill">{PLAN_NAMES[g.plan] ?? g.plan}</span>
-					<span class="caption" aria-hidden="true">›</span>
-				</a>
+				<ListRow
+					href="/admin/accounts/{g.accountId}"
+					title={`${g.accountName ?? `#${g.accountId}`} #${g.accountId}`}
+					subtitle={`${g.kind === 'trial' ? 'Trial' : 'Complimentary'} · ${g.endsAt ? `until ${shortDay(g.endsAt)}` : 'until ended'}${g.note ? ` · ${g.note}` : ''}`}
+				>
+					{#snippet trailing()}<Badge tone="success">{PLAN_NAMES[g.plan] ?? g.plan}</Badge>{/snippet}
+				</ListRow>
 			{:else}
-				<div class="item caption">Nobody has Plus or Pro yet. Grant one from an account’s page.</div>
+				<ListRow subtitle="Nobody has a paid package yet. Grant one from an account’s page." />
 			{/each}
-		</div>
+		</ListGroup>
 		<p class="caption foot">
 			Packages aren’t enforced in the app yet: there’s no checkout, and managed AI comes later. Changes ask for your passkey and go in the audit log.
 		</p>
@@ -342,72 +321,81 @@
 
 {#snippet picker()}
 	{@const pk = picking!}
-	<div class="item col picker">
-		<span class="row" style:gap="8px">
-			<span class="eyebrow">AI models</span>
-			<span class="spacer"></span>
-			<span class="caption">{pk.models.length} chosen</span>
-		</span>
-		{#each pk.models as m, i (m.providerId + m.model)}
-			<span class="row chosen" style:gap="8px">
-				<span class="stack" style:--gap="4px" style:min-width="0" style:flex="1">
-					<span class="ellipsis">{m.label} <span class="caption">· {m.providerLabel ?? providerLabels.get(m.providerId) ?? ''}</span></span>
-					<span class="caption">{priceLabel(m)}</span>
-					<span class="chips" role="group" aria-label="Used for">
-						{#each FEATURES as f (f)}
-							<button type="button" class="chip" aria-pressed={m.features.includes(f)} title={FEATURE_NAMES[f]} onclick={() => toggleFeature(i, f)}>{FEATURE_SHORT[f]}</button>
-						{/each}
-					</span>
-				</span>
-				<button type="button" class="link danger" onclick={() => dropModel(i)} aria-label="Take {m.label} out">Remove</button>
+	<ListRow>
+		<div class="stack picker" style:--gap="8px">
+			<span class="row" style:gap="8px">
+				<span class="eyebrow">AI models</span>
+				<span class="spacer"></span>
+				<span class="caption">{pk.models.length} chosen</span>
 			</span>
-		{:else}
-			<span class="caption">Nothing chosen yet. Add models from the list below.</span>
-		{/each}
-		{#if pk.models.length && unassigned.length}
-			<span class="caption warn-text">No model does {unassigned.map((f) => FEATURE_NAMES[f].toLowerCase()).join(', ')} yet.</span>
-		{/if}
-
-		<span class="row" style:gap="8px" style:margin-top="6px">
-			<input type="search" bind:value={mq} placeholder="Search every provider’s models" aria-label="Search models" style:flex="1" />
-			<button type="button" class="link" onclick={() => loadCatalog(true)} disabled={busy}>Refresh</button>
-		</span>
-		{#if catalogError}
-			<span class="caption warn-text">{catalogError}</span>
-		{:else if !catalog}
-			<span class="caption">Asking your providers for their models…</span>
-		{:else}
-			{#each catalog.errors as e (e.providerId)}<span class="caption warn-text">{e.label}: {e.message}</span>{/each}
-			{#if !catalog.models.length && !catalog.errors.length}
-				<span class="caption">No turned-on providers. <a href="/admin/ai">Add one</a> first.</span>
-			{/if}
-			<div class="results">
-				{#each results as m (m.providerId + m.id)}
-					{@const label = catalogLabel(m.providerId)}
-					<span class="row" style:gap="8px">
-						<span class="stack" style:--gap="2px" style:min-width="0" style:flex="1">
-							<span class="ellipsis">{m.label} <span class="caption">· {label}</span></span>
-							<span class="caption">{priceLabel(m)}{m.vision ? ' · reads images' : ''}</span>
+			{#each pk.models as m, i (m.providerId + m.model)}
+				<span class="row chosen" style:gap="8px">
+					<span class="stack" style:--gap="4px" style:min-width="0" style:flex="1">
+						<span class="ellipsis">{m.label} <span class="caption">· {m.providerLabel ?? providerLabels.get(m.providerId) ?? ''}</span></span>
+						<span class="caption">{priceLabel(m)}</span>
+						<span class="chips" role="group" aria-label="Used for">
+							{#each FEATURES as f (f)}
+								<Chip selected={m.features.includes(f)} onclick={() => toggleFeature(i, f)}>{FEATURE_SHORT[f]}</Chip>
+							{/each}
 						</span>
-						{#if isPicked(m.providerId, m.id)}
-							<span class="caption">Added</span>
-						{:else}
-							<button type="button" class="link" onclick={() => addModel(m, label)} disabled={pk.models.length >= 20}>Add</button>
-						{/if}
 					</span>
-				{/each}
-			</div>
-			{#if catalog.models.length > results.length}<span class="caption">Showing {results.length} of {catalog.models.length}. Search to find others.</span>{/if}
-		{/if}
-		<span class="row" style:gap="8px" style:margin-top="6px">
-			<span class="spacer"></span>
-			<button type="button" class="btn small ghost" onclick={() => (picking = null)} disabled={busy}>Cancel</button>
-			<button type="button" class="btn small" onclick={saveModels} disabled={busy}>Save models</button>
-		</span>
-	</div>
+					<Button variant="ghost" class="danger" size="sm" onclick={() => dropModel(i)} aria-label="Take {m.label} out">Remove</Button>
+				</span>
+			{:else}
+				<span class="caption">Nothing chosen yet. Add models from the list below.</span>
+			{/each}
+			{#if pk.models.length && unassigned.length}
+				<span class="caption warn-text">No model does {unassigned.map((f) => FEATURE_NAMES[f].toLowerCase()).join(', ')} yet.</span>
+			{/if}
+			<span class="caption">Fill: {FEATURE_NAMES.fill} · Suggest: {FEATURE_NAMES.propose} · Photo: {FEATURE_NAMES.vision}</span>
+
+			<TextField id="model-search" type="search" bind:value={mq} placeholder="Search every provider’s models" aria-label="Search models" />
+			{#if catalogError}
+				<span class="caption warn-text">{catalogError}</span>
+			{:else if !catalog}
+				<span class="caption">Asking your providers for their models…</span>
+			{:else}
+				{#each catalog.errors as e (e.providerId)}<span class="caption warn-text">{e.label}: {e.message}</span>{/each}
+				{#if !catalog.models.length && !catalog.errors.length}
+					<span class="caption">No turned-on providers. <a href="/admin/ai">Add one</a> first.</span>
+				{/if}
+				<div class="results">
+					{#each results as m (m.providerId + m.id)}
+						{@const label = catalogLabel(m.providerId)}
+						<span class="row" style:gap="8px">
+							<span class="stack" style:--gap="2px" style:min-width="0" style:flex="1">
+								<span class="ellipsis">{m.label} <span class="caption">· {label}</span></span>
+								<span class="caption">{priceLabel(m)}{m.vision ? ' · reads images' : ''}</span>
+							</span>
+							{#if isPicked(m.providerId, m.id)}
+								<Badge tone="success">Added</Badge>
+							{:else}
+								<Button variant="plain" size="sm" onclick={() => addModel(m, label)} disabled={pk.models.length >= 20}>Add</Button>
+							{/if}
+						</span>
+					{/each}
+				</div>
+				{#if matches.length > results.length}<span class="caption">Showing {results.length} of {matches.length}. Search to narrow it down.</span>{:else if mq.trim() && !matches.length}<span class="caption">No model matches.</span>{/if}
+			{/if}
+			<span class="row" style:gap="8px" style:margin-top="6px" style:flex-wrap="wrap">
+				<Button variant="plain" size="sm" onclick={() => loadCatalog(true)} disabled={busy}>Ask providers again</Button>
+				<span class="spacer"></span>
+				<Button variant="ghost" size="sm" onclick={() => (picking = null)} disabled={busy}>Cancel</Button>
+				<Button size="sm" onclick={saveModels} {busy}>Save models</Button>
+			</span>
+		</div>
+	</ListRow>
 {/snippet}
 
 <style>
+	.plan {
+		font-size: 20px;
+	}
+	.fields {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+		gap: 8px;
+	}
 	.picker .chosen {
 		padding: 8px 0;
 		border-bottom: 0.5px solid var(--hairline);
@@ -419,21 +407,5 @@
 		max-height: 360px;
 		overflow-y: auto;
 		padding: 4px 0;
-	}
-	.plan {
-		font-size: 20px;
-	}
-	.fields {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-		gap: 8px;
-	}
-	.fields input {
-		width: 100%;
-		box-sizing: border-box;
-	}
-	.check {
-		gap: 8px;
-		align-items: center;
 	}
 </style>

@@ -16,3 +16,4 @@ export { default as Select } from './Select.svelte';
 export { default as Stepper } from './Stepper.svelte';
 export { default as Switch } from './Switch.svelte';
 export { default as TextField } from './TextField.svelte';
+export { default as StatTile } from './StatTile.svelte';

@@ -8,6 +8,7 @@
 	import { page } from '$app/state';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
+	import { Button, Select, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError, deleteAccount, endGrant, getAccount, getPackages, grantPackage, patchAccount, revokeSessions } from '#lib/admin/client.ts';
@@ -96,8 +97,7 @@
 		}
 	}
 
-	async function give(e: SubmitEvent) {
-		e.preventDefault();
+	async function give() {
 		if (!a) return;
 		const days = gDays === '' ? null : Number(gDays);
 		const live = a.grants.find((g) => g.live);
@@ -165,28 +165,35 @@
 					{#if g.live}<button class="link danger" onclick={() => end(g)} disabled={busy}>End</button>{/if}
 				</div>
 			{/each}
-			<form class="item col" onsubmit={give}>
+			<div class="item col">
 				<span class="row" style:gap="8px" style:flex-wrap="wrap">
-					<select bind:value={gPlan} aria-label="Package">
-						{#each paid as p (p.id)}<option value={p.id}>{p.name}{p.available ? '' : ' (not offered)'}</option>{/each}
-					</select>
-					<select bind:value={gKind} aria-label="Kind" onchange={() => gKind === 'trial' && gDays === '' && (gDays = '7')}>
-						<option value="trial">Trial</option>
-						<option value="comp">Complimentary</option>
-					</select>
-					<select bind:value={gDays} aria-label="How long">
-						<option value="7">7 days</option>
-						<option value="30">30 days</option>
-						<option value="90">90 days</option>
-						<option value="365">1 year</option>
-						{#if gKind === 'comp'}<option value="">Until ended</option>{/if}
-					</select>
+					<Select label="Package" bind:value={gPlan} options={paid.map((p) => ({ value: p.id, label: p.available ? p.name : `${p.name} (not offered)` }))} />
+					<Select
+						label="Kind"
+						bind:value={gKind}
+						onchange={() => gKind === 'trial' && gDays === '' && (gDays = '7')}
+						options={[
+							{ value: 'trial', label: 'Trial' },
+							{ value: 'comp', label: 'Complimentary' }
+						]}
+					/>
+					<Select
+						label="How long"
+						bind:value={gDays}
+						options={[
+							{ value: '7', label: '7 days' },
+							{ value: '30', label: '30 days' },
+							{ value: '90', label: '90 days' },
+							{ value: '365', label: '1 year' },
+							...(gKind === 'comp' ? [{ value: '', label: 'Until ended' }] : [])
+						]}
+					/>
 				</span>
-				<span class="row" style:gap="8px">
-					<input type="text" bind:value={gNote} maxlength="120" placeholder="Note (optional)" aria-label="Note" style:flex="1" />
-					<button class="btn small" disabled={busy}>Grant</button>
+				<span class="row" style:gap="8px" style:align-items="flex-end">
+					<span style:flex="1" style:min-width="0"><TextField id="grant-note" bind:value={gNote} maxlength={120} placeholder="Note (optional)" aria-label="Note" /></span>
+					<Button size="sm" onclick={give} {busy}>Grant</Button>
 				</span>
-			</form>
+			</div>
 		</div>
 		<p class="caption" style:margin="2px 6px">Packages aren’t enforced in the app yet. This records who gets a paid package for when managed AI ships.</p>
 

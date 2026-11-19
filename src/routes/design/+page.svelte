@@ -5,7 +5,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
-	import { Badge, Button, Card, Chip, IconButton, ListGroup, ListRow, Notice, SectionHeader, Segmented, Select, Stepper, Switch, TextField } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, Chip, IconButton, ListGroup, ListRow, Notice, SectionHeader, Segmented, Select, StatTile, Stepper, Switch, TextField } from '#lib/ui/index.ts';
 	import { colorGroups, motionPatterns, motionTokens, radiusTokens, spaceTokens, textStyles } from '#lib/design/tokens.ts';
 
 	type Mode = 'auto' | 'light' | 'dark' | 'both';
@@ -221,6 +221,13 @@
 						<Badge variant="tag" tone="info">New</Badge>
 					</div>
 				</Card>
+
+				<SectionHeader title="Stat tiles" />
+				<div class="ui-stats">
+					<StatTile label="Models listed" value={318} />
+					<StatTile label="Active, 7 days" value={42} note="6 in the last 24 h" />
+					<StatTile label="Failed, 24 h" value={3} tone="danger" />
+				</div>
 
 				<SectionHeader title="Grouped list" />
 				<ListGroup>
