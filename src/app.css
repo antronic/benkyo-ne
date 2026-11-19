@@ -245,7 +245,6 @@ button,
 .btn.plain {
 	background: none;
 	color: var(--color-link);
-	padding: 0 var(--space-2);
 }
 .btn.block {
 	width: 100%;
@@ -259,6 +258,19 @@ button,
 	min-height: 36px;
 	padding: 0 var(--space-4);
 	font-size: 0.9375rem;
+}
+/* A plain button is text: no side padding at any size, so its label lines up
+   with the text of the row or card it sits in. */
+.btn.plain,
+.btn.plain.small,
+.btn.plain.medium {
+	padding-left: 0;
+	padding-right: 0;
+}
+/* Quiet destructive text action (<Button variant="plain" class="danger">). */
+.btn.plain.danger {
+	background: none;
+	color: var(--color-danger);
 }
 
 .icon-btn {

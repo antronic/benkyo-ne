@@ -16,6 +16,8 @@
 		// The reload takes a moment: show it on the button until the page goes.
 		restarting = true;
 		updater.restart();
+		// If the page hasn't gone after a while, give the buttons back.
+		setTimeout(() => (restarting = false), 8000);
 	}
 </script>
 

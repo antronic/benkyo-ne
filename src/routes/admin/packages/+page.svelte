@@ -339,7 +339,7 @@
 							{/each}
 						</span>
 					</span>
-					<Button variant="ghost" class="danger" size="sm" onclick={() => dropModel(i)} aria-label="Take {m.label} out">Remove</Button>
+					<Button variant="plain" class="danger" size="sm" onclick={() => dropModel(i)} aria-label="Take {m.label} out">Remove</Button>
 				</span>
 			{:else}
 				<span class="caption">Nothing chosen yet. Add models from the list below.</span>
@@ -377,9 +377,8 @@
 				</div>
 				{#if matches.length > results.length}<span class="caption">Showing {results.length} of {matches.length}. Search to narrow it down.</span>{:else if mq.trim() && !matches.length}<span class="caption">No model matches.</span>{/if}
 			{/if}
-			<span class="row" style:gap="var(--space-2)" style:margin-top="var(--space-1h)" style:flex-wrap="wrap">
-				<Button variant="plain" size="sm" onclick={() => loadCatalog(true)} disabled={busy}>Ask providers again</Button>
-				<span class="spacer"></span>
+			<span class="row"><Button variant="plain" size="sm" onclick={() => loadCatalog(true)} disabled={busy}>Ask providers again</Button></span>
+			<span class="row" style:gap="var(--space-2)" style:justify-content="flex-end">
 				<Button variant="ghost" size="sm" onclick={() => (picking = null)} disabled={busy}>Cancel</Button>
 				<Button size="sm" onclick={saveModels} {busy}>Save models</Button>
 			</span>

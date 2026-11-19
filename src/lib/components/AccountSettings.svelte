@@ -13,6 +13,8 @@
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import AppleButton from './AppleButton.svelte';
+	import PromoCode from './PromoCode.svelte';
+	import { SectionHeader } from '#lib/ui/index.ts';
 	import BetaConsent from '#lib/components/BetaConsent.svelte';
 	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 	import { Badge, Button, FieldRow, ListGroup, ListRow, Segmented, TextField } from '#lib/ui/index.ts';
@@ -340,6 +342,9 @@
 			<Button variant="ghost-danger" block onclick={deleteAccount} disabled={busy} busy={pending === 'delete'}>{t('account.delete')}</Button>
 		</ListRow>
 	</ListGroup>
+
+	<div id="promo"><SectionHeader title={t('promo.section')} level={3} /></div>
+	<PromoCode />
 
 	{#if ai.beta?.acceptedAt && !ai.needsConsent}
 		<h3 class="eyebrow section" id="beta-data">{t('beta.section')}</h3>

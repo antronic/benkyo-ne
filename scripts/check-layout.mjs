@@ -19,17 +19,21 @@
  *
  * The API is mocked: the app runs signed out and offline-first, and the fleet
  * console answers "Sign in first", so the check needs no Worker or secrets.
+ * A second pass signs the fleet console "in" with synthetic data
+ * (scripts/layout-fixtures.mjs) and checks its lists, forms and the model
+ * picker opened.
  * Set LAYOUT_URL to check a server that is already running.
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
+import { FLEET_FIXTURES, FLEET_SCREENS } from './layout-fixtures.mjs';
 
 const PORT = 4179;
 const BASE = process.env.LAYOUT_URL ?? `http://localhost:${PORT}`;
 const SHOTS = process.env.LAYOUT_SHOTS; // optional folder for failure screenshots
 
-export const SCREENS = ['/', '/learn', '/kana', '/words', '/ai', '/settings', '/design', '/admin', '/admin/accounts'];
+export const SCREENS = ['/', '/learn', '/kana', '/words', '/ai', '/settings', '/design', '/admin', '/admin/accounts', '/admin/promos'];
 const WIDTHS = [
 	['phone', 390, 844],
 	['ipad', 768, 1024],
@@ -85,8 +89,19 @@ function inspect({ EDGE_X, EDGE_Y, MIN_CONTROL, desktop }) {
 			if (closed && !host.closest('summary')) continue;
 			const range = document.createRange();
 			range.selectNodeContents(n);
-			for (const t of range.getClientRects()) {
-				if (t.width === 0) continue;
+			// Text cut off by an ellipsis or a scroll box only shows inside that box.
+			let clip = null;
+			for (let a = host; a && a !== card; a = a.parentElement) {
+				if (getComputedStyle(a).overflowX !== 'visible') {
+					clip = a.getBoundingClientRect();
+					break;
+				}
+			}
+			for (const raw of range.getClientRects()) {
+				const t = clip
+					? { left: Math.max(raw.left, clip.left), right: Math.min(raw.right, clip.right), top: Math.max(raw.top, clip.top), bottom: Math.min(raw.bottom, clip.bottom) }
+					: { left: raw.left, right: raw.right, top: raw.top, bottom: raw.bottom };
+				if (t.right - t.left <= 0 || t.bottom <= t.top) continue;
 				// Fully outside the card: clipped or scrolled away, not hugging.
 				if (t.bottom <= box.top || t.top >= box.bottom || t.right <= box.left || t.left >= box.right) continue;
 				const gaps = [t.left - box.left, box.right - t.right, t.top - box.top, box.bottom - t.bottom];
@@ -129,6 +144,21 @@ function inspectNavbar() {
 	return out;
 }
 
+/** Runs in the page: mark the first-run intro, onboarding and Kuri's hello as seen. */
+function skipIntro() {
+	return new Promise((done) => {
+		const req = indexedDB.open('benkyo');
+		req.onsuccess = () => {
+			const tx = req.result.transaction('meta', 'readwrite');
+			const meta = tx.objectStore('meta');
+			for (const k of ['introSeen', 'kuriIntroSeen', 'onboardingSeen']) meta.put(true, k);
+			tx.oncomplete = () => done();
+			tx.onerror = () => done();
+		};
+		req.onerror = () => done();
+	});
+}
+
 async function waitFor(url, ms = 20000) {
 	const end = Date.now() + ms;
 	while (Date.now() < end) {
@@ -161,21 +191,7 @@ async function main() {
 			});
 			const page = await ctx.newPage();
 			await page.goto(BASE + '/', { waitUntil: 'networkidle' });
-			// Skip the first-run intro, onboarding and Kuri's hello.
-			await page.evaluate(
-				() =>
-					new Promise((done) => {
-						const req = indexedDB.open('benkyo');
-						req.onsuccess = () => {
-							const tx = req.result.transaction('meta', 'readwrite');
-							const meta = tx.objectStore('meta');
-							for (const k of ['introSeen', 'kuriIntroSeen', 'onboardingSeen']) meta.put(true, k);
-							tx.oncomplete = () => done();
-							tx.onerror = () => done();
-						};
-						req.onerror = () => done();
-					})
-			);
+			await page.evaluate(skipIntro);
 			for (const path of SCREENS) {
 				await page.goto(BASE + path, { waitUntil: 'networkidle' });
 				await page.waitForTimeout(400);
@@ -191,6 +207,41 @@ async function main() {
 				}
 			}
 			await ctx.close();
+
+			// Fleet console with synthetic data, forms opened.
+			const fctx = await browser.newContext({ viewport: { width, height }, serviceWorkers: 'block', reducedMotion: 'reduce' });
+			await fctx.route('**/api/**', (route) => {
+				const path = new URL(route.request().url()).pathname;
+				const body = FLEET_FIXTURES[path];
+				return route.fulfill({ status: body ? 200 : 404, contentType: 'application/json', body: JSON.stringify(body ?? { error: 'not_found' }) });
+			});
+			const fpage = await fctx.newPage();
+			await fpage.goto(BASE + '/', { waitUntil: 'networkidle' });
+			await fpage.evaluate(skipIntro);
+			for (const s of FLEET_SCREENS) {
+				await fpage.goto(BASE + s.path, { waitUntil: 'networkidle' });
+				await fpage.waitForTimeout(400);
+				const where = `${s.path}${s.label ? ` (${s.label})` : ''} @ ${label} ${width}px`;
+				let opened = true;
+				for (const text of s.open) {
+					const el = fpage.getByText(text, { exact: true }).first();
+					if (!(await el.count())) {
+						problems.push(`${where}: nothing to press called "${text}" (update scripts/layout-fixtures.mjs)`);
+						opened = false;
+						break;
+					}
+					await el.click();
+					await fpage.waitForTimeout(300);
+				}
+				if (!opened) continue;
+				const found = await fpage.evaluate(inspect, { EDGE_X, EDGE_Y, MIN_CONTROL, desktop: width >= 600 });
+				for (const f of found) problems.push(`${where}: ${f}`);
+				if (found.length && SHOTS) {
+					mkdirSync(SHOTS, { recursive: true });
+					await fpage.screenshot({ path: `${SHOTS}/fleet-${label}${s.path.replace(/\//g, '_')}${s.label ? '-' + s.label.replace(/\W+/g, '-') : ''}.png`, fullPage: true });
+				}
+			}
+			await fctx.close();
 		}
 	} finally {
 		await browser.close();
@@ -201,7 +252,7 @@ async function main() {
 		console.error(`\nLayout check: ${problems.length} problem(s). See docs/DESIGN-SYSTEM.md (Spacing).`);
 		process.exit(1);
 	}
-	console.log(`Layout check: ${SCREENS.length} screens × ${WIDTHS.length} widths, no problems.`);
+	console.log(`Layout check: ${SCREENS.length} screens and ${FLEET_SCREENS.length} Fleet views with data × ${WIDTHS.length} widths, no problems.`);
 }
 
 await main();

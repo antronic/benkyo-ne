@@ -150,18 +150,21 @@
 
 	async function finish() {
 		finishing = true;
-		for (const k of chars) {
-			const s = stats[k.char];
-			const avg = s.ms.reduce((a, b) => a + b, 0) / Math.max(1, s.ms.length);
-			// The lesson counts as the card's first review, capped at Good: a kana
-			// met minutes ago should go through the short learning steps, never
-			// jump straight to a multi-week interval. Drawing is slower than
-			// tapping, so the time is halved before grading.
-			const grade = s.wrong > 0 ? Again : (Math.min(inferGrade(true, avg / 2, s.hinted), Good) as Grade);
-			await progress.record(cardId(k), grade, avg);
+		try {
+			for (const k of chars) {
+				const s = stats[k.char];
+				const avg = s.ms.reduce((a, b) => a + b, 0) / Math.max(1, s.ms.length);
+				// The lesson counts as the card's first review, capped at Good: a kana
+				// met minutes ago should go through the short learning steps, never
+				// jump straight to a multi-week interval. Drawing is slower than
+				// tapping, so the time is halved before grading.
+				const grade = s.wrong > 0 ? Again : (Math.min(inferGrade(true, avg / 2, s.hinted), Good) as Grade);
+				await progress.record(cardId(k), grade, avg);
+			}
+			await progress.completeLesson(lesson!.id);
+		} finally {
+			finishing = false;
 		}
-		await progress.completeLesson(lesson!.id);
-		finishing = false;
 		phase = 'done';
 		haptic('success');
 	}

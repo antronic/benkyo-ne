@@ -71,7 +71,6 @@
 		font-size: var(--text-footnote);
 		font-weight: var(--weight-semibold);
 		color: var(--color-text-2);
-		padding-left: var(--space-1);
 	}
 	input {
 		font: inherit;
@@ -127,9 +126,6 @@
 	}
 	.invalid input:focus {
 		box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-danger) 28%, transparent);
-	}
-	.note {
-		padding-left: var(--space-1);
 	}
 	.err {
 		font-size: var(--text-caption);

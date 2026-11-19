@@ -44,7 +44,7 @@ export class AdminError extends Error {
 	}
 }
 
-async function call<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
+export async function call<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
 	if (typeof navigator !== 'undefined' && !navigator.onLine) throw new AdminError(0, 'offline', 'You’re offline');
 	let res: Response;
 	try {
@@ -91,7 +91,7 @@ export async function stepUp(): Promise<void> {
 	await call('/api/admin/stepup/verify', { method: 'POST', json: response });
 }
 
-async function withStepUp<T>(fn: () => Promise<T>): Promise<T> {
+export async function withStepUp<T>(fn: () => Promise<T>): Promise<T> {
 	try {
 		return await fn();
 	} catch (e) {

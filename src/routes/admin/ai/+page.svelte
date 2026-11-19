@@ -129,11 +129,11 @@
 					</ListRow>
 				{:else}
 					<ListRow>
-						<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
+						<span class="row" style:gap="var(--space-2) var(--space-5)" style:flex-wrap="wrap">
 							<Button variant="plain" size="sm" onclick={() => (rekey = { id: p.id, key: '' })} disabled={busy}>Replace key</Button>
 							<Button variant="plain" size="sm" onclick={() => toggle(p)} disabled={busy}>{p.enabled ? 'Turn off' : 'Turn on'}</Button>
 							<span class="spacer"></span>
-							<Button variant="ghost" class="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Remove</Button>
+							<Button variant="plain" class="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Remove</Button>
 						</span>
 					</ListRow>
 				{/if}

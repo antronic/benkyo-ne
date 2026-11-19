@@ -40,8 +40,9 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | AI tutor (BYOK) | AI user | `/api/ai/{ask,ask/stream,fill,propose,lesson}` | `ai_ledger`, `ai_rate` | `worker/ai/{ask,run,anthropic,openai,ledger}.ts` | `src/lib/ai/`, `src/routes/ai/` |
 | AI keys, models, prices, cap | AI user | `/api/ai/{credentials,models,prices,features,cap,usage}` | `ai_credentials`, `ai_feature_models`, `ai_model_prices`, `ai_settings` | `worker/ai/{credentials,models,cost}.ts`, `worker/crypto.ts` | `AiSettings.svelte`, `src/lib/state/ai.svelte.ts` |
 | Plans and packages | Job | `/api/admin/packages`, `/api/admin/accounts/:id/grants` | `plans`, `plan_grants` | `worker/plans.ts`, `worker/admin/packages.ts` | `src/routes/admin/packages/` |
+| Promo codes | Job, signed-in learner | `/api/promo`, `/api/promo/redeem`, `/api/admin/promos[/:code]` | `promo_codes`, `promo_redemptions` (+ `plan_grants`) | `worker/promo.ts`, `worker/admin/promos.ts` | `src/lib/promo/`, `PromoCode.svelte` (Settings), `src/routes/admin/promos/` |
 | Beta consent and usage data | signed-in learner | `/api/beta/{status,consent,events,data,export}` | `beta_consents`, `beta_events`, `beta_ai_calls` | `worker/beta/` | `src/lib/beta/`, `BetaConsent.svelte` |
-| Fleet console | Job (Cloudflare Access + step-up) | `/api/admin/{overview,usage,audit,system,stepup/*,accounts,invites,settings,packages}` | `admin_audit` (+ reads most tables) | `worker/admin/` | `src/routes/admin/`, `src/lib/admin/` |
+| Fleet console | Job (Cloudflare Access + step-up) | `/api/admin/{overview,usage,audit,system,stepup/*,accounts,invites,settings,packages,promos,ai/*}` | `admin_audit`, `ai_providers`, `plan_models` (+ reads most tables) | `worker/admin/` | `src/routes/admin/`, `src/lib/admin/` |
 | Session length | Job | `/api/admin/settings/session` | `ai_settings` (`session_ttl_days`) | `worker/auth/session.ts` | `src/routes/admin/settings/` |
 | Account deletion | learner, Job | `/api/auth/account`, `/api/admin/accounts/:id` | every table with a user id | `accountDataStatements` / `deleteAccountData` in `worker/ai/credentials.ts` | `AccountSettings.svelte` |
 | Health | anyone | `/api/health` | none | `worker/index.ts` | none |
@@ -71,6 +72,7 @@ Announce a change to any of these to the other threads ([teamwork.md](guides/tea
 | --- | --- | --- |
 | Design tokens | `src/lib/design/tokens.css`, `tokens.ts` | Old names (`--bg`, `--ink`, `--accent`) are aliases; do not remove them while screens use them |
 | Spacing checks | `scripts/check-spacing.mjs`, `scripts/check-layout.mjs`, `.claude/settings.json` | Spacing uses `var(--space-*)`; a new screen goes into `SCREENS` in `check-layout.mjs` |
+| Layout check fixtures | `scripts/layout-fixtures.mjs` | Synthetic Fleet data for `check:layout`; a new Fleet screen with forms goes into `FLEET_SCREENS` |
 | UI kit checks | `scripts/check-ui.mjs`, `src/lib/ui/kit.test.ts`, `.claude/settings.json` | No raw controls outside `src/lib/ui`; every kit component exported and on `/design`; async work shows a loading state |
 | UI kit | `src/lib/ui/` (import from `#lib/ui/index.ts`), shown on `/design` | Every control in the app comes from here. New component: export it and add it to `/design` (the lint fails otherwise) |
 | UI strings | `src/lib/i18n/{en,th}.ts`, `t()` / `tn()` | Append keys; `th.ts` may be partial (falls back to English) |

@@ -5,6 +5,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { BarChart, Badge, Button, Card, Checkbox, Chip, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, Notice, PageDots, ProgressRing, SectionHeader, Segmented, Select, Sheet, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
+	import PromoCode from '#lib/components/PromoCode.svelte';
+	import { PromoRequestError } from '#lib/promo/client.ts';
+	import type { PromoStatus } from '#lib/promo/contract.ts';
 	import { colorGroups, motionPatterns, motionTokens, radiusTokens, spaceTokens, textStyles } from '#lib/design/tokens.ts';
 
 	type Mode = 'auto' | 'light' | 'dark' | 'both';
@@ -32,6 +35,18 @@
 	function fakeSave() {
 		saving = true;
 		setTimeout(() => (saving = false), 1500);
+	}
+
+	// promo code demo: no network, a short wait so the busy state shows
+	const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+	const fakePromoFree = async (): Promise<PromoStatus> => (await wait(600), { plan: 'free', planName: 'Free', grant: null });
+	const fakePromoTrial = async (): Promise<PromoStatus> => (
+		await wait(900), { plan: 'plus', planName: 'Plus', grant: { kind: 'trial', endsAt: Date.now() + 21 * 86_400_000, promoCode: 'WELCOME30' } }
+	);
+	async function fakeRedeem(code: string) {
+		await wait(700);
+		if (code.toUpperCase().replace(/[\s\-_.]/g, '') !== 'SONGKRAN27') throw new PromoRequestError(404, 'invalid', 'invalid');
+		return { code: 'SONGKRAN27', plan: 'pro', planName: 'Pro', grant: { kind: 'comp' as const, endsAt: Date.now() + 30 * 86_400_000, promoCode: 'SONGKRAN27' } };
 	}
 
 	const tokenNames = [...colorGroups.flatMap((g) => g.tokens.map((t) => t.name)), ...spaceTokens, ...radiusTokens];
@@ -353,6 +368,13 @@
 
 				<SectionHeader title="Sheet" />
 				<Button variant="ghost" onclick={() => (sheetOpen = true)}>Open a sheet</Button>
+
+				<SectionHeader title="Promo code (Settings)" />
+				<p class="caption">Try SONGKRAN27 for success; any other code shows an error. The second card is an account already on a trial.</p>
+				<div class="stack" style:--gap="var(--space-2)">
+					<PromoCode load={fakePromoFree} redeem={fakeRedeem} />
+					<PromoCode load={fakePromoTrial} redeem={fakeRedeem} />
+				</div>
 
 				<!-- ------------------------------------------------ motion -->
 				<SectionHeader title="Motion" />

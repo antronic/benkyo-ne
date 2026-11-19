@@ -138,15 +138,18 @@
 
 	async function finish() {
 		finishing = true;
-		for (const k of chars) {
-			const s = stats[k.char];
-			const avg = s.ms.reduce((a, b) => a + b, 0) / Math.max(1, s.ms.length);
-			// As with kana: the lesson is the first review, capped at Good.
-			const grade = s.wrong > 0 ? Again : (Math.min(inferGrade(true, avg / 2, s.hinted), Good) as Grade);
-			await progress.record(kanjiCardId(k), grade, avg);
+		try {
+			for (const k of chars) {
+				const s = stats[k.char];
+				const avg = s.ms.reduce((a, b) => a + b, 0) / Math.max(1, s.ms.length);
+				// As with kana: the lesson is the first review, capped at Good.
+				const grade = s.wrong > 0 ? Again : (Math.min(inferGrade(true, avg / 2, s.hinted), Good) as Grade);
+				await progress.record(kanjiCardId(k), grade, avg);
+			}
+			await progress.completeLesson(lesson!.id);
+		} finally {
+			finishing = false;
 		}
-		await progress.completeLesson(lesson!.id);
-		finishing = false;
 		phase = 'done';
 		haptic('success');
 	}

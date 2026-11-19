@@ -83,6 +83,7 @@
 				</ListRow>
 				<ListRow title="AI providers and models" href="/admin/ai" />
 				<ListRow title="Packages" href="/admin/packages" />
+				<ListRow title="Promo codes" href="/admin/promos" />
 				<ListRow title="System and health" href="/admin/system" />
 				<ListRow title="Audit log" href="/admin/audit" />
 			</ListGroup>

@@ -76,7 +76,6 @@
 		font-size: var(--text-footnote);
 		font-weight: var(--weight-semibold);
 		color: var(--color-text-2);
-		padding-left: var(--space-1);
 	}
 	textarea {
 		font: inherit;
@@ -104,9 +103,6 @@
 	}
 	.invalid textarea {
 		border-color: var(--color-danger);
-	}
-	.note {
-		padding-left: var(--space-1);
 	}
 	.err {
 		font-size: var(--text-caption);

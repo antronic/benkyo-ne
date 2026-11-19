@@ -65,7 +65,7 @@ Import from `#lib/ui/index.ts`:
 
 | Component | Props | Replaces |
 | --- | --- | --- |
-| `Button` | `variant` primary · accent · ghost · danger · ghost-danger · plain · link, `size` sm 36 · md 44 · lg 50 (default, or the FieldRow's size), `block`, `href`, `busy`, `icon` snippet | `<button class="btn …">` |
+| `Button` | `variant` primary · accent · ghost · danger · ghost-danger · plain (text, no side padding; `class="danger"` for red) · link, `size` sm 36 · md 44 · lg 50 (default, or the FieldRow's size), `block`, `href`, `busy`, `icon` snippet | `<button class="btn …">` |
 | `IconButton` | `label` (required), `size` | `.icon-btn` |
 | `Card` | `strong`, `sheen`, `padding` none · sm · md · lg, `radius`, `as`; `href` or `onclick` make it a tappable tile (`selected`, `disabled`) | `<div class="glass …">`, answer tiles |
 | `SectionHeader` | `title`, `level`, `trailing` snippet | `<h2 class="eyebrow section">` |
@@ -192,7 +192,7 @@ The checks:
 | `npm run lint:ui` (`scripts/check-spacing.mjs`) | the gate and CI | hard-coded px in padding, margin, gap; `--fix` snaps them to the nearest token (ties round up) |
 | `npm run lint:ui` (`scripts/check-ui.mjs`) | the gate and CI | raw native controls and hand-made kit classes outside `src/lib/ui`, a kit component not exported or not on `/design`, async work with no loading state |
 | Claude Code hook (`.claude/settings.json`, PostToolUse on Edit/Write) | after every agent edit of a `.svelte` or `.css` file | both lints, reported back to the agent at once (exit 2) |
-| `npm run check:layout` (`scripts/check-layout.mjs`) | the gate and CI, after `npm run build` | horizontal scroll, an off-centre column (≥ 600px), text hugging a card edge, controls under 32px, and a compact title bar that does not span rail to edge or whose title is off the column centre; at 390, 768, 1024 (side rail) and 1280px |
+| `npm run check:layout` (`scripts/check-layout.mjs`) | the gate and CI, after `npm run build` | horizontal scroll, an off-centre column (≥ 600px), text hugging a card edge, controls under 32px, and a compact title bar that does not span rail to edge or whose title is off the column centre; at 390, 768, 1024 (side rail) and 1280px. A second pass loads Fleet's AI, packages and promo screens with synthetic data (`scripts/layout-fixtures.mjs`) and opens their forms and the model picker |
 | `src/lib/design/spacing.test.ts` | `npm test` | the lint's scale drifting from `tokens.css` |
 | `src/lib/ui/kit.test.ts` | `npm test` | the UI kit lint's rules, and every kit component exported and on `/design` |
 

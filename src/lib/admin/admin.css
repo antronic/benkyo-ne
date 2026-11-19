@@ -83,6 +83,11 @@
 }
 
 /* AI providers and package models (src/routes/admin/ai, packages) */
+.fleet .chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1h);
+}
 .fleet .model-id {
 	font-family: var(--font-mono);
 	font-size: var(--text-caption);
