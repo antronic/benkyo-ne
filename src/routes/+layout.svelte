@@ -25,6 +25,7 @@
 	import { startAutoSync, sync } from '#lib/sync.ts';
 	import { edgeSwipeBack, trackKeyboard } from '#lib/ios/gestures.ts';
 	import { insets } from '#lib/ios/device.svelte.ts';
+	import { notes } from '#lib/state/notes.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { processOutbox } from '#lib/words/maker.ts';
@@ -120,7 +121,7 @@
 	async function boot(apple: ReturnType<typeof takeAppleResult>) {
 		try {
 			await withTimeout(
-				progress.load().then(() => words.load()),
+				progress.load().then(() => Promise.all([words.load(), notes.load()])),
 				LOAD_TIMEOUT_MS,
 				'loading saved progress'
 			);
@@ -129,6 +130,7 @@
 			console.error('[boot] saved progress could not be opened', e);
 			progress.ready = true;
 			words.ready = true;
+			notes.ready = true;
 			toast(t('boot.storageFailed'), '⚠️', 4200);
 			return; // no intros or sync without storage; they run on the next good launch
 		}

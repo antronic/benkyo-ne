@@ -18,6 +18,8 @@
 	import { words } from '#lib/state/words.svelte.ts';
 	import { shuffle } from '#lib/quiz.ts';
 	import WordCardView from './WordCardView.svelte';
+	import NoteCard from './NoteCard.svelte';
+	import { notes } from '#lib/state/notes.svelte.ts';
 	import { Button, Card as Surface, TextField } from '#lib/ui/index.ts';
 
 	interface Props {
@@ -75,12 +77,16 @@
 		return !!kana && fold(kana) === target;
 	}
 
+	// a quick right answer moves on by itself, unless there is a note to read
+	const hasNote = $derived(!!notes.text(card.id).trim());
+	const autoNext = (correct: boolean) => correct && mode === 'choose' && !hasNote;
+
 	function submit(correct: boolean) {
 		if (result) return;
 		result = { correct };
 		speak(card.front);
 		onanswer({ correct, ms: performance.now() - t0, hint });
-		if (correct && mode === 'choose') setTimeout(onnext, 900);
+		if (autoNext(correct)) setTimeout(onnext, 900);
 	}
 </script>
 
@@ -149,7 +155,8 @@
 						<WordCardView {card} />
 					</Surface>
 				</div>
-				{#if !(result.correct && mode === 'choose')}
+				<NoteCard peek value={notes.text(card.id)} onsave={(b) => notes.save(card.id, card.front, b)} />
+				{#if !autoNext(result.correct)}
 					<Button variant={result.correct ? 'primary' : 'accent'} block onclick={onnext}>{t('common.continue')}</Button>
 				{/if}
 			{/if}

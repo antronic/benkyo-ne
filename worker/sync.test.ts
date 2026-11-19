@@ -159,6 +159,63 @@ describe('account sync', () => {
 	});
 });
 
+const note = (subject: string, updatedAt: number, body = 'remember it', deleted = false) => ({
+	subject,
+	label: subject.slice(subject.indexOf(':') + 1),
+	body,
+	createdAt: 1,
+	updatedAt,
+	deleted
+});
+
+describe('personal notes', () => {
+	it('sync between devices on one account, newest edit wins, deletes travel', async () => {
+		signedInAs = 1;
+		await post({ cursor: 0, logs: [], notes: [note('kana:あ', 5, 'like a fish'), note('word:neko', 5)], notesCursor: 0 });
+		// an older edit from a slow device loses
+		await post({ cursor: 0, logs: [], notes: [note('kana:あ', 3, 'stale')], notesCursor: 0 });
+		// the other device deletes one
+		await post({ cursor: 0, logs: [], notes: [note('word:neko', 9, '', true)], notesCursor: 0 });
+
+		const pulled = await post({ cursor: 0, logs: [], notesCursor: 0 });
+		const byId = Object.fromEntries(pulled.body.notes.map((n: { subject: string }) => [n.subject, n]));
+		expect(byId['kana:あ'].body).toBe('like a fish');
+		expect(byId['word:neko']).toMatchObject({ deleted: true, body: '' });
+		// the cursor only returns what changed after it
+		const again = await post({ cursor: 0, logs: [], notesCursor: pulled.body.notesCursor });
+		expect(again.body.notes).toEqual([]);
+	});
+
+	it('are private to their account', async () => {
+		signedInAs = 1;
+		await post({ cursor: 0, logs: [], notes: [note('kanji:日', 2, 'sun')], notesCursor: 0 });
+		signedInAs = 2;
+		expect((await post({ cursor: 0, logs: [], notesCursor: 0 })).body.notes).toEqual([]);
+	});
+
+	it('refuses notes it does not understand', async () => {
+		signedInAs = 1;
+		expect((await post({ cursor: 0, logs: [], notes: [note('nope:x', 2)] })).status).toBe(400);
+		expect((await post({ cursor: 0, logs: [], notes: [note('kana:あ', 2, 'x'.repeat(4001))] })).status).toBe(400);
+	});
+
+	it('older clients that send no notes get no notes back', async () => {
+		signedInAs = 1;
+		await post({ cursor: 0, logs: [], notes: [note('kana:い', 2)], notesCursor: 0 });
+		expect((await post({ cursor: 0, logs: [] })).body.notes).toBeUndefined();
+	});
+
+	it('move with an old sync key into the account, and go with the account', async () => {
+		await post({ cursor: 0, logs: [], notes: [note('kana:う', 4, 'from the key')], notesCursor: 0 }, { key: KEY });
+		signedInAs = 1;
+		const first = await post({ cursor: 0, logs: [], notes: [], notesCursor: 0 }, { key: KEY });
+		expect(first.body.notes.map((n: { body: string }) => n.body)).toEqual(['from the key']);
+
+		await deleteAccountData(env as never, 1);
+		expect(db.prepare(`SELECT COUNT(*) AS n FROM user_notes`).get()).toEqual({ n: 0 });
+	});
+});
+
 describe('staying signed in', () => {
 	const DAY = 24 * 60 * 60 * 1000;
 	const expiry = () => (db.prepare(`SELECT expires_at AS e FROM sessions WHERE token_hash = 't'`).get() as { e: number }).e;

@@ -3,9 +3,9 @@
  * the device (local-first); the server only stores a copy for sync.
  */
 const DB_NAME = 'benkyo';
-const VERSION = 2;
+const VERSION = 3;
 
-export type StoreName = 'cards' | 'logs' | 'meta' | 'userCards' | 'packs' | 'outbox';
+export type StoreName = 'cards' | 'logs' | 'meta' | 'userCards' | 'packs' | 'outbox' | 'notes';
 
 let dbp: Promise<IDBDatabase> | null = null;
 
@@ -35,6 +35,10 @@ function open(): Promise<IDBDatabase> {
 				db.createObjectStore('userCards', { keyPath: 'id' });
 				db.createObjectStore('packs', { keyPath: 'id' });
 				db.createObjectStore('outbox', { keyPath: 'id' });
+			}
+			if (from < 3) {
+				// personal notes, one per study item (docs/NOTES.md)
+				db.createObjectStore('notes', { keyPath: 'subject' });
 			}
 		};
 		req.onsuccess = () => {
@@ -97,7 +101,7 @@ export async function del(store: StoreName, key: IDBValidKey) {
 	return wrap(db.transaction(store, 'readwrite').objectStore(store).delete(key));
 }
 
-const ALL: StoreName[] = ['cards', 'logs', 'meta', 'userCards', 'packs', 'outbox'];
+const ALL: StoreName[] = ['cards', 'logs', 'meta', 'userCards', 'packs', 'outbox', 'notes'];
 
 export async function clearAll() {
 	const db = await open();

@@ -25,6 +25,8 @@
 	import RecallPad from '#lib/components/RecallPad.svelte';
 	import KanjiOrigin from '#lib/components/KanjiOrigin.svelte';
 	import KanjiInfo from '#lib/components/KanjiInfo.svelte';
+	import NoteCard from '#lib/components/NoteCard.svelte';
+	import { notes } from '#lib/state/notes.svelte.ts';
 	import { Button, Card, IconButton } from '#lib/ui/index.ts';
 
 	type Phase = 'intro' | 'meet' | 'trace' | 'recognize' | 'recall' | 'done';
@@ -218,6 +220,13 @@
 								<Button variant="ghost" size="sm" onclick={() => say(current)}>🔊 {t('common.listen')}</Button>
 								<Button variant="ghost" size="sm" onclick={() => animKey++}>↻ {t('lesson.replay')}</Button>
 							</div>
+							{#key current.char}
+								<NoteCard
+									value={notes.text(`kanji:${current.char}`)}
+									loading={!notes.ready}
+									onsave={(b) => notes.save(`kanji:${current.char}`, current.char, b)}
+								/>
+							{/key}
 						</div>
 					</div>
 				{:else if phase === 'trace' && current}

@@ -12,6 +12,8 @@
 	import { page } from '$app/state';
 	import { fly } from 'svelte/transition';
 	import Romaji from '#lib/components/Romaji.svelte';
+	import NoteCard from '#lib/components/NoteCard.svelte';
+	import { notes } from '#lib/state/notes.svelte.ts';
 	import { courseTag, NOW_TAG, type CourseItem } from '#lib/content/courses.ts';
 	import { lessonPacks } from '#lib/state/lessonPacks.svelte.ts';
 	import { speak } from '#lib/content/kana.ts';
@@ -29,6 +31,7 @@
 	const course = $derived(lessonPacks.courses.find((c) => c.id === params.course));
 	const unit = $derived(course?.units.find((u) => u.id === params.unit));
 	const tag = $derived(course && unit ? courseTag(course.id, unit.id) : '');
+	const subject = $derived(course && unit ? `unit:${course.id}/${unit.id}` : '');
 
 	let cands = $state<(Candidate & { note?: string })[]>([]);
 	let learnNow = $state(true);
@@ -99,6 +102,10 @@
 			</div>
 		</header>
 
+		<div class="unit-note">
+			<NoteCard value={notes.text(subject)} loading={!notes.ready} onsave={(b) => notes.save(subject, tc(unit.title), b)} />
+		</div>
+
 		{#if !cands.length}
 			<Skeleton variant="row" count={unit.items.length} label={t('unit.checking')} />
 		{/if}
@@ -159,6 +166,9 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
+		margin-bottom: var(--space-4);
+	}
+	.unit-note {
 		margin-bottom: var(--space-4);
 	}
 	.items {

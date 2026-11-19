@@ -33,7 +33,8 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | Placement and drills | learner | none | none | none | `src/lib/practice/`, `src/routes/learn/placement/` |
 | Onboarding | new learner | none | none | none | `src/lib/onboarding/`, `Onboarding.svelte` |
 | Words and packs | learner | `/api/sync` | `user_cards` | `worker/cards.ts`, `worker/sync.ts` | `src/lib/words/`, `src/lib/state/{words,lessonPacks}.svelte.ts`, `src/routes/words/` |
-| Progress sync | signed-in learner | `/api/sync` | `users`, `review_log`, `user_cards` | `worker/sync.ts` | `src/lib/state/progress.svelte.ts`, idb `outbox` |
+| Personal notes ([NOTES.md](NOTES.md)) | learner | `/api/sync` (`notes`, `notesCursor`) | `user_notes` | `worker/notes.ts`, `worker/sync.ts` | `src/lib/notes/`, `src/lib/state/notes.svelte.ts`, `NoteCard.svelte`, Words → Notes |
+| Progress sync | signed-in learner | `/api/sync` | `users`, `review_log`, `user_cards`, `user_notes` | `worker/sync.ts` | `src/lib/state/progress.svelte.ts`, idb `outbox` |
 | Passkey accounts, recovery | everyone | `/api/auth/{register,login}/{options,verify}`, `/api/auth/{me,logout,account,passkeys,recover,recovery-code}` | `accounts`, `passkeys`, `recovery_codes`, `sessions`, `auth_challenges` | `worker/auth/{passkey,session,signup}.ts` | `Welcome.svelte`, `AccountSettings.svelte` |
 | Sign in with Apple (off: no `APPLE_CLIENT_ID`) | everyone | `/api/auth/apple/{start,callback}` | `apple_identities`, `apple_states` | `worker/auth/{apple,appleToken}.ts` | `AppleButton.svelte` |
 | Sign-up mode, invite codes | everyone, Job | `/api/auth/register/options` | `app_settings`, `invite_codes` | `worker/auth/signup.ts` | `Welcome.svelte`, `src/routes/invite/[code]` (`/invite/VIP?coupon=CODE` links) |
@@ -62,6 +63,7 @@ beta data.
 | `userCards` | Learner-made word cards | `words.svelte.ts` |
 | `packs` | Lesson packs | `lessonPacks.svelte.ts` |
 | `outbox` | Changes waiting to sync | `progress.svelte.ts` |
+| `notes` | Personal notes, key `subject` (VERSION 3) | `notes.svelte.ts`, sync |
 
 localStorage keys: `benkyo.locale` (interface language), `benkyo.boot` (startup safe mode),
 `benkyo.installCard` (install card dismissed), `benkyo.plan` (last known package, grant end and name of the signed-in account, for the Today badge offline;
