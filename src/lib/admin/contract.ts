@@ -53,6 +53,8 @@ export interface AdminAccountPatch {
 	capUsd?: number;
 }
 
+import type { InviteCardData } from '../invite/contract.ts';
+
 /** Status 428 + this code: confirm with a passkey, then retry. */
 export const STEPUP_REQUIRED = 'stepup_required';
 
@@ -64,6 +66,8 @@ export interface AdminInvite {
 	expiresAt: number | null;
 	createdAt: number;
 	revokedAt: number | null;
+	/** VIP card shown on /invite/<code>; null: none */
+	card: InviteCardData | null;
 }
 
 export interface AdminSettings {

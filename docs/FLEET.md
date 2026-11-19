@@ -183,6 +183,21 @@ onboarding and consent; once the person is signed in the app redeems it once and
 went (a toast), then forgets it. Offline, it waits for the next try. `src/lib/promo/link.ts`,
 used by the root layout.
 
+**VIP invite card.** A live invite can carry a card: a note (up to 280 characters), a "from"
+name (up to 40) and handwriting. In Fleet Settings, "Add card" / "Edit card" on an invite opens a
+sheet with the note, the name, an `InkPad` to draw on, Preview and Remove card
+(`PATCH /api/admin/invites/:code {card}`, step-up, audited as `invite.card` /
+`invite.card.clear`; `card: null` removes it). Stored in `invite_codes.card_note`, `card_from` and
+`card_ink` (JSON: `{aspect, strokes: [[x, y, ms]…]}`, x and y from 0 to 1; migration 0016;
+`worker/invite.ts` checks the shape and size). When `/invite/<invite>` opens, the page asks
+`GET /api/auth/invite/:code[?coupon=CODE]` (signed out, 30 a minute per IP; 404 without a live
+invite and a card) and plays `InviteCard` once the splash has gone: it springs up, the seal stamps
+on, the note rises in and the handwriting plays back as it was drawn, with the coupon's perk
+("Plus trial · 14 days") when the link has a redeemable coupon. Accept opens sign-up with the
+invite filled in (after the intro on a first visit); Not now goes to the app. With no card, offline
+or slow (4 s), the link goes straight to sign-up as before. Kit components `InviteCard`, `InkPad`
+and `InkReplay`, ink model in `src/lib/ui/ink.ts`, all on `/design`.
+
 **Editing** (`PATCH /api/admin/promos/:code`) changes the package, kind,
 days, use limit (not below the uses so far), expiry (days from today, or
 never) and note. Changes apply to redemptions from then on; packages a code

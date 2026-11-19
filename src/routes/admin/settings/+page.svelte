@@ -4,11 +4,12 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Button, Columns, FieldRow, LargeTitle, ListGroup, ListRow, SectionHeader, Select, Skeleton, TextField } from '#lib/ui/index.ts';
+	import { BarChart, Button, Columns, FieldRow, InkPad, InviteCard, LargeTitle, ListGroup, ListRow, SectionHeader, Select, Sheet, Skeleton, TextArea, TextField, emptyInk, type Ink } from '#lib/ui/index.ts';
+	import { CARD_FROM_MAX, CARD_NOTE_MAX } from '#lib/invite/contract.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
-	import { AdminError, createInvite, getSettings, revokeInvite, setSessionDays, setSignupMode } from '#lib/admin/client.ts';
+	import { AdminError, createInvite, getSettings, revokeInvite, setInviteCard, setSessionDays, setSignupMode } from '#lib/admin/client.ts';
 	import type { AdminInvite, AdminSettings } from '#lib/admin/contract.ts';
 	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
@@ -53,6 +54,39 @@
 			toast(e instanceof AdminError ? e.message : 'Passkey confirmation cancelled', '⚠️', 2600);
 		} finally {
 			pending = null;
+		}
+	}
+
+	// VIP card: a note, who it's from and handwriting, shown when /invite/<code> opens
+	let cardFor = $state<AdminInvite | null>(null);
+	let cardNote = $state('');
+	let cardFrom = $state('');
+	let cardInk = $state<Ink>(emptyInk());
+	let cardPreview = $state(false);
+	let cardError = $state('');
+	function editCard(inv: AdminInvite) {
+		cardFor = inv;
+		cardNote = inv.card?.note ?? '';
+		cardFrom = inv.card?.from ?? '';
+		cardInk = inv.card?.ink ?? emptyInk();
+		cardError = '';
+	}
+	async function saveCard(clear = false) {
+		if (!cardFor || !s) return;
+		if (!clear && !cardNote.trim() && !cardInk.strokes.length) {
+			cardError = 'Write a note or draw something first.';
+			return;
+		}
+		cardError = '';
+		const code = cardFor.code;
+		const r = await act(
+			clear ? 'card-clear' : 'card',
+			() => setInviteCard(code, clear ? null : { note: cardNote.trim(), from: cardFrom.trim(), ink: cardInk.strokes.length ? cardInk : null }),
+			clear ? 'Card removed' : 'Card saved'
+		);
+		if (r) {
+			s.invites = s.invites.map((i) => (i.code === r.code ? r : i));
+			cardFor = null;
 		}
 	}
 
@@ -182,6 +216,7 @@
 								</span>
 							</span>
 							<span class="spacer"></span>
+							{#if live(inv)}<Button variant="link" onclick={() => editCard(inv)}>{inv.card ? 'Edit card' : 'Add card'}</Button>{/if}
 							{#if live(inv)}<Button variant="link" onclick={() => copy(inv.code, true)}>Copy link</Button>{/if}
 							{#if !inv.revokedAt}<Button variant="link" class="danger" onclick={() => revoke(inv)} busy={pending === `revoke:${inv.code}`} disabled={busy}>Revoke</Button>{/if}
 						</div>
@@ -217,7 +252,38 @@
 	{/if}
 </main>
 
+<Sheet open={!!cardFor} label="Invite card" onclose={() => (cardFor = null)}>
+	{#if cardFor}
+		<div class="stack" style:--gap="var(--space-3)">
+			<SectionHeader title="Card for {cardFor.code}" />
+			<span class="caption">Opening {location.origin}/invite/{cardFor.code} shows this card first, then sign-up with the invite filled in.</span>
+			<TextArea label="Note" bind:value={cardNote} maxlength={CARD_NOTE_MAX} rows={3} placeholder="Saved you a seat. Start with kana, I’ll check in on Friday." />
+			<TextField label="From" bind:value={cardFrom} maxlength={CARD_FROM_MAX} placeholder="Job" />
+			<InkPad bind:value={cardInk} label="Handwriting for the card" placeholder="Write or draw here (optional)" />
+			{#if cardError}<span class="caption danger-text" role="alert">{cardError}</span>{/if}
+			<FieldRow stack="narrow">
+				<Button variant="ghost" onclick={() => (cardPreview = true)} disabled={!cardNote.trim() && !cardInk.strokes.length}>Preview</Button>
+				{#if cardFor.card}<Button variant="ghost-danger" busy={pending === 'card-clear'} disabled={!!pending} onclick={() => saveCard(true)}>Remove card</Button>{/if}
+				<span class="spacer"></span>
+				<Button busy={pending === 'card'} disabled={!!pending} onclick={() => saveCard()}>Save card</Button>
+			</FieldRow>
+		</div>
+	{/if}
+</Sheet>
+<InviteCard
+	open={cardPreview}
+	code={cardFor?.code ?? ''}
+	from={cardFrom}
+	note={cardNote}
+	ink={cardInk.strokes.length ? cardInk : null}
+	acceptLabel="Close preview"
+	onaccept={() => (cardPreview = false)}
+/>
+
 <style>
+	.danger-text {
+		color: var(--color-danger);
+	}
 	.fleet :global(.ui-link.code) {
 		font: 600 15px ui-monospace, 'SF Mono', Menlo, monospace;
 		letter-spacing: 0.04em;
