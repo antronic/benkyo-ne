@@ -20,7 +20,7 @@ export const AUDIT_PAGE = 50;
  * system screen compares it with d1_migrations to spot a deploy whose
  * migrations didn't run. insights.test.ts fails if this falls behind.
  */
-export const LATEST_MIGRATION = '0019_card_sightings.sql';
+export const LATEST_MIGRATION = '0020_card_sightings.sql';
 
 /** Tables whose sizes the system screen shows. */
 const TABLES = [

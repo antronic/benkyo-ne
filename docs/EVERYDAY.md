@@ -43,7 +43,7 @@ Everything else in the drafts is built from existing kit components (`ListRow` w
 - **Data.** Each card carries `seen` (`UserCard.seen` in `src/lib/ai/contract.ts`): a total count
   and the last 10 sightings (`at`, `via`, `ctx`). `via` is `photo`, `lookup`, `writing` or `add`;
   `ctx` is the look-up text or the message, up to 300 characters. It syncs in
-  `user_cards.seen_json` (migration 0019); the Worker refuses a malformed one.
+  `user_cards.seen_json` (migration 0020); the Worker refuses a malformed one.
 - **Recording.** `words.see(ids, via, ctx)` adds a sighting (`src/lib/words/phrasebook.ts`
   `addSighting`). The same card from the same place within 10 minutes counts once, so re-reading a
   photo does not inflate it. The card maker records every word a photo finds that you already have,
