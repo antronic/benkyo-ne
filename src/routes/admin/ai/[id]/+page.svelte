@@ -13,6 +13,7 @@
 	import { AdminError, getProviderModels, getProviders } from '#lib/admin/client.ts';
 	import type { AdminModels, AdminProvider } from '#lib/admin/contract.ts';
 	import { contextLabel, priceLabel } from '#lib/admin/models.ts';
+	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -58,6 +59,7 @@
 <svelte:head><title>{provider?.label ?? 'Models'} · Fleet</title></svelte:head>
 
 <main class="page stack fleet" style:--gap="var(--space-2)">
+	<FleetTrail detail={provider?.label} />
 	<LargeTitle title={provider?.label ?? 'Models'} />
 
 	{#if error}

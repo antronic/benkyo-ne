@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Badge, Button, Card, Checkbox, Chip, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, Notice, PageDots, ProgressRing, SectionHeader, Segmented, Select, Sheet, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
+	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, ProgressRing, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
 	import PromoCode from '#lib/components/PromoCode.svelte';
 	import { PromoRequestError } from '#lib/promo/client.ts';
 	import type { PromoStatus } from '#lib/promo/contract.ts';
@@ -283,6 +283,25 @@
 					</ListRow>
 					<ListRow title="Erase all progress" tone="danger" onclick={() => {}} />
 				</ListGroup>
+
+				<SectionHeader title="Navigation" />
+				<p class="caption">
+					A section's pages: SideNav as a sidebar on wide screens, MenuBar on phones opening the same list in a Sheet. Breadcrumbs on every page below the top show where you are and the way back. Fleet uses all three.
+				</p>
+				<Card padding="sm" class="demo-nav">
+					<SideNav
+						label="Example sections"
+						current="#nav-accounts"
+						items={[
+							{ href: '#nav-overview', label: 'Overview', icon: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z' },
+							{ href: '#nav-accounts', label: 'Accounts', group: 'People', note: '128', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20a7.5 7.5 0 0 1 15 0' },
+							{ href: '#nav-packages', label: 'Packages', group: 'Plans', icon: 'M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9' },
+							{ href: '#nav-audit', label: 'Audit log', group: 'Platform', icon: 'M7 4h10a2 2 0 0 1 2 2v14l-3-2-2 2-2-2-2 2-2-2-3 2V6a2 2 0 0 1 2-2zM9 9h6M9 13h4' }
+						]}
+					/>
+				</Card>
+				<Breadcrumbs items={[{ label: 'Fleet', href: '#nav-overview' }, { label: 'Accounts', href: '#nav-accounts' }, { label: 'Example Learner' }]} />
+				<MenuBar floating={false} current="Accounts" label="Example menu" icon="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20a7.5 7.5 0 0 1 15 0" onmenu={() => (sheetOpen = true)} />
 
 				<SectionHeader title="Segmented control" />
 				<Segmented
