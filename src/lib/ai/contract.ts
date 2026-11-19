@@ -4,6 +4,7 @@
  */
 
 import type { BetaStatus } from '../beta/contract.ts';
+import type { Person } from '../avatar/person.ts';
 
 export type ProviderKind = 'anthropic' | 'openai-compatible';
 
@@ -30,6 +31,10 @@ export interface Me {
 		via: 'passkey' | 'recovery' | 'apple' | 'dev';
 		/** an Apple ID is connected to this account */
 		appleLinked: boolean;
+		/** the avatar's parts (only the changes from the defaults), or null for none (docs/AVATAR.md) */
+		avatar?: Partial<Person> | null;
+		/** the one-time "Make your avatar" prompt was answered (saved, or "Not now") */
+		avatarAsked?: boolean;
 	} | null;
 	/** anyone can create an account (passkey or Apple) */
 	signupOpen: boolean;

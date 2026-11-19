@@ -30,7 +30,11 @@
 			</Card>
 		{/each}
 	</div>
-	{#if ai.usage}
+	{#if ai.onPackage && ai.managed?.plan}
+		<p class="caption">
+			{t('ai.usagePackage', { name: ai.managed.plan.name, spent: '$' + ai.managed.spentUsd.toFixed(3), cap: '$' + ai.managed.allowanceUsd.toFixed(2), n: ai.managed.calls })}
+		</p>
+	{:else if ai.usage}
 		<p class="caption">{t('ai.usage', { spent: '$' + ai.usage.spentUsd.toFixed(3), cap: '$' + ai.usage.capUsd.toFixed(2), n: ai.usage.calls })}</p>
 	{/if}
 </main>

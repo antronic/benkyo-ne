@@ -13,7 +13,7 @@ const perM = (n: number) => (n === 0 ? '$0' : n < 0.1 ? `$${+n.toFixed(3)}` : `$
 
 /** "$3 in / $15 out per M tokens", or "No price listed". */
 export function priceLabel(m: { inputPerM: number | null; outputPerM: number | null }): string {
-	if (m.inputPerM === null || m.outputPerM === null) return 'No price listed';
+	if (m.inputPerM === null || m.outputPerM === null) return 'No price listed (counts as $0 in a package)';
 	if (m.inputPerM === 0 && m.outputPerM === 0) return 'Free';
 	return `${perM(m.inputPerM)} in / ${perM(m.outputPerM)} out per M tokens`;
 }

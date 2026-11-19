@@ -44,6 +44,7 @@ import {
 } from '../src/lib/community/contract.ts';
 import { SUBJECT_RE } from '../src/lib/notes/contract.ts';
 import { rateLimit } from './ai/ledger.ts';
+import { parseAvatar } from './avatar.ts';
 import { getSession, type Session } from './auth/passkey.ts';
 import { deletePostsStatements, visible } from './communityData.ts';
 import { hasBlockedWords } from './communityWords.ts';
@@ -82,13 +83,13 @@ export const communityError = (problem: CommunityProblem) =>
 // ------------------------------------------------------------ visibility ----
 
 const POST_COLS = `p.id, p.type, p.subject, p.label, p.body, p.lang, p.status, p.like_count AS likes, p.reply_count AS replies,
-	p.created_at AS createdAt, p.edited_at AS editedAt, pr.handle, p.author_id = ?1 AS mine,
+	p.created_at AS createdAt, p.edited_at AS editedAt, pr.handle, pa.avatar AS avatar, p.author_id = ?1 AS mine,
 	EXISTS (SELECT 1 FROM community_likes l WHERE l.target_kind = 'post' AND l.target_id = p.id AND l.account_id = ?1) AS liked`;
-const POST_FROM = `FROM community_posts p JOIN community_profiles pr ON pr.account_id = p.author_id`;
+const POST_FROM = `FROM community_posts p JOIN community_profiles pr ON pr.account_id = p.author_id JOIN accounts pa ON pa.id = p.author_id`;
 
-type Row<T> = Omit<T, 'mine' | 'liked'> & { mine: number; liked: number };
-const toPost = (r: Row<Post>): Post => ({ ...r, mine: !!r.mine, liked: !!r.liked });
-const toReply = (r: Row<Reply>): Reply => ({ ...r, mine: !!r.mine, liked: !!r.liked });
+type Row<T> = Omit<T, 'mine' | 'liked' | 'avatar'> & { mine: number; liked: number; avatar: string | null };
+const toPost = (r: Row<Post>): Post => ({ ...r, mine: !!r.mine, liked: !!r.liked, avatar: parseAvatar(r.avatar) });
+const toReply = (r: Row<Reply>): Reply => ({ ...r, mine: !!r.mine, liked: !!r.liked, avatar: parseAvatar(r.avatar) });
 
 // --------------------------------------------------------------- profile ----
 
@@ -193,9 +194,9 @@ export async function thread(env: Env, viewer: number, id: number): Promise<Thre
 	const post = await visiblePost(env, viewer, id);
 	const { results } = await env.DB.prepare(
 		`SELECT r.id, r.post_id AS postId, r.body, r.lang, r.status, r.like_count AS likes, r.created_at AS createdAt,
-		        pr.handle, r.author_id = ?1 AS mine,
+		        pr.handle, ra.avatar AS avatar, r.author_id = ?1 AS mine,
 		        EXISTS (SELECT 1 FROM community_likes l WHERE l.target_kind = 'reply' AND l.target_id = r.id AND l.account_id = ?1) AS liked
-		   FROM community_replies r JOIN community_profiles pr ON pr.account_id = r.author_id
+		   FROM community_replies r JOIN community_profiles pr ON pr.account_id = r.author_id JOIN accounts ra ON ra.id = r.author_id
 		  WHERE r.post_id = ?2 AND ${visible('r')}
 		  ORDER BY r.created_at LIMIT 200`
 	)
@@ -257,7 +258,7 @@ export async function reply(env: Env, s: Session, postId: number, body: unknown,
 	]);
 	const id = ins.results[0].id;
 	const profile = await profileOf(env, s.userId);
-	return { id, postId, body: text, lang: parseLang(b.lang), handle: profile!.handle, mine: true, liked: false, likes: 0, status: 'published', createdAt: now };
+	return { id, postId, body: text, lang: parseLang(b.lang), handle: profile!.handle, avatar: parseAvatar(s.avatar), mine: true, liked: false, likes: 0, status: 'published', createdAt: now };
 }
 
 async function deleteReply(env: Env, s: Session, id: number) {
