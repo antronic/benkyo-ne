@@ -44,6 +44,8 @@ function managedMessage(code: AiError['error']): string | null {
 	if (i18n.locale === 'en') return null;
 	if (code === 'allowance_reached') return t('ai.err.allowance');
 	if (code === 'package_ended') return t('ai.err.packageEnded');
+	if (code === 'no_model') return t('ai.err.noModel');
+	if (code === 'rate_limited') return t('ai.err.rateLimited');
 	return null;
 }
 

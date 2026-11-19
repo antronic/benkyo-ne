@@ -232,9 +232,10 @@
 				</span>
 			</ListRow>
 			{#each FEATURES as f}
-				{@const pm = m.models.find((x) => x.feature === f.id)}
+				{@const src = m.byFeature?.find((x) => x.feature === f.id)?.source}
+				{@const pm = src === 'own' ? null : m.models.find((x) => x.feature === f.id)}
 				<ListRow title={t(f.label)}>
-					{#snippet trailing()}<span class="caption">{pm ? pm.label : t('managed.notIncluded')}</span>{/snippet}
+					{#snippet trailing()}<span class="caption">{src === 'own' ? t('managed.viaOwn') : pm ? pm.label : t('managed.notIncluded')}</span>{/snippet}
 				</ListRow>
 			{/each}
 		</ListGroup>

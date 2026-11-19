@@ -122,6 +122,8 @@ export interface ManagedAi {
 	plan: { id: string; name: string; endsAt: number | null } | null;
 	/** what each feature runs on under the package (only features it covers) */
 	models: { feature: Feature; label: string; model: string }[];
+	/** which AI each feature runs on now (with "My own key", a feature their key can't do still uses the package) */
+	byFeature: { feature: Feature; source: AiSource | null }[];
 	month: string; // YYYY-MM (UTC)
 	allowanceUsd: number;
 	spentUsd: number;
@@ -130,7 +132,7 @@ export interface ManagedAi {
 	resetsAt: number;
 	/** which AI the learner prefers when both exist */
 	prefer: AiSource;
-	/** which AI a call would use right now; null: none (no package AI left and no key) */
+	/** the AI in use now: the preferred one when any feature uses it, else the other; null: none */
 	active: AiSource | null;
 	/** the package AI can't be used right now, and why */
 	blocked: 'allowance' | null;

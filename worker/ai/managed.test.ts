@@ -149,6 +149,33 @@ describe('managed AI', () => {
 		expect((await call('GET', '/api/ai/managed')).body).toMatchObject({ blocked: 'allowance', active: 'own' });
 	});
 
+	it('shows per feature when "my own key" still uses the package', async () => {
+		grant(2);
+		// an OpenAI-compatible key set up for filling cards only
+		db.exec(`INSERT INTO ai_credentials (id, provider, base_url, label, key_cipher, key_iv, key_last4, created_at, user_id, aad_version)
+			VALUES (7, 'openai-compatible', 'https://example.test/v1', 'Mine', 'x', 'y', '9999', 0, 2, 2)`);
+		db.exec(`INSERT INTO ai_feature_models (user_id, feature, credential_id, model) VALUES (2, 'fill', 7, 'gpt-x')`);
+		const s = await call('PUT', '/api/ai/managed', { prefer: 'own' });
+		expect(s.body.byFeature).toEqual([
+			{ feature: 'fill', source: 'own' },
+			{ feature: 'propose', source: 'package' },
+			{ feature: 'vision', source: null }
+		]);
+		expect(s.body.active).toBe('own');
+	});
+
+	it('reports the own cap when both the allowance and the own cap are used up', async () => {
+		grant(2);
+		await addOwnKey(2);
+		db.exec(`UPDATE accounts SET cap_usd = 0 WHERE id = 2`);
+		db.exec(`INSERT INTO ai_ledger (at, feature, provider, model, status, cost_usd, user_id, source, plan_id)
+			VALUES (${Date.now()}, 'fill', 'anthropic', 'claude-sonnet-5-5', 'done', 1.5, 2, 'package', 'plus')`);
+		const r = await call('POST', '/api/ai/fill', fillBody);
+		expect(r.status).toBe(402);
+		expect(r.body.error).toBe('cap_reached');
+		expect(r.body.message).toMatch(/package’s AI can’t be used right now either/);
+	});
+
 	it('says the package has ended once it has', async () => {
 		grant(2, 'plus', Date.now() - DAY);
 		const r = await call('POST', '/api/ai/fill', fillBody);

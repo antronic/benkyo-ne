@@ -24,7 +24,7 @@ import { aiError, httpError } from '../http.ts';
 import { planOfSql } from '../plans.ts';
 import { decryptKey } from './credentials.ts';
 import { getPackageSpend, getUsage, monthLabel, rateLimit, reserve } from './ledger.ts';
-import { priceFor, resolveFeature } from './models.ts';
+import { FEATURES, featureModels, priceFor, resolveFeature } from './models.ts';
 
 const DAY = 86_400_000;
 /** Managed AI calls per account per minute and per UTC day (on top of the general AI limits). */
@@ -171,31 +171,41 @@ export async function startCall(
 	worstOf: (t: AiTarget) => number,
 	now = Date.now()
 ): Promise<{ ok: true; target: AiTarget; worst: number; reservation: number } | { ok: false; res: Response }> {
-	const [pkg, own] = await Promise.all([livePackage(env, userId), ownTarget(env, ctx, userId, feature)]);
+	const pkg = await livePackage(env, userId);
 	const pkgT = pkg.plan ? packageTarget(pkg.plan, pkg.models, feature, env) : null;
+	// The own key is looked up only when it may be used: its price lookup can call the learner's provider.
+	let own: Awaited<ReturnType<typeof ownTarget>> | null = null;
+	const getOwn = async () => (own ??= await ownTarget(env, ctx, userId, feature));
 	// preferring their own key: the package is used only when they have no key for this feature
-	const order = pkg.prefer === 'own' && own.exists ? [own.target] : [pkgT, own.target];
-	const candidates = order.filter((t): t is AiTarget => !!t);
+	const order: (() => Promise<AiTarget | null>)[] =
+		pkg.prefer === 'own'
+			? [async () => (await getOwn()).target, async () => ((await getOwn()).exists ? null : pkgT)]
+			: [async () => pkgT, async () => (await getOwn()).target];
 
-	let first: 'allowance' | 'limit' | 'cap' | null = null;
-	let worstFirst = 0;
-	for (const t of candidates) {
+	// the last budget that refused is reported: it's the one the learner can act on
+	const failures: { why: 'allowance' | 'limit' | 'cap'; worst: number }[] = [];
+	for (const next of order) {
+		const t = await next();
+		if (!t) continue;
 		if (t.source === 'package') {
 			const ok =
 				(await rateLimit(env, `pkg:${userId}`, PACKAGE_PER_MIN, now)) &&
 				(await rateLimit(env, `pkg-day:${userId}`, PACKAGE_PER_DAY, now, 1440)) &&
 				(await rateLimit(env, 'pkg-all', PACKAGE_GLOBAL_PER_MIN, now));
 			if (!ok) {
-				first ??= 'limit';
+				failures.push({ why: 'limit', worst: 0 });
 				continue;
 			}
 		}
 		const worst = worstOf(t);
 		const id = await reserveFor(env, userId, t, feature, worst);
 		if (id !== null) return { ok: true, target: t, worst, reservation: id };
-		if (!first) worstFirst = worst;
-		first ??= t.source === 'package' ? 'allowance' : 'cap';
+		failures.push({ why: t.source === 'package' ? 'allowance' : 'cap', worst });
 	}
+	const last = failures.at(-1);
+	const first = last?.why ?? null;
+	const worstFirst = last?.worst ?? 0;
+	const alsoPackage = failures.length > 1 ? ' Your package’s AI can’t be used right now either.' : '';
 
 	if (first === 'limit')
 		return {
@@ -220,12 +230,13 @@ export async function startCall(
 			res: aiError(
 				402,
 				'cap_reached',
-				`Monthly AI cap reached ($${u.spentUsd.toFixed(3)} of $${u.capUsd.toFixed(2)} used; this call could cost up to $${worstFirst.toFixed(3)}).`
+				`Monthly AI cap reached ($${u.spentUsd.toFixed(3)} of $${u.capUsd.toFixed(2)} used; this call could cost up to $${worstFirst.toFixed(3)}).${alsoPackage}`
 			)
 		};
 	}
 	// nothing to run on
-	if (own.noPrice) return { ok: false, res: aiError(409, 'no_price', `Set a price for ${own.noPrice} to use it under the spend cap.`) };
+	const o = await getOwn();
+	if (o.noPrice) return { ok: false, res: aiError(409, 'no_price', `Set a price for ${o.noPrice} to use it under the spend cap.`) };
 	if (pkg.plan)
 		return {
 			ok: false,
@@ -243,13 +254,9 @@ export async function startCall(
 // ------------------------------------------------------------ settings ----
 
 export async function managedStatus(env: Env, userId: number, now = Date.now()): Promise<ManagedAi> {
-	const [pkg, spend, hasKey] = await Promise.all([
-		livePackage(env, userId),
-		getPackageSpend(env, userId, now),
-		env.DB.prepare(`SELECT 1 AS y FROM ai_credentials WHERE user_id = ?1 LIMIT 1`).bind(userId).first<{ y: number }>()
-	]);
+	const [pkg, spend, ownFeatures] = await Promise.all([livePackage(env, userId), getPackageSpend(env, userId, now), featureModels(env, userId)]);
 	let plan: ManagedAi['plan'] = null;
-	let models: ManagedAi['models'] = [];
+	const models: ManagedAi['models'] = [];
 	if (pkg.plan) {
 		const g = await env.DB.prepare(
 			`SELECT MAX(COALESCE(ends_at, 9e15)) AS endsAt FROM plan_grants
@@ -259,19 +266,27 @@ export async function managedStatus(env: Env, userId: number, now = Date.now()):
 			.first<{ endsAt: number | null }>();
 		const endsAt = g?.endsAt == null || g.endsAt >= 9e15 ? null : g.endsAt;
 		plan = { id: pkg.plan.id, name: pkg.plan.name, endsAt };
-		for (const f of ['fill', 'propose', 'vision'] as Feature[]) {
+		for (const f of FEATURES) {
 			const row = pkg.models.find((m) => featuresOf(m).includes(f) && packagePrice(m));
 			if (row) models.push({ feature: f, label: row.pm_label, model: row.pm_model });
 		}
 	}
 	const allowanceUsd = pkg.plan?.allowance ?? 0;
 	const blocked: ManagedAi['blocked'] = plan && spend.spentUsd >= allowanceUsd - 1e-9 ? 'allowance' : null;
-	const pkgUsable = !!plan && models.length > 0 && !blocked;
-	const active: ManagedAi['active'] =
-		pkg.prefer === 'own' && hasKey ? 'own' : pkgUsable ? 'package' : hasKey ? 'own' : null;
+	// the order startCall follows, per feature (the own key's price and cap aside)
+	const byFeature: ManagedAi['byFeature'] = FEATURES.map((feature) => {
+		const ownHas = ownFeatures.some((x) => x.feature === feature);
+		const pkgHas = !blocked && models.some((x) => x.feature === feature);
+		const source: AiSource | null =
+			pkg.prefer === 'own' ? (ownHas ? 'own' : pkgHas ? 'package' : null) : pkgHas ? 'package' : ownHas ? 'own' : null;
+		return { feature, source };
+	});
+	const used = byFeature.map((b) => b.source).filter((x): x is AiSource => !!x);
+	const active: ManagedAi['active'] = used.includes(pkg.prefer) ? pkg.prefer : (used[0] ?? null);
 	return {
 		plan,
 		models,
+		byFeature,
 		month: monthLabel(now),
 		allowanceUsd,
 		spentUsd: spend.spentUsd,
