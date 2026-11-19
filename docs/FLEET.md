@@ -183,6 +183,12 @@ onboarding and consent; once the person is signed in the app redeems it once and
 went (a toast), then forgets it. Offline, it waits for the next try. `src/lib/promo/link.ts`,
 used by the root layout.
 
+**VIP invite card (draft).** A card that plays when a named invite link opens: it springs up, a
+VIP seal stamps on, Job's note rises in and his handwriting plays back as he drew it, then
+Accept goes on to sign-up. Kit components `InviteCard`, `InkPad` (drawing in Fleet) and
+`InkReplay`, with the ink model in `src/lib/ui/ink.ts`; shown on `/design` and in the Design
+Studio only, not wired into Fleet or `/invite` until Job approves the look.
+
 **Editing** (`PATCH /api/admin/promos/:code`) changes the package, kind,
 days, use limit (not below the uses so far), expiry (days from today, or
 never) and note. Changes apply to redemptions from then on; packages a code

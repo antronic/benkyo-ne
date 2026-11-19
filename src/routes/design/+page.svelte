@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
+	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, InkReplay, InviteCard, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import PromoCode from '#lib/components/PromoCode.svelte';
 	import { PromoRequestError } from '#lib/promo/client.ts';
@@ -32,6 +32,12 @@
 	let sheetOpen = $state(false);
 	let demoNote = $state("Think tabe-ru = table.\nPast: 食べた, not 食べった.");
 	let dotPage = $state(1);
+	// VIP invite card (draft): Fleet writes the note and draws; the link plays it back
+	let vipInk = $state<Ink>(sampleInk());
+	let vipNote = $state('Saved you a seat. Start with kana, I’ll check in on Friday.');
+	let vipFrom = $state('Job');
+	let vipReplay = $state(0);
+	let vipPopup = $state(false);
 	let saving = $state(false);
 	const barDays = Array.from({ length: 14 }, (_, i) => ({ day: `2026-11-${String(i + 1).padStart(2, '0')}`, value: [2, 4, 3, 6, 5, 8, 7, 4, 9, 6, 5, 7, 10, 8][i] }));
 	function fakeSave() {
@@ -270,6 +276,36 @@
 						<PlanBadge plan="pro" name="Pro" />
 					</div>
 				</Card>
+
+				<SectionHeader title="VIP invite card (draft)" />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-3)">
+						<span class="caption">
+							Draft for Job to review, not in the app yet. In Fleet, a named invite gets a note and handwriting; opening
+							/invite/VIP shows this card, then sign-up with the invite and coupon filled in. Reduced motion shows it without animation.
+						</span>
+						<TextField label="Note" bind:value={vipNote} maxlength={160} />
+						<TextField label="From" bind:value={vipFrom} maxlength={40} />
+						<InkPad bind:value={vipInk} label="Handwriting for the invite" placeholder="Write or draw here (Fleet)" />
+						<span class="caption">InkReplay on its own: plays the handwriting back at the writer's speed.</span>
+						{#key vipReplay}<InkReplay ink={vipInk} label="Handwriting played back" />{/key}
+						<div class="wrap">
+							<Button size="sm" onclick={() => vipReplay++}>Play again</Button>
+							<Button size="sm" variant="ghost" onclick={() => (vipPopup = true)}>Open as popup</Button>
+						</div>
+						<InviteCard inline replay={vipReplay} code="VIP" from={vipFrom} note={vipNote} ink={vipInk.strokes.length ? vipInk : null} perk="Plus trial · 14 days" />
+					</div>
+				</Card>
+				<InviteCard
+					open={vipPopup}
+					code="VIP"
+					from={vipFrom}
+					note={vipNote}
+					ink={vipInk.strokes.length ? vipInk : null}
+					perk="Plus trial · 14 days"
+					onaccept={() => (vipPopup = false)}
+					onclose={() => (vipPopup = false)}
+				/>
 
 				<SectionHeader title="Stat tiles" />
 				<div class="ui-stats">

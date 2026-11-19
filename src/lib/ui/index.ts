@@ -37,3 +37,7 @@ export type { SideNavItem } from './SideNav.svelte';
 export { default as Columns } from './Columns.svelte';
 export { default as DataTable } from './DataTable.svelte';
 export type { DataColumn } from './DataTable.svelte';
+export { default as InkPad } from './InkPad.svelte';
+export { default as InkReplay } from './InkReplay.svelte';
+export { default as InviteCard } from './InviteCard.svelte';
+export { emptyInk, inkDuration, sampleInk, type Ink, type InkPoint } from './ink.ts';
