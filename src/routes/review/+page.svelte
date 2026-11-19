@@ -29,6 +29,8 @@
 	import RecallPad from '#lib/components/RecallPad.svelte';
 	import { Button, Card, IconButton, ProgressRing, TextField } from '#lib/ui/index.ts';
 	import WordQuiz from '#lib/components/WordQuiz.svelte';
+	import NoteCard from '#lib/components/NoteCard.svelte';
+	import { notes } from '#lib/state/notes.svelte.ts';
 	import { DRILLS, isDrillId, pickDrill } from '#lib/practice/drills.ts';
 	import KanjiInfo from '#lib/components/KanjiInfo.svelte';
 	import { kanjiByChar, meaningChoices, type Kanji } from '#lib/content/kanji.ts';
@@ -130,6 +132,10 @@
 		if (wasNew && words.cards[entry.id]?.source === 'pack') await words.notePackIntroduced();
 	}
 
+	// a quick right answer moves on by itself, unless there is a note to read
+	const noteSubject = $derived(kana ? `kana:${kana.char}` : kanji ? `kanji:${kanji.char}` : '');
+	const autoNext = (correct: boolean) => correct && mode === 'choose' && !(noteSubject && notes.text(noteSubject).trim());
+
 	async function submit(correct: boolean, guess?: string) {
 		if (!card || !(kana || kanji) || result) return;
 		const ms = performance.now() - t0;
@@ -147,7 +153,7 @@
 		// drawing takes longer than tapping, so scale the time before grading
 		const scaled = mode === 'draw' ? ms / 3 : mode === 'type' ? ms / 1.5 : ms;
 		await record(correct, ms, scaled, usedHint);
-		if (correct && mode === 'choose') setTimeout(next, 700);
+		if (autoNext(correct)) setTimeout(next, 700);
 	}
 
 	async function onWordAnswer(r: { correct: boolean; ms: number; hint: boolean }) {
@@ -269,7 +275,8 @@
 									{/if}
 								</Card></div>
 							{/if}
-							{#if !(result.correct && mode === 'choose')}
+							<NoteCard peek value={notes.text(`kanji:${kanji.char}`)} onsave={(b) => notes.save(`kanji:${kanji.char}`, kanji.char, b)} />
+							{#if !autoNext(result.correct)}
 								<Button variant={result.correct ? 'primary' : 'accent'} block onclick={next}>{t('common.continue')}</Button>
 							{/if}
 						{/if}
@@ -363,7 +370,8 @@
 								{/if}
 							</Card></div>
 						{/if}
-						{#if !(result.correct && mode === 'choose')}
+						<NoteCard peek value={notes.text(`kana:${kana.char}`)} onsave={(b) => notes.save(`kana:${kana.char}`, kana.char, b)} />
+						{#if !autoNext(result.correct)}
 							<Button variant={result.correct ? 'primary' : 'accent'} block onclick={next}>{t('common.continue')}</Button>
 						{/if}
 					{/if}

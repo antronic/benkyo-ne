@@ -1,6 +1,7 @@
 import { browser } from '$app/env';
 import { haptic as iosHaptic, type HapticKind } from '#lib/ios/haptics.ts';
 import { clearAll, get, getAll, put, putMany } from '#lib/db/idb.ts';
+import { notes } from '#lib/state/notes.svelte.ts';
 import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 import { defaultParams, newCard, replay, review, type Card, type Grade, type ReviewLog } from '#lib/srs/fsrs.ts';
 
@@ -187,6 +188,7 @@ class Progress {
 	async reset() {
 		telemetry.track('event', 'progress_reset', { cards: Object.keys(this.cards).length });
 		await clearAll();
+		notes.clearLocal();
 		this.cards = {};
 		this.completed = [];
 		this.streak = { days: 0, last: '' };

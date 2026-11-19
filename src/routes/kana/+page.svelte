@@ -18,6 +18,8 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import StrokeAnimator from '#lib/components/StrokeAnimator.svelte';
 	import TracePad from '#lib/components/TracePad.svelte';
+	import NoteCard from '#lib/components/NoteCard.svelte';
+	import { notes } from '#lib/state/notes.svelte.ts';
 	import { Button, Card, IconButton, LargeTitle, Segmented, Sheet } from '#lib/ui/index.ts';
 
 	ui.hue = 150;
@@ -80,6 +82,9 @@
 		<Button variant="ghost" block onclick={() => { practice = false; animKey++; }}>↻ {t('kana.watch')}</Button>
 		<Button variant="accent" block onclick={() => { practice = true; animKey++; }}>✍️ {t('kana.practise')}</Button>
 	</div>
+	{#key k.char}
+		<NoteCard value={notes.text(`kana:${k.char}`)} loading={!notes.ready} onsave={(b) => notes.save(`kana:${k.char}`, k.char, b)} />
+	{/key}
 {/snippet}
 
 <main class="page">

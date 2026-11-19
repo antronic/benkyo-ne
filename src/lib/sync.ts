@@ -20,6 +20,8 @@ import type { ReviewLog } from '#lib/srs/fsrs.ts';
 import type { UserCard } from '#lib/ai/contract.ts';
 import { words } from '#lib/state/words.svelte.ts';
 import { ai } from '#lib/state/ai.svelte.ts';
+import { notes } from '#lib/state/notes.svelte.ts';
+import type { Note } from '#lib/notes/contract.ts';
 
 const PUSH = 500;
 /** Rounds per sync when there's more to send or fetch (first sync on a new device). */
@@ -38,6 +40,7 @@ export async function keyWasClaimed(): Promise<boolean> {
 async function resetCursors() {
 	await put('meta', 0, 'syncCursor');
 	await put('meta', 0, 'cardsCursor');
+	await put('meta', 0, 'notesCursor');
 }
 
 export type SyncError = 'signed-out' | 'offline' | 'network' | 'key-claimed' | `http-${number}`;
@@ -96,6 +99,10 @@ async function syncOnce(): Promise<Round | { error: SyncError }> {
 		.filter((c) => c.updatedAt > pushedAt)
 		.sort((a, b) => a.updatedAt - b.updatedAt)
 		.slice(0, PUSH);
+	// Personal notes: the same pattern as cards (docs/NOTES.md).
+	const notesCursor = (await get<number>('meta', 'notesCursor')) ?? 0;
+	const notesPushedAt = (await get<number>('meta', 'notesPushedAt')) ?? 0;
+	const changedNotes = (await notes.changedSince(notesPushedAt)).sort((a, b) => a.updatedAt - b.updatedAt).slice(0, PUSH);
 	const startedAt = Date.now();
 
 	const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -106,7 +113,14 @@ async function syncOnce(): Promise<Round | { error: SyncError }> {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers,
-			body: JSON.stringify({ cursor, logs: pending.map(({ synced: _s, ...l }) => l), cards: changed, cardsCursor })
+			body: JSON.stringify({
+				cursor,
+				logs: pending.map(({ synced: _s, ...l }) => l),
+				cards: changed,
+				cardsCursor,
+				notes: changedNotes,
+				notesCursor
+			})
 		});
 	} catch {
 		return { error: 'network' };
@@ -129,6 +143,8 @@ async function syncOnce(): Promise<Round | { error: SyncError }> {
 		logs: ReviewLog[];
 		cards?: UserCard[];
 		cardsCursor?: number;
+		notes?: Note[];
+		notesCursor?: number;
 		scope?: string;
 		more?: boolean;
 		keyRetired?: boolean;
@@ -139,16 +155,18 @@ async function syncOnce(): Promise<Round | { error: SyncError }> {
 	);
 	await progress.mergeLogs(body.logs);
 	if (body.cards) await words.merge(body.cards);
+	if (body.notes) await notes.merge(body.notes);
 
 	// Cursors belong to one store (an account, or the old key). When that changes,
 	// e.g. the first sync after signing in, pull that store from the start.
 	const scope = body.scope ?? 'key';
 	const lastScope = (await get<string>('meta', 'syncScope')) ?? (key ? 'key' : undefined);
-	const moved = lastScope !== scope && (cursor > 0 || cardsCursor > 0);
+	const moved = lastScope !== scope && (cursor > 0 || cardsCursor > 0 || notesCursor > 0);
 	if (moved) await resetCursors();
 	else {
 		await put('meta', body.cursor, 'syncCursor');
 		if (body.cardsCursor !== undefined) await put('meta', body.cardsCursor, 'cardsCursor');
+		if (body.notesCursor !== undefined) await put('meta', body.notesCursor, 'notesCursor');
 	}
 	await put('meta', scope, 'syncScope');
 	if (body.cardsCursor !== undefined) {
@@ -156,13 +174,17 @@ async function syncOnce(): Promise<Round | { error: SyncError }> {
 		const next = changed.length < PUSH ? startedAt : changed[changed.length - 1].updatedAt - 1;
 		await put('meta', next, 'cardsPushedAt');
 	}
+	if (body.notesCursor !== undefined) {
+		const next = changedNotes.length < PUSH ? startedAt : changedNotes[changedNotes.length - 1].updatedAt - 1;
+		await put('meta', next, 'notesPushedAt');
+	}
 	if (body.keyRetired) await del('meta', 'syncKey');
 	if (scope !== 'key') await del('meta', 'syncKeyClaimed');
 
 	return {
-		pushed: pending.length + changed.length,
-		pulled: body.logs.length + (body.cards?.length ?? 0),
-		more: moved || !!body.more || pending.length === PUSH || changed.length === PUSH
+		pushed: pending.length + changed.length + changedNotes.length,
+		pulled: body.logs.length + (body.cards?.length ?? 0) + (body.notes?.length ?? 0),
+		more: moved || !!body.more || pending.length === PUSH || changed.length === PUSH || changedNotes.length === PUSH
 	};
 }
 
