@@ -1,8 +1,8 @@
 /** Display helpers for AI models in the fleet console. */
 import type { AdminFeature } from './contract.ts';
 
-export const FEATURE_NAMES: Record<AdminFeature, string> = { fill: 'Fill a card', propose: 'Suggest cards and Ask AI', vision: 'Read a photo' };
-export const FEATURE_SHORT: Record<AdminFeature, string> = { fill: 'Fill', propose: 'Suggest', vision: 'Photo' };
+export const FEATURE_NAMES: Record<AdminFeature, string> = { fill: 'Fill a card', propose: 'Suggest cards and Ask AI', vision: 'Read a photo', translate: 'Translate community posts' };
+export const FEATURE_SHORT: Record<AdminFeature, string> = { fill: 'Fill', propose: 'Suggest', vision: 'Photo', translate: 'Translate' };
 
 export function contextLabel(tokens: number | null): string {
 	if (!tokens) return '';

@@ -50,7 +50,14 @@
 		'invite.revoke': 'Revoked an invite',
 		'package.update': 'Changed a package',
 		'package.grant': 'Granted a package',
-		'package.end': 'Ended a package early'
+		'package.end': 'Ended a package early',
+		'community.dismiss': 'Dismissed community reports',
+		'community.hide': 'Hid a community post',
+		'community.remove': 'Removed a community post',
+		'community.restore': 'Restored a community post',
+		'community.muted': 'Muted someone in the community',
+		'community.banned': 'Banned someone from the community',
+		'community.unmute': 'Let someone post in the community again'
 	};
 	const label = (a: string) => LABELS[a] ?? a;
 	const actionOptions = $derived([{ value: '', label: 'All actions' }, ...actions.map((a) => ({ value: a, label: label(a) }))]);

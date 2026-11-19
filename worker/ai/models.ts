@@ -14,7 +14,9 @@ import type { ProviderModel } from './types.ts';
 
 const CACHE_TTL_S = 3600;
 export const DEFAULT_MODEL = 'claude-sonnet-5-5';
-export const FEATURES: Feature[] = ['fill', 'propose', 'vision'];
+export const FEATURES: Feature[] = ['fill', 'propose', 'vision', 'translate'];
+/** Translate runs on the smallest model unless the learner picks another. */
+export const TRANSLATE_MODEL = 'claude-haiku-5-5';
 
 const cacheKey = (cred: CredRow) => `https://ai-models.benkyo.internal/v1/${cred.id}/${cred.created_at}`;
 
@@ -134,7 +136,7 @@ export async function setManualPrice(env: Env, userId: number, body: unknown) {
 /**
  * Configured model per feature; unset (or pointing at a deleted credential)
  * falls back to the first Anthropic credential + Sonnet 5.5 (which also has
- * vision). Features with no usable credential are omitted.
+ * vision), or Haiku 5.5 for translate. Features with no usable credential are omitted.
  */
 export async function featureModels(env: Env, userId: number): Promise<FeatureModel[]> {
 	const [creds, { results }] = await Promise.all([
@@ -149,7 +151,7 @@ export async function featureModels(env: Env, userId: number): Promise<FeatureMo
 	for (const feature of FEATURES) {
 		const row = results.find((r) => r.feature === feature && ids.has(r.credentialId));
 		if (row) out.push({ feature, credentialId: row.credentialId, model: row.model });
-		else if (firstAnthropic) out.push({ feature, credentialId: firstAnthropic.id, model: DEFAULT_MODEL });
+		else if (firstAnthropic) out.push({ feature, credentialId: firstAnthropic.id, model: feature === 'translate' ? TRANSLATE_MODEL : DEFAULT_MODEL });
 	}
 	return out;
 }
@@ -163,7 +165,7 @@ export async function resolveFeature(env: Env, userId: number, feature: Feature)
 
 export async function setFeatureModel(env: Env, userId: number, body: unknown): Promise<FeatureModel> {
 	const b = (body ?? {}) as Partial<FeatureModel>;
-	if (!FEATURES.includes(b.feature as Feature)) throw httpError(400, 'bad_request', 'feature must be fill, propose or vision');
+	if (!FEATURES.includes(b.feature as Feature)) throw httpError(400, 'bad_request', 'feature must be fill, propose, vision or translate');
 	if (!Number.isInteger(b.credentialId) || !(await getCredential(env, userId, b.credentialId!)))
 		throw httpError(400, 'bad_request', 'unknown credentialId');
 	if (typeof b.model !== 'string' || !b.model.trim() || b.model.length > 200) throw httpError(400, 'bad_request', 'bad model');

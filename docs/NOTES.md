@@ -2,7 +2,7 @@
 
 The full plan (shared notes, packs, tips, blog, moderation) is the
 [Notes and community plan](https://claude.ai/artifact/FS32YVZu5N4LfRUgVvESzA). This file describes what
-is built.
+is built. Sharing a note with other learners (phase 2) is in [COMMUNITY.md](COMMUNITY.md).
 
 ## What it does
 

@@ -13,6 +13,7 @@
 	import { fly } from 'svelte/transition';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import NoteCard from '#lib/components/NoteCard.svelte';
+	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
 	import { courseTag, NOW_TAG, type CourseItem } from '#lib/content/courses.ts';
 	import { lessonPacks } from '#lib/state/lessonPacks.svelte.ts';
@@ -104,6 +105,7 @@
 
 		<div class="unit-note">
 			<NoteCard value={notes.text(subject)} loading={!notes.ready} onsave={(b) => notes.save(subject, tc(unit.title), b)} />
+			<CommunityNotes {subject} label={tc(unit.title)} note={notes.text(subject)} />
 		</div>
 
 		{#if !cands.length}
@@ -169,6 +171,9 @@
 		margin-bottom: var(--space-4);
 	}
 	.unit-note {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
 		margin-bottom: var(--space-4);
 	}
 	.items {

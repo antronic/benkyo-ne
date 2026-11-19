@@ -102,8 +102,22 @@ async function livePackage(env: Env, userId: number) {
 	return { plan: models.length ? plan : null, models, prefer };
 }
 
+/**
+ * The package model for a feature. Translate falls back to the package's
+ * cheapest priced model when the console didn't assign one.
+ */
+function packageRow(models: PackageModelRow[], feature: Feature): PackageModelRow | undefined {
+	const row = models.find((m) => featuresOf(m).includes(feature) && packagePrice(m));
+	if (row || feature !== 'translate') return row;
+	const cost = (m: PackageModelRow) => {
+		const p = packagePrice(m);
+		return p ? p.inputPerM + p.outputPerM : Infinity;
+	};
+	return models.filter((m) => packagePrice(m)).sort((a, b) => cost(a) - cost(b))[0];
+}
+
 function packageTarget(plan: PlanRow, models: PackageModelRow[], feature: Feature, env: Env): AiTarget | null {
-	const row = models.find((m) => featuresOf(m).includes(feature));
+	const row = packageRow(models, feature);
 	const price = row && packagePrice(row);
 	if (!row || !price) return null;
 	return {
@@ -155,7 +169,7 @@ export function reserveFor(env: Env, userId: number, t: AiTarget, feature: Featu
 	return reserve(env, userId, { feature, provider: t.provider, model: t.model, worstUsd, source: t.source, planId: t.planId, capUsd: t.capUsd ?? 0 });
 }
 
-const FEATURE_NAME: Record<Feature, string> = { fill: 'filling in cards', propose: 'suggestions and Ask AI', vision: 'reading photos' };
+const FEATURE_NAME: Record<Feature, string> = { fill: 'filling in cards', propose: 'suggestions and Ask AI', vision: 'reading photos', translate: 'translating community notes' };
 const day = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 
 /**
@@ -267,7 +281,7 @@ export async function managedStatus(env: Env, userId: number, now = Date.now()):
 		const endsAt = g?.endsAt == null || g.endsAt >= 9e15 ? null : g.endsAt;
 		plan = { id: pkg.plan.id, name: pkg.plan.name, endsAt };
 		for (const f of FEATURES) {
-			const row = pkg.models.find((m) => featuresOf(m).includes(f) && packagePrice(m));
+			const row = packageRow(pkg.models, f);
 			if (row) models.push({ feature: f, label: row.pm_label, model: row.pm_model });
 		}
 	}

@@ -19,6 +19,7 @@
 	import StrokeAnimator from '#lib/components/StrokeAnimator.svelte';
 	import TracePad from '#lib/components/TracePad.svelte';
 	import NoteCard from '#lib/components/NoteCard.svelte';
+	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
 	import { Button, Card, IconButton, LargeTitle, Segmented, Sheet } from '#lib/ui/index.ts';
 
@@ -84,6 +85,7 @@
 	</div>
 	{#key k.char}
 		<NoteCard value={notes.text(`kana:${k.char}`)} loading={!notes.ready} onsave={(b) => notes.save(`kana:${k.char}`, k.char, b)} />
+		<CommunityNotes subject={`kana:${k.char}`} label={k.char} note={notes.text(`kana:${k.char}`)} />
 	{/key}
 {/snippet}
 

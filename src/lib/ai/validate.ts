@@ -21,7 +21,10 @@ import type {
 	LessonResponse,
 	AskRequest,
 	AskResponse,
-	AskTurn
+	AskTurn,
+	TranslateLang,
+	TranslateRequest,
+	TranslateResponse
 } from './contract.ts';
 import { knownKanaChars } from './prompts.ts';
 
@@ -339,4 +342,25 @@ export function validateAskOutput(raw: unknown, req: AskRequest): Result<AskResp
 			if (jp && reading && en && isKanaReading(reading)) examples.push({ jp, reading, en });
 		}
 	return ok({ answer, answer2, examples });
+}
+
+// ------------------------------------------------------------- translate ----
+
+const TRANSLATE_LANGS: readonly TranslateLang[] = ['en', 'th', 'ja'];
+/** A translation may run longer than the note (Thai, Japanese), never wildly so. */
+export const TRANSLATE_MAX = 12_000;
+
+export function parseTranslateRequest(body: unknown): Result<TranslateRequest> {
+	if (!isRec(body)) return fail('body must be an object');
+	if (body.kind !== 'post' && body.kind !== 'reply') return fail('kind must be post or reply');
+	if (!Number.isInteger(body.id) || (body.id as number) < 1) return fail('bad id');
+	if (!TRANSLATE_LANGS.includes(body.to as TranslateLang)) return fail('to must be en, th or ja');
+	return ok({ kind: body.kind, id: body.id as number, to: body.to as TranslateLang });
+}
+
+export function validateTranslateOutput(raw: unknown, to: TranslateLang): Result<TranslateResponse> {
+	if (!isRec(raw)) return fail('output must be an object');
+	const text = cleanStr(raw.text, TRANSLATE_MAX);
+	if (!text) return fail('missing text');
+	return ok({ text, to });
 }

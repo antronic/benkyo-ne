@@ -32,7 +32,7 @@
 	let mq = $state('');
 	/** the new-package form */
 	let making = $state<{ name: string; blurb: string; month: string; year: string; allowance: string } | null>(null);
-	const FEATURES: AdminFeature[] = ['fill', 'propose', 'vision'];
+	const FEATURES: AdminFeature[] = ['fill', 'propose', 'vision', 'translate'];
 
 	async function load() {
 		error = null;
@@ -352,7 +352,7 @@
 			{#if pk.models.length && unassigned.length}
 				<span class="caption warn-text">No model does {unassigned.map((f) => FEATURE_NAMES[f].toLowerCase()).join(', ')} yet.</span>
 			{/if}
-			<span class="caption">Fill: {FEATURE_NAMES.fill} · Suggest: {FEATURE_NAMES.propose} · Photo: {FEATURE_NAMES.vision}</span>
+			<span class="caption">Fill: {FEATURE_NAMES.fill} · Suggest: {FEATURE_NAMES.propose} · Photo: {FEATURE_NAMES.vision} · Translate: {FEATURE_NAMES.translate} (the cheapest model when none is picked)</span>
 
 			<TextField id="model-search" type="search" bind:value={mq} placeholder="Search every provider’s models" aria-label="Search models" />
 			{#if catalogError}

@@ -24,7 +24,8 @@
 	const FEATURES: { id: Feature; label: MessageKey; hint: MessageKey }[] = [
 		{ id: 'fill', label: 'ai.feat.fill', hint: 'ai.feat.fillHint' },
 		{ id: 'propose', label: 'ai.feat.propose', hint: 'ai.feat.proposeHint' },
-		{ id: 'vision', label: 'ai.feat.vision', hint: 'ai.feat.visionHint' }
+		{ id: 'vision', label: 'ai.feat.vision', hint: 'ai.feat.visionHint' },
+		{ id: 'translate', label: 'ai.feat.translate', hint: 'ai.feat.translateHint' }
 	];
 
 	let models = $state<ModelInfo[]>([]);
