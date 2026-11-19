@@ -1,7 +1,7 @@
 <!-- Fleet console: AI usage and spend over 7, 30 or 90 days. Read-only. -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Card, LargeTitle, ListGroup, ListRow, SectionHeader, Segmented, Skeleton, Spinner } from '#lib/ui/index.ts';
+	import { BarChart, Card, Columns, LargeTitle, ListGroup, ListRow, SectionHeader, Segmented, Skeleton, Spinner } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { AdminError, getUsage } from '#lib/admin/client.ts';
@@ -74,83 +74,94 @@
 			</div>
 		</ListGroup>
 
-		<SectionHeader title="Who paid" />
-		<ListGroup>
-			{#each ['package', 'own'] as src (src)}
-				{@const row = u.bySource.find((b) => b.source === src)}
-				<ListRow
-					title={src === 'package' ? 'Managed AI (your provider keys)' : 'Learners’ own keys'}
-					subtitle="{plural(row?.calls ?? 0, 'call')} · {share(row?.usd ?? 0)}% of spend"
-				>
-					{#snippet trailing()}<b class="num">{usd(row?.usd ?? 0)}</b>{/snippet}
-				</ListRow>
-			{/each}
-		</ListGroup>
+		<Columns min="420px">
+			<section>
+				<SectionHeader title="Who paid" />
+				<ListGroup>
+					{#each ['package', 'own'] as src (src)}
+						{@const row = u.bySource.find((b) => b.source === src)}
+						<ListRow
+							title={src === 'package' ? 'Managed AI (your provider keys)' : 'Learners’ own keys'}
+							subtitle="{plural(row?.calls ?? 0, 'call')} · {share(row?.usd ?? 0)}% of spend"
+						>
+							{#snippet trailing()}<b class="num">{usd(row?.usd ?? 0)}</b>{/snippet}
+						</ListRow>
+					{/each}
+				</ListGroup>
+			</section>
+			<section>
+				<SectionHeader title="Managed AI by package" />
+				<ListGroup>
+					{#each u.byPackage as p (p.planId)}
+						<ListRow href="/admin/packages" title={p.name} subtitle="{plural(p.accounts, 'account')} · {plural(p.calls, 'call')} · allowance {usd(p.allowanceUsd)} a month each">
+							{#snippet trailing()}<b class="num">{usd(p.usd)}</b>{/snippet}
+						</ListRow>
+					{:else}
+						<ListRow subtitle="No package used managed AI in this window." />
+					{/each}
+				</ListGroup>
+			</section>
+			<section>
+				<SectionHeader title="By feature" />
+				<ListGroup>
+					{#each u.byFeature as f (f.feature)}
+						<ListRow title={FEATURES[f.feature] ?? f.feature} subtitle="{plural(f.calls, 'call')} · {share(f.usd)}% of spend">
+							{#snippet trailing()}<b class="num">{usd(f.usd)}</b>{/snippet}
+						</ListRow>
+					{:else}
+						<ListRow subtitle="No AI calls in this window." />
+					{/each}
+				</ListGroup>
+			</section>
+			<section>
+				<SectionHeader title="By model" />
+				<ListGroup>
+					{#each u.byModel as m (m.provider + m.model)}
+						<ListRow>
+							<span class="ellipsis">{m.model}</span>
+							<span class="caption">{m.provider} · {plural(m.calls, 'call')} · {tokens(m.inputTokens)} in, {tokens(m.outputTokens)} out</span>
+							{#snippet trailing()}<b class="num">{usd(m.usd)}</b>{/snippet}
+						</ListRow>
+					{:else}
+						<ListRow subtitle="No AI calls in this window." />
+					{/each}
+				</ListGroup>
+			</section>
+			<section>
+				<SectionHeader title="Top accounts" />
+				<ListGroup>
+					{#each u.topAccounts as a (a.id)}
+						<ListRow href="/admin/accounts/{a.id}">
+							<span class="ellipsis">{a.name} <span class="caption">#{a.id}</span></span>
+							<span class="caption">{plural(a.calls, 'call')}</span>
+							{#snippet trailing()}<b class="num">{usd(a.usd)}</b>{/snippet}
+						</ListRow>
+					{:else}
+						<ListRow subtitle="Nobody used AI in this window." />
+					{/each}
+				</ListGroup>
+			</section>
+			<section>
+				<SectionHeader title="Failed calls" />
+				<ListGroup>
+					{#each u.failures as f, i (i)}
+						<div class="item">
+							<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
+								<span>{FEATURES[f.feature] ?? f.feature} <span class="caption">· {f.model}</span></span>
+								<span class="caption">
+									{when(f.at)} ·
+									{#if f.accountId !== null}<a href="/admin/accounts/{f.accountId}">{f.name ?? `#${f.accountId}`}</a>{:else}unknown account{/if}
+								</span>
+							</span>
+						</div>
+					{:else}
+						<ListRow subtitle="No failed calls." />
+					{/each}
+				</ListGroup>
+			</section>
+		</Columns>
 
-		<SectionHeader title="Managed AI by package" />
-		<ListGroup>
-			{#each u.byPackage as p (p.planId)}
-				<ListRow href="/admin/packages" title={p.name} subtitle="{plural(p.accounts, 'account')} · {plural(p.calls, 'call')} · allowance {usd(p.allowanceUsd)} a month each">
-					{#snippet trailing()}<b class="num">{usd(p.usd)}</b>{/snippet}
-				</ListRow>
-			{:else}
-				<ListRow subtitle="No package used managed AI in this window." />
-			{/each}
-		</ListGroup>
 
-		<SectionHeader title="By feature" />
-		<ListGroup>
-			{#each u.byFeature as f (f.feature)}
-				<ListRow title={FEATURES[f.feature] ?? f.feature} subtitle="{plural(f.calls, 'call')} · {share(f.usd)}% of spend">
-					{#snippet trailing()}<b class="num">{usd(f.usd)}</b>{/snippet}
-				</ListRow>
-			{:else}
-				<ListRow subtitle="No AI calls in this window." />
-			{/each}
-		</ListGroup>
-
-		<SectionHeader title="By model" />
-		<ListGroup>
-			{#each u.byModel as m (m.provider + m.model)}
-				<ListRow>
-					<span class="ellipsis">{m.model}</span>
-					<span class="caption">{m.provider} · {plural(m.calls, 'call')} · {tokens(m.inputTokens)} in, {tokens(m.outputTokens)} out</span>
-					{#snippet trailing()}<b class="num">{usd(m.usd)}</b>{/snippet}
-				</ListRow>
-			{:else}
-				<ListRow subtitle="No AI calls in this window." />
-			{/each}
-		</ListGroup>
-
-		<SectionHeader title="Top accounts" />
-		<ListGroup>
-			{#each u.topAccounts as a (a.id)}
-				<ListRow href="/admin/accounts/{a.id}">
-					<span class="ellipsis">{a.name} <span class="caption">#{a.id}</span></span>
-					<span class="caption">{plural(a.calls, 'call')}</span>
-					{#snippet trailing()}<b class="num">{usd(a.usd)}</b>{/snippet}
-				</ListRow>
-			{:else}
-				<ListRow subtitle="Nobody used AI in this window." />
-			{/each}
-		</ListGroup>
-
-		<SectionHeader title="Failed calls" />
-		<ListGroup>
-			{#each u.failures as f, i (i)}
-				<div class="item">
-					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
-						<span>{FEATURES[f.feature] ?? f.feature} <span class="caption">· {f.model}</span></span>
-						<span class="caption">
-							{when(f.at)} ·
-							{#if f.accountId !== null}<a href="/admin/accounts/{f.accountId}">{f.name ?? `#${f.accountId}`}</a>{:else}unknown account{/if}
-						</span>
-					</span>
-				</div>
-			{:else}
-				<ListRow subtitle="No failed calls." />
-			{/each}
-		</ListGroup>
 		<p class="caption foot">Spend counts finished calls only. Days are UTC.</p>
 	{/if}
 </main>
