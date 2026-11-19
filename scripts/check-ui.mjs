@@ -23,6 +23,11 @@
  *                 (that let the invite and promo-link loads through, 2026-11-19).
  *                 Waits that are not loading (tick, timers, confirm sheets,
  *                 clipboard, goto) don't count.
+ *   spin-box      (every .svelte and .css under src/, the kit too) no full-turn rotate
+ *                 animation (rotate(1turn) / rotate(360deg)) on an element: Safari
+ *                 rotates the box around a pixel-snapped pivot, so it wobbles at
+ *                 fractional positions. Use <Spinner>, which turns an SVG <g>
+ *                 inside a still box. `spin-ok: reason` on the line exempts it.
  * And for the kit:
  *   kit-export    every src/lib/ui/*.svelte is exported from src/lib/ui/index.ts;
  *   kit-catalog   every kit component is shown on /design (src/routes/design/+page.svelte).
@@ -55,6 +60,8 @@ const ADHOC_WORD = /(?<![\w-])(btn|glass|card|chip|switch)(?![\w-])/;
 const KIT_FOR_CLASS = { btn: 'Button', glass: 'Card or ListGroup', card: 'Card', chip: 'Chip', switch: 'Switch' };
 const ASYNC = /\bawait\b|\.then\(/;
 const LOADING = /<(Skeleton|Spinner|ProgressRing)\b|\bbusy\b|aria-busy/;
+const FULL_TURN = /\brotate\(\s*-?(1turn|360deg|6\.28\d*rad|400grad)\s*\)/;
+const SPIN_OK = /spin-ok\b/;
 
 /** Blank out <script> and <style> bodies, keeping line numbers. */
 function markupOnly(text) {
@@ -195,6 +202,19 @@ export function lintComponent(text, file = '<text>') {
 	return problems;
 }
 
+/**
+ * Spinning boxes: a full-turn rotate keyframe in any component or stylesheet.
+ * Safari wobbles these (see Spinner.svelte), so every spinner is the kit Spinner.
+ */
+export function lintSpin(text, file = '<text>') {
+	const problems = [];
+	text.split('\n').forEach((line, i) => {
+		if (FULL_TURN.test(line) && !SPIN_OK.test(line))
+			problems.push({ file, line: i + 1, rule: 'spin-box', message: 'spinning an element wobbles in Safari: use <Spinner> from #lib/ui (or mark the line spin-ok: reason)' });
+	});
+	return problems;
+}
+
 /** Kit coverage: every kit component exported and shown on /design. */
 export function kitCoverage(root = ROOT) {
 	const problems = [];
@@ -211,13 +231,17 @@ export function kitCoverage(root = ROOT) {
 	return problems;
 }
 
-function walk(dir, files = []) {
+function walk(dir, files = [], ext = /\.svelte$/) {
 	for (const name of readdirSync(dir)) {
 		const p = join(dir, name);
-		if (statSync(p).isDirectory()) walk(p, files);
-		else if (name.endsWith('.svelte')) files.push(p);
+		if (statSync(p).isDirectory()) walk(p, files, ext);
+		else if (ext.test(name)) files.push(p);
 	}
 	return files;
+}
+/** Files the spin-box rule covers: every component and stylesheet under src/. */
+function spinScope(path) {
+	return /^src\/.*\.(svelte|css|html)$/.test(rel(path));
 }
 function rel(p) {
 	return relative(ROOT, resolve(p));
@@ -249,6 +273,7 @@ async function main() {
 		const r = rel(path);
 		const problems = [];
 		if (inScope(path)) problems.push(...lintFile(path));
+		if (spinScope(path)) problems.push(...lintSpin(readFileSync(path, 'utf8'), r));
 		if (r.startsWith(KIT + '/') || r === CATALOG) problems.push(...kitCoverage());
 		if (problems.length) {
 			console.error('UI kit lint: controls come from the kit, the kit is on /design, async work shows a loading state (docs/DESIGN-SYSTEM.md).');
@@ -260,13 +285,14 @@ async function main() {
 	}
 	const given = args.filter((a) => !a.startsWith('--'));
 	const files = (given.length ? given.map((f) => resolve(f)) : walk(join(ROOT, 'src'))).filter(inScope);
-	const problems = [...files.flatMap(lintFile), ...kitCoverage()];
+	const spinFiles = (given.length ? given.map((f) => resolve(f)) : walk(join(ROOT, 'src'), [], /\.(svelte|css|html)$/)).filter(spinScope);
+	const problems = [...files.flatMap(lintFile), ...spinFiles.flatMap((f) => lintSpin(readFileSync(f, 'utf8'), rel(f))), ...kitCoverage()];
 	if (problems.length) {
 		print(problems);
 		console.error(`\n${problems.length} UI kit problem(s). See docs/DESIGN-SYSTEM.md (Kit only, Loading states).`);
 		process.exit(1);
 	}
-	console.log(`UI kit lint: ${files.length} files, every control from the kit, every kit component on /design, loading states shown.`);
+	console.log(`UI kit lint: ${files.length} files, every control from the kit, every kit component on /design, loading states shown, no box spinners.`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

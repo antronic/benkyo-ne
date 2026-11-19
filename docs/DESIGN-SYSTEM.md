@@ -84,7 +84,7 @@ Import from `#lib/ui/index.ts`:
 | `Stepper` | `bind:value`, `min`, `max`, `step`, `label` | `.stepper` in settings |
 | `Notice` | `tone`, `title`, `action` snippet | new |
 | `Skeleton` | `variant` row · card · tile · line, `count`, `label` | blank space while data loads |
-| `Spinner` | `label`, `size`, `showLabel` | a short wait with no layout to preview |
+| `Spinner` | `label` (none = decorative), `size` sm · md · lg · inline (1em), `tone` accent · current, `showLabel` | a short wait with no layout to preview; `Button busy` uses the inline one |
 | `ProgressRing`, `BarChart` | progress and per-day bars | |
 | `Sheet` | `open`, `label`, `onclose` | bottom sheets |
 | `LargeTitle` | the screen's iOS large title and compact title bar | |
@@ -117,6 +117,10 @@ The user always knows what the app is doing (Job, 2026-11-19).
   shows a `Spinner`; an action shows `busy` on the button that started it, and the button can't be
   pressed twice.
 - Errors say what failed and what to do; offline is a normal state, not an error.
+- Every spinner is the kit `Spinner`. It turns an SVG arc inside a still box; a spinning element
+  box (`rotate(1turn)` on a span, a border ring, a whole `<svg>`) wobbles in Safari, because WebKit
+  pivots the rotation on a pixel-snapped point while the box sits at a fractional position or size.
+  `npm run lint:ui` (rule `spin-box`) rejects full-turn rotate keyframes anywhere under `src/`.
 - Work the user didn't start on screen (a link's promo code being used after sign-in) shows
   `busyToast(text)` (a toast with a spinner) until the result toast replaces it.
 - Text that says something is under way ("Asking your providers…") sits in a `Spinner` label, so
@@ -170,7 +174,7 @@ The live versions of these, with replay buttons, are in the Motion section of `/
 | Progress | Rings and bars | width or stroke 500–600ms, `--ease-spring` | `success` when a goal completes |
 | Wrong answer | Wrong answer, invalid field | `.shake`, 480ms, `--ease-out` | `error` |
 | Ambient | Splash, intro, backdrop | drift or breathe 6–9s, `ease-in-out`, `alternate` | none |
-| Loading | Waiting on data | `Skeleton` shimmer 1.4s; spinners only inside a busy button | none |
+| Loading | Waiting on data | `Skeleton` shimmer 1.4s; `Spinner` arc 800ms linear (2.4s with reduced motion) | none |
 
 ### Rules
 
@@ -202,7 +206,7 @@ The checks:
 | Check | Runs | Catches |
 | --- | --- | --- |
 | `npm run lint:ui` (`scripts/check-spacing.mjs`) | the gate and CI | hard-coded px in padding, margin, gap; `--fix` snaps them to the nearest token (ties round up) |
-| `npm run lint:ui` (`scripts/check-ui.mjs`) | the gate and CI | raw native controls and hand-made kit classes outside `src/lib/ui`, a kit component not exported or not on `/design`, async work with no loading state |
+| `npm run lint:ui` (`scripts/check-ui.mjs`) | the gate and CI | raw native controls and hand-made kit classes outside `src/lib/ui`, a kit component not exported or not on `/design`, async work with no loading state, a full-turn spin on an element box (`spin-box`) |
 | Claude Code hook (`.claude/settings.json`, PostToolUse on Edit/Write) | after every agent edit of a `.svelte` or `.css` file | both lints, reported back to the agent at once (exit 2) |
 | `npm run check:layout` (`scripts/check-layout.mjs`) | the gate and CI, after `npm run build` | horizontal scroll, an off-centre column (≥ 600px), text hugging a card edge, controls under 32px, and a compact title bar that does not span rail to edge or whose title is off the column centre; at 390, 768, 1024 (side rail) and 1280px. A second pass loads Fleet's AI, packages, promo and account screens with synthetic data (`scripts/layout-fixtures.mjs`) and opens their forms and the model picker. A navigation pass then walks Fleet: every page under `src/routes/admin` must be in the Fleet nav (or linked from its parent, for detail pages), be marked current there with the same name as its title, and show a breadcrumb back; every top-level screen must be in the tab bar. At 1280px every Fleet page must fill at least 900px beside the sidebar |
 | `src/lib/design/spacing.test.ts` | `npm test` | the lint's scale drifting from `tokens.css` |

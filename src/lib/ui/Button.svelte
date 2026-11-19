@@ -6,6 +6,7 @@
 	import type { Snippet } from 'svelte';
 	import type { HTMLButtonAttributes } from 'svelte/elements';
 	import { inheritedControlSize, type ControlSize } from './size.ts';
+	import Spinner from './Spinner.svelte';
 
 	type Props = HTMLButtonAttributes & {
 		variant?: 'primary' | 'accent' | 'ghost' | 'danger' | 'ghost-danger' | 'plain' | 'link';
@@ -31,7 +32,7 @@
 	<a {href} class={classes} {...rest as Record<string, unknown>}>{#if icon}{@render icon()}{/if}{@render children?.()}</a>
 {:else}
 	<button type="button" class={classes} disabled={disabled || busy} aria-busy={busy || undefined} {...rest}>
-		{#if busy}<span class="spin" aria-hidden="true"></span>{:else if icon}{@render icon()}{/if}{@render children?.()}
+		{#if busy}<Spinner size="inline" tone="current" />{:else if icon}{@render icon()}{/if}{@render children?.()}
 	</button>
 {/if}
 
@@ -58,17 +59,4 @@
 		cursor: default;
 	}
 	/* .btn.danger and .btn.plain live in app.css with the other variants. */
-	.spin {
-		width: 1em;
-		height: 1em;
-		border-radius: var(--radius-round);
-		border: 2px solid currentColor;
-		border-right-color: transparent;
-		animation: spin 700ms linear infinite;
-	}
-	@keyframes spin {
-		to {
-			transform: rotate(1turn);
-		}
-	}
 </style>

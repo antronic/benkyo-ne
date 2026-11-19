@@ -464,13 +464,42 @@
 				<Card padding="md">
 					<div class="stack" style:--gap="var(--space-3)">
 						<p class="caption">The person always sees what the app is doing. Content that is on its way shows a Skeleton in its shape; an action in progress shows a Spinner or a busy Button.</p>
+						<p class="caption">Spinner sizes: sm 14, md 20, lg 32, inline 1em (follows the text). The arc turns inside a still SVG, so it stays centred in Safari at any position.</p>
 						<div class="row" style:--gap="var(--space-4)">
 							<Spinner label="Loading" size="sm" />
 							<Spinner label="Loading" />
-							<Spinner label="Saving your cards" showLabel />
+							<Spinner label="Loading" size="lg" />
+							<span class="caption">Inline <Spinner size="inline" /> in text</span>
 						</div>
-						<Button busy={saving} onclick={fakeSave}>{saving ? 'Saving' : 'Save'}</Button>
+						<div class="row" style:--gap="var(--space-4)">
+							<Spinner label="Checking" size="sm" showLabel />
+							<Spinner label="Saving your cards" showLabel />
+							<Spinner label="Asking Kuri" size="lg" showLabel />
+						</div>
+						<p class="caption">Busy buttons use the inline Spinner in the text colour (tone current), in every variant and size.</p>
+						<div class="row" style:--gap="var(--space-2)" style:flex-wrap="wrap">
+							<Button busy>Saving</Button>
+							<Button variant="accent" busy>Saving</Button>
+							<Button variant="ghost" busy>Saving</Button>
+							<Button variant="danger" busy>Deleting</Button>
+							<Button variant="ghost-danger" busy>Deleting</Button>
+							<Button variant="plain" busy>Saving</Button>
+						</div>
+						<div class="row" style:--gap="var(--space-2)" style:flex-wrap="wrap">
+							<Button size="sm" busy>Small</Button>
+							<Button size="md" busy>Medium</Button>
+							<Button size="lg" busy>Large</Button>
+							<Button busy={saving} onclick={fakeSave}>{saving ? 'Saving' : 'Try it'}</Button>
+						</div>
+						<p class="caption">Skeleton variants: row, card, tile, line.</p>
 						<Skeleton variant="row" count={2} />
+						<Skeleton variant="card" count={1} />
+						<Skeleton variant="tile" count={3} />
+						<Skeleton variant="line" count={2} />
+						<div class="row" style:--gap="var(--space-4)">
+							<PlanBadge plan="free" name="" loading />
+							<span class="caption">PlanBadge while the package loads</span>
+						</div>
 						<div class="row" style:--gap="var(--space-4)">
 							<ProgressRing value={0.65} size={88} width={9}><b>13</b></ProgressRing>
 							<div class="spacer"><BarChart label="Reviews a day" days={barDays} column="Reviews" /></div>
