@@ -18,7 +18,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
-		padding: 14px var(--space-4);
+		padding: var(--space-4);
 		border-radius: var(--radius-card);
 		min-height: 88px;
 		min-width: 0;

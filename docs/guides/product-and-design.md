@@ -45,6 +45,11 @@ right beats one that is beautiful and once wrong.
   screen patterns.
 - **Design system first**: tokens from `src/lib/design/tokens.css`, components from `#lib/ui`,
   listed on `/design`. No magic colours or sizes. A new component goes into `src/lib/ui` and onto `/design`.
+- **Kit only**: every control and card in the app comes from `#lib/ui` (no raw `<button>`,
+  `<input>`, `<select>`, `<textarea>`, no hand-made `.btn` / `.glass`), and every kit component is on
+  `/design`. A field and its button share a `FieldRow`. `npm run lint:ui` and the hook enforce it.
+- **The user always knows the state**: loading shows a `Skeleton` or `Spinner`, an action shows
+  `busy` on its button, errors say what to do next. `npm run lint:ui` flags async work with none.
 - **Light and dark** at parity. `data-theme` on an element forces a theme for screenshots.
 - **Layouts**: phone (390 px), iPad (768 px and up), unfolded iPhone Duo (side rail only in
   landscape or 840 px and up, see `RAIL_QUERY` in `src/lib/ios/device.svelte.ts`), desktop.
@@ -57,7 +62,8 @@ right beats one that is beautiful and once wrong.
 
 ## Done checklist for a screen
 
-- Empty, loading, offline and error states handled.
+- Empty, loading (Skeleton, Spinner or busy button), offline and error states handled.
+- Every control comes from the kit and every kit component you added is on `/design`.
 - Phone, iPad and desktop layouts checked, no horizontal scroll.
 - Light and dark, English and Thai, keyboard focus visible.
 - Gate green, and you walked the flow in a real browser and attached screenshots.

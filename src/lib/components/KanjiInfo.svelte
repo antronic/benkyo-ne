@@ -7,6 +7,7 @@
 	import { kanjiByChar, ORIGIN_LABEL, showKun, type Kanji } from '#lib/content/kanji.ts';
 	import { PART_COLORS, strokesOf } from '#lib/content/strokes.ts';
 	import { speak } from '#lib/audio/speech.ts';
+	import { Card } from '#lib/ui/index.ts';
 
 	let { kanji, compact = false }: { kanji: Kanji; compact?: boolean } = $props();
 
@@ -23,7 +24,7 @@
 	const colored = $derived((strokesOf(kanji.char)?.g?.length ?? 0) === parts.length);
 </script>
 
-<div class="info stack" style:--gap="10px">
+<div class="info stack" style:--gap="var(--space-3)">
 	<div class="row head">
 		<span class="meaning">{gloss(kanji.meaning)}</span>
 		<span class="tag {kanji.origin}">{c(ORIGIN_LABEL[kanji.origin])}</span>
@@ -58,7 +59,7 @@
 				{#each kanji.on as r}<span class="r">{r}<Romaji text={r} /></span>{/each}
 			</dd>
 		</dl>
-		<button class="glass example" onclick={() => speak(kanji.example.reading)}>
+		<Card padding="none" class="example" onclick={() => speak(kanji.example.reading)}>
 			<span class="jp word">{kanji.example.word}</span>
 			<span class="stack" style:--gap="0">
 				<span class="jp caption">{kanji.example.reading}<Romaji text={kanji.example.reading} inline /></span>
@@ -66,7 +67,7 @@
 			</span>
 			<span class="spacer"></span>
 			<span aria-hidden="true">🔊</span>
-		</button>
+		</Card>
 	{/if}
 </div>
 
@@ -77,7 +78,7 @@
 		text-align: left;
 	}
 	.head {
-		gap: 10px;
+		gap: var(--space-3);
 		align-items: baseline;
 		justify-content: flex-start;
 		flex-wrap: wrap;
@@ -94,7 +95,7 @@
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
-		padding: 3px 8px;
+		padding: var(--space-1) var(--space-2);
 		border-radius: 999px;
 		background: color-mix(in srgb, var(--success) 18%, transparent);
 		color: var(--success);
@@ -112,7 +113,7 @@
 		font-size: 1.0625rem;
 	}
 	.parts {
-		gap: 6px;
+		gap: var(--space-1h);
 		flex-wrap: wrap;
 		justify-content: flex-start;
 	}
@@ -120,7 +121,7 @@
 		display: inline-flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 2px;
+		gap: var(--space-px);
 		min-width: 44px;
 	}
 	.part .caption {
@@ -131,12 +132,12 @@
 		font-size: 1.25rem;
 		font-weight: 600;
 		color: var(--ink-3);
-		margin-bottom: 18px;
+		margin-bottom: var(--space-5);
 	}
 	.readings {
 		display: grid;
 		grid-template-columns: auto 1fr;
-		gap: 6px 12px;
+		gap: var(--space-1h) var(--space-3);
 		margin: 0;
 		align-items: baseline;
 		text-align: left;
@@ -152,23 +153,19 @@
 		margin: 0;
 		display: flex;
 		flex-wrap: wrap;
-		gap: 4px 14px;
+		gap: var(--space-1) var(--space-4);
 		font-size: 1.125rem;
 	}
 	.r {
 		display: inline-flex;
 		flex-direction: column;
 	}
-	.example {
+	.info :global(.example) {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 10px 14px;
-		border-radius: var(--r-m);
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		text-align: left;
-		cursor: pointer;
-		color: inherit;
-		font: inherit;
 	}
 	.word {
 		font-size: 1.5rem;

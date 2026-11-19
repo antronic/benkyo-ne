@@ -27,7 +27,7 @@
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import StrokeAnimator from '#lib/components/StrokeAnimator.svelte';
 	import RecallPad from '#lib/components/RecallPad.svelte';
-	import ProgressRing from '#lib/components/ProgressRing.svelte';
+	import { Button, Card, IconButton, ProgressRing, TextField } from '#lib/ui/index.ts';
 	import WordQuiz from '#lib/components/WordQuiz.svelte';
 	import { DRILLS, isDrillId, pickDrill } from '#lib/practice/drills.ts';
 	import KanjiInfo from '#lib/components/KanjiInfo.svelte';
@@ -176,9 +176,9 @@
 
 <main class="review">
 	<header class="top">
-		<button class="icon-btn" aria-label={t('review.end')} onclick={() => goto('/')}>
+		<IconButton label={t('review.end')} onclick={() => goto('/')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
-		</button>
+		</IconButton>
 		<div class="bar"><span style:width="{total ? (Math.min(done, total) / total) * 100 : 100}%"></span></div>
 		<div class="caption count">{Math.min(done, total)}/{total}</div>
 	</header>
@@ -191,7 +191,7 @@
 
 	{#if !entry || (!kana && !kanji && !wordCard)}
 		<section class="stage" in:scale={{ start: 0.94, duration: 400 }}>
-			<div class="stack center" style:--gap="16px">
+			<div class="stack center" style:--gap="var(--space-4)">
 				<ProgressRing value={total ? correctCount / Math.max(done, 1) : 1} size={140}>
 					<div>
 						<div class="big-num">{total ? Math.round((correctCount / Math.max(done, 1)) * 100) : 100}%</div>
@@ -209,8 +209,8 @@
 								: t('review.caughtUpBody')}
 				</p>
 				<div class="row">
-					{#if practice && total}<button class="btn ghost" onclick={() => (location.href = `/review?practice=${practice.id}`)}>{t('review.again')}</button>{/if}
-					<button class="btn accent" onclick={() => goto(practice ? '/learn' : '/')}>{t('common.done')}</button>
+					{#if practice && total}<Button variant="ghost" onclick={() => (location.href = `/review?practice=${practice.id}`)}>{t('review.again')}</Button>{/if}
+					<Button variant="accent" onclick={() => goto(practice ? '/learn' : '/')}>{t('common.done')}</Button>
 				</div>
 			</div>
 		</section>
@@ -231,17 +231,17 @@
 							<RecallPad char={kanji.char} size="var(--pad)" oncomplete={(r) => submit(r.correct, r.guess)} />
 						{:else}
 							<div class="flip" class:flipped={!!result}>
-								<div class="face front glass sheen" class:shake={shaking}>
+								<Card sheen padding="none" radius="large" class="face front {shaking ? 'shake' : ''}">
 									<KanaGlyph char={kanji.char} size={150} scene={usedHint ? 0.9 : 0} />
-								</div>
-								<div class="face back glass sheen">
+								</Card>
+								<Card sheen padding="none" radius="large" class="face back">
 									{#if result?.correct === false}
 										<StrokeAnimator char={kanji.char} size={150} speed={150} numbers={false} scene={0.5} colors={partColors(kanji.char)} />
 									{:else}
 										<KanaGlyph char={kanji.char} size={110} color="var(--success)" />
 									{/if}
 									<div class="romaji">{gloss(kanji.meaning)}</div>
-								</div>
+								</Card>
 							</div>
 						{/if}
 					</div>
@@ -255,22 +255,22 @@
 							{#if mode === 'choose'}
 								<div class="choices">
 									{#each kanjiOptions as o (o.char)}
-										<button class="glass choice small-text" onclick={() => submit(o.char === kanji.char)}>{gloss(o.meaning)}</button>
+										<Card padding="none" class="choice small-text" onclick={() => submit(o.char === kanji.char)}>{gloss(o.meaning)}</Card>
 									{/each}
 								</div>
-								<button class="btn ghost small" onclick={() => (usedHint = true)} disabled={usedHint}>💡 {t('review.showPicture')}</button>
+								<Button variant="ghost" size="sm" onclick={() => (usedHint = true)} disabled={usedHint}>💡 {t('review.showPicture')}</Button>
 							{/if}
 						{:else}
 							{#if !result.correct}
-								<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
+								<div class="feedback-wrap" in:scale={{ start: 0.9, duration: 300 }}><Card class="feedback">
 									<KanjiInfo kanji={kanji} compact />
 									{#if result.guess && result.guess !== kanji.char}
-										<p class="caption" style="margin:6px 0 0">{t('review.drewCloser')} <span class="jp">{result.guess}</span></p>
+										<p class="caption" style="margin:var(--space-1h) 0 0">{t('review.drewCloser')} <span class="jp">{result.guess}</span></p>
 									{/if}
-								</div>
+								</Card></div>
 							{/if}
 							{#if !(result.correct && mode === 'choose')}
-								<button class="btn block {result.correct ? '' : 'accent'}" onclick={next}>{t('common.continue')}</button>
+								<Button variant={result.correct ? 'primary' : 'accent'} block onclick={next}>{t('common.continue')}</Button>
 							{/if}
 						{/if}
 					</div>
@@ -290,23 +290,23 @@
 					{#if mode === 'draw' && !result}
 						<div class="row" style="justify-content:center">
 							<div class="romaji">{kana.romaji}</div>
-							<button class="icon-btn" aria-label={t('common.listen')} onclick={() => speak(kana.char)}>🔊</button>
+							<IconButton label={t('common.listen')} onclick={() => speak(kana.char)}>🔊</IconButton>
 						</div>
 						<RecallPad char={kana.char} size="var(--pad)" oncomplete={(r) => submit(r.correct, r.guess)} />
 					{:else}
 						<div class="flip" class:flipped={!!result}>
-							<div class="face front glass sheen" class:shake={shaking}>
+							<Card sheen padding="none" radius="large" class="face front {shaking ? 'shake' : ''}">
 								<KanaGlyph char={kana.char} size={150} scene={usedHint ? 0.9 : 0} />
 								<Romaji text={kana.char} hide={!result} />
-							</div>
-							<div class="face back glass sheen">
+							</Card>
+							<Card sheen padding="none" radius="large" class="face back">
 								{#if result?.correct === false}
 									<StrokeAnimator char={kana.char} size={150} speed={150} numbers={false} />
 								{:else}
 									<KanaGlyph char={kana.char} size={110} color="var(--success)" />
 								{/if}
 								<div class="romaji">{kana.romaji}</div>
-							</div>
+							</Card>
 						</div>
 					{/if}
 				</div>
@@ -321,13 +321,14 @@
 						{#if mode === 'choose'}
 							<div class="choices">
 								{#each options as o (o.char)}
-									<button class="glass choice" onclick={() => submit(o.romaji === kana.romaji)}>{o.romaji}</button>
+									<Card padding="none" class="choice" onclick={() => submit(o.romaji === kana.romaji)}>{o.romaji}</Card>
 								{/each}
 							</div>
 						{:else if mode === 'type'}
 							<!-- svelte-ignore a11y_autofocus -->
-							<input
-								type="text"
+							<TextField
+								variant="answer"
+								class="answer-field"
 								bind:value={answer}
 								placeholder={t('review.romajiPlaceholder')}
 								aria-label={t('review.readingRomaji')}
@@ -340,17 +341,17 @@
 								onfocus={(e) => setTimeout(() => e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300)}
 								autofocus
 							/>
-							<button class="btn block" disabled={!answer.trim()} onclick={() => submit(romajiMatches(kana, answer))}>{t('quiz.check')}</button>
+							<Button block disabled={!answer.trim()} onclick={() => submit(romajiMatches(kana, answer))}>{t('quiz.check')}</Button>
 						{/if}
 						{#if mode !== 'draw'}
-							<button class="btn ghost small" onclick={() => (usedHint = true)} disabled={usedHint}>💡 {t('quiz.hint')}</button>
+							<Button variant="ghost" size="sm" onclick={() => (usedHint = true)} disabled={usedHint}>💡 {t('quiz.hint')}</Button>
 						{/if}
 					{:else}
 						{#if !result.correct}
-							<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
+							<div class="feedback-wrap" in:scale={{ start: 0.9, duration: 300 }}><Card class="feedback">
 								<p style="margin:0">{story(kana.char)}</p>
 								{#if result.guess && result.guess !== kana.char}
-									<p class="caption" style="margin:6px 0 0">{t('review.drewCloser')} <span class="jp">{result.guess}</span><Romaji text={result.guess} inline /></p>
+									<p class="caption" style="margin:var(--space-1h) 0 0">{t('review.drewCloser')} <span class="jp">{result.guess}</span><Romaji text={result.guess} inline /></p>
 								{/if}
 								{#if confusablesOf(kana.char).length}
 									<div class="row confuse">
@@ -360,10 +361,10 @@
 										{/each}
 									</div>
 								{/if}
-							</div>
+							</Card></div>
 						{/if}
 						{#if !(result.correct && mode === 'choose')}
-							<button class="btn block {result.correct ? '' : 'accent'}" onclick={next}>{t('common.continue')}</button>
+							<Button variant={result.correct ? 'primary' : 'accent'} block onclick={next}>{t('common.continue')}</Button>
 						{/if}
 					{/if}
 				</div>
@@ -377,9 +378,12 @@
 	.answer {
 		max-width: 440px;
 	}
+	.answer :global(.answer-field) {
+		width: 100%;
+	}
 	/* Keep the answer field above the iOS keyboard */
 	:global(html.keyboard) .review {
-		padding-bottom: calc(var(--kb) + 12px);
+		padding-bottom: calc(var(--kb) + var(--space-3));
 	}
 	@media (min-width: 600px) and (orientation: landscape) {
 		.review {
@@ -396,7 +400,7 @@
 	}
 	.tagline {
 		text-align: center;
-		margin-top: 8px;
+		margin-top: var(--space-2);
 	}
 	.review {
 		--pad: min(78vw, 320px);
@@ -405,12 +409,12 @@
 		flex-direction: column;
 		max-width: 560px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 16px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--space-4)) var(--gutter-l);
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.bar {
 		flex: 1;
@@ -435,7 +439,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 20px 0;
+		padding: var(--space-5) 0;
 	}
 	.center {
 		align-items: center;
@@ -460,26 +464,25 @@
 		height: 240px;
 		perspective: 1000px;
 	}
-	.face {
+	.flip :global(.face) {
 		position: absolute;
 		inset: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		border-radius: var(--r-l);
+		gap: var(--space-1h);
 		backface-visibility: hidden;
 		-webkit-backface-visibility: hidden;
 		transition: transform 700ms var(--spring);
 	}
-	.back {
+	.flip :global(.back) {
 		transform: rotateY(180deg);
 	}
-	.flipped .front {
+	.flipped :global(.front) {
 		transform: rotateY(-180deg);
 	}
-	.flipped .back {
+	.flipped :global(.back) {
 		transform: rotateY(0);
 	}
 	.story {
@@ -490,36 +493,37 @@
 	.choices {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 10px;
+		gap: var(--space-3);
 		width: 100%;
 	}
-	.choice {
+	.choices :global(.choice) {
 		min-height: 64px;
+		text-align: center;
 		font-size: 1.375rem;
 		font-weight: 600;
-		cursor: pointer;
 		transition: transform 380ms var(--spring);
 	}
-	.choice.small-text {
+	.choices :global(.choice.small-text) {
 		font-size: 1.0625rem;
-		padding: 6px 10px;
+		padding: var(--space-1h) var(--space-3);
 	}
-	.choice:active {
+	.choices :global(.choice:active) {
 		transform: scale(0.95);
 	}
-	.feedback {
+	.feedback-wrap {
 		width: 100%;
-		padding: 14px 16px;
+	}
+	.feedback-wrap :global(.feedback) {
 		text-align: left;
 	}
 	.confuse {
-		margin-top: 10px;
+		margin-top: var(--space-3);
 		flex-wrap: wrap;
-		--gap: 10px;
+		--gap: var(--space-3);
 	}
 	.pair {
 		display: inline-flex;
 		align-items: center;
-		gap: 2px;
+		gap: var(--space-px);
 	}
 </style>

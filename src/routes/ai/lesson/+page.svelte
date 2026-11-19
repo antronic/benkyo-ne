@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { t } from '#lib/i18n/index.svelte.ts';
-	import Skeleton from '#lib/components/Skeleton.svelte';
+	import { Button, Card, Chip, IconButton, Skeleton, TextField } from '#lib/ui/index.ts';
 	import { goto } from '$app/navigation';
 	import { fly } from 'svelte/transition';
 	import * as api from '#lib/ai/client.ts';
@@ -76,39 +76,39 @@
 
 <main class="maker">
 	<header class="top">
-		<button class="icon-btn" aria-label={t('common.back')} onclick={() => goto('/ai')}>
+		<IconButton label={t('common.back')} onclick={() => goto('/ai')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		</button>
+		</IconButton>
 		<h1 class="title-2">{t('aiLesson.title')}</h1>
 	</header>
 
-	<form class="stack" style:--gap="10px" onsubmit={(e) => (e.preventDefault(), generate())}>
-		<input type="text" bind:value={topic} placeholder={t('aiLesson.placeholder')} aria-label={t('aiLesson.topic')} enterkeyhint="go" autocomplete="off" />
+	<form class="stack" style:--gap="var(--space-3)" onsubmit={(e) => (e.preventDefault(), generate())}>
+		<TextField size="lg" bind:value={topic} placeholder={t('aiLesson.placeholder')} aria-label={t('aiLesson.topic')} enterkeyhint="go" autocomplete="off" />
 		<div class="ideas">
-			{#each IDEAS as idea}<button type="button" class="chip" onclick={() => (topic = idea)}>{idea}</button>{/each}
+			{#each IDEAS as idea}<Chip selected={topic === idea} onclick={() => (topic = idea)}>{idea}</Chip>{/each}
 		</div>
-		<button class="btn accent block" disabled={busy || !topic.trim() || !ai.available}>{busy ? t('aiLesson.designing') : `✨ ${t('aiLesson.make')}`}</button>
+		<Button type="submit" variant="accent" block {busy} disabled={!topic.trim() || !ai.available}>{busy ? t('aiLesson.designing') : `✨ ${t('aiLesson.make')}`}</Button>
 		{#if !ai.available}<p class="caption">{ai.reason}</p>{/if}
 	</form>
 
 	{#if busy}
-		<div class="stack" style:--gap="10px">
+		<div class="stack" style:--gap="var(--space-3)">
 			<div class="caption">✨ {t('aiLesson.designingTopic', { topic })}</div>
 			<Skeleton variant="card" count={1} />
 			<Skeleton variant="row" count={5} />
 		</div>
 	{:else if draft}
-		<section class="stack draft" style:--gap="10px" in:fly={{ y: 16, duration: 350 }}>
+		<section class="stack draft" style:--gap="var(--space-3)" in:fly={{ y: 16, duration: 350 }}>
 			<div>
 				<h2 class="title-2">{draft.title.en}</h2>
 				{#if draft.title.second}<p class="caption">{draft.title.second}</p>{/if}
 				<p class="subhead">{draft.blurb.en}</p>
 			</div>
 			{#each draft.checked as i}
-				<div class="item glass">
-					<button class="say" aria-label={t('common.listen')} onclick={() => speak(i.reading)}>🔊</button>
+				<Card class="item" padding="none" radius="control">
+					<IconButton class="say" label={t('common.listen')} onclick={() => speak(i.reading)}>🔊</IconButton>
 					<div class="body">
-						<div class="row" style:--gap="6px">
+						<div class="row" style:--gap="var(--space-1h)">
 							<span class="jp reading">{i.reading}</span>
 							{#if i.kind === 'phrase'}<span class="tag">{t('card.phrase')}</span>{/if}
 							{#if !i.verified}<span class="tag warn">{t('card.unverified')}</span>{/if}
@@ -118,11 +118,11 @@
 						<span>{i.gloss}</span>
 						{#if i.note}<span class="caption">💬 {i.note}</span>{/if}
 					</div>
-				</div>
+				</Card>
 			{/each}
 			<div class="row">
-				<button class="btn ghost block" onclick={generate} disabled={busy}>↻ {t('common.tryAgain')}</button>
-				<button class="btn accent block" onclick={save}>{t('aiLesson.save')}</button>
+				<Button variant="ghost" block onclick={generate} {busy}>↻ {t('common.tryAgain')}</Button>
+				<Button variant="accent" block onclick={save}>{t('aiLesson.save')}</Button>
 			</div>
 		</section>
 	{/if}
@@ -133,49 +133,36 @@
 		min-height: 100dvh;
 		max-width: 760px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + 24px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + var(--space-6)) var(--gutter-l);
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--space-4);
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.ideas {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--space-2);
 	}
-	.chip {
-		border: 0.5px solid var(--hairline);
-		background: var(--glass);
-		border-radius: 999px;
-		padding: 0 14px;
-		min-height: 36px;
-		font-size: 0.875rem;
-		cursor: pointer;
-	}
-	.item {
+	.draft :global(.item) {
 		display: flex;
-		gap: 12px;
-		padding: 12px 14px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		border-radius: var(--r-m);
 	}
-	.say {
+	.draft :global(.say) {
 		flex: none;
 		width: 44px;
 		height: 44px;
-		border-radius: 50%;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		cursor: pointer;
 	}
 	.body {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--space-px);
 		min-width: 0;
 	}
 	.reading {
@@ -189,7 +176,7 @@
 		font-size: 0.6875rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		padding: 2px 7px;
+		padding: var(--space-px) var(--space-2);
 		border-radius: 999px;
 		background: var(--hairline);
 	}

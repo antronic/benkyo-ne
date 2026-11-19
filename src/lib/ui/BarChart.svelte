@@ -75,7 +75,7 @@
 
 <style>
 	.chart {
-		margin: 4px 0 0;
+		margin: var(--space-1) 0 0;
 	}
 	svg {
 		display: block;
@@ -95,18 +95,18 @@
 		opacity: 0.4;
 	}
 	figcaption {
-		gap: 8px;
-		margin-top: 4px;
+		gap: var(--space-2);
+		margin-top: var(--space-1);
 	}
 	table {
 		width: 100%;
-		margin-top: 6px;
+		margin-top: var(--space-1h);
 		border-collapse: collapse;
 	}
 	th,
 	td {
 		text-align: left;
-		padding: 2px 0;
+		padding: var(--space-px) 0;
 	}
 	.num {
 		font-variant-numeric: tabular-nums;

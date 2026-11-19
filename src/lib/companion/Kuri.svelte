@@ -48,7 +48,7 @@
 				console.warn('[kuri] renderer could not be loaded', e);
 				return null; // Kuri just doesn't appear; the app carries on
 			})
-			.then((m) => {
+			.then((m) => { // ui-ok: decorative companion, Kuri simply appears once the 3D renderer loads (nothing to wait for)
 				if (!m || dead) return;
 				try {
 					inst = m.create(node, { orbit: false, ...options, variant: init.variant, detail: init.detail, theme: currentTheme(), reducedMotion: reducedMotion() });

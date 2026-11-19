@@ -9,6 +9,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { strokesOf } from '#lib/content/strokes.ts';
+	import { Button, PageDots } from '#lib/ui/index.ts';
 
 	let { ondone }: { ondone: () => void } = $props();
 
@@ -51,7 +52,7 @@
 
 <div class="intro" style:--h={slide.hue} transition:fade={{ duration: 400 }} role="dialog" aria-modal="true" aria-label={t('intro.label')}>
 	<div class="bg" aria-hidden="true"></div>
-	<button class="skip" onclick={finish}>{t('intro.skip')}</button>
+	<div class="skip"><Button variant="ghost" size="sm" onclick={finish}>{t('intro.skip')}</Button></div>
 
 	<div class="stage" onpointerdown={down} onpointerup={up} role="presentation">
 		{#key i}
@@ -75,7 +76,7 @@
 				{:else if slide.key === 'cards'}
 					<div class="fan">
 						{#each ['き', 'つ', 'ね', 'み', 'あ'] as k, c}
-							<div class="card" style:--c={c}><span class="jp">{k}</span><small>{['ki', 'tsu', 'ne', 'mi', 'a'][c]}</small></div>
+							<div class="flash" style:--c={c}><span class="jp">{k}</span><small>{['ki', 'tsu', 'ne', 'mi', 'a'][c]}</small></div>
 						{/each}
 					</div>
 				{:else}
@@ -97,12 +98,10 @@
 				<p class="subhead">{t(slide.text)}</p>
 			</div>
 		{/key}
-		<div class="dots" role="tablist" aria-label={t('intro.pages')}>
-			{#each SLIDES as s, n}
-				<button role="tab" aria-selected={n === i} aria-label={t('intro.page', { n: n + 1 })} class:on={n === i} onclick={() => go(n)}></button>
-			{/each}
+		<div style:--dot-on="hsl(var(--h) 80% 55%)">
+			<PageDots count={SLIDES.length} index={i} label={t('intro.pages')} pageLabel={(n) => t('intro.page', { n })} onselect={go} />
 		</div>
-		<button class="btn accent block" onclick={next}>{i < SLIDES.length - 1 ? t('intro.next') : t('intro.start')}</button>
+		<Button variant="accent" block onclick={next}>{i < SLIDES.length - 1 ? t('intro.next') : t('intro.start')}</Button>
 	</div>
 </div>
 
@@ -113,7 +112,7 @@
 		z-index: 150;
 		display: flex;
 		flex-direction: column;
-		padding: calc(var(--safe-top) + 12px) max(20px, var(--safe-right)) calc(var(--safe-bottom) + 20px) max(20px, var(--safe-left));
+		padding: calc(var(--safe-top) + var(--space-3)) max(var(--space-5), var(--safe-right)) calc(var(--safe-bottom) + var(--space-5)) max(var(--space-5), var(--safe-left));
 		background: var(--bg);
 		overflow: hidden;
 		touch-action: pan-y;
@@ -136,17 +135,10 @@
 	.skip {
 		position: relative;
 		align-self: flex-end;
-		border: 0;
-		background: var(--glass);
-		-webkit-backdrop-filter: blur(20px);
-		backdrop-filter: blur(20px);
-		border-radius: 999px;
-		padding: 0 16px;
-		min-height: 36px;
-		font-weight: 600;
-		color: var(--ink-2);
-		cursor: pointer;
 		z-index: 2;
+	}
+	.skip :global(.btn) {
+		color: var(--ink-2);
 	}
 	.stage {
 		position: relative;
@@ -165,40 +157,18 @@
 		position: relative;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--space-4);
 		text-align: center;
 		max-width: 460px;
 		width: 100%;
 		margin: 0 auto;
 	}
 	.copy h2 {
-		margin: 0 0 6px;
+		margin: 0 0 var(--space-1h);
 	}
 	.copy p {
 		margin: 0;
 	}
-	.dots {
-		display: flex;
-		justify-content: center;
-		gap: 8px;
-	}
-	.dots button {
-		width: 8px;
-		height: 8px;
-		padding: 0;
-		border: 0;
-		border-radius: 4px;
-		background: var(--ink-3);
-		cursor: pointer;
-		transition:
-			width 400ms var(--spring),
-			background 300ms;
-	}
-	.dots button.on {
-		width: 24px;
-		background: hsl(var(--h) 80% 55%);
-	}
-
 	/* 1 — spinning kana cube */
 	.cube-wrap {
 		width: 150px;
@@ -249,7 +219,7 @@
 		background: var(--glass-strong);
 		border: 0.5px solid var(--glass-edge);
 		box-shadow: 0 40px 60px -30px hsl(var(--h) 60% 30% / 0.6);
-		padding: 22px;
+		padding: var(--space-6);
 		transform: rotateX(28deg) rotateZ(-6deg);
 	}
 	.paper svg {
@@ -303,7 +273,7 @@
 		transform-style: preserve-3d;
 		transform: rotateX(18deg);
 	}
-	.card {
+	.flash {
 		position: absolute;
 		inset: 0;
 		border-radius: 20px;
@@ -321,16 +291,16 @@
 		--r: calc((var(--c) - 2) * 14deg);
 		transform: rotateZ(var(--r)) translateZ(calc(var(--c) * 8px));
 	}
-	.card small {
+	.flash small {
 		font-size: 13px;
 		color: var(--ink-3);
 		font-weight: 600;
 	}
-	.card:nth-child(5) {
+	.flash:nth-child(5) {
 		background: linear-gradient(135deg, hsl(var(--h) 70% 55%), hsl(calc(var(--h) + 30) 70% 45%));
 		color: #fff;
 	}
-	.card:nth-child(5) small {
+	.flash:nth-child(5) small {
 		color: rgb(255 255 255 / 0.8);
 	}
 	@keyframes deal {
@@ -375,7 +345,7 @@
 		/* counter-rotate so the words stay upright while orbiting */
 		animation: upright 7s linear infinite;
 		animation-delay: calc(var(--o) * -2.33s);
-		padding: 6px 12px;
+		padding: var(--space-1h) var(--space-3);
 		border-radius: 999px;
 		background: var(--glass-strong);
 		border: 0.5px solid var(--glass-edge);
@@ -399,7 +369,7 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.cube, .tilt, .ink, .pen, .card, .orbit, .orb, .moon, .bg {
+		.cube, .tilt, .ink, .pen, .flash, .orbit, .orb, .moon, .bg {
 			animation: none !important;
 		}
 		.ink {

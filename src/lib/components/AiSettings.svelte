@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
 	import { i18n, t, type MessageKey } from '#lib/i18n/index.svelte.ts';
-	import Skeleton from '#lib/components/Skeleton.svelte';
+	import { Button, FieldRow, ListGroup, ListRow, Select, Skeleton, TextField } from '#lib/ui/index.ts';
 	import AccountSettings from '#lib/components/AccountSettings.svelte';
 	import { onMount } from 'svelte';
 	import * as api from '#lib/ai/client.ts';
@@ -31,6 +31,8 @@
 	let features = $state<FeatureModel[]>([]);
 	let loadingModels = $state(false);
 	let busy = $state(false);
+	/** Which action is running, so its own button shows the spinner. */
+	let pending = $state('');
 	let capInput = $state(5);
 
 	// new key form
@@ -57,8 +59,9 @@
 		}
 	}
 
-	async function guard<T>(fn: () => Promise<T>, ok?: string): Promise<T | undefined> {
+	async function guard<T>(fn: () => Promise<T>, ok?: string, key = ''): Promise<T | undefined> {
 		busy = true;
+		pending = key;
 		try {
 			const r = await fn();
 			if (ok) {
@@ -71,6 +74,7 @@
 			toast(e instanceof Error ? e.message : t('welcome.error'), '⚠️', 2600);
 		} finally {
 			busy = false;
+			pending = '';
 		}
 	}
 
@@ -96,7 +100,8 @@
 					baseUrl: provider === 'openai-compatible' ? baseUrl.trim() : undefined,
 					apiKey: apiKey.trim()
 				}),
-			t('ai.keySaved')
+			t('ai.keySaved'),
+			'add'
 		);
 		apiKey = '';
 		if (r) {
@@ -108,7 +113,7 @@
 	}
 	async function removeKey(id: number, name: string) {
 		if (!(await confirmDestructive(t('ai.removeKeyTitle', { name }), t('ai.removeKeyBody'), t('ai.removeKey')))) return;
-		await guard(() => api.deleteCredential(id), t('ai.keyRemoved'));
+		await guard(() => api.deleteCredential(id), t('ai.keyRemoved'), `rm${id}`);
 		await ai.refresh();
 		await loadModels();
 	}
@@ -128,11 +133,11 @@
 		if (i === null) return;
 		const o = prompt(t('ai.priceOut', { model: m.id }), m.price?.outputPerM.toString() ?? '');
 		if (o === null || !Number.isFinite(+i) || !Number.isFinite(+o)) return;
-		await guard(() => api.setPrice({ provider: m.provider, model: m.id, inputPerM: +i, outputPerM: +o }), t('ai.priceSaved'));
+		await guard(() => api.setPrice({ provider: m.provider, model: m.id, inputPerM: +i, outputPerM: +o }), t('ai.priceSaved'), `price${m.credentialId}|${m.id}`);
 		await loadModels();
 	}
 	async function saveCap() {
-		await guard(() => api.setCap(Math.max(0, capInput)), t('ai.capUpdated'));
+		await guard(() => api.setCap(Math.max(0, capInput)), t('ai.capUpdated'), 'cap');
 		await ai.refresh();
 	}
 
@@ -140,215 +145,168 @@
 	const groups = $derived(
 		ai.credentials.map((c) => ({ c, list: models.filter((m) => m.credentialId === c.id) }))
 	);
+	/** Model picker options for one feature, one <optgroup> per key. */
+	const modelOptions = (f: Feature) =>
+		groups.flatMap((g) =>
+			g.list
+				.filter((m) => f !== 'vision' || m.vision !== false)
+				.map((m) => ({ value: `${g.c.id}|${m.id}`, label: `${m.label}${m.price ? '' : ' 🔒'}`, group: g.c.label, disabled: !m.price }))
+		);
+	const langOptions = $derived(LANGS.map(([value, label]) => ({ value, label })));
+	const providerOptions = $derived<{ value: ProviderKind; label: string }[]>([
+		{ value: 'anthropic', label: 'Anthropic' },
+		{ value: 'openai-compatible', label: t('ai.openaiCompat') }
+	]);
 </script>
 
 <AccountSettings onchange={reload} />
 
 <h2 class="eyebrow section" id="ai">{t('ai.section')}</h2>
 
-<div class="glass group">
-	<div class="item">
-		<span class="stack" style:--gap="2px">
-			<span>{t('ai.explainLang')}</span>
-			<span class="caption">{t('ai.explainLangBody')}</span>
-		</span>
-		<span class="spacer"></span>
-		<select
-			aria-label={t('ai.secondLang')}
-			value={progress.settings.secondLang ?? ''}
-			onchange={(e) => progress.saveSettings({ secondLang: e.currentTarget.value || null })}
-		>
-			{#each LANGS as [code, name]}<option value={code}>{name}</option>{/each}
-		</select>
-	</div>
-</div>
+<ListGroup>
+	<ListRow title={t('ai.explainLang')} subtitle={t('ai.explainLangBody')}>
+		{#snippet trailing()}
+			<span class="pick-cap">
+				<Select
+					label={t('ai.secondLang')}
+					options={langOptions}
+					value={progress.settings.secondLang ?? ''}
+					onchange={(v) => progress.saveSettings({ secondLang: v || null })}
+				/>
+			</span>
+		{/snippet}
+	</ListRow>
+</ListGroup>
 
 {#if ai.signedIn}
 	{#if ai.usage}
 		{@const pct = Math.min(1, ai.usage.spentUsd / Math.max(ai.usage.capUsd, 0.0001))}
-		<div class="glass group">
-			<div class="item">
-				<span class="stack" style:--gap="6px" style="flex:1">
+		<ListGroup>
+			<ListRow>
+				<span class="stack" style:--gap="var(--space-1h)">
 					<span class="row"><span>{t('ai.thisMonth')}</span><span class="spacer"></span><b>{t('ai.spentOf', { spent: fmt(ai.usage.spentUsd), cap: fmt(ai.usage.capUsd) })}</b></span>
 					<span class="meter" class:warn={pct > 0.8}><span style:width="{pct * 100}%"></span></span>
 					<span class="caption">{t('ai.callsCap', { n: ai.usage.calls })}</span>
 				</span>
-			</div>
-			<div class="item row">
-				<span>{t('ai.cap')}</span><span class="spacer"></span>
-				<input class="num" type="number" min="0" step="1" bind:value={capInput} aria-label={t('ai.capAria')} />
-				<button class="btn ghost small" onclick={saveCap} disabled={busy}>{t('common.save')}</button>
-			</div>
-		</div>
+			</ListRow>
+			<ListRow title={t('ai.cap')}>
+				{#snippet trailing()}
+					<span class="cap">
+						<FieldRow size="sm">
+							<TextField class="num" type="number" min="0" step="1" bind:value={capInput} aria-label={t('ai.capAria')} />
+							<Button variant="ghost" onclick={saveCap} disabled={busy} busy={pending === 'cap'}>{t('common.save')}</Button>
+						</FieldRow>
+					</span>
+				{/snippet}
+			</ListRow>
+		</ListGroup>
 	{/if}
 
 	<h3 class="eyebrow section">{t('ai.keys')}</h3>
-	<div class="glass group">
+	<ListGroup>
 		{#each ai.credentials as c (c.id)}
-			<div class="item">
-				<span class="stack" style:--gap="2px">
-					<span>{c.label}</span>
-					<span class="caption">{c.provider === 'anthropic' ? 'Anthropic' : c.baseUrl} · ••••{c.last4}</span>
-				</span>
-				<span class="spacer"></span>
-				<button class="btn ghost small danger" onclick={() => removeKey(c.id, c.label)} disabled={busy}>{t('account.remove')}</button>
-			</div>
+			<ListRow title={c.label} subtitle="{c.provider === 'anthropic' ? 'Anthropic' : c.baseUrl} · ••••{c.last4}">
+				{#snippet trailing()}
+					<Button variant="ghost-danger" size="sm" onclick={() => removeKey(c.id, c.label)} disabled={busy} busy={pending === `rm${c.id}`}>{t('account.remove')}</Button>
+				{/snippet}
+			</ListRow>
 		{:else}
-			<div class="item caption">{t('ai.noKeys')}</div>
+			<ListRow subtitle={t('ai.noKeys')} />
 		{/each}
-		<div class="item add">
-			<div class="row">
-				<select bind:value={provider} aria-label={t('ai.provider')}>
-					<option value="anthropic">Anthropic</option>
-					<option value="openai-compatible">{t('ai.openaiCompat')}</option>
-				</select>
-				<input type="text" placeholder={t('ai.labelOptional')} bind:value={label} />
+		<ListRow>
+			<div class="add">
+				<FieldRow>
+					<Select label={t('ai.provider')} options={providerOptions} bind:value={provider} />
+					<TextField grow placeholder={t('ai.labelOptional')} aria-label={t('ai.labelOptional')} bind:value={label} />
+				</FieldRow>
+				{#if provider === 'openai-compatible'}
+					<TextField placeholder={t('ai.baseUrl')} aria-label={t('ai.baseUrl')} bind:value={baseUrl} autocapitalize="off" />
+				{/if}
+				<FieldRow as="form" onsubmit={addKey}>
+					<TextField grow type="password" placeholder={t('ai.apiKey')} aria-label={t('ai.apiKey')} bind:value={apiKey} autocomplete="off" />
+					<Button type="submit" disabled={busy || !apiKey.trim()} busy={pending === 'add'}>{t('common.save')}</Button>
+				</FieldRow>
 			</div>
-			{#if provider === 'openai-compatible'}
-				<input type="text" placeholder={t('ai.baseUrl')} bind:value={baseUrl} autocapitalize="off" />
-			{/if}
-			<div class="row">
-				<input type="password" placeholder={t('ai.apiKey')} bind:value={apiKey} autocomplete="off" />
-				<button class="btn small" onclick={addKey} disabled={busy || !apiKey.trim()}>{t('common.save')}</button>
-			</div>
-		</div>
-	</div>
+		</ListRow>
+	</ListGroup>
 
 	{#if ai.credentials.length}
 		<h3 class="eyebrow section">{t('ai.models')}</h3>
-		<div class="glass group">
+		<ListGroup>
 			{#each FEATURES as f}
-				<div class="item feature">
-					<span class="stack" style:--gap="2px"><span>{t(f.label)}</span><span class="caption">{t(f.hint)}</span></span>
-					<select aria-label={t('ai.modelFor', { feature: t(f.label) })} value={current(f.id)} onchange={(e) => choose(f.id, e.currentTarget.value)} disabled={loadingModels}>
-						{#each groups as g}
-							<optgroup label={g.c.label}>
-								{#each g.list.filter((m) => f.id !== 'vision' || m.vision !== false) as m}
-									<option value="{g.c.id}|{m.id}" disabled={!m.price}>{m.label}{m.price ? '' : ' 🔒'}</option>
-								{/each}
-							</optgroup>
-						{/each}
-					</select>
-				</div>
+				<ListRow title={t(f.label)} subtitle={t(f.hint)}>
+					<span class="model-pick">
+						{#if loadingModels && !models.length}
+							<Skeleton variant="line" count={1} label={t('ai.loadingModels')} />
+						{:else}
+							<Select
+								block
+								label={t('ai.modelFor', { feature: t(f.label) })}
+								options={modelOptions(f.id)}
+								value={current(f.id)}
+								onchange={(v) => choose(f.id, v)}
+								disabled={loadingModels}
+							/>
+						{/if}
+					</span>
+				</ListRow>
 			{/each}
-			<details class="item">
-				<summary class="caption">{t('ai.allModels', { n: models.length })}</summary>
-				{#if loadingModels && !models.length}<Skeleton variant="line" count={4} label={t('ai.loadingModels')} />{/if}
-				<div class="model-list">
-					{#each models as m}
-						<div class="model">
-							<span class="stack" style:--gap="1px">
-								<span class="mono">{m.id}</span>
-								<span class="caption">
-									{m.contextTokens ? (m.contextTokens >= 1_000_000 ? `${+(m.contextTokens / 1_000_000).toFixed(1)}M ctx` : `${Math.round(m.contextTokens / 1000)}K ctx`) : ''}
-									{m.vision ? '· 👁 vision' : ''}
-									{m.structured ? '· {} structured' : ''}
+			<ListRow>
+				<details>
+					<summary class="caption">{t('ai.allModels', { n: models.length })}</summary>
+					{#if loadingModels && !models.length}<Skeleton variant="line" count={4} label={t('ai.loadingModels')} />{/if}
+					<div class="model-list">
+						{#each models as m}
+							<div class="model">
+								<span class="stack" style:--gap="1px">
+									<span class="mono">{m.id}</span>
+									<span class="caption">
+										{m.contextTokens ? (m.contextTokens >= 1_000_000 ? `${+(m.contextTokens / 1_000_000).toFixed(1)}M ctx` : `${Math.round(m.contextTokens / 1000)}K ctx`) : ''}
+										{m.vision ? '· 👁 vision' : ''}
+										{m.structured ? '· {} structured' : ''}
+									</span>
 								</span>
-							</span>
-							<span class="spacer"></span>
-							<button class="price" onclick={() => price(m)}>
-								{m.price ? `$${m.price.inputPerM} / $${m.price.outputPerM}` : `🔒 ${t('ai.setPrice')}`}
-								{#if m.priceSource}<span class="caption">{m.priceSource}</span>{/if}
-							</button>
-						</div>
-					{/each}
-				</div>
-				<button class="btn ghost small" onclick={loadModels} disabled={loadingModels}>{loadingModels ? t('common.loading') : t('common.refresh')}</button>
-			</details>
-		</div>
+								<span class="spacer"></span>
+								<Button variant="ghost" size="sm" class="price" onclick={() => price(m)} disabled={busy} busy={pending === `price${m.credentialId}|${m.id}`}>
+									<span class="price-text">
+										{m.price ? `$${m.price.inputPerM} / $${m.price.outputPerM}` : `🔒 ${t('ai.setPrice')}`}
+										{#if m.priceSource}<span class="caption">{m.priceSource}</span>{/if}
+									</span>
+								</Button>
+							</div>
+						{/each}
+					</div>
+					<Button variant="ghost" size="sm" onclick={loadModels} busy={loadingModels}>{loadingModels ? t('common.loading') : t('common.refresh')}</Button>
+				</details>
+			</ListRow>
+		</ListGroup>
 	{/if}
 {/if}
 
 <style>
 	.section {
-		margin: 16px 6px 2px;
+		margin: var(--space-4) var(--space-1h) var(--space-px);
 	}
-	.group {
-		padding: 4px 0;
-		border-radius: var(--r-m);
-	}
-	.item {
+	/* long language names: keep the picker from crowding the row title */
+	.pick-cap {
 		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 12px 16px;
-		min-height: 48px;
-	}
-	.item + .item {
-		border-top: 0.5px solid var(--hairline);
-	}
-	/* .item is a flex row; these two must stack full-width */
-	details.item {
-		display: block;
-	}
-	/* add-key form: evenly spaced rows of equal-height controls */
-	.item.add {
-		display: flex;
-		flex-direction: column;
-		align-items: stretch;
-		gap: 10px;
-	}
-	.add .row {
-		--gap: 10px;
-		align-items: stretch;
-	}
-	.add select {
-		flex: none;
-		max-width: none;
-	}
-	.add input {
-		flex: 1;
-		min-width: 0;
-	}
-	.add .btn {
-		flex: none;
-		min-height: 48px;
-	}
-	/* one look for every control in this section */
-	select,
-	.num,
-	.add input,
-	input[type='password'],
-	.item input[type='text'] {
-		font: inherit;
-		font-size: 1rem;
-		height: 48px;
-		min-height: 48px;
-		padding: 0 14px;
-		border-radius: 12px;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		color: var(--ink);
-		box-sizing: border-box;
-	}
-	select {
-		padding-right: 32px;
-		appearance: none;
-		-webkit-appearance: none;
-		background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
-			linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
-		background-position:
-			calc(100% - 18px) 21px,
-			calc(100% - 13px) 21px;
-		background-size: 5px 5px;
-		background-repeat: no-repeat;
-		text-overflow: ellipsis;
-	}
-	/* model pickers: label above a full-width picker */
-	.item.feature {
-		flex-direction: column;
-		align-items: stretch;
-		gap: 8px;
-	}
-	.feature select {
-		width: 100%;
-		max-width: none;
-	}
-	select {
 		max-width: 52vw;
 	}
-	.num {
+	.cap {
+		display: flex;
+	}
+	.cap :global(.num) {
 		width: 88px;
+	}
+	/* add-key form: evenly spaced rows of equal-height controls */
+	.add {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+	.model-pick {
+		display: block;
+		margin-top: var(--space-2);
 	}
 	.meter {
 		height: 8px;
@@ -368,47 +326,37 @@
 	.mono {
 		font-family: ui-monospace, monospace;
 		font-size: 0.8125rem;
-		word-break: break-all;
+		word-break: normal;
+		overflow-wrap: anywhere;
 	}
 	summary {
 		cursor: pointer;
 		min-height: 32px;
 	}
 	.model-list {
-		margin: 8px 0;
+		margin: var(--space-2) 0;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.model {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.model > .stack {
 		flex: 1;
 		min-width: 0;
 	}
-	.model .mono {
-		word-break: normal;
-		overflow-wrap: anywhere;
-	}
-	.price {
+	.model :global(.price) {
 		flex: none;
-	}
-	.price {
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		border-radius: 10px;
-		padding: 6px 10px;
+		min-height: 44px;
+		height: auto;
 		font-size: 0.8125rem;
+	}
+	.price-text {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-end;
-		cursor: pointer;
-		min-height: 44px;
-	}
-	.danger {
-		color: var(--danger);
 	}
 </style>

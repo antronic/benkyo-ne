@@ -18,6 +18,7 @@
 	import { words } from '#lib/state/words.svelte.ts';
 	import { shuffle } from '#lib/quiz.ts';
 	import WordCardView from './WordCardView.svelte';
+	import { Button, Card as Surface, TextField } from '#lib/ui/index.ts';
 
 	interface Props {
 		card: UserCard;
@@ -92,16 +93,16 @@
 	<div class="split">
 		<div class="pane">
 			{#if mode === 'type'}
-				<div class="prompt glass sheen">
+				<Surface sheen padding="lg" radius="large" class="face">
 					<span class="meaning">{gloss(card.gloss)}</span>
 					{#if card.gloss2}<span class="caption">{card.gloss2}</span>{/if}
 					{#if card.usage}<span class="caption">💬 {card.usage.en}</span>{/if}
-				</div>
-			{:else}
-				<button class="front glass sheen" onclick={() => speak(card.front)} aria-label={t('a11y.listenTo', { text: card.front })}>
-					<span class="jp">{card.front}</span>
+				</Surface>
+				{:else}
+				<Surface sheen padding="lg" radius="large" class="face" onclick={() => speak(card.front)} aria-label={t('a11y.listenTo', { text: card.front })}>
+					<span class="jp front">{card.front}</span>
 					<Romaji text={card.front} />
-				</button>
+				</Surface>
 			{/if}
 			{#if hint && card.hook && !result}
 				<p class="caption" in:fly={{ y: 8, duration: 250 }}>💡 {card.hook.en}</p>
@@ -110,19 +111,19 @@
 
 		<div class="pane">
 			{#if mode === 'study'}
-				<div class="glass back"><WordCardView {card} /></div>
-				<button class="btn accent block" onclick={startQuiz}>{t('quiz.quizMe')}</button>
+				<div class="back"><Surface radius="large"><WordCardView {card} /></Surface></div>
+				<Button variant="accent" block onclick={startQuiz}>{t('quiz.quizMe')}</Button>
 			{:else if !result}
 				{#if mode === 'choose'}
 					<div class="choices">
 						{#each options as o}
-							<button class="glass choice" class:picked={picked === o} onclick={() => ((picked = o), submit(o === card.gloss))}>{gloss(o)}</button>
+							<Surface padding="none" class="choice" selected={picked === o} onclick={() => ((picked = o), submit(o === card.gloss))}>{gloss(o)}</Surface>
 						{/each}
 					</div>
 				{:else}
-					<!-- svelte-ignore a11y_autofocus -->
-					<input
-						type="text"
+					<TextField
+						variant="answer"
+						class="answer"
 						bind:value={answer}
 						placeholder={t('quiz.typePlaceholder')}
 						aria-label={t('quiz.reading')}
@@ -134,20 +135,22 @@
 						autofocus
 						onkeydown={(e) => e.key === 'Enter' && answer.trim() && submit(check(answer))}
 					/>
-					<button class="btn block" disabled={!answer.trim()} onclick={() => submit(check(answer))}>{t('quiz.check')}</button>
+					<Button block disabled={!answer.trim()} onclick={() => submit(check(answer))}>{t('quiz.check')}</Button>
 				{/if}
 				{#if card.hook}
-					<button class="btn ghost small" onclick={() => (hint = true)} disabled={hint}>💡 {t('quiz.hint')}</button>
+					<Button variant="ghost" size="sm" onclick={() => (hint = true)} disabled={hint}>💡 {t('quiz.hint')}</Button>
 				{/if}
 			{:else}
-				<div class="glass back" class:wrong={!result.correct} in:scale={{ start: 0.94, duration: 300 }}>
-					<p class="headline verdict" style:color={result.correct ? 'var(--success)' : 'var(--danger)'}>
-						{result.correct ? t('quiz.correct') : t('quiz.notQuite')}
-					</p>
-					<WordCardView {card} />
+				<div class="back" in:scale={{ start: 0.94, duration: 300 }}>
+					<Surface radius="large" class={result.correct ? '' : 'wrong'}>
+						<p class="headline verdict" style:color={result.correct ? 'var(--success)' : 'var(--danger)'}>
+							{result.correct ? t('quiz.correct') : t('quiz.notQuite')}
+						</p>
+						<WordCardView {card} />
+					</Surface>
 				</div>
 				{#if !(result.correct && mode === 'choose')}
-					<button class="btn block {result.correct ? '' : 'accent'}" onclick={onnext}>{t('common.continue')}</button>
+					<Button variant={result.correct ? 'primary' : 'accent'} block onclick={onnext}>{t('common.continue')}</Button>
 				{/if}
 			{/if}
 		</div>
@@ -159,24 +162,20 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 14px;
+		gap: var(--space-4);
 		width: 100%;
 	}
-	.front,
-	.prompt {
+	.wq :global(.face) {
 		width: min(78vw, 340px);
 		min-height: 180px;
-		border-radius: var(--r-l);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		padding: 18px;
-		cursor: pointer;
+		gap: var(--space-1h);
 		text-align: center;
 	}
-	.front .jp {
+	.front {
 		font-size: clamp(2.25rem, 11vw, 3.5rem);
 		font-weight: 600;
 	}
@@ -187,33 +186,30 @@
 	.back {
 		width: 100%;
 		max-width: 440px;
-		padding: 16px;
-		border-radius: var(--r-l);
 	}
-	.back.wrong {
+	.back :global(.wrong) {
 		box-shadow:
 			0 0 0 2px color-mix(in srgb, var(--danger) 50%, transparent),
 			var(--glass-shadow);
 	}
+	.wq :global(.answer) {
+		width: 100%;
+	}
 	.verdict {
-		margin: 0 0 6px;
+		margin: 0 0 var(--space-1h);
 	}
 	.choices {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 8px;
+		gap: var(--space-2);
 		width: 100%;
 		max-width: 440px;
 	}
-	.choice {
+	.choices :global(.choice) {
 		min-height: 56px;
 		font-size: 1.0625rem;
 		font-weight: 600;
-		cursor: pointer;
-		padding: 8px 14px;
-		transition: transform 380ms var(--spring);
-	}
-	.choice:active {
-		transform: scale(0.97);
+		text-align: center;
+		padding: var(--space-2) var(--space-4);
 	}
 </style>

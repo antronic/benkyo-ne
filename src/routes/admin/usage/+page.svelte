@@ -1,9 +1,8 @@
 <!-- Fleet console: AI usage and spend over 7, 30 or 90 days. Read-only. -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import { BarChart, Card, LargeTitle, ListGroup, ListRow, SectionHeader, Segmented, Skeleton, Spinner } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
-	import DayBars from '#lib/admin/DayBars.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { AdminError, getUsage } from '#lib/admin/client.ts';
 	import type { AdminUsage } from '#lib/admin/contract.ts';
@@ -29,6 +28,8 @@
 	}
 	onMount(load);
 
+	const windowOptions = $derived(WINDOWS.map((d) => ({ value: String(d), label: `${d} days`, disabled: loading })));
+
 	function pick(d: (typeof WINDOWS)[number]) {
 		if (d === days) return;
 		days = d;
@@ -45,83 +46,74 @@
 
 <svelte:head><title>Usage · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-3)">
 	<LargeTitle title="Usage" />
 
-	<div class="segmented" role="group" aria-label="Time window">
-		{#each WINDOWS as d (d)}
-			<button aria-pressed={days === d} onclick={() => pick(d)} disabled={loading}>{d} days</button>
-		{/each}
+	<div class="window">
+		<Segmented options={windowOptions} value={String(days)} label="Time window" onchange={(v) => pick(Number(v) as (typeof WINDOWS)[number])} />
+		{#if loading && u}<Spinner label="Loading" size="sm" />{/if}
 	</div>
 
 	{#if error}
 		<ErrorCard {error} onretry={load} />
 	{:else if !u}
-		<div class="glass group" aria-busy="true"><div class="item caption">Loading…</div></div>
+		<Skeleton variant="tile" count={3} label="Loading usage" />
 	{:else}
 		<div class="tiles" aria-busy={loading}>
-			<div class="glass tile"><span class="caption">Spend</span><b class="num">{usd(u.totals.usd)}</b></div>
-			<div class="glass tile"><span class="caption">Calls</span><b class="num">{u.totals.calls}</b></div>
-			<div class="glass tile" class:warn={u.totals.failed > 0}><span class="caption">Failed</span><b class="num">{u.totals.failed}</b></div>
+			<Card class="tile"><span class="caption">Spend</span><b class="num">{usd(u.totals.usd)}</b></Card>
+			<Card class="tile"><span class="caption">Calls</span><b class="num">{u.totals.calls}</b></Card>
+			<Card class={u.totals.failed > 0 ? 'tile warn' : 'tile'}><span class="caption">Failed</span><b class="num">{u.totals.failed}</b></Card>
 		</div>
 
-		<h2 class="eyebrow section">Spend per day</h2>
-		<div class="glass group">
+		<SectionHeader title="Spend per day" />
+		<ListGroup>
 			<div class="item col">
-				<DayBars days={u.byDay.map((d) => ({ day: d.day, value: d.usd }))} label="AI spend per day" format={usd} column="Spend" />
+				<BarChart days={u.byDay.map((d) => ({ day: d.day, value: d.usd }))} label="AI spend per day" format={usd} column="Spend" />
 			</div>
-		</div>
+		</ListGroup>
 
-		<h2 class="eyebrow section">By feature</h2>
-		<div class="glass group">
+		<SectionHeader title="By feature" />
+		<ListGroup>
 			{#each u.byFeature as f (f.feature)}
-				<div class="item">
-					<span class="stack" style:--gap="2px">
-						<span>{FEATURES[f.feature] ?? f.feature}</span>
-						<span class="caption">{plural(f.calls, 'call')} · {share(f.usd)}% of spend</span>
-					</span>
-					<span class="spacer"></span><b class="num">{usd(f.usd)}</b>
-				</div>
+				<ListRow title={FEATURES[f.feature] ?? f.feature} subtitle="{plural(f.calls, 'call')} · {share(f.usd)}% of spend">
+					{#snippet trailing()}<b class="num">{usd(f.usd)}</b>{/snippet}
+				</ListRow>
 			{:else}
-				<div class="item caption">No AI calls in this window.</div>
+				<ListRow subtitle="No AI calls in this window." />
 			{/each}
-		</div>
+		</ListGroup>
 
-		<h2 class="eyebrow section">By model</h2>
-		<div class="glass group">
+		<SectionHeader title="By model" />
+		<ListGroup>
 			{#each u.byModel as m (m.provider + m.model)}
-				<div class="item">
-					<span class="stack" style:--gap="2px" style:min-width="0">
-						<span class="ellipsis">{m.model}</span>
-						<span class="caption">{m.provider} · {plural(m.calls, 'call')} · {tokens(m.inputTokens)} in, {tokens(m.outputTokens)} out</span>
-					</span>
-					<span class="spacer"></span><b class="num">{usd(m.usd)}</b>
-				</div>
+				<ListRow>
+					<span class="ellipsis">{m.model}</span>
+					<span class="caption">{m.provider} · {plural(m.calls, 'call')} · {tokens(m.inputTokens)} in, {tokens(m.outputTokens)} out</span>
+					{#snippet trailing()}<b class="num">{usd(m.usd)}</b>{/snippet}
+				</ListRow>
 			{:else}
-				<div class="item caption">No AI calls in this window.</div>
+				<ListRow subtitle="No AI calls in this window." />
 			{/each}
-		</div>
+		</ListGroup>
 
-		<h2 class="eyebrow section">Top accounts</h2>
-		<div class="glass group">
+		<SectionHeader title="Top accounts" />
+		<ListGroup>
 			{#each u.topAccounts as a (a.id)}
-				<a class="item" href="/admin/accounts/{a.id}">
-					<span class="stack" style:--gap="2px" style:min-width="0">
-						<span class="ellipsis">{a.name} <span class="caption">#{a.id}</span></span>
-						<span class="caption">{plural(a.calls, 'call')}</span>
-					</span>
-					<span class="spacer"></span><b class="num">{usd(a.usd)}</b><span class="caption" aria-hidden="true">›</span>
-				</a>
+				<ListRow href="/admin/accounts/{a.id}">
+					<span class="ellipsis">{a.name} <span class="caption">#{a.id}</span></span>
+					<span class="caption">{plural(a.calls, 'call')}</span>
+					{#snippet trailing()}<b class="num">{usd(a.usd)}</b>{/snippet}
+				</ListRow>
 			{:else}
-				<div class="item caption">Nobody used AI in this window.</div>
+				<ListRow subtitle="Nobody used AI in this window." />
 			{/each}
-		</div>
+		</ListGroup>
 
-		<h2 class="eyebrow section">Failed calls</h2>
-		<div class="glass group">
+		<SectionHeader title="Failed calls" />
+		<ListGroup>
 			{#each u.failures as f, i (i)}
 				<div class="item">
-					<span class="stack" style:--gap="2px" style:min-width="0">
+					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 						<span>{FEATURES[f.feature] ?? f.feature} <span class="caption">· {f.model}</span></span>
 						<span class="caption">
 							{when(f.at)} ·
@@ -130,9 +122,19 @@
 					</span>
 				</div>
 			{:else}
-				<div class="item caption">No failed calls.</div>
+				<ListRow subtitle="No failed calls." />
 			{/each}
-		</div>
+		</ListGroup>
 		<p class="caption foot">Spend counts finished calls only. Days are UTC.</p>
 	{/if}
 </main>
+
+<style>
+	.window {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		width: 100%;
+		max-width: 360px;
+	}
+</style>

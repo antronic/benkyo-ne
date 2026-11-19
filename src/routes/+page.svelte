@@ -4,14 +4,15 @@
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { LESSONS } from '#lib/content/lessons.ts';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
-	import ProgressRing from '#lib/components/ProgressRing.svelte';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import ProgressRing from '#lib/ui/ProgressRing.svelte';
+	import LargeTitle from '#lib/ui/LargeTitle.svelte';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
 	import PlanCard from '#lib/components/PlanCard.svelte';
 	import InstallCard from '#lib/components/InstallCard.svelte';
 	import KuriWalker from '#lib/companion/KuriWalker.svelte';
+	import { Card } from '#lib/ui/index.ts';
 
 	const hour = new Date().getHours();
 	const greeting =
@@ -30,53 +31,54 @@
 	});
 </script>
 
-<main class="page stack dash" style:--gap="18px">
-	<header class="rise">
-		<div class="eyebrow">
+<main class="page stack dash" style:--gap="var(--space-5)">
+	<!-- No .rise on the header itself: an animated transform would trap LargeTitle's fixed title bar inside it. -->
+	<header>
+		<div class="eyebrow rise">
 			{fmtDate(new Date(), { weekday: 'long', month: 'long', day: 'numeric' })}
 		</div>
 		<LargeTitle title={greeting.jp} jp />
-		<p class="subhead" style="margin:4px 0 0">
+		<p class="subhead rise" style="margin:var(--space-1) 0 0">
 			{t('home.greetingLine', { greeting: t(greeting.en), tagline: t('home.tagline') })}
 		</p>
 	</header>
 
-	<section class="glass sheen hero rise" style:--i="1">
+	<Card as="section" sheen padding="lg" radius="large" class="hero rise" style="--i: 1">
 		<ProgressRing value={doneToday / goal} size={112} width={11}>
 			<div>
 				<div class="ring-num">{doneToday}</div>
 				<div class="caption">{t('home.of', { n: goal })}</div>
 			</div>
 		</ProgressRing>
-		<div class="stack" style:--gap="4px">
+		<div class="stack" style:--gap="var(--space-1)">
 			<div class="headline">{t('nav.today')}</div>
 			<div class="subhead">{t('home.reviewedNew', { r: progress.today.reviews, n: progress.today.learned })}</div>
-			<div class="row stats" style:--gap="16px">
+			<div class="row stats" style:--gap="var(--space-4)">
 				<div><b>{progress.streak.days}</b><span class="caption">{t('home.streak')}</span></div>
 				<div><b>{progress.learnedCount}</b><span class="caption">{t('home.learned')}</span></div>
 				<div><b>{Math.round(progress.settings.retention * 100)}%</b><span class="caption">{t('home.target')}</span></div>
 			</div>
 		</div>
-	</section>
+	</Card>
 
 	<PlanCard i={2} />
 
 	<InstallCard i={2} />
 
 	{#if progress.due.length > 0}
-		<a href="/review" class="glass sheen card review rise" style:--i="2">
-			<div class="stack" style:--gap="2px">
+		<Card href="/review" sheen padding="lg" radius="large" class="review rise" style="--i: 2">
+			<div class="stack" style:--gap="var(--space-px)">
 				<div class="eyebrow" style="color:var(--accent)">{t('home.reviewsDue')}</div>
 				<div class="title-2">{tn('home.cards', progress.due.length)}</div>
 				<div class="subhead">{t('home.reviewsBody')}</div>
 			</div>
 			<div class="go">›</div>
-		</a>
+		</Card>
 	{/if}
 
 	{#if words.newQueue.length > 0 || words.list.length > 0}
-		<a href={words.newQueue.length ? '/review' : '/words'} class="glass sheen card review rise" style:--i="2">
-			<div class="stack" style:--gap="2px">
+		<Card href={words.newQueue.length ? '/review' : '/words'} sheen padding="lg" radius="large" class="review rise" style="--i: 2">
+			<div class="stack" style:--gap="var(--space-px)">
 				<div class="eyebrow" style="color:#8b5cf6">{t('nav.words')}</div>
 				<div class="title-2">
 					{words.newQueue.length ? tn('home.newWordsReady', words.newQueue.length) : tn('home.cards', words.list.length)}
@@ -84,17 +86,17 @@
 				<div class="subhead">{words.newQueue.length ? t('home.wordsQueued') : t('home.wordsEmpty')}</div>
 			</div>
 			<div class="go">›</div>
-		</a>
+		</Card>
 	{/if}
 
 	{#if next}
-		<a href="/learn/{next.id}" class="card lesson rise" style:--i="3" style:--h={next.hue}>
+		<Card href="/learn/{next.id}" padding="lg" radius="large" class="lesson rise" style="--i: 3; --h: {next.hue}">
 			<div class="lesson-glyphs">
 				{#each next.chars.slice(0, 3) as k, i}
 					<span style:--j={i}><KanaGlyph char={k.char} size="100%" color="#fff" weight={6} /></span>
 				{/each}
 			</div>
-			<div class="stack" style:--gap="2px">
+			<div class="stack" style:--gap="var(--space-px)">
 				<div class="eyebrow" style="color:rgb(255 255 255 / .75)">
 					{progress.completed.length ? t('home.upNext') : t('home.startHere')} · {scriptName(next.script)}
 				</div>
@@ -107,19 +109,19 @@
 					{t('home.limit')}
 				</div>
 			{/if}
-		</a>
+		</Card>
 	{:else}
-		<div class="glass card rise">{t('home.allDone')}</div>
+		<Card padding="lg" radius="large" class="rise">{t('home.allDone')}</Card>
 	{/if}
 
-	<section class="glass sheen card tip rise" style:--i="4">
+	<Card as="section" sheen padding="lg" radius="large" class="tip rise" style="--i: 4">
 		<div>
 			<div class="eyebrow">{t('home.howTitle')}</div>
-			<p style="margin:6px 0 0">
+			<p class="how" style="margin:var(--space-1h) 0 0">
 				{@html t('home.howBody')}
 			</p>
 		</div>
-	</section>
+	</Card>
 </main>
 
 {#if progress.settings.kuri}
@@ -135,20 +137,18 @@
 			align-items: start;
 		}
 		.dash > header,
-		.dash > .tip {
+		.dash > :global(.tip) {
 			grid-column: 1 / -1;
 		}
-		.dash > .lesson {
+		.dash > :global(.lesson.lesson) {
 			grid-row: span 2;
 			min-height: 100%;
 		}
 	}
-	.hero {
+	.dash > :global(.hero) {
 		display: flex;
 		align-items: center;
-		gap: 20px;
-		padding: 20px;
-		border-radius: var(--r-l);
+		gap: var(--space-5);
 	}
 	.ring-num {
 		font-family: var(--font-display);
@@ -157,7 +157,7 @@
 		line-height: 1;
 	}
 	.stats {
-		margin-top: 8px;
+		margin-top: var(--space-2);
 	}
 	.stats div {
 		display: flex;
@@ -166,19 +166,9 @@
 	.stats b {
 		font-size: 1.125rem;
 	}
-	.card {
+	.dash > :global(.review) {
 		display: flex;
-		gap: 16px;
-		padding: 20px;
-		border-radius: var(--r-l);
-		text-decoration: none;
-		color: inherit;
-		transition: transform 450ms var(--spring);
-	}
-	a.card:active {
-		transform: scale(0.97);
-	}
-	.review {
+		gap: var(--space-4);
 		align-items: center;
 	}
 	.go {
@@ -186,7 +176,9 @@
 		font-size: 34px;
 		color: var(--ink-3);
 	}
-	.lesson {
+	.dash > :global(.lesson) {
+		display: flex;
+		gap: var(--space-4);
 		flex-direction: column;
 		color: #fff;
 		min-height: 220px;
@@ -215,7 +207,7 @@
 		color: rgb(255 255 255 / 0.75);
 		font-size: 0.8125rem;
 	}
-	.tip p {
+	.how {
 		color: var(--ink-2);
 	}
 </style>

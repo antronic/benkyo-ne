@@ -65,20 +65,56 @@ Import from `#lib/ui/index.ts`:
 
 | Component | Props | Replaces |
 | --- | --- | --- |
-| `Button` | `variant` primary · accent · ghost · danger · plain, `size` md · sm, `block`, `href`, `busy`, `icon` snippet | `<button class="btn …">` |
+| `Button` | `variant` primary · accent · ghost · danger · ghost-danger · plain (text, no side padding; `class="danger"` for red) · link, `size` sm 36 · md 44 · lg 50 (default, or the FieldRow's size), `block`, `href`, `busy`, `icon` snippet | `<button class="btn …">` |
 | `IconButton` | `label` (required), `size` | `.icon-btn` |
-| `Card` | `strong`, `sheen`, `padding` none · sm · md · lg, `radius`, `as` | `<div class="glass …">` |
+| `Card` | `strong`, `sheen`, `padding` none · sm · md · lg, `radius`, `as`; `href` or `onclick` make it a tappable tile (`selected`, `disabled`) | `<div class="glass …">`, answer tiles |
 | `SectionHeader` | `title`, `level`, `trailing` snippet | `<h2 class="eyebrow section">` |
-| `ListGroup` + `ListRow` | row: `title`, `subtitle`, `href` / `onclick`, `chevron`, `tone`, `leading` / `trailing` snippets | `.group` + `.item` in settings, account, AI settings, words |
+| `ListGroup` + `ListRow` | row: `title`, `subtitle`, `href` / `onclick`, `chevron`, `tone`, `selected`, `disabled`, `leading` / `trailing` snippets | `.group` + `.item` in settings, account, AI settings, words |
 | `Switch` | `bind:checked`, `label`, `onchange` | `.switch` in settings |
 | `Segmented` | `options`, `bind:value`, `label` | `.seg` in Welcome and AccountSettings |
 | `Chip` | `selected`, `tone`, `count`, `href` / `onclick` | `.chip` in words, AI ask, AI lesson |
 | `Badge` | `tone`, `variant` soft · solid · tag | `.badge`, `.tag`, `.pill` (five copies) |
-| `TextField` | `bind:value`, `label`, `hint`, `error`, `jp` | `input[type=text]` |
-| `Select` | `options`, `bind:value`, `label` | `.pick` in settings |
+| `TextField` | `bind:value`, `label`, `hint`, `error`, `jp`, `size` sm · md · lg, `variant` default · answer · bare, `grow`, `bind:ref` | `<input>` |
+| `TextArea` | `bind:value`, `rows`, `autogrow`, `maxRows`, `label` | `<textarea>` |
+| `FieldRow` | `size` (default md, passed to every control inside), `stack` never · narrow, `as` div · form, `onsubmit` | a field next to its button |
+| `Select` | `options` (`group` makes an optgroup), `bind:value`, `label`, `size`, `block` | `<select>`, `.pick` |
+| `Checkbox` | `bind:checked`, children = label | `<input type="checkbox">` |
+| `Slider` | `bind:value`, `min`, `max`, `step`, `label` | `<input type="range">` |
+| `FileButton` | `onpick(file)`, `accept`, button props | `<input type="file">` |
 | `Stepper` | `bind:value`, `min`, `max`, `step`, `label` | `.stepper` in settings |
 | `Notice` | `tone`, `title`, `action` snippet | new |
+| `Skeleton` | `variant` row · card · tile · line, `count`, `label` | blank space while data loads |
+| `Spinner` | `label`, `size`, `showLabel` | a short wait with no layout to preview |
+| `ProgressRing`, `BarChart` | progress and per-day bars | |
+| `Sheet` | `open`, `label`, `onclose` | bottom sheets |
+| `LargeTitle` | the screen's iOS large title and compact title bar | |
 | `StatTile` | `label`, `value`, `note`, `tone` default · danger; lay out in `<div class="ui-stats">` | `.tile` in the fleet console |
+
+### Kit only
+
+Every control and card in the app comes from the kit, and every kit component is on `/design`
+(Job, 2026-11-19: "all components designed must present in storybook, and all components that
+using in app must came from storybook"; the storybook is `/design`).
+
+- Outside `src/lib/ui`, no raw `<button>`, `<input>`, `<select>` or `<textarea>`, and no hand-made
+  `class="btn"`, `"glass"`, `"card"`, `"chip"` or `"switch"`. If the kit lacks something, add it to
+  `src/lib/ui`, export it from `index.ts` and show it on `/design` in the same PR.
+- A field and its action sit in a `FieldRow`: one height (md 44px by default), bottoms aligned, the
+  field grows and the button keeps its label width. Never pair a 54px field with a 36px pill.
+- A deliberate exception (a drawing canvas's hidden input, the app shell's tab bar) carries
+  `ui-ok: <reason>` on the line, or `ui-ok-file: <reason>` for a whole shell component.
+
+### Loading states
+
+The user always knows what the app is doing (Job, 2026-11-19).
+
+- Data that loads shows a `Skeleton` shaped like the content; a short wait with nothing to preview
+  shows a `Spinner`; an action shows `busy` on the button that started it, and the button can't be
+  pressed twice.
+- Errors say what failed and what to do; offline is a normal state, not an error.
+- `npm run lint:ui` flags a component that awaits something but shows none of `Skeleton`,
+  `Spinner`, `ProgressRing`, `busy` or `aria-busy`. An instant local read can say so with
+  `// ui-ok: instant local read`.
 
 `Button` and `IconButton` reuse the global `.btn` / `.icon-btn` styles in `app.css`, so a
 migrated button and an old one look the same.
@@ -129,6 +165,36 @@ The live versions of these, with replay buttons, are in the Motion section of `/
 - Stagger at most about 6 items; after that, show the rest at once.
 - Don't block input behind an animation. A user can tap through a rise-in or close a sheet
   mid-flight.
+
+## Spacing and layout
+
+Spacing is checked, not just recommended.
+
+- **Every padding, margin and gap uses `var(--space-*)`**, including `style:padding=…` and the
+  `style:--gap=…` of `.stack` / `.row`. Allowed without a token: `0`, hairlines (≤ 1px), and a line
+  marked `/* ui-ok: reason */` for real geometry (centring a 60px orb with `margin: -30px`, clearing a
+  fixed bar with `200px`).
+- **Card insets**: content sits at least `--space-3` (12px) from a card's sides and `--space-2`
+  (8px) from its top and bottom. Cards use `--space-4` or more; feature cards `--space-5`.
+- **Page column**: on wide screens (≥ 600px) `.page` draws one column of `--page-max` (default
+  1040px) centred in the space right of the rail. A screen narrows it by setting `--page-max`
+  (Settings 680px, Fleet 820px); never left-align a column by giving children a `max-width`.
+- **Never put `.rise` (or any transform/filter) on an ancestor of `LargeTitle`**: it traps the fixed title bar inside that box.
+- **Controls** are at least 32px tall (`.btn.small`, steppers); primary touch targets 44px.
+
+The checks:
+
+| Check | Runs | Catches |
+| --- | --- | --- |
+| `npm run lint:ui` (`scripts/check-spacing.mjs`) | the gate and CI | hard-coded px in padding, margin, gap; `--fix` snaps them to the nearest token (ties round up) |
+| `npm run lint:ui` (`scripts/check-ui.mjs`) | the gate and CI | raw native controls and hand-made kit classes outside `src/lib/ui`, a kit component not exported or not on `/design`, async work with no loading state |
+| Claude Code hook (`.claude/settings.json`, PostToolUse on Edit/Write) | after every agent edit of a `.svelte` or `.css` file | both lints, reported back to the agent at once (exit 2) |
+| `npm run check:layout` (`scripts/check-layout.mjs`) | the gate and CI, after `npm run build` | horizontal scroll, an off-centre column (≥ 600px), text hugging a card edge, controls under 32px, and a compact title bar that does not span rail to edge or whose title is off the column centre; at 390, 768, 1024 (side rail) and 1280px. A second pass loads Fleet's AI, packages and promo screens with synthetic data (`scripts/layout-fixtures.mjs`) and opens their forms and the model picker |
+| `src/lib/design/spacing.test.ts` | `npm test` | the lint's scale drifting from `tokens.css` |
+| `src/lib/ui/kit.test.ts` | `npm test` | the UI kit lint's rules, and every kit component exported and on `/design` |
+
+`LAYOUT_SHOTS=<dir> npm run check:layout` saves a screenshot of each failing screen; CI uploads
+them as the `layout-failures` artifact.
 
 ## Rules of thumb
 

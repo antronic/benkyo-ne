@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import LargeTitle from '#lib/ui/LargeTitle.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { Badge, Button, Card, Chip, ListGroup, ListRow, SectionHeader, Switch, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
@@ -186,7 +186,7 @@
 
 <svelte:head><title>Packages · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-2)">
 	<LargeTitle title="Packages" />
 
 	{#if error}
@@ -198,7 +198,7 @@
 			<ListGroup>
 				{#if edit?.id === p.id}
 					<ListRow>
-						<div class="stack" style:--gap="12px">
+						<div class="stack" style:--gap="var(--space-3)">
 							<TextField id="name-{p.id}" label="Name" bind:value={edit.name} maxlength={30} />
 							<TextField id="blurb-{p.id}" label="What’s included" bind:value={edit.blurb} maxlength={200} />
 							{#if p.id !== 'free'}
@@ -216,7 +216,7 @@
 						</ListRow>
 					{/if}
 					<ListRow>
-						<span class="row" style:gap="8px" style:flex-wrap="wrap">
+						<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
 							{#if !p.builtin}<Button variant="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Delete package</Button>{/if}
 							<span class="spacer"></span>
 							<Button variant="ghost" size="sm" onclick={() => (edit = null)} disabled={busy}>Cancel</Button>
@@ -250,15 +250,15 @@
 						{@render picker()}
 					{:else}
 						<ListRow>
-							<div class="stack" style:--gap="8px">
-								<span class="row" style:gap="8px">
+							<div class="stack" style:--gap="var(--space-2)">
+								<span class="row" style:gap="var(--space-2)">
 									<span class="eyebrow">AI models</span>
 									<span class="spacer"></span>
 									<Button variant="plain" size="sm" onclick={() => pick(p)} disabled={busy || picking !== null}>{p.models.length ? 'Change' : 'Choose models'}</Button>
 								</span>
 								{#each p.models as m (m.providerId + m.model)}
-									<span class="row" style:gap="8px" style:align-items="flex-start">
-										<span class="stack" style:--gap="2px" style:min-width="0" style:flex="1">
+									<span class="row" style:gap="var(--space-2)" style:align-items="flex-start">
+										<span class="stack" style:--gap="var(--space-px)" style:min-width="0" style:flex="1">
 											<span class="ellipsis">{m.label} <span class="caption">· {m.providerLabel ?? 'removed provider'}</span></span>
 											<span class="caption">{priceLabel(m)}</span>
 										</span>
@@ -276,7 +276,7 @@
 
 		{#if making}
 			<Card padding="md">
-				<div class="stack" style:--gap="12px">
+				<div class="stack" style:--gap="var(--space-3)">
 					<b>New package</b>
 					<TextField id="new-name" label="Name" bind:value={making.name} maxlength={30} placeholder="Exam Sprint" />
 					<TextField id="new-blurb" label="What’s included" bind:value={making.blurb} maxlength={200} />
@@ -286,7 +286,7 @@
 						<TextField id="new-a" label="AI each month ($)" type="number" min="0" max="100" step="0.1" bind:value={making.allowance} />
 					</span>
 					<span class="caption">It starts hidden from new people. Choose its models, then turn on “Offered”.</span>
-					<span class="row" style:gap="8px">
+					<span class="row" style:gap="var(--space-2)">
 						<span class="spacer"></span>
 						<Button variant="ghost" size="sm" onclick={() => (making = null)} disabled={busy}>Cancel</Button>
 						<Button size="sm" onclick={make} {busy} disabled={!making.name.trim()}>Make package</Button>
@@ -322,15 +322,15 @@
 {#snippet picker()}
 	{@const pk = picking!}
 	<ListRow>
-		<div class="stack picker" style:--gap="8px">
-			<span class="row" style:gap="8px">
+		<div class="stack picker" style:--gap="var(--space-2)">
+			<span class="row" style:gap="var(--space-2)">
 				<span class="eyebrow">AI models</span>
 				<span class="spacer"></span>
 				<span class="caption">{pk.models.length} chosen</span>
 			</span>
 			{#each pk.models as m, i (m.providerId + m.model)}
-				<span class="row chosen" style:gap="8px">
-					<span class="stack" style:--gap="4px" style:min-width="0" style:flex="1">
+				<span class="row chosen" style:gap="var(--space-2)">
+					<span class="stack" style:--gap="var(--space-1)" style:min-width="0" style:flex="1">
 						<span class="ellipsis">{m.label} <span class="caption">· {m.providerLabel ?? providerLabels.get(m.providerId) ?? ''}</span></span>
 						<span class="caption">{priceLabel(m)}</span>
 						<span class="chips" role="group" aria-label="Used for">
@@ -339,7 +339,7 @@
 							{/each}
 						</span>
 					</span>
-					<Button variant="ghost" class="danger" size="sm" onclick={() => dropModel(i)} aria-label="Take {m.label} out">Remove</Button>
+					<Button variant="plain" class="danger" size="sm" onclick={() => dropModel(i)} aria-label="Take {m.label} out">Remove</Button>
 				</span>
 			{:else}
 				<span class="caption">Nothing chosen yet. Add models from the list below.</span>
@@ -362,8 +362,8 @@
 				<div class="results">
 					{#each results as m (m.providerId + m.id)}
 						{@const label = catalogLabel(m.providerId)}
-						<span class="row" style:gap="8px">
-							<span class="stack" style:--gap="2px" style:min-width="0" style:flex="1">
+						<span class="row" style:gap="var(--space-2)">
+							<span class="stack" style:--gap="var(--space-px)" style:min-width="0" style:flex="1">
 								<span class="ellipsis">{m.label} <span class="caption">· {label}</span></span>
 								<span class="caption">{priceLabel(m)}{m.vision ? ' · reads images' : ''}</span>
 							</span>
@@ -377,9 +377,8 @@
 				</div>
 				{#if matches.length > results.length}<span class="caption">Showing {results.length} of {matches.length}. Search to narrow it down.</span>{:else if mq.trim() && !matches.length}<span class="caption">No model matches.</span>{/if}
 			{/if}
-			<span class="row" style:gap="8px" style:margin-top="6px" style:flex-wrap="wrap">
-				<Button variant="plain" size="sm" onclick={() => loadCatalog(true)} disabled={busy}>Ask providers again</Button>
-				<span class="spacer"></span>
+			<span class="row"><Button variant="plain" size="sm" onclick={() => loadCatalog(true)} disabled={busy}>Ask providers again</Button></span>
+			<span class="row" style:gap="var(--space-2)" style:justify-content="flex-end">
 				<Button variant="ghost" size="sm" onclick={() => (picking = null)} disabled={busy}>Cancel</Button>
 				<Button size="sm" onclick={saveModels} {busy}>Save models</Button>
 			</span>
@@ -394,18 +393,18 @@
 	.fields {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.picker .chosen {
-		padding: 8px 0;
+		padding: var(--space-2) 0;
 		border-bottom: 0.5px solid var(--hairline);
 	}
 	.results {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 		max-height: 360px;
 		overflow-y: auto;
-		padding: 4px 0;
+		padding: var(--space-1) 0;
 	}
 </style>

@@ -2,6 +2,7 @@
 <script lang="ts">
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import TracePad from './TracePad.svelte';
+	import { Button } from '#lib/ui/index.ts';
 
 	interface Props {
 		char: string;
@@ -14,7 +15,7 @@
 
 <TracePad bind:this={pad} {char} mode="recall" {size} {oncomplete} />
 <div class="row" style="justify-content:center">
-	<button class="btn ghost small" onclick={() => pad?.undo()}>{t('pad.undo')}</button>
-	<button class="btn ghost small" onclick={() => pad?.reset()}>{t('pad.clear')}</button>
-	<button class="btn small" onclick={() => pad?.check()}>{t('quiz.check')}</button>
+	<Button variant="ghost" size="sm" onclick={() => pad?.undo()}>{t('pad.undo')}</Button>
+	<Button variant="ghost" size="sm" onclick={() => pad?.reset()}>{t('pad.clear')}</Button>
+	<Button size="sm" onclick={() => pad?.check()}>{t('quiz.check')}</Button>
 </div>

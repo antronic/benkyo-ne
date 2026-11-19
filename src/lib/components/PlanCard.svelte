@@ -14,6 +14,7 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { DEFAULTS, GOALS, type Step } from '#lib/onboarding/plan.ts';
 	import { planFor, profile, s } from '#lib/onboarding/profile.svelte.ts';
+	import { Button, Card, IconButton } from '#lib/ui/index.ts';
 
 	let { i = 1 }: { i?: number } = $props();
 
@@ -43,13 +44,13 @@
 </script>
 
 {#if show}
-	<section class="glass sheen card plan rise" style:--i={i}>
+	<Card as="section" sheen padding="lg" radius="large" class="plan-card rise" style="--i: {i}">
 		{#if p}
 			<div class="head">
 				<div class="eyebrow">{t.card.title} · {t.card.perDay(p.minutes)}</div>
 				<span class="spacer"></span>
-				<button class="link" onclick={() => (ui.showOnboarding = true)}>{t.card.adjust}</button>
-				<button class="link" onclick={() => profile.hide()} aria-label={t.card.hide}>✕</button>
+				<Button variant="plain" size="sm" onclick={() => (ui.showOnboarding = true)}>{t.card.adjust}</Button>
+				<IconButton size="sm" class="plan-close" onclick={() => profile.hide()} label={t.card.hide}>✕</IconButton>
 			</div>
 			<ol>
 				{#each steps as x, n (x.kind + n)}
@@ -66,33 +67,27 @@
 			</ol>
 		{:else}
 			<div class="nudge">
-				<div class="stack" style:--gap="2px">
+				<div class="stack" style:--gap="var(--space-px)">
 					<div class="headline">{t.card.nudgeTitle}</div>
 					<div class="caption">{t.card.nudgeCaption}</div>
 				</div>
-				<div class="row" style:--gap="6px">
-					<button class="btn accent small" onclick={() => (ui.showOnboarding = true)}>{t.card.nudgeGo}</button>
-					<button class="link" onclick={() => profile.save(DEFAULTS, true)} aria-label={t.card.hide}>✕</button>
+				<div class="row" style:--gap="var(--space-1h)">
+					<Button variant="accent" size="sm" onclick={() => (ui.showOnboarding = true)}>{t.card.nudgeGo}</Button>
+					<IconButton size="sm" class="plan-close" onclick={() => profile.save(DEFAULTS, true)} label={t.card.hide}>✕</IconButton>
 				</div>
 			</div>
 		{/if}
-	</section>
+	</Card>
 {/if}
 
 <style>
-	/* .card padding lives in the Today page's scoped styles, so set our own to match */
-	.plan {
+	:global(.plan-card) {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 16px 20px 10px;
-		border-radius: var(--r-l);
-	}
-	.plan:has(.nudge) {
-		padding-bottom: 16px;
+		gap: var(--space-1);
 	}
 	.head {
-		margin: -4px -8px 2px 0;
+		margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)) var(--space-px) 0;
 	}
 	.head .eyebrow {
 		min-width: 0;
@@ -104,29 +99,24 @@
 	.nudge {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.nudge {
 		justify-content: space-between;
-		gap: 12px;
+		gap: var(--space-3);
 		/* half-width card (unfolded iPhone Duo): the button drops under the text */
 		flex-wrap: wrap;
 	}
 	.nudge > .stack {
 		flex: 1 1 180px;
 	}
-	.link {
+	.head :global(.btn.plain) {
+		color: var(--accent);
+		font-size: 14px;
+	}
+	:global(.plan-card) :global(.plan-close) {
 		border: 0;
 		background: none;
-		color: var(--accent);
-		font: inherit;
-		font-size: 14px;
-		font-weight: 600;
-		min-height: 32px;
-		padding: 4px 8px;
-		cursor: pointer;
-	}
-	.link[aria-label] {
 		color: var(--ink-3);
 	}
 	ol {
@@ -137,8 +127,8 @@
 	li a {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 10px 0;
+		gap: var(--space-3);
+		padding: var(--space-3) 0;
 		min-height: 52px;
 		color: inherit;
 		text-decoration: none;

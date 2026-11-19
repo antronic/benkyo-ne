@@ -102,7 +102,7 @@
 		bottom: 0;
 		margin: 0 auto;
 		max-width: 560px;
-		padding: 0 max(18px, var(--safe-right)) calc(var(--safe-bottom) + 18px) max(18px, var(--safe-left));
+		padding: 0 max(var(--space-5), var(--safe-right)) calc(var(--safe-bottom) + var(--space-5)) max(var(--space-5), var(--safe-left));
 		border-radius: 34px 34px 0 0;
 		max-height: 94dvh;
 		display: flex;
@@ -115,7 +115,7 @@
 	}
 	.handle {
 		touch-action: none;
-		padding-top: 8px;
+		padding-top: var(--space-2);
 		cursor: grab;
 	}
 	.grabber {
@@ -123,13 +123,13 @@
 		height: 5px;
 		border-radius: 3px;
 		background: var(--ink-3);
-		margin: 0 auto 8px;
+		margin: 0 auto var(--space-2);
 	}
 	.body {
 		overflow: auto;
 		overscroll-behavior: contain;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 </style>

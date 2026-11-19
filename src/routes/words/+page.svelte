@@ -2,13 +2,10 @@
 <script lang="ts">
 	import { t as tr, tn } from '#lib/i18n/index.svelte.ts';
 	import { gloss } from '#lib/i18n/content.ts';
-	import Skeleton from '#lib/components/Skeleton.svelte';
+	import { Button, Card, Chip, FieldRow, LargeTitle, ListGroup, ListRow, Sheet, Skeleton, TextField } from '#lib/ui/index.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
-	import Sheet from '#lib/components/Sheet.svelte';
-	import WordCardView from '#lib/components/WordCardView.svelte';
+import WordCardView from '#lib/components/WordCardView.svelte';
 	import type { UserCard } from '#lib/ai/contract.ts';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
@@ -23,6 +20,8 @@
 
 	ui.hue = 285;
 	let packs = $state<Pack[]>([]);
+	/** false until the first read of the saved packs, so the shelf shows a skeleton, not "no packs" */
+	let loaded = $state(false);
 	let preparing = $state(false);
 	let query = $state('');
 	let filterTag = $state<string | null>(null);
@@ -45,6 +44,7 @@
 
 	onMount(async () => {
 		await refresh();
+		loaded = true;
 		if (progress.knownKana.size >= MIN_KANA) {
 			preparing = true;
 			try {
@@ -83,7 +83,7 @@
 		haptic('success');
 		toast(tr('words.addedToday'), '✓');
 	}
-		async function removeCard() {
+	async function removeCard() {
 		if (!open) return;
 		if (!(await confirmDestructive(tr('words.deleteTitle'), tr('words.deleteBody', { text: open.front }), tr('words.deleteConfirm')))) return;
 		await words.remove(open.id);
@@ -92,10 +92,10 @@
 	}
 </script>
 
-<main class="page stack" style:--gap="14px">
+<main class="page stack" style:--gap="var(--space-4)">
 	<LargeTitle title={tr('nav.words')}>
 		{#snippet trailing()}
-			<button class="btn accent small" onclick={() => goto('/words/new')}>{tr('words.make')}</button>
+			<Button variant="accent" size="sm" href="/words/new">{tr('words.make')}</Button>
 		{/snippet}
 	</LargeTitle>
 
@@ -103,39 +103,37 @@
 		<p class="caption hint">✨ {ai.reason} {tr('words.dictStillWorks')}</p>
 	{/if}
 
-	<section class="stack" style:--gap="8px">
+	<section class="stack" style:--gap="var(--space-2)">
 		<h2 class="eyebrow">{tr('words.canRead')}</h2>
 		{#if progress.knownKana.size < MIN_KANA}
-			<div class="glass card">{tr('words.unlock')}</div>
+			<Card>{tr('words.unlock')}</Card>
 		{:else if ready.length}
 			<div class="packs">
 				{#each ready as p, i (p.id)}
-					<a class="pack glass sheen rise" style:--i={i} href="/words/pack/{p.id}">
+					<Card sheen class="pack rise" style="--i: {i}" href="/words/pack/{p.id}">
 						<span class="jp words">{p.items.slice(0, 3).map((x) => x.reading).join(' · ')}<Romaji text={p.items.slice(0, 3).map((x) => x.reading).join(' · ')} /></span>
 						<span class="headline">{p.theme?.en ?? tn('words.nWords', p.items.length)}</span>
 						{#if p.theme?.second}<span class="caption">{p.theme.second}</span>{/if}
 						{#if !p.enriched}<span class="caption">{tr('words.dictOnly')}</span>{/if}
-					</a>
+					</Card>
 				{/each}
 			</div>
-		{:else if preparing}
+		{:else if preparing || !loaded}
 			<Skeleton variant="tile" count={3} label={tr('words.preparing')} />
 		{:else}
-			<div class="glass card caption">{tr('words.noPacks')}</div>
+			<Card><span class="caption">{tr('words.noPacks')}</span></Card>
 		{/if}
 	</section>
 
 	{#if words.tags.length}
-		<section class="stack" style:--gap="8px">
+		<section class="stack" style:--gap="var(--space-2)">
 			<h2 class="eyebrow">{tr('words.tags')}</h2>
 			<div class="chips">
 				{#each words.tags as t}
 					<span class="chip-wrap">
-						<button class="chip" class:on={filterTag === t.tag} onclick={() => (filterTag = filterTag === t.tag ? null : t.tag)}>
-							{t.tag} <span class="count">{t.count}</span>
-						</button>
+						<Chip selected={filterTag === t.tag} count={t.count} onclick={() => (filterTag = filterTag === t.tag ? null : t.tag)}>{t.tag}</Chip>
 						{#if filterTag === t.tag}
-							<a class="chip drill" href="/review?tag={encodeURIComponent(t.tag)}">{tr('words.drill')}</a>
+							<Chip tone="accent" href="/review?tag={encodeURIComponent(t.tag)}">{tr('words.drill')}</Chip>
 						{/if}
 					</span>
 				{/each}
@@ -143,33 +141,32 @@
 		</section>
 	{/if}
 
-	<section class="stack" style:--gap="8px">
+	<section class="stack" style:--gap="var(--space-2)">
 		<div class="row">
 			<h2 class="eyebrow">{tr('words.yourCards', { n: words.list.length })}</h2>
 			<span class="spacer"></span>
 			{#if words.newQueue.length}<span class="caption">{tr('words.readyN', { n: words.newQueue.length })}</span>{/if}
 		</div>
 		{#if words.list.length > 6}
-			<input type="text" placeholder={tr('words.search')} bind:value={query} aria-label={tr('words.search')} />
+			<TextField type="search" placeholder={tr('words.search')} bind:value={query} aria-label={tr('words.search')} />
 		{/if}
-		<div class="glass list">
+		<ListGroup class="cards">
 			{#each shown as c (c.id)}
 				{@const st = status(c)}
-				<button class="item" onclick={() => (open = c)}>
-					<span class="stack" style:--gap="0">
-						<span class="jp">{c.front}</span>
-						<Romaji text={c.front} />
-						{#if c.kanji}<span class="jp kanji">{c.kanji}</span>{/if}
-						<span class="caption">{gloss(c.gloss)}</span>
-					</span>
-					<span class="spacer"></span>
-					{#if !c.verified}<span class="pill warn" title={tr('card.unverifiedTitle')}>?</span>{/if}
-					<span class="pill" title={st.title}>{st.label}</span>
-				</button>
+				<ListRow class="item" onclick={() => (open = c)}>
+					<span class="jp front">{c.front}</span>
+					<Romaji text={c.front} />
+					{#if c.kanji}<span class="jp kanji">{c.kanji}</span>{/if}
+					<span class="caption">{gloss(c.gloss)}</span>
+					{#snippet trailing()}
+						{#if !c.verified}<span class="pill warn" title={tr('card.unverifiedTitle')}>?</span>{/if}
+						<span class="pill" title={st.title}>{st.label}</span>
+					{/snippet}
+				</ListRow>
 			{:else}
-				<div class="item caption">{tr('words.empty')}</div>
+				<ListRow class="item"><span class="caption">{tr('words.empty')}</span></ListRow>
 			{/each}
-		</div>
+		</ListGroup>
 	</section>
 </main>
 
@@ -183,16 +180,16 @@
 				{#each missing as k}<span class="jp need">{k}<Romaji text={k} /></span>{/each}
 				{tr('words.parkedThen')}
 			</p>
-			<button class="btn ghost small" onclick={learnNow}>{tr('words.learnAnyway')}</button>
+			<Button variant="ghost" size="sm" onclick={learnNow}>{tr('words.learnAnyway')}</Button>
 		{/if}
 		<div class="chips">
-			{#each open.tags.filter((t) => !t.startsWith('~')) as t}<button class="chip on" onclick={() => removeTag(t)}>{t} ✕</button>{/each}
+			{#each open.tags.filter((t) => !t.startsWith('~')) as t}<Chip selected onclick={() => removeTag(t)}>{t} ✕</Chip>{/each}
 		</div>
-		<div class="row">
-			<input type="text" placeholder={tr('words.addTagPlaceholder')} bind:value={tagInput} onkeydown={(e) => e.key === 'Enter' && addTag()} />
-			<button class="btn ghost small" onclick={addTag}>{tr('words.add')}</button>
-		</div>
-		<button class="btn ghost block danger" onclick={removeCard}>{tr('words.deleteCard')}</button>
+		<FieldRow as="form" onsubmit={addTag}>
+			<TextField grow placeholder={tr('words.addTagPlaceholder')} bind:value={tagInput} aria-label={tr('words.addTagPlaceholder')} enterkeyhint="done" />
+			<Button type="submit" variant="ghost">{tr('words.add')}</Button>
+		</FieldRow>
+		<Button variant="ghost-danger" block onclick={removeCard}>{tr('words.deleteCard')}</Button>
 	{/if}
 </Sheet>
 
@@ -200,28 +197,17 @@
 	.hint {
 		margin: 0;
 	}
-	.card {
-		padding: 16px;
-		border-radius: var(--r-m);
-	}
-	.packs {
+.packs {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-		gap: 10px;
+		gap: var(--space-3);
 	}
-	.pack {
+	.packs :global(.pack) {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 14px;
+		gap: var(--space-1);
 		border-radius: var(--r-m);
-		text-decoration: none;
-		color: inherit;
 		min-height: 104px;
-		transition: transform 380ms var(--spring);
-	}
-	.pack:active {
-		transform: scale(0.96);
 	}
 	.words {
 		font-size: 1.25rem;
@@ -230,71 +216,29 @@
 	.chips {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.chip-wrap {
 		display: inline-flex;
-		gap: 4px;
+		gap: var(--space-1);
 	}
-	.chip {
-		border: 0.5px solid var(--hairline);
-		background: var(--glass);
-		border-radius: 999px;
-		padding: 8px 14px;
-		min-height: 36px;
-		font-size: 0.9375rem;
-		cursor: pointer;
-		text-decoration: none;
-		color: inherit;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-	}
-	.chip.on {
-		background: var(--accent-2);
-		color: #fff;
-	}
-	.chip.drill {
-		background: var(--accent);
-		color: #fff;
-		font-weight: 600;
-	}
-	.count {
-		opacity: 0.6;
-		font-size: 0.8125rem;
-	}
-	.list {
+	section :global(.cards) {
+		padding: 0;
 		border-radius: var(--r-m);
-		overflow: hidden;
 	}
-	.item {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		width: 100%;
-		padding: 12px 16px;
+	section :global(.item) {
 		min-height: 56px;
-		border: 0;
-		background: none;
-		text-align: left;
-		cursor: pointer;
 	}
-	.item + .item {
-		border-top: 0.5px solid var(--hairline);
-	}
-	.item .jp {
+	.front {
 		font-size: 1.125rem;
 	}
-	.item .kanji {
+	.kanji {
 		color: var(--ink-2);
 		font-size: 0.9375rem;
 	}
-	.item > .stack {
-		min-width: 0;
-	}
 	.pill {
 		font-size: 0.75rem;
-		padding: 3px 8px;
+		padding: var(--space-1) var(--space-2);
 		border-radius: 999px;
 		background: var(--hairline);
 		color: var(--ink-2);
@@ -308,21 +252,18 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 6px;
+		gap: var(--space-1h);
 	}
 	.need {
 		display: inline-flex;
 		flex-direction: column;
 		align-items: center;
 		min-width: 34px;
-		padding: 4px 6px;
+		padding: var(--space-1) var(--space-1h);
 		border-radius: 10px;
 		background: var(--glass-strong);
 		border: 0.5px solid var(--hairline);
 		font-size: 1.125rem;
 		color: var(--ink);
-	}
-	.danger {
-		color: var(--danger);
 	}
 </style>

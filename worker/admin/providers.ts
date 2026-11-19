@@ -33,7 +33,7 @@ import { listOpenAiModels } from '../ai/openai.ts';
 import type { ProviderModel } from '../ai/types.ts';
 import { deriveKey, open, seal } from '../crypto.ts';
 import type { Env } from '../env.ts';
-import { httpError, json, readJson } from '../http.ts';
+import { HttpError, httpError, json, readJson } from '../http.ts';
 import { audited, requireFresh, type AdminContext } from './routes.ts';
 
 export const PRESETS: AdminProviderPreset[] = [
@@ -130,8 +130,14 @@ export async function modelsOf(env: Env, r: ProviderRow, refresh = false): Promi
 	try {
 		list = await fetchModels(r.kind, r.base_url, await decrypt(env, r));
 	} catch (e) {
-		const message = e instanceof Error && 'status' in e && (e as { status: number }).status === 503 ? (e as Error).message : listError(e, r.label);
-		await env.DB.prepare(`UPDATE ai_providers SET checked_at = ?1, check_error = ?2 WHERE id = ?3`).bind(now, message, r.id).run();
+		// Only our own errors (undecryptable key, missing master key) pass their text through; a provider's
+		// error text is third-party and is replaced by listError's fixed message.
+		const message = e instanceof HttpError && e.status === 503 ? e.message : listError(e, r.label);
+		try {
+			await env.DB.prepare(`UPDATE ai_providers SET checked_at = ?1, check_error = ?2 WHERE id = ?3`).bind(now, message, r.id).run();
+		} catch {
+			/* recording the failed check is best effort; the readable 502 below matters more */
+		}
 		throw httpError(502, 'provider', message);
 	}
 	await env.DB.prepare(`UPDATE ai_providers SET checked_at = ?1, check_error = NULL, model_count = ?2 WHERE id = ?3`)

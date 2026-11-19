@@ -34,7 +34,7 @@
 	.sk {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 		width: 100%;
 	}
 	.sk.tiles {
@@ -43,8 +43,8 @@
 	}
 	.sk-item {
 		display: flex;
-		gap: 12px;
-		padding: 14px;
+		gap: var(--space-3);
+		padding: var(--space-4);
 		border-radius: var(--r-m);
 		animation: sk-in 500ms var(--ease-out) both;
 		animation-delay: var(--d);
@@ -69,7 +69,7 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 		justify-content: center;
 	}
 	.b {

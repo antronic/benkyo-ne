@@ -7,10 +7,15 @@
 	import { i18n, t, LOCALES, matchLocale, type LocalePref } from '#lib/i18n/index.svelte.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { Button, ListGroup, ListRow, Select } from '#lib/ui/index.ts';
 
 	const browserName = $derived(
 		LOCALES.find((l) => l.code === matchLocale(typeof navigator === 'undefined' ? [] : navigator.languages))?.name ?? 'English'
 	);
+	const options = $derived([
+		{ value: 'auto', label: t('lang.auto', { name: browserName }) },
+		...LOCALES.map((l) => ({ value: l.code as string, label: l.name, lang: l.code }))
+	]);
 
 	function choose(v: string) {
 		i18n.setPref(v as LocalePref);
@@ -19,58 +24,21 @@
 </script>
 
 <h2 class="eyebrow section">{t('lang.section')}</h2>
-<div class="glass group rise">
-	<div class="item">
-		<span class="stack" style:--gap="0">
-			<span>{t('lang.label')}</span>
-			<span class="caption">{t('lang.caption')}</span>
-		</span>
-		<span class="spacer"></span>
-		<select class="pick" aria-label={t('lang.label')} value={i18n.pref} onchange={(e) => choose(e.currentTarget.value)}>
-			<option value="auto">{t('lang.auto', { name: browserName })}</option>
-			{#each LOCALES as l (l.code)}
-				<option value={l.code} lang={l.code}>{l.name}</option>
-			{/each}
-		</select>
-	</div>
+<ListGroup class="rise">
+	<ListRow title={t('lang.label')} subtitle={t('lang.caption')}>
+		{#snippet trailing()}<Select label={t('lang.label')} {options} value={i18n.pref as string} onchange={choose} />{/snippet}
+	</ListRow>
 	{#if i18n.locale === 'th' && progress.settings.secondLang !== 'th'}
-		<div class="item">
-			<span class="caption">{t('lang.aiHint')}</span>
-			<span class="spacer"></span>
-			<button class="btn ghost small" onclick={() => progress.saveSettings({ secondLang: 'th' })}>{t('lang.aiHintAction')}</button>
-		</div>
+		<ListRow subtitle={t('lang.aiHint')}>
+			{#snippet trailing()}
+				<Button variant="ghost" size="sm" onclick={() => progress.saveSettings({ secondLang: 'th' })}>{t('lang.aiHintAction')}</Button>
+			{/snippet}
+		</ListRow>
 	{/if}
-</div>
+</ListGroup>
 
 <style>
 	.section {
-		margin: 16px 6px 2px;
-	}
-	.group {
-		padding: 4px 0;
-		border-radius: var(--r-m);
-	}
-	.item {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 12px 16px;
-		min-height: 48px;
-	}
-	.item + .item {
-		border-top: 0.5px solid var(--hairline);
-	}
-	.pick {
-		font: inherit;
-		font-size: 1rem;
-		height: 44px;
-		padding: 0 12px;
-		border-radius: 12px;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		color: var(--ink);
-	}
-	.btn {
-		flex: none;
+		margin: var(--space-4) var(--space-1h) var(--space-px);
 	}
 </style>

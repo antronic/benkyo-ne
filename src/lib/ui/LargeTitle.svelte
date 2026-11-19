@@ -3,7 +3,7 @@
 	bar with the inline title fades in, just like UINavigationBar.
 -->
 <script lang="ts">
-	import Romaji from './Romaji.svelte';
+	import Romaji from '#lib/components/Romaji.svelte';
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 
@@ -40,7 +40,7 @@
 		left: var(--rail, 0px);
 		right: 0;
 		height: calc(var(--safe-top) + 48px);
-		padding: var(--safe-top) max(16px, var(--safe-right)) 0 max(16px, var(--safe-left));
+		padding: var(--safe-top) max(var(--space-4), var(--safe-right)) 0 max(var(--space-4), var(--safe-left));
 		display: grid;
 		place-items: center;
 		border-radius: 0;

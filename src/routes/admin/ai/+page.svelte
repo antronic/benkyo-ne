@@ -7,7 +7,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import LargeTitle from '#lib/ui/LargeTitle.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { Badge, Button, Card, Chip, ListGroup, ListRow, Notice, SectionHeader, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
@@ -91,7 +91,7 @@
 
 <svelte:head><title>AI providers · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-2)">
 	<LargeTitle title="AI providers" />
 
 	{#if error}
@@ -118,9 +118,9 @@
 				<ListRow subtitle={p.usedBy.length ? `In ${p.usedBy.join(', ')}` : 'Not in a package yet'} />
 				{#if rekey?.id === p.id}
 					<ListRow>
-						<div class="stack" style:--gap="10px">
+						<div class="stack" style:--gap="var(--space-3)">
 							<TextField label="New API key" type="password" bind:value={rekey.key} autocomplete="off" spellcheck="false" />
-							<span class="row" style:gap="8px">
+							<span class="row" style:gap="var(--space-2)">
 								<span class="spacer"></span>
 								<Button variant="ghost" size="sm" onclick={() => (rekey = null)} disabled={busy}>Cancel</Button>
 								<Button size="sm" onclick={saveKey} {busy}>Check and save</Button>
@@ -129,11 +129,11 @@
 					</ListRow>
 				{:else}
 					<ListRow>
-						<span class="row" style:gap="8px" style:flex-wrap="wrap">
+						<span class="row" style:gap="var(--space-2) var(--space-5)" style:flex-wrap="wrap">
 							<Button variant="plain" size="sm" onclick={() => (rekey = { id: p.id, key: '' })} disabled={busy}>Replace key</Button>
 							<Button variant="plain" size="sm" onclick={() => toggle(p)} disabled={busy}>{p.enabled ? 'Turn off' : 'Turn on'}</Button>
 							<span class="spacer"></span>
-							<Button variant="ghost" class="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Remove</Button>
+							<Button variant="plain" class="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Remove</Button>
 						</span>
 					</ListRow>
 				{/if}
@@ -142,8 +142,8 @@
 
 		<SectionHeader title={data.providers.length ? 'Add another provider' : 'Add your first provider'} />
 		<Card padding="md">
-			<div class="stack" style:--gap="14px">
-				<div class="stack" style:--gap="6px">
+			<div class="stack" style:--gap="var(--space-4)">
+				<div class="stack" style:--gap="var(--space-1h)">
 					<span class="caption">Provider</span>
 					<span class="chips" role="group" aria-label="Provider">
 						{#each data.presets as pr (pr.id)}
@@ -156,7 +156,7 @@
 				{/if}
 				<TextField id="label" label={preset === 'custom' ? 'Name' : 'Name (optional)'} bind:value={label} maxlength={40} placeholder={preset === 'custom' ? 'My server' : chosen?.name} />
 				<TextField id="key" label="API key" type="password" bind:value={apiKey} autocomplete="off" spellcheck="false" hint="Benkyo lists the provider’s models with this key before keeping it. It’s encrypted and never shown again." />
-				<span class="row" style:gap="8px" style:flex-wrap="wrap">
+				<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
 					{#if chosen?.keysUrl}<Button variant="plain" size="sm" href={chosen.keysUrl}>Get an API key from {chosen.name} ↗</Button>{/if}
 					<span class="spacer"></span>
 					<Button onclick={add} {busy} disabled={!data.canSaveKeys}>Check and save</Button>

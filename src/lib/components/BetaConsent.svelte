@@ -15,6 +15,7 @@
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { CONSENT_DATE, CONSENT_VERSION } from '#lib/beta/contract.ts';
 	import { OPERATOR } from '#lib/beta/consentText.ts';
+	import { Button, Card, Checkbox } from '#lib/ui/index.ts';
 
 	let { review = false, onclose }: { review?: boolean; onclose?: () => void } = $props();
 
@@ -64,13 +65,13 @@
 			<p class="subhead">{CONSENT_INTRO}</p>
 		</header>
 
-		<section class="card glass glass-strong" aria-label={t('consent.collected')}>
+		<Card as="section" strong class="consent-card" aria-label={t('consent.collected')}>
 			<h3 class="eyebrow">{t('consent.collected')}</h3>
 			{#each COLLECTED as s (s.title)}
 				<details class="row">
 					<summary>
 						<span class="ico" aria-hidden="true">{s.icon}</span>
-						<span class="stack" style:--gap="2px">
+						<span class="stack" style:--gap="var(--space-px)">
 							<b>{s.title}</b>
 							<span class="caption">{s.summary}</span>
 						</span>
@@ -80,16 +81,16 @@
 					</ul>
 				</details>
 			{/each}
-		</section>
+		</Card>
 
-		<section class="card glass glass-strong" aria-label={t('consent.neverAria')}>
+		<Card as="section" strong class="consent-card" aria-label={t('consent.neverAria')}>
 			<h3 class="eyebrow">{t('consent.never')}</h3>
 			<ul class="plain">
 				{#each NEVER_COLLECTED as it}<li><span aria-hidden="true">🔒</span> {it}</li>{/each}
 			</ul>
-		</section>
+		</Card>
 
-		<section class="card glass glass-strong" aria-label={t('consent.usedAria')}>
+		<Card as="section" strong class="consent-card" aria-label={t('consent.usedAria')}>
 			<h3 class="eyebrow">{t('consent.used')}</h3>
 			<ul>{#each HOW_USED as it}<li>{it}</li>{/each}</ul>
 			<h3 class="eyebrow">{t('consent.kept')}</h3>
@@ -105,23 +106,20 @@
 				</li>
 			</ul>
 			<p class="caption version">{t('consent.version', { version: CONSENT_VERSION, date: CONSENT_DATE })}</p>
-		</section>
+		</Card>
 
 		{#if review}
 			{#if ai.beta?.acceptedAt}
 				<p class="caption center">{t('consent.agreedOn', { date: fmtDateTime(new Date(ai.beta.acceptedAt).getTime()) })}</p>
 			{/if}
-			<button class="btn accent block" onclick={() => onclose?.()}>{t('common.done')}</button>
+			<Button variant="accent" block onclick={() => onclose?.()}>{t('common.done')}</Button>
 		{:else}
-			<div class="card glass glass-strong agree-card">
-				<label class="agree">
-					<input type="checkbox" bind:checked={agreed} />
-					<span>{AGREE_LABEL}</span>
-				</label>
-				<button class="btn accent block" onclick={agree} disabled={!agreed || busy}>{busy ? t('common.saving') : t('consent.agree')}</button>
+			<Card strong class="consent-card">
+				<span class="agree"><Checkbox bind:checked={agreed}>{AGREE_LABEL}</Checkbox></span>
+				<Button variant="accent" block onclick={agree} disabled={!agreed} {busy}>{busy ? t('common.saving') : t('consent.agree')}</Button>
 				{#if error}<p class="error" role="alert" in:fade>{error}</p>{/if}
-			</div>
-			<button class="later" onclick={signOut} disabled={busy}>{t('consent.later')}</button>
+			</Card>
+			<Button variant="plain" class="later" onclick={signOut} disabled={busy}>{t('consent.later')}</Button>
 		{/if}
 	</div>
 </div>
@@ -133,7 +131,7 @@
 		z-index: 160;
 		display: flex;
 		justify-content: center;
-		padding: calc(var(--safe-top) + 16px) max(16px, var(--safe-right)) calc(var(--safe-bottom) + 20px) max(16px, var(--safe-left));
+		padding: calc(var(--safe-top) + var(--space-4)) max(var(--space-4), var(--safe-right)) calc(var(--safe-bottom) + var(--space-5)) max(var(--space-4), var(--safe-left));
 		background: var(--bg);
 		overflow-y: auto;
 		-webkit-overflow-scrolling: touch;
@@ -143,17 +141,17 @@
 		max-width: 520px;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--space-4);
 		margin: 0 auto;
-		padding-bottom: 12px;
+		padding-bottom: var(--space-3);
 	}
 	.hero {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
-		gap: 8px;
-		padding-top: 8px;
+		gap: var(--space-2);
+		padding-top: var(--space-2);
 	}
 	.hero h2,
 	.hero p {
@@ -163,7 +161,7 @@
 		max-width: 40ch;
 	}
 	.beta {
-		padding: 2px 10px;
+		padding: var(--space-px) var(--space-3);
 		border-radius: 999px;
 		font-size: 0.6875rem;
 		font-weight: 800;
@@ -171,22 +169,21 @@
 		color: #fff;
 		background: linear-gradient(90deg, #e8432e, #8a5cf6);
 	}
-	.card {
+	.panel :global(.consent-card) {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 14px 16px;
+		gap: var(--space-2);
 		border-radius: 20px;
 	}
-	.card h3 {
-		margin: 6px 0 0;
+	.panel h3 {
+		margin: var(--space-1h) 0 0;
 	}
-	.card h3:first-child {
+	.panel h3:first-child {
 		margin-top: 0;
 	}
 	details.row {
 		border-top: 0.5px solid var(--hairline);
-		padding-top: 8px;
+		padding-top: var(--space-2);
 	}
 	details.row:first-of-type {
 		border-top: 0;
@@ -194,7 +191,7 @@
 	}
 	summary {
 		display: flex;
-		gap: 12px;
+		gap: var(--space-3);
 		align-items: flex-start;
 		cursor: pointer;
 		list-style: none;
@@ -218,17 +215,17 @@
 		line-height: 1.2;
 	}
 	ul {
-		margin: 4px 0 2px;
-		padding-left: 20px;
+		margin: var(--space-1) 0 var(--space-px);
+		padding-left: var(--space-5);
 		font-size: 0.9375rem;
 		line-height: 1.4;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--space-1);
 	}
 	details ul {
-		margin-left: 34px;
-		padding-left: 16px;
+		margin-left: 34px; /* ui-ok: lines up with the text after the 22px check mark */
+		padding-left: var(--space-4);
 	}
 	ul.plain {
 		list-style: none;
@@ -237,35 +234,16 @@
 	.version,
 	.center {
 		text-align: center;
-		margin: 4px 0 0;
+		margin: var(--space-1) 0 0;
 	}
 	ul a {
 		color: var(--accent-2);
 	}
 	.agree {
-		display: flex;
-		gap: 12px;
-		align-items: flex-start;
+		display: block;
 		font-size: 0.9375rem;
-		line-height: 1.4;
-		cursor: pointer;
 	}
-	.agree input {
-		width: 22px;
-		height: 22px;
-		flex: none;
-		margin: 0;
-		accent-color: var(--accent);
-	}
-	.btn.block {
-		min-height: 50px;
-	}
-	.later {
-		border: 0;
-		background: none;
-		font: inherit;
-		cursor: pointer;
-		padding: 8px;
+	.panel > :global(.later) {
 		color: var(--ink-2);
 		font-size: 0.9375rem;
 		align-self: center;

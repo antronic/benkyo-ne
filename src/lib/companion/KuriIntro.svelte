@@ -10,6 +10,7 @@
 	import { walkerSpot, reducedMotion, kuriSound, kuriHello, type KuriPose } from './kuri.svelte.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { Button } from '#lib/ui/index.ts';
 
 	let { ondone }: { ondone: () => void } = $props();
 
@@ -19,14 +20,14 @@
 	let leaving = $state(false);
 	let pose = $state<KuriPose>('wave');
 	let fly = $state('');
-	let go: HTMLButtonElement;
+	let go: HTMLDivElement;
 	const timers: ReturnType<typeof setTimeout>[] = [];
 	const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
 
 	onMount(() => {
 		if (still) {
 			kuriHello();
-			go?.focus();
+			go?.querySelector('button')?.focus();
 			return;
 		}
 		at(30, () => ((step = 1), kuriSound('intro')));
@@ -60,7 +61,7 @@
 	<div class="bg"></div>
 	<div class="orb"></div>
 	<div class="ring"></div>
-	<button class="ik" style:transform={fly || undefined} onclick={finish} tabindex="-1" aria-hidden="true">
+	<!-- ui-ok: aria-hidden tap target over the Kuri canvas (Let's start is the real control) --><button class="ik" style:transform={fly || undefined} onclick={finish} tabindex="-1" aria-hidden="true">
 		<span class="pop"><Kuri {pose} detail="full" options={{ yaw: 0.2, pitch: 0.18, distance: 6.2, target: [0, 1.1, 0] }} /></span>
 	</button>
 	<div class="lines" aria-live="polite">
@@ -68,8 +69,8 @@
 		<span class="l2">{t('kuri.intro1')}</span>
 		<span class="l3">{t('kuri.intro2')}</span>
 	</div>
-	<button class="go btn accent block" bind:this={go} onclick={finish}>{t('kuri.start')}</button>
-	<button class="skip" onclick={finish}>{t('kuri.skip')}</button>
+	<div class="go" bind:this={go}><Button variant="accent" block onclick={finish}>{t('kuri.start')}</Button></div>
+	<div class="skip"><Button variant="ghost" size="sm" onclick={finish}>{t('kuri.skip')}</Button></div>
 </div>
 
 <style>
@@ -104,7 +105,7 @@
 		top: 32%;
 		width: 60px;
 		height: 60px;
-		margin: -30px;
+		margin: -30px; /* ui-ok: centres the 60px orb on its point */
 		border-radius: 50%;
 		opacity: 0;
 	}
@@ -184,7 +185,7 @@
 		top: 58%;
 		text-align: center;
 		display: grid;
-		gap: 6px;
+		gap: var(--space-1h);
 	}
 	.lines > * {
 		opacity: 0;
@@ -238,15 +239,11 @@
 		position: absolute;
 		top: calc(var(--safe-top, 0px) + 14px);
 		right: 16px;
-		border: 0;
+	}
+	.skip :global(.btn) {
 		background: var(--color-fill);
 		color: var(--color-text-2);
-		font: inherit;
 		font-size: var(--text-footnote);
-		border-radius: var(--radius-pill);
-		padding: 6px 14px;
-		min-height: 32px;
-		cursor: pointer;
 	}
 	.still .orb,
 	.still .ring {

@@ -129,6 +129,8 @@ export function accountDataStatements(env: Env, userId: number): D1PreparedState
 		env.DB.prepare(`DELETE FROM beta_consents WHERE user_id = ?1`).bind(userId),
 		// packages granted from the fleet console
 		env.DB.prepare(`DELETE FROM plan_grants WHERE account_id = ?1`).bind(userId),
+		// promo codes it redeemed (the code's use count stays)
+		env.DB.prepare(`DELETE FROM promo_redemptions WHERE account_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM sessions WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM recovery_codes WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM auth_challenges WHERE user_id = ?1`).bind(userId),

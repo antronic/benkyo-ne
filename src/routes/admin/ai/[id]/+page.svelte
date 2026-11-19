@@ -6,7 +6,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import LargeTitle from '#lib/ui/LargeTitle.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { Badge, Button, ListGroup, ListRow, Segmented, StatTile, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
@@ -57,7 +57,7 @@
 
 <svelte:head><title>{provider?.label ?? 'Models'} · Fleet</title></svelte:head>
 
-<main class="page stack fleet" style:--gap="8px">
+<main class="page stack fleet" style:--gap="var(--space-2)">
 	<LargeTitle title={provider?.label ?? 'Models'} />
 
 	{#if error}
@@ -72,7 +72,7 @@
 			<StatTile label="In a package" value={data.models.filter((m) => m.inPackages.length).length} />
 		</div>
 
-		<div class="stack" style:--gap="8px" style:margin-top="8px">
+		<div class="stack" style:--gap="var(--space-2)" style:margin-top="var(--space-2)">
 			<TextField id="model-search" type="search" bind:value={q} placeholder="Search models" aria-label="Search models" oninput={() => (shown = PAGE)} />
 			<Segmented
 				label="Show"
@@ -92,7 +92,7 @@
 				<ListRow title={m.label} subtitle={[contextLabel(m.contextTokens), priceLabel(m)].filter(Boolean).join(' · ')}>
 					{#if m.label !== m.id}<span class="model-id">{m.id}</span>{/if}
 					{#if m.vision || m.inPackages.length}
-						<span class="chips" style:margin-top="4px">
+						<span class="chips" style:margin-top="var(--space-1)">
 							{#if m.vision}<Badge>Images</Badge>{/if}
 							{#each m.inPackages as name (name)}<Badge tone="success">{name}</Badge>{/each}
 						</span>

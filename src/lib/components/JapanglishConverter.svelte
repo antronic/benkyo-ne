@@ -15,11 +15,14 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import Romaji from './Romaji.svelte';
+	import { Button, Card, IconButton, Spinner, TextField } from '#lib/ui/index.ts';
 
 	let input = $state('');
 	let conv = $state<Conversion | null>(null);
 	let real = $state<DictHit[]>([]);
 	let looking = $state(false);
+	/** key of the card being saved */
+	let adding = $state<string | null>(null);
 	let timer: ReturnType<typeof setTimeout>;
 	const KATA = /^[ァ-ヴー・]+$/;
 
@@ -43,19 +46,26 @@
 	}
 
 	async function add(h: DictHit) {
-		await saveCandidates(
-			[{ key: `${h.kind}:${h.id}`, text: h.text, reading: h.reading, written: h.written, kind: h.kind, gloss: h.gloss, verified: true, wordId: h.id, note: null }],
-			{ tags: ['Japanglish', NOW_TAG], source: 'user' }
-		);
+		const key = `${h.kind}:${h.id}`;
+		if (adding) return;
+		adding = key;
+		try {
+			await saveCandidates(
+				[{ key, text: h.text, reading: h.reading, written: h.written, kind: h.kind, gloss: h.gloss, verified: true, wordId: h.id, note: null }],
+				{ tags: ['Japanglish', NOW_TAG], source: 'user' }
+			);
+		} finally {
+			adding = null;
+		}
 		haptic('success');
 		toast(t('jg.added', { text: h.reading }), '✓');
 	}
 </script>
 
-<section class="conv glass sheen">
+<Card as="section" sheen class="jg-conv">
 	<div class="eyebrow">🔁 {t('jg.title')}</div>
-	<input
-		type="text"
+	<TextField
+		size="lg"
 		bind:value={input}
 		oninput={onInput}
 		placeholder={t('jg.placeholder')}
@@ -72,7 +82,7 @@
 			{#if real.length}
 				{#each real as h (h.id)}
 					<div class="real">
-						<button class="say" aria-label={t('common.listen')} onclick={() => speak(h.reading)}>🔊</button>
+						<IconButton class="say" label={t('common.listen')} onclick={() => speak(h.reading)}>🔊</IconButton>
 						<span class="stack" style:--gap="0">
 							<span class="caption">{t('jg.real')}</span>
 							<span class="jp big">{h.reading}</span>
@@ -83,11 +93,13 @@
 						{#if words.cards[`${h.kind}:${h.id}`]}
 							<span class="caption ok">{t('jg.inCards')}</span>
 						{:else}
-							<button class="btn ghost small" onclick={() => add(h)}>{t('jg.addCard')}</button>
+							<Button variant="ghost" size="sm" busy={adding === `${h.kind}:${h.id}`} onclick={() => add(h)}>{t('jg.addCard')}</Button>
 						{/if}
 					</div>
 				{/each}
-			{:else if !looking}
+			{:else if looking}
+				<Spinner size="sm" label={t('maker.lookingUp')} showLabel />
+			{:else}
 				<p class="caption">{t('jg.noReal')}</p>
 			{/if}
 
@@ -113,43 +125,33 @@
 			{/each}
 		</ul>
 	</details>
-</section>
+</Card>
 
 <style>
-	.conv {
-		padding: 14px;
+	:global(.glass.card.jg-conv) {
 		border-radius: var(--r-m);
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		margin-bottom: 10px;
+		gap: var(--space-3);
+		margin-bottom: var(--space-3);
 	}
-	input {
-		height: 48px;
-		min-height: 48px;
-		font-size: 1rem;
-	}
-	.results {
+.results {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.real {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 10px;
+		gap: var(--space-3);
+		padding: var(--space-3);
 		border-radius: 14px;
 		background: color-mix(in srgb, var(--success) 10%, transparent);
 	}
-	.say {
+	.real :global(.say) {
 		flex: none;
 		width: 44px;
 		height: 44px;
-		border-radius: 50%;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		cursor: pointer;
 	}
 	.big {
 		font-size: 1.5rem;
@@ -161,15 +163,15 @@
 	.guess {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
-		padding: 0 4px;
+		gap: var(--space-px);
+		padding: 0 var(--space-1);
 	}
 	.steps {
 		margin: 0;
-		padding-left: 22px;
+		padding-left: var(--space-6);
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--space-1);
 		font-size: 0.9375rem;
 	}
 	.ok {
@@ -181,16 +183,16 @@
 	}
 	.rules {
 		list-style: none;
-		margin: 6px 0 0;
+		margin: var(--space-1h) 0 0;
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.rules li {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--space-px);
 		font-size: 0.9375rem;
 	}
 	.ex {

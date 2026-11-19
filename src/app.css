@@ -196,9 +196,9 @@ button,
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 8px;
+	gap: var(--space-2);
 	min-height: 50px;
-	padding: 0 22px;
+	padding: 0 var(--space-6);
 	border-radius: 999px;
 	font-weight: 600;
 	font-size: 1.0625rem;
@@ -245,15 +245,32 @@ button,
 .btn.plain {
 	background: none;
 	color: var(--color-link);
-	padding: 0 var(--space-2);
 }
 .btn.block {
 	width: 100%;
 }
+.btn.medium {
+	min-height: var(--control-md);
+	padding: 0 var(--space-5);
+	font-size: 1rem;
+}
 .btn.small {
 	min-height: 36px;
-	padding: 0 14px;
+	padding: 0 var(--space-4);
 	font-size: 0.9375rem;
+}
+/* A plain button is text: no side padding at any size, so its label lines up
+   with the text of the row or card it sits in. */
+.btn.plain,
+.btn.plain.small,
+.btn.plain.medium {
+	padding-left: 0;
+	padding-right: 0;
+}
+/* Quiet destructive text action (<Button variant="plain" class="danger">). */
+.btn.plain.danger {
+	background: none;
+	color: var(--color-danger);
 }
 
 .icon-btn {
@@ -274,42 +291,32 @@ button,
 	transform: scale(0.9);
 }
 
-input[type='text'] {
-	font: inherit;
-	width: 100%;
-	min-height: 54px;
-	padding: 0 18px;
-	border-radius: var(--r-s);
-	border: 0.5px solid var(--hairline);
-	background: var(--glass-strong);
-	color: var(--ink);
-	outline: none;
-	transition: box-shadow 200ms;
-}
-input[type='text']:focus {
-	box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-2) 30%, transparent);
-}
-
 /* ---------------------------------------------------------- layout ---- */
 
 .page {
 	max-width: 720px;
 	margin: 0 auto;
-	padding: calc(var(--safe-top) + 20px) var(--gutter-r) calc(var(--tabbar-h) + var(--safe-bottom) + 40px)
+	padding: calc(var(--safe-top) + var(--space-5)) var(--gutter-r) calc(var(--tabbar-h) + var(--safe-bottom) + var(--space-10))
 		var(--gutter-l);
 }
+/*
+ * Regular width: one column of --page-max (default 1040px), centred in the
+ * space right of the rail, so wide screens get even margins instead of a
+ * column stuck to the left. A screen sets --page-max for a narrower column
+ * (Settings 680px, Fleet 820px, /design 1280px).
+ */
 @media (min-width: 600px) {
 	.page {
+		--page-side: calc((100% - var(--rail) - var(--page-max, 1040px)) / 2);
 		max-width: none;
 		margin: 0 0 0 var(--rail);
-	}
-	.page > * {
-		max-width: 1040px;
+		padding-left: max(var(--gutter-l), var(--page-side));
+		padding-right: max(var(--gutter-r), var(--page-side));
 	}
 }
 @media (min-width: 600px) and (orientation: landscape), (min-width: 840px) {
 	.page {
-		padding-bottom: calc(var(--safe-bottom) + 32px);
+		padding-bottom: calc(var(--safe-bottom) + var(--space-8));
 	}
 }
 
@@ -323,14 +330,14 @@ input[type='text']:focus {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 14px;
+	gap: var(--space-4);
 	width: 100%;
 }
 .split > .pane {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 12px;
+	gap: var(--space-3);
 	width: 100%;
 }
 /* Side by side only when the screen is wider than tall; unfolded portrait stacks, with a bigger canvas. */
@@ -339,7 +346,7 @@ input[type='text']:focus {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		align-items: center;
-		column-gap: 32px;
+		column-gap: var(--space-8);
 	}
 }
 @media (horizontal-viewport-segments: 2) {
@@ -353,19 +360,19 @@ input[type='text']:focus {
 /* Book posture (half-folded, hinge vertical): same idea via Device Posture. */
 @media (device-posture: folded) and (min-width: 600px) {
 	.split {
-		column-gap: 48px;
+		column-gap: var(--space-12);
 	}
 }
 
 .stack {
 	display: flex;
 	flex-direction: column;
-	gap: var(--gap, 12px);
+	gap: var(--gap, var(--space-3));
 }
 .row {
 	display: flex;
 	align-items: center;
-	gap: var(--gap, 12px);
+	gap: var(--gap, var(--space-3));
 }
 .spacer {
 	flex: 1;

@@ -68,15 +68,17 @@ All from the repo root. Copy script names from `package.json`.
 ```sh
 npm ci                     # clean install from the lockfile
 npm run check              # svelte-kit sync + svelte-check (TypeScript)
+npm run lint:ui            # spacing lint (--space-* tokens) + UI kit lint (kit controls only, kit on /design, loading states)
 npm test                   # vitest: src/**/*.test.ts and worker/**/*.test.ts
 npm run build              # static SPA into build/
+npm run check:layout       # Playwright layout check on the build: overflow, centred column, card padding, control size
 npm run db:migrate:local   # apply D1 migrations to the local database
 npx wrangler dev --port 8787 --infer-origin-from-routes=false   # full stack locally (after build)
 npm run dev                # Vite only, UI without /api (forever process: background it)
 ```
 
 **The gate** (run before every push, paste the result in the PR):
-`npm ci && npm run check && npm test && npm run build`.
+`npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout`.
 
 ## Hard rules
 
@@ -103,7 +105,17 @@ npm run dev                # Vite only, UI without /api (forever process: backgr
   and a Thai entry in `th.ts`. Built-in lesson content needs Thai in `content.th.ts`
   (`i18n.test.ts` fails without it). Code, comments, logs and docs are in English.
 - **UI uses the design system**: tokens in `src/lib/design/tokens.css`, components from
-  `#lib/ui/index.ts`; check `/design` before making a new component.
+  `#lib/ui/index.ts`; check `/design` before making a new component. Spacing (padding, margin,
+  gap) is always `var(--space-*)`: `npm run lint:ui` fails otherwise, and a Claude Code hook
+  (`.claude/settings.json`) runs the same lint after every edit. A deliberate exception carries
+  `/* ui-ok: reason */` on its line.
+- **Kit only, and the kit is the storybook.** Every control and card in the app comes from
+  `#lib/ui` (no raw `<button>`, `<input>`, `<select>`, `<textarea>`, no hand-made `.btn`/`.glass`), and
+  every component in `src/lib/ui` is exported and shown on `/design`. Missing a component? Add it to
+  the kit and to `/design` in the same PR. A field and its button share a `FieldRow`.
+- **The user always knows the state.** Loading shows a `Skeleton` or `Spinner`; an action shows
+  `busy` on its button; errors say what to do next. `npm run lint:ui` (`scripts/check-ui.mjs`) and
+  the hook enforce both rules; a deliberate exception carries `ui-ok: reason` on its line.
 - **The server decides.** AI calls, sign-up mode, consent and admin access are enforced in the
   Worker; a hidden button is not a check.
 - **API keys never leave the Worker in clear.** They are encrypted with `AI_MASTER_KEY`

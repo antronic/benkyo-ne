@@ -1,6 +1,6 @@
 <!-- Segmented control. `options` are value/label pairs; bind:value for the selection. -->
 <script lang="ts" generics="T extends string">
-	type Option = { value: T; label: string; disabled?: boolean };
+	type Option = { value: T; label: string; disabled?: boolean; lang?: string };
 	let { options, value = $bindable(), label, onchange }: { options: Option[]; value: T; label?: string; onchange?: (v: T) => void } = $props();
 </script>
 
@@ -12,6 +12,7 @@
 			aria-checked={value === o.value}
 			class:on={value === o.value}
 			disabled={o.disabled}
+			lang={o.lang}
 			onclick={() => {
 				value = o.value;
 				onchange?.(o.value);

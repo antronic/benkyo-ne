@@ -6,7 +6,7 @@
 <script lang="ts">
 	import { t, tn } from '#lib/i18n/index.svelte.ts';
 	import { c as tc, gloss } from '#lib/i18n/content.ts';
-	import Skeleton from '#lib/components/Skeleton.svelte';
+	import { Button, Card, IconButton, Skeleton, Switch } from '#lib/ui/index.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -86,13 +86,13 @@
 </script>
 
 {#if !course || !unit}
-	<main class="page"><h1 class="large-title">{t('unit.notFound')}</h1><a href="/learn">{t('unit.backToLearn')}</a></main>
+	<main class="page stack"><h1 class="large-title">{t('unit.notFound')}</h1><a href="/learn">{t('unit.backToLearn')}</a></main>
 {:else}
 	<main class="unit-page" style:--h={course.hue}>
 		<header class="top">
-			<button class="icon-btn" aria-label={t('common.back')} onclick={() => goto('/learn')}>
+			<IconButton label={t('common.back')} onclick={() => goto('/learn')}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
-			</button>
+			</IconButton>
 			<div class="stack" style:--gap="0">
 				<span class="eyebrow">{course.emoji} {tc(course.title)}</span>
 				<h1 class="title-2">{tc(unit.title)}</h1>
@@ -105,10 +105,10 @@
 		<ul class="items">
 			{#each cands as c, i (c.key)}
 				{@const have = !!words.cards[c.key] && !words.cards[c.key].deleted}
-				<li class="glass item rise" style:--i={i} class:have>
-					<button class="say" aria-label={t('a11y.listenTo', { text: c.reading })} onclick={() => speak(c.reading)}>🔊</button>
+				<Card as="li" padding="none" class="item rise {have ? 'have' : ''}" style="--i: {i}">
+					<IconButton class="say" label={t('a11y.listenTo', { text: c.reading })} onclick={() => speak(c.reading)}>🔊</IconButton>
 					<div class="body">
-						<div class="row" style:--gap="8px">
+						<div class="row" style:--gap="var(--space-2)">
 							<span class="jp reading">{c.reading}</span>
 							{#if c.kind === 'phrase'}<span class="tag">{t('card.phrase')}</span>{/if}
 							{#if !c.verified}<span class="tag warn">{t('card.unverified')}</span>{/if}
@@ -119,11 +119,12 @@
 						{#if c.note}<span class="caption">💬 {tc(c.note)}</span>{/if}
 					</div>
 					{#if have}<span class="check" aria-label={t('unit.addedOne')}>✓</span>{/if}
-				</li>
+				</Card>
 			{/each}
 		</ul>
 
-		<footer class="bottom glass glass-strong" in:fly={{ y: 40, duration: 400 }}>
+		<footer class="bottom" in:fly={{ y: 40, duration: 400 }}>
+			<Card strong padding="sm" radius="large" class="bar">
 			{#if toAdd.length}
 				{#if needsKana}
 					<label class="now">
@@ -131,17 +132,18 @@
 							<span>{t('unit.learnNow')}</span>
 							<span class="caption">{t('unit.learnNowBody')}</span>
 						</span>
-						<input type="checkbox" class="switch" bind:checked={learnNow} />
+						<Switch bind:checked={learnNow} />
 					</label>
 				{/if}
-				<button class="btn accent block" onclick={addAll} disabled={saving || !cands.length}>
+				<Button variant="accent" block onclick={addAll} busy={saving} disabled={!cands.length}>
 					{saving ? t('unit.adding') : t('unit.addN', { n: toAdd.length })}
-				</button>
+				</Button>
 				{#if ai.available}<p class="caption center">✨ {t('unit.aiNote')}</p>{/if}
 			{:else}
 				<p class="caption center">{tn('unit.allIn', added.length)}</p>
-				<button class="btn accent block" onclick={() => goto('/review')}>{t('unit.practise')}</button>
+				<Button variant="accent" block onclick={() => goto('/review')}>{t('unit.practise')}</Button>
 			{/if}
+			</Card>
 		</footer>
 	</main>
 {/if}
@@ -151,13 +153,13 @@
 		min-height: 100dvh;
 		max-width: 760px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + 200px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + 200px) var(--gutter-l); /* ui-ok: 200px clears the fixed start bar */
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		margin-bottom: 14px;
+		gap: var(--space-3);
+		margin-bottom: var(--space-4);
 	}
 	.items {
 		list-style: none;
@@ -165,35 +167,31 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
-	.item {
+	.items :global(.item) {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
-		padding: 12px 14px;
-		border-radius: var(--r-m);
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 	}
-	.item.have {
+	.items :global(.item.have) {
 		box-shadow:
 			0 0 0 1.5px color-mix(in srgb, var(--success) 60%, transparent),
 			var(--glass-shadow);
 	}
-	.say {
+	.items :global(.say) {
 		flex: none;
 		width: 44px;
 		height: 44px;
-		border-radius: 50%;
-		border: 0.5px solid var(--hairline);
 		background: var(--glass-strong);
-		cursor: pointer;
 	}
 	.body {
 		flex: 1;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--space-px);
 	}
 	.reading {
 		font-size: 1.375rem;
@@ -216,7 +214,7 @@
 		font-size: 0.6875rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		padding: 2px 7px;
+		padding: var(--space-px) var(--space-2);
 		border-radius: 999px;
 		background: var(--hairline);
 	}
@@ -231,50 +229,20 @@
 		bottom: calc(var(--safe-bottom) + 12px);
 		max-width: 560px;
 		margin: 0 auto;
-		padding: 12px;
-		border-radius: var(--r-l);
+	}
+	.bottom :global(.bar) {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-3);
 	}
 	.now {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 		justify-content: space-between;
 	}
 	.center {
 		text-align: center;
 		margin: 0;
-	}
-	.switch {
-		appearance: none;
-		flex: none;
-		width: 51px;
-		height: 31px;
-		border-radius: 16px;
-		background: var(--hairline);
-		position: relative;
-		cursor: pointer;
-		margin: 0;
-		transition: background 250ms;
-	}
-	.switch::after {
-		content: '';
-		position: absolute;
-		top: 2px;
-		left: 2px;
-		width: 27px;
-		height: 27px;
-		border-radius: 50%;
-		background: #fff;
-		box-shadow: 0 3px 8px rgb(0 0 0 / 0.15);
-		transition: transform 450ms var(--spring-bouncy);
-	}
-	.switch:checked {
-		background: var(--success);
-	}
-	.switch:checked::after {
-		transform: translateX(20px);
 	}
 </style>

@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { t, tn } from '#lib/i18n/index.svelte.ts';
-	import Skeleton from '#lib/components/Skeleton.svelte';
+	import { Button, Card, FileButton, IconButton, Segmented, Skeleton, TextField } from '#lib/ui/index.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -49,11 +49,10 @@
 		if (id === 'scenario' && !tags) tags = '';
 	}
 
-	function pickFile(e: Event) {
-		const f = (e.currentTarget as HTMLInputElement).files?.[0] ?? null;
+	function pickFile(f: File) {
 		file = f;
 		if (preview) URL.revokeObjectURL(preview);
-		preview = f ? URL.createObjectURL(f) : null;
+		preview = URL.createObjectURL(f);
 	}
 
 	async function search() {
@@ -105,39 +104,30 @@
 
 <main class="maker">
 	<header class="top">
-		<button class="icon-btn" aria-label={t('common.close')} onclick={() => goto('/words')}>
+		<IconButton label={t('common.close')} onclick={() => goto('/words')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
-		</button>
+		</IconButton>
 		<h1 class="title-2">{t('maker.title')}</h1>
 		<span class="spacer"></span>
 	</header>
 
-	<div class="modes glass" role="tablist" aria-label={t('maker.inputMode')}>
-		{#each MODES as x}
-			<button role="tab" aria-selected={mode === x.id} class:on={mode === x.id} onclick={() => setMode(x.id)}>
-				<span class:jp={x.id === 'japanese'}>{x.label}</span>
-				{#if x.ai !== 'none'}<span class="sparkle" aria-hidden="true">✨</span>{/if}
-			</button>
-		{/each}
-	</div>
+	<Segmented label={t('maker.inputMode')} options={MODES.map((x) => ({ value: x.id, label: x.label }))} bind:value={mode} onchange={setMode} />
 
 	<div class="split">
 		<div class="pane input-pane">
 			{#if mode === 'screenshot'}
-				<label class="drop glass">
+				<Card class="drop">
 					{#if preview}
 						<img src={preview} alt={t('maker.selected')} />
 					{:else}
-						<span>📷 {t('maker.pickPhoto')}</span>
 						<span class="caption">{t('maker.photoHint')}</span>
 					{/if}
-					<input type="file" accept="image/*" capture="environment" onchange={pickFile} />
-				</label>
+					<FileButton accept="image/*" capture="environment" onpick={pickFile}>📷 {t('maker.pickPhoto')}</FileButton>
+				</Card>
 			{:else}
-				<form class="row" onsubmit={(e) => (e.preventDefault(), search())}>
-					<!-- svelte-ignore a11y_autofocus -->
-					<input
-						type="text"
+				<form onsubmit={(e) => (e.preventDefault(), search())}>
+					<TextField
+						size="lg"
 						bind:value={input}
 						placeholder={m.placeholder}
 						aria-label={t('maker.inputAria', { mode: m.label })}
@@ -151,9 +141,9 @@
 					/>
 				</form>
 			{/if}
-			<button class="btn accent block" onclick={search} disabled={busy || blocked || (mode === 'screenshot' ? !file : !input.trim())}>
+			<Button variant="accent" block onclick={search} {busy} disabled={blocked || (mode === 'screenshot' ? !file : !input.trim())}>
 				{busy ? t('maker.looking') : mode === 'scenario' ? t('maker.suggest') : mode === 'screenshot' ? t('maker.find') : t('maker.lookUp')}
-			</button>
+			</Button>
 			{#if blocked}
 				<p class="caption note">✨ {t('maker.needsAi')} {ai.reason}</p>
 			{:else if m.ai === 'optional' && !ai.available && ai.reason}
@@ -167,17 +157,17 @@
 			{:else if result}
 				{#if result.aiNote && result.items.length}<p class="caption note">⚠️ {result.aiNote}</p>{/if}
 				{#if !result.items.length}
-					<div class="glass empty">
+					<Card>
 						{result.aiNote ? `⚠️ ${result.aiNote}` : t('maker.nothing')}
-					</div>
+					</Card>
 				{:else}
 					<div class="results" in:fly={{ y: 16, duration: 300 }}>
 						{#each result.items as c (c.key)}
 							{@const missing = unknownKanaIn(c.reading, progress.knownKana)}
-							<button class="cand glass" class:on={chosen.has(c.key)} onclick={() => toggle(c.key)} aria-pressed={chosen.has(c.key)}>
+							<Card padding="none" class="cand{chosen.has(c.key) ? ' on' : ''}" selected={chosen.has(c.key)} onclick={() => toggle(c.key)} aria-pressed={chosen.has(c.key)}>
 								<span class="check" aria-hidden="true">{chosen.has(c.key) ? '✓' : ''}</span>
-								<span class="stack body" style:--gap="2px">
-									<span class="row" style:--gap="6px">
+								<span class="stack body" style:--gap="var(--space-px)">
+									<span class="row" style:--gap="var(--space-1h)">
 										<span class="jp reading">{c.reading}</span>
 										{#if c.text !== c.reading}<span class="jp written">{c.text}</span>{/if}
 										{#if c.kind === 'phrase'}<span class="tag">{t('card.phrase')}</span>{/if}
@@ -190,7 +180,7 @@
 									{#if missing.length}<span class="caption">⏸ {t('maker.parkedUntil')} <span class="jp">{missing.join(' ')}</span><Romaji text={missing.join(' ')} inline /></span>{/if}
 								</span>
 								<span class="listen" role="presentation" onclick={(e) => (e.stopPropagation(), speak(c.reading))}>🔊</span>
-							</button>
+							</Card>
 						{/each}
 					</div>
 					{#if result.packName}
@@ -200,13 +190,10 @@
 							{#if result.packName.second}<span class="caption">{result.packName.second}</span>{/if}
 						</div>
 					{/if}
-					<label class="tags">
-						<span class="caption">{result.packName ? t('maker.tagFromPack') : t('maker.tags')}</span>
-						<input type="text" bind:value={tags} placeholder={t('maker.egTags')} />
-					</label>
-					<button class="btn block" onclick={save} disabled={saving || !chosen.size}>
+					<TextField label={result.packName ? t('maker.tagFromPack') : t('maker.tags')} bind:value={tags} placeholder={t('maker.egTags')} />
+					<Button block onclick={save} busy={saving} disabled={!chosen.size}>
 						{saving ? t('common.saving') : chosen.size ? tn('maker.saveN', chosen.size) : t('maker.saveCards')}
-					</button>
+					</Button>
 					<p class="caption note">
 						{ai.available ? `✨ ${t('maker.aiExtras')}` : t('maker.noAiExtras')}
 					</p>
@@ -221,47 +208,17 @@
 		min-height: 100dvh;
 		max-width: 1040px;
 		margin: 0 auto;
-		padding: calc(var(--safe-top) + 12px) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + 24px) var(--gutter-l);
+		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + var(--space-6)) var(--gutter-l);
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--space-4);
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
-	.modes {
-		display: grid;
-		grid-template-columns: repeat(5, 1fr);
-		padding: 4px;
-		border-radius: 14px;
-		gap: 2px;
-	}
-	.modes button {
-		border: 0;
-		background: none;
-		border-radius: 10px;
-		min-height: 40px;
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: var(--ink-2);
-		cursor: pointer;
-		position: relative;
-		transition: background 250ms, color 250ms;
-	}
-	.modes button.on {
-		background: var(--glass-strong);
-		color: var(--ink);
-		box-shadow: 0 3px 10px rgb(0 0 0 / 0.1);
-	}
-	.sparkle {
-		position: absolute;
-		top: 2px;
-		right: 4px;
-		font-size: 9px;
-	}
-	.split {
+.split {
 		align-items: start !important;
 	}
 	.pane {
@@ -270,53 +227,33 @@
 	.note {
 		margin: 0;
 	}
-	.drop {
-		position: relative;
+	.input-pane :global(.drop) {
 		display: grid;
 		place-items: center;
-		gap: 4px;
+		gap: var(--space-3);
 		min-height: 180px;
 		border-radius: var(--r-m);
 		border: 1.5px dashed var(--hairline);
 		text-align: center;
-		cursor: pointer;
 		overflow: hidden;
-		padding: 12px;
 	}
-	.drop img {
+	.input-pane img {
 		max-width: 100%;
 		max-height: 320px;
 		border-radius: 12px;
 	}
-	.drop input {
-		position: absolute;
-		inset: 0;
-		opacity: 0;
-		cursor: pointer;
-	}
 	.results {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 	}
-	.cand {
+	.results :global(.cand) {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
-		padding: 12px 14px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		border-radius: var(--r-m);
-		text-align: left;
-		cursor: pointer;
-		transition: box-shadow 200ms, transform 300ms var(--spring);
 		min-height: 56px;
-	}
-	.cand:active {
-		transform: scale(0.98);
-	}
-	.cand.on {
-		box-shadow:
-			0 0 0 2px var(--accent-2),
-			var(--glass-shadow);
 	}
 	.check {
 		flex: none;
@@ -329,9 +266,9 @@
 		font-size: 14px;
 		font-weight: 700;
 		color: #fff;
-		margin-top: 2px;
+		margin-top: var(--space-px);
 	}
-	.on .check {
+	.results :global(.cand.on .check) {
 		background: var(--accent-2);
 		border-color: var(--accent-2);
 	}
@@ -354,7 +291,7 @@
 		font-size: 0.6875rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		padding: 2px 7px;
+		padding: var(--space-px) var(--space-2);
 		border-radius: 999px;
 		background: var(--hairline);
 	}
@@ -363,24 +300,16 @@
 	}
 	.listen {
 		flex: none;
-		padding: 6px;
+		padding: var(--space-1h);
 		cursor: pointer;
 	}
 	.packname {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
-		padding: 10px 12px;
+		gap: var(--space-px);
+		padding: var(--space-3) var(--space-3);
 		border-radius: var(--r-m);
 		background: color-mix(in srgb, var(--accent-2) 10%, transparent);
 	}
-	.tags {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-	.empty {
-		padding: 16px;
-		border-radius: var(--r-m);
-	}
+
 </style>
