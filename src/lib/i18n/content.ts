@@ -9,6 +9,7 @@
 import { i18n } from './index.svelte.ts';
 import { baseOf, mnemonicFor } from '#lib/content/mnemonics.ts';
 import { CONTENT_TH } from './content.th.ts';
+import { pick, type EnTh } from '#lib/content/levels/index.ts';
 
 const MAPS: Record<string, Record<string, string>> = { th: CONTENT_TH };
 
@@ -41,3 +42,6 @@ export function story(char: string): string {
 	}
 	return c(mnemonicFor(char).story);
 }
+
+/** A level-course text (stored in English and Thai) in the interface language. */
+export const et = (x: EnTh) => pick(x, i18n.locale);

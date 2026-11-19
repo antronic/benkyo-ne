@@ -123,6 +123,11 @@
 				<Switch label={t('settings.romaji')} checked={progress.settings.showRomaji} onchange={(v) => progress.saveSettings({ showRomaji: v })} />
 			{/snippet}
 		</ListRow>
+		<ListRow title={t('settings.drafts')} subtitle={t('settings.draftsBody')}>
+			{#snippet trailing()}
+				<Switch label={t('settings.drafts')} checked={progress.settings.showDraftUnits} onchange={(v) => progress.saveSettings({ showDraftUnits: v })} />
+			{/snippet}
+		</ListRow>
 		<ListRow title={t('settings.tabbar')} subtitle={t('settings.tabbarBody')}>
 			{#snippet trailing()}
 				<Select
