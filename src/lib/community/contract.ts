@@ -2,6 +2,7 @@
  * Community (phase 2 of docs/NOTES.md, design in docs/COMMUNITY.md): shared notes on a study item,
  * replies, likes, reports and blocks. Shared by the app and the Worker (worker/community.ts).
  */
+import type { Person } from '../avatar/person.ts';
 
 /** Bump when the community guidelines text changes: everyone accepts again before their next post. */
 export const GUIDELINES_VERSION = 1;
@@ -45,6 +46,8 @@ export interface Post {
 	body: string;
 	lang: Lang;
 	handle: string;
+	/** the author's avatar parts (docs/AVATAR.md); null: none, the initial shows */
+	avatar: Partial<Person> | null;
 	mine: boolean;
 	liked: boolean;
 	likes: number;
@@ -61,6 +64,8 @@ export interface Reply {
 	body: string;
 	lang: Lang;
 	handle: string;
+	/** the author's avatar parts (docs/AVATAR.md); null: none, the initial shows */
+	avatar: Partial<Person> | null;
 	mine: boolean;
 	liked: boolean;
 	likes: number;

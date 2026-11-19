@@ -4,7 +4,9 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
+	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
+	import { avatarSvg } from '#lib/avatar/render.ts';
+	import { DEFAULTS as AV_DEFAULTS, SKIN, type Person } from '#lib/avatar/person.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
 	import { fakeCommunity } from '#lib/community/fake.ts';
@@ -52,6 +54,17 @@
 		{ value: 'SONGKRAN27', label: 'SONGKRAN27 · Pro on us · 30 days' }
 	];
 	const vipPerk = $derived(vipCoupon === 'WELCOME30' ? 'Plus trial · 14 days' : vipCoupon === 'SONGKRAN27' ? 'Pro on us · 30 days' : null);
+	// avatar demo: parts from lib/avatar/person.ts, drawn by the Benkyo style pack
+	let avHair = $state<Person['hair']>('swept');
+	let avSkin = $state<Person['skin']>('s4');
+	const avPerson = $derived<Person>({ ...AV_DEFAULTS, hair: avHair, skin: avSkin });
+	const AV_HAIR: { value: Person['hair']; label: string }[] = [
+		{ value: 'swept', label: 'Swept' },
+		{ value: 'bob', label: 'Bob' },
+		{ value: 'curly', label: 'Curly' },
+		{ value: 'bun', label: 'Bun' }
+	];
+	const AV_SKIN = (Object.keys(SKIN) as Person['skin'][]).slice(0, 6).map((k, i) => ({ value: k, color: SKIN[k], label: `Skin tone ${i + 1}` }));
 	// Everyday Japanese drafts (docs/EVERYDAY.md): phrasebook, Writing helper, kanji you keep forgetting, domain packs, weekly report
 	let politeTarget = $state<'friend' | 'colleague' | 'boss' | 'customer'>('boss');
 	let politeFixed = $state(false);
@@ -577,6 +590,22 @@
 						{ value: 'listen', label: 'Listen' }
 					]}
 				/>
+
+				<SectionHeader title="Avatar" />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-3)">
+						<div class="row" style:--gap="var(--space-3)">
+							<Avatar person={avPerson} name="Example Learner" size={72} />
+							<Avatar person={avPerson} name="Example Learner" size={40} />
+							<Avatar person={avPerson} name="Example Learner" size={24} label="" />
+							<Avatar person={null} name="Example Learner" size={40} />
+						</div>
+						<TilePicker label="Hair" options={AV_HAIR} bind:value={avHair}>
+							{#snippet art(v)}{@html avatarSvg({ ...avPerson, hair: v }, 56)}{/snippet}
+						</TilePicker>
+						<SwatchPicker label="Skin" options={AV_SKIN} bind:value={avSkin} />
+					</div>
+				</Card>
 
 				<SectionHeader title="Text fields" />
 				<Card padding="md">
