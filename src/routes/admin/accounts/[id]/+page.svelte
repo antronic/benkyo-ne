@@ -8,10 +8,11 @@
 	import { page } from '$app/state';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
+	import { Button, Select, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
-	import { AdminError, deleteAccount, endGrant, getAccount, grantPackage, patchAccount, revokeSessions } from '#lib/admin/client.ts';
-	import type { AdminAccountDetail, AdminGrant } from '#lib/admin/contract.ts';
+	import { AdminError, deleteAccount, endGrant, getAccount, getPackages, grantPackage, patchAccount, revokeSessions } from '#lib/admin/client.ts';
+	import type { AdminAccountDetail, AdminGrant, AdminPlan } from '#lib/admin/contract.ts';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -21,7 +22,12 @@
 	let busy = $state(false);
 	let cap = $state('');
 	let confirmName = $state('');
-	let gPlan = $state<'plus' | 'pro'>('plus');
+	let gPlan = $state('plus');
+	/** paid packages to grant (all but Free) */
+	let paid = $state<Pick<AdminPlan, 'id' | 'name' | 'available'>[]>([
+		{ id: 'plus', name: 'Plus', available: true },
+		{ id: 'pro', name: 'Pro', available: true }
+	]);
 	let gKind = $state<'comp' | 'trial'>('trial');
 	let gDays = $state('7');
 	let gNote = $state('');
@@ -35,7 +41,12 @@
 			error = e instanceof AdminError ? e : new AdminError(0, 'server', String(e));
 		}
 	}
-	onMount(load);
+	onMount(() => {
+		load();
+		getPackages()
+			.then((p) => (paid = p.plans.filter((x) => x.id !== 'free')))
+			.catch(() => {});
+	});
 
 	async function act(fn: () => Promise<AdminAccountDetail | void>, done: string) {
 		busy = true;
@@ -86,8 +97,7 @@
 		}
 	}
 
-	async function give(e: SubmitEvent) {
-		e.preventDefault();
+	async function give() {
 		if (!a) return;
 		const days = gDays === '' ? null : Number(gDays);
 		const live = a.grants.find((g) => g.live);
@@ -100,7 +110,7 @@
 		if (!a || !(await confirmDestructive(`End ${PLAN_NAMES[g.plan]} now?`, `${a.name} goes back to Free.`, 'End'))) return;
 		await act(() => endGrant(id, g.id), 'Package ended');
 	}
-	const PLAN_NAMES = { free: 'Free', plus: 'Plus', pro: 'Pro' } as const;
+	const PLAN_NAMES = $derived({ free: 'Free', ...Object.fromEntries(paid.map((p) => [p.id, p.name])) } as Record<string, string>);
 	const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 	const day = (t: number | null) =>
@@ -155,31 +165,37 @@
 					{#if g.live}<button class="link danger" onclick={() => end(g)} disabled={busy}>End</button>{/if}
 				</div>
 			{/each}
-			<form class="item col" onsubmit={give}>
+			<div class="item col">
 				<span class="row" style:gap="8px" style:flex-wrap="wrap">
-					<select bind:value={gPlan} aria-label="Package">
-						<option value="plus">Plus</option>
-						<option value="pro">Pro</option>
-					</select>
-					<select bind:value={gKind} aria-label="Kind" onchange={() => gKind === 'trial' && gDays === '' && (gDays = '7')}>
-						<option value="trial">Trial</option>
-						<option value="comp">Complimentary</option>
-					</select>
-					<select bind:value={gDays} aria-label="How long">
-						<option value="7">7 days</option>
-						<option value="30">30 days</option>
-						<option value="90">90 days</option>
-						<option value="365">1 year</option>
-						{#if gKind === 'comp'}<option value="">Until ended</option>{/if}
-					</select>
+					<Select label="Package" bind:value={gPlan} options={paid.map((p) => ({ value: p.id, label: p.available ? p.name : `${p.name} (not offered)` }))} />
+					<Select
+						label="Kind"
+						bind:value={gKind}
+						onchange={() => gKind === 'trial' && gDays === '' && (gDays = '7')}
+						options={[
+							{ value: 'trial', label: 'Trial' },
+							{ value: 'comp', label: 'Complimentary' }
+						]}
+					/>
+					<Select
+						label="How long"
+						bind:value={gDays}
+						options={[
+							{ value: '7', label: '7 days' },
+							{ value: '30', label: '30 days' },
+							{ value: '90', label: '90 days' },
+							{ value: '365', label: '1 year' },
+							...(gKind === 'comp' ? [{ value: '', label: 'Until ended' }] : [])
+						]}
+					/>
 				</span>
-				<span class="row" style:gap="8px">
-					<input type="text" bind:value={gNote} maxlength="120" placeholder="Note (optional)" aria-label="Note" style:flex="1" />
-					<button class="btn small" disabled={busy}>Grant</button>
+				<span class="row" style:gap="8px" style:align-items="flex-end">
+					<span style:flex="1" style:min-width="0"><TextField id="grant-note" bind:value={gNote} maxlength={120} placeholder="Note (optional)" aria-label="Note" /></span>
+					<Button size="sm" onclick={give} {busy}>Grant</Button>
 				</span>
-			</form>
+			</div>
 		</div>
-		<p class="caption" style:margin="2px 6px">Packages aren’t enforced in the app yet. This records who gets Plus or Pro for when managed AI ships.</p>
+		<p class="caption" style:margin="2px 6px">Packages aren’t enforced in the app yet. This records who gets a paid package for when managed AI ships.</p>
 
 		<h2 class="eyebrow section">AI this month</h2>
 		<div class="glass group">

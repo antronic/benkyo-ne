@@ -1,16 +1,19 @@
 <!--
-	Fleet console: Free / Plus / Pro. Edit prices and the monthly AI allowance,
-	and see who has a package. Grants are made on each account's page.
-	Saving asks for a passkey tap.
+	Fleet console: packages. Free / Plus / Pro plus any made here. Edit prices
+	and the monthly AI allowance, choose the AI models each one includes (from
+	the providers on /admin/ai), and see who has a package. Grants are made on
+	each account's page. Saving asks for a passkey tap.
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
+	import { Badge, Button, Card, Chip, ListGroup, ListRow, SectionHeader, Switch, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
-	import { toast } from '#lib/ios/overlay.svelte.ts';
-	import { AdminError, getPackages, updatePackage } from '#lib/admin/client.ts';
-	import type { AdminPackages, AdminPlan, AdminPlanPatch } from '#lib/admin/contract.ts';
+	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
+	import { AdminError, createPackage, deletePackage, getAllModels, getPackages, setPackageModels, updatePackage } from '#lib/admin/client.ts';
+	import type { AdminFeature, AdminModels, AdminPackages, AdminPlan, AdminPlanModel, AdminPlanPatch } from '#lib/admin/contract.ts';
+	import { FEATURE_NAMES, FEATURE_SHORT, priceLabel } from '#lib/admin/models.ts';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -19,6 +22,15 @@
 	let busy = $state(false);
 	/** the package being edited, as form strings */
 	let edit = $state<{ id: AdminPlan['id']; name: string; month: string; year: string; allowance: string; blurb: string; available: boolean } | null>(null);
+
+	/** the package whose models are being chosen */
+	let picking = $state<{ id: string; models: AdminPlanModel[] } | null>(null);
+	let catalog = $state<AdminModels | null>(null);
+	let catalogError = $state<string | null>(null);
+	let mq = $state('');
+	/** the new-package form */
+	let making = $state<{ name: string; blurb: string; month: string; year: string; allowance: string } | null>(null);
+	const FEATURES: AdminFeature[] = ['fill', 'propose', 'vision'];
 
 	async function load() {
 		error = null;
@@ -42,8 +54,7 @@
 		};
 	}
 
-	async function save(e: SubmitEvent) {
-		e.preventDefault();
+	async function save() {
 		if (!edit) return;
 		const patch: AdminPlanPatch = { name: edit.name, blurb: edit.blurb };
 		if (edit.id !== 'free') {
@@ -64,6 +75,108 @@
 		}
 	}
 
+	async function run<T>(fn: () => Promise<T>, done: string): Promise<T | null> {
+		busy = true;
+		try {
+			const r = await fn();
+			toast(done, '✓');
+			return r;
+		} catch (err) {
+			toast(err instanceof AdminError ? err.message : 'Passkey confirmation cancelled', '⚠️', 3200);
+			return null;
+		} finally {
+			busy = false;
+		}
+	}
+
+	async function pick(p: AdminPlan) {
+		picking = { id: p.id, models: p.models.map((m) => ({ ...m, features: [...m.features] })) };
+		mq = '';
+		if (!catalog) await loadCatalog(false);
+	}
+	async function loadCatalog(refresh: boolean) {
+		catalogError = null;
+		try {
+			catalog = await getAllModels(refresh);
+		} catch (e) {
+			catalogError = e instanceof AdminError ? e.message : String(e);
+		}
+	}
+	const catalogLabel = (id: number) => catalog?.providers.find((p) => p.id === id)?.label ?? providerLabels.get(id) ?? null;
+	const isPicked = (providerId: number, model: string) => !!picking?.models.some((m) => m.providerId === providerId && m.model === model);
+	function addModel(m: AdminModels['models'][number], providerLabel: string | null) {
+		if (!picking || isPicked(m.providerId, m.id)) return;
+		const free = FEATURES.filter((f) => !picking!.models.some((x) => x.features.includes(f)) && (f !== 'vision' || m.vision));
+		picking.models.push({ providerId: m.providerId, providerLabel, model: m.id, label: m.label, features: picking.models.length ? [] : free, inputPerM: m.inputPerM, outputPerM: m.outputPerM });
+	}
+	function dropModel(i: number) {
+		picking?.models.splice(i, 1);
+	}
+	/** Each feature belongs to one model: giving it to this one takes it from the others. */
+	function toggleFeature(i: number, f: AdminFeature) {
+		if (!picking) return;
+		const m = picking.models[i];
+		if (m.features.includes(f)) m.features = m.features.filter((x) => x !== f);
+		else {
+			for (const o of picking.models) o.features = o.features.filter((x) => x !== f);
+			m.features = FEATURES.filter((x) => x === f || m.features.includes(x));
+		}
+	}
+	async function saveModels() {
+		if (!picking) return;
+		const { id, models } = picking;
+		const r = await run(() => setPackageModels(id, { models: models.map((m) => ({ providerId: m.providerId, model: m.model, features: m.features })) }), 'Models saved');
+		if (r) {
+			data = r;
+			picking = null;
+		}
+	}
+	const unassigned = $derived(picking ? FEATURES.filter((f) => !picking!.models.some((m) => m.features.includes(f))) : []);
+	const providerLabels = $derived.by(() => {
+		const out = new Map<number, string>();
+		for (const p of data?.plans ?? []) for (const m of p.models) if (m.providerLabel) out.set(m.providerId, m.providerLabel);
+		return out;
+	});
+	const matches = $derived.by(() => {
+		const needle = mq.trim().toLowerCase();
+		const all = catalog?.models ?? [];
+		return needle ? all.filter((m) => m.id.toLowerCase().includes(needle) || m.label.toLowerCase().includes(needle)) : all;
+	});
+	const results = $derived(matches.slice(0, 40));
+
+	async function make() {
+		if (!making) return;
+		const r = await run(
+			() =>
+				createPackage({
+					name: making!.name,
+					blurb: making!.blurb,
+					priceMonthUsd: Number(making!.month),
+					priceYearUsd: Number(making!.year),
+					aiAllowanceUsd: Number(making!.allowance)
+				}),
+			'Package made. Choose its models, then offer it.'
+		);
+		if (r) {
+			data = r;
+			making = null;
+			const made = r.plans.find((p) => p.id === r.created);
+			if (made) pick(made);
+		}
+	}
+
+	async function remove(p: AdminPlan) {
+		if (!(await confirmDestructive(`Delete ${p.name}?`, 'It’s gone for good. Packages someone has had can only be turned off.', 'Delete'))) return;
+		const r = await run(() => deletePackage(p.id), 'Package deleted');
+		if (r) {
+			data = r;
+			edit = null;
+		}
+	}
+
+	/** What's left of a month's price after the AI allowance, before payment fees. */
+	const keeps = (p: AdminPlan) => Math.round((p.priceMonthUsd - p.aiAllowanceUsd) * 100) / 100;
+
 	const usd = (n: number) => (n === 0 ? '$0' : `$${n % 1 ? n.toFixed(2) : n}`);
 	const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 	const PLAN_NAMES = $derived(Object.fromEntries((data?.plans ?? []).map((p) => [p.id, p.name])) as Record<string, string>);
@@ -79,84 +192,200 @@
 	{#if error}
 		<ErrorCard {error} onretry={load} />
 	{:else if !data}
-		<div class="glass group" aria-busy="true"><div class="item caption">Loading…</div></div>
+		<ListGroup><ListRow subtitle="Loading…" /></ListGroup>
 	{:else}
 		{#each data.plans as p (p.id)}
-			<div class="glass group">
+			<ListGroup>
 				{#if edit?.id === p.id}
-					<form class="item col" onsubmit={save}>
-						<label class="caption" for="name-{p.id}">Name</label>
-						<input id="name-{p.id}" type="text" bind:value={edit.name} maxlength="30" required />
-						<label class="caption" for="blurb-{p.id}">What’s included</label>
-						<input id="blurb-{p.id}" type="text" bind:value={edit.blurb} maxlength="200" />
-						{#if p.id !== 'free'}
-							<span class="fields">
-								<span class="stack" style:--gap="4px">
-									<label class="caption" for="m-{p.id}">Per month ($)</label>
-									<input id="m-{p.id}" type="number" min="0" max="1000" step="0.01" bind:value={edit.month} required />
+					<ListRow>
+						<div class="stack" style:--gap="12px">
+							<TextField id="name-{p.id}" label="Name" bind:value={edit.name} maxlength={30} />
+							<TextField id="blurb-{p.id}" label="What’s included" bind:value={edit.blurb} maxlength={200} />
+							{#if p.id !== 'free'}
+								<span class="fields">
+									<TextField id="m-{p.id}" label="Per month ($)" type="number" min="0" max="1000" step="0.01" bind:value={edit.month} />
+									<TextField id="y-{p.id}" label="Per year ($)" type="number" min="0" max="1000" step="0.01" bind:value={edit.year} />
+									<TextField id="a-{p.id}" label="AI each month ($)" type="number" min="0" max="100" step="0.1" bind:value={edit.allowance} />
 								</span>
-								<span class="stack" style:--gap="4px">
-									<label class="caption" for="y-{p.id}">Per year ($)</label>
-									<input id="y-{p.id}" type="number" min="0" max="1000" step="0.01" bind:value={edit.year} required />
-								</span>
-								<span class="stack" style:--gap="4px">
-									<label class="caption" for="a-{p.id}">AI each month ($)</label>
-									<input id="a-{p.id}" type="number" min="0" max="100" step="0.1" bind:value={edit.allowance} required />
-								</span>
-							</span>
-							<label class="row check"><input type="checkbox" bind:checked={edit.available} /> <span>Offered to new people</span></label>
-						{/if}
-						<span class="row" style:gap="8px">
-							<span class="spacer"></span>
-							<button type="button" class="btn small ghost" onclick={() => (edit = null)} disabled={busy}>Cancel</button>
-							<button class="btn small" disabled={busy}>Save</button>
-						</span>
-					</form>
-				{:else}
-					<div class="item col">
-						<span class="row" style:gap="8px">
-							<b class="plan">{p.name}</b>
-							{#if !p.available}<span class="pill muted">Not offered</span>{/if}
-							<span class="spacer"></span>
-							<button class="link" onclick={() => open(p)} disabled={busy || edit !== null}>Edit</button>
-						</span>
-						<span class="caption">{p.blurb}</span>
-					</div>
-					<div class="item">
-						<span class="stack" style:--gap="2px">
-							<span>{p.priceMonthUsd ? `${usd(p.priceMonthUsd)} a month · ${usd(p.priceYearUsd)} a year` : 'No charge'}</span>
-							{#if yearlySaving(p) > 0}<span class="caption">Yearly saves {yearlySaving(p)}%</span>{/if}
-						</span>
-					</div>
+							{/if}
+						</div>
+					</ListRow>
 					{#if p.id !== 'free'}
-						<div class="item"><span>Managed AI each month</span><span class="spacer"></span><b class="num">{usd(p.aiAllowanceUsd)}</b></div>
+						<ListRow title="Offered to new people">
+							{#snippet trailing()}<Switch label="Offered to new people" bind:checked={edit!.available} />{/snippet}
+						</ListRow>
 					{/if}
-					<div class="item"><span>Accounts on it</span><span class="spacer"></span><b class="num">{p.accounts}</b></div>
+					<ListRow>
+						<span class="row" style:gap="8px" style:flex-wrap="wrap">
+							{#if !p.builtin}<Button variant="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Delete package</Button>{/if}
+							<span class="spacer"></span>
+							<Button variant="ghost" size="sm" onclick={() => (edit = null)} disabled={busy}>Cancel</Button>
+							<Button size="sm" onclick={save} {busy}>Save</Button>
+						</span>
+					</ListRow>
+				{:else}
+					<ListRow>
+						<b class="plan">{p.name}</b>
+						{#if p.blurb}<span class="caption">{p.blurb}</span>{/if}
+						{#snippet trailing()}
+							{#if !p.available}<Badge>Not offered</Badge>{/if}
+							<Button variant="plain" size="sm" onclick={() => open(p)} disabled={busy || edit !== null}>Edit</Button>
+						{/snippet}
+					</ListRow>
+					<ListRow
+						title={p.priceMonthUsd ? `${usd(p.priceMonthUsd)} a month · ${usd(p.priceYearUsd)} a year` : 'No charge'}
+						subtitle={yearlySaving(p) > 0 ? `Yearly saves ${yearlySaving(p)}%` : undefined}
+					/>
+					{#if p.id !== 'free'}
+						<ListRow title="Managed AI each month" subtitle={p.priceMonthUsd > 0 ? `Keeps ${usd(keeps(p))} a month after AI, before payment fees` : undefined}>
+							{#snippet trailing()}<b class="num">{usd(p.aiAllowanceUsd)}</b>{/snippet}
+						</ListRow>
+					{/if}
+					<ListRow title="Accounts on it">
+						{#snippet trailing()}<b class="num">{p.accounts}</b>{/snippet}
+					</ListRow>
 				{/if}
-			</div>
+				{#if p.id !== 'free'}
+					{#if picking?.id === p.id}
+						{@render picker()}
+					{:else}
+						<ListRow>
+							<div class="stack" style:--gap="8px">
+								<span class="row" style:gap="8px">
+									<span class="eyebrow">AI models</span>
+									<span class="spacer"></span>
+									<Button variant="plain" size="sm" onclick={() => pick(p)} disabled={busy || picking !== null}>{p.models.length ? 'Change' : 'Choose models'}</Button>
+								</span>
+								{#each p.models as m (m.providerId + m.model)}
+									<span class="row" style:gap="8px" style:align-items="flex-start">
+										<span class="stack" style:--gap="2px" style:min-width="0" style:flex="1">
+											<span class="ellipsis">{m.label} <span class="caption">· {m.providerLabel ?? 'removed provider'}</span></span>
+											<span class="caption">{priceLabel(m)}</span>
+										</span>
+										<span class="chips">{#each m.features as f (f)}<Badge variant="tag">{FEATURE_SHORT[f]}</Badge>{/each}</span>
+									</span>
+								{:else}
+									<span class="caption">No models yet. Pick some from your <a href="/admin/ai">AI providers</a>.</span>
+								{/each}
+							</div>
+						</ListRow>
+					{/if}
+				{/if}
+			</ListGroup>
 		{/each}
 
-		<h2 class="eyebrow section">Granted now</h2>
-		<div class="glass group">
-			{#each data.grants as g (g.id)}
-				<a class="item" href="/admin/accounts/{g.accountId}">
-					<span class="stack" style:--gap="2px" style:min-width="0">
-						<span class="ellipsis">{g.accountName ?? `#${g.accountId}`} <span class="caption">#{g.accountId}</span></span>
-						<span class="caption">{g.kind === 'trial' ? 'Trial' : 'Complimentary'} · {g.endsAt ? `until ${shortDay(g.endsAt)}` : 'until ended'}{g.note ? ` · ${g.note}` : ''}</span>
+		{#if making}
+			<Card padding="md">
+				<div class="stack" style:--gap="12px">
+					<b>New package</b>
+					<TextField id="new-name" label="Name" bind:value={making.name} maxlength={30} placeholder="Exam Sprint" />
+					<TextField id="new-blurb" label="What’s included" bind:value={making.blurb} maxlength={200} />
+					<span class="fields">
+						<TextField id="new-m" label="Per month ($)" type="number" min="0" max="1000" step="0.01" bind:value={making.month} />
+						<TextField id="new-y" label="Per year ($)" type="number" min="0" max="1000" step="0.01" bind:value={making.year} />
+						<TextField id="new-a" label="AI each month ($)" type="number" min="0" max="100" step="0.1" bind:value={making.allowance} />
 					</span>
-					<span class="spacer"></span>
-					<span class="pill">{PLAN_NAMES[g.plan] ?? g.plan}</span>
-					<span class="caption" aria-hidden="true">›</span>
-				</a>
+					<span class="caption">It starts hidden from new people. Choose its models, then turn on “Offered”.</span>
+					<span class="row" style:gap="8px">
+						<span class="spacer"></span>
+						<Button variant="ghost" size="sm" onclick={() => (making = null)} disabled={busy}>Cancel</Button>
+						<Button size="sm" onclick={make} {busy} disabled={!making.name.trim()}>Make package</Button>
+					</span>
+				</div>
+			</Card>
+		{:else}
+			<ListGroup>
+				<ListRow tone="link" title="＋ New package" onclick={() => !busy && edit === null && (making = { name: '', blurb: '', month: '4.99', year: '39', allowance: '1.5' })} />
+			</ListGroup>
+		{/if}
+
+		<SectionHeader title="Granted now" />
+		<ListGroup>
+			{#each data.grants as g (g.id)}
+				<ListRow
+					href="/admin/accounts/{g.accountId}"
+					title={`${g.accountName ?? `#${g.accountId}`} #${g.accountId}`}
+					subtitle={`${g.kind === 'trial' ? 'Trial' : 'Complimentary'} · ${g.endsAt ? `until ${shortDay(g.endsAt)}` : 'until ended'}${g.note ? ` · ${g.note}` : ''}`}
+				>
+					{#snippet trailing()}<Badge tone="success">{PLAN_NAMES[g.plan] ?? g.plan}</Badge>{/snippet}
+				</ListRow>
 			{:else}
-				<div class="item caption">Nobody has Plus or Pro yet. Grant one from an account’s page.</div>
+				<ListRow subtitle="Nobody has a paid package yet. Grant one from an account’s page." />
 			{/each}
-		</div>
+		</ListGroup>
 		<p class="caption foot">
 			Packages aren’t enforced in the app yet: there’s no checkout, and managed AI comes later. Changes ask for your passkey and go in the audit log.
 		</p>
 	{/if}
 </main>
+
+{#snippet picker()}
+	{@const pk = picking!}
+	<ListRow>
+		<div class="stack picker" style:--gap="8px">
+			<span class="row" style:gap="8px">
+				<span class="eyebrow">AI models</span>
+				<span class="spacer"></span>
+				<span class="caption">{pk.models.length} chosen</span>
+			</span>
+			{#each pk.models as m, i (m.providerId + m.model)}
+				<span class="row chosen" style:gap="8px">
+					<span class="stack" style:--gap="4px" style:min-width="0" style:flex="1">
+						<span class="ellipsis">{m.label} <span class="caption">· {m.providerLabel ?? providerLabels.get(m.providerId) ?? ''}</span></span>
+						<span class="caption">{priceLabel(m)}</span>
+						<span class="chips" role="group" aria-label="Used for">
+							{#each FEATURES as f (f)}
+								<Chip selected={m.features.includes(f)} onclick={() => toggleFeature(i, f)}>{FEATURE_SHORT[f]}</Chip>
+							{/each}
+						</span>
+					</span>
+					<Button variant="ghost" class="danger" size="sm" onclick={() => dropModel(i)} aria-label="Take {m.label} out">Remove</Button>
+				</span>
+			{:else}
+				<span class="caption">Nothing chosen yet. Add models from the list below.</span>
+			{/each}
+			{#if pk.models.length && unassigned.length}
+				<span class="caption warn-text">No model does {unassigned.map((f) => FEATURE_NAMES[f].toLowerCase()).join(', ')} yet.</span>
+			{/if}
+			<span class="caption">Fill: {FEATURE_NAMES.fill} · Suggest: {FEATURE_NAMES.propose} · Photo: {FEATURE_NAMES.vision}</span>
+
+			<TextField id="model-search" type="search" bind:value={mq} placeholder="Search every provider’s models" aria-label="Search models" />
+			{#if catalogError}
+				<span class="caption warn-text">{catalogError}</span>
+			{:else if !catalog}
+				<span class="caption">Asking your providers for their models…</span>
+			{:else}
+				{#each catalog.errors as e (e.providerId)}<span class="caption warn-text">{e.label}: {e.message}</span>{/each}
+				{#if !catalog.models.length && !catalog.errors.length}
+					<span class="caption">No turned-on providers. <a href="/admin/ai">Add one</a> first.</span>
+				{/if}
+				<div class="results">
+					{#each results as m (m.providerId + m.id)}
+						{@const label = catalogLabel(m.providerId)}
+						<span class="row" style:gap="8px">
+							<span class="stack" style:--gap="2px" style:min-width="0" style:flex="1">
+								<span class="ellipsis">{m.label} <span class="caption">· {label}</span></span>
+								<span class="caption">{priceLabel(m)}{m.vision ? ' · reads images' : ''}</span>
+							</span>
+							{#if isPicked(m.providerId, m.id)}
+								<Badge tone="success">Added</Badge>
+							{:else}
+								<Button variant="plain" size="sm" onclick={() => addModel(m, label)} disabled={pk.models.length >= 20}>Add</Button>
+							{/if}
+						</span>
+					{/each}
+				</div>
+				{#if matches.length > results.length}<span class="caption">Showing {results.length} of {matches.length}. Search to narrow it down.</span>{:else if mq.trim() && !matches.length}<span class="caption">No model matches.</span>{/if}
+			{/if}
+			<span class="row" style:gap="8px" style:margin-top="6px" style:flex-wrap="wrap">
+				<Button variant="plain" size="sm" onclick={() => loadCatalog(true)} disabled={busy}>Ask providers again</Button>
+				<span class="spacer"></span>
+				<Button variant="ghost" size="sm" onclick={() => (picking = null)} disabled={busy}>Cancel</Button>
+				<Button size="sm" onclick={saveModels} {busy}>Save models</Button>
+			</span>
+		</div>
+	</ListRow>
+{/snippet}
 
 <style>
 	.plan {
@@ -167,12 +396,16 @@
 		grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
 		gap: 8px;
 	}
-	.fields input {
-		width: 100%;
-		box-sizing: border-box;
+	.picker .chosen {
+		padding: 8px 0;
+		border-bottom: 0.5px solid var(--hairline);
 	}
-	.check {
-		gap: 8px;
-		align-items: center;
+	.results {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		max-height: 360px;
+		overflow-y: auto;
+		padding: 4px 0;
 	}
 </style>

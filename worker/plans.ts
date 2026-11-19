@@ -1,5 +1,5 @@
 /**
- * Packages (Free / Plus / Pro) and which one an account is on.
+ * Packages (Free / Plus / Pro, plus any made in the console) and which one an account is on.
  *
  * An account is on the highest-ranked package of its live grants, else Free.
  * A grant is live when it has started, hasn't reached ends_at and wasn't
@@ -8,8 +8,10 @@
  */
 import type { Env } from './env.ts';
 
-export const PLAN_IDS = ['free', 'plus', 'pro'] as const;
-export type PlanId = (typeof PLAN_IDS)[number];
+/** The packages every install starts with; more can be made in the fleet console. */
+export const BUILTIN_PLANS = ['free', 'plus', 'pro'] as const;
+/** 'free', 'plus', 'pro' or a package made in the console */
+export type PlanId = string;
 export const GRANT_KINDS = ['comp', 'trial'] as const;
 export type GrantKind = (typeof GRANT_KINDS)[number];
 

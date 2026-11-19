@@ -20,7 +20,7 @@ export const AUDIT_PAGE = 50;
  * system screen compares it with d1_migrations to spot a deploy whose
  * migrations didn't run. insights.test.ts fails if this falls behind.
  */
-export const LATEST_MIGRATION = '0009_packages.sql';
+export const LATEST_MIGRATION = '0010_ai_providers.sql';
 
 /** Tables whose sizes the system screen shows. */
 const TABLES = [
@@ -113,10 +113,11 @@ async function system(env: Env): Promise<AdminSystem> {
 		.first<{ name: string; appliedAt: string | null }>()
 		.catch(() => null);
 
-	const [keys, models, stuck, ...counts] = await env.DB.batch<Record<string, never>>([
+	const [keys, models, stuck, providers, ...counts] = await env.DB.batch<Record<string, never>>([
 		env.DB.prepare(`SELECT COUNT(DISTINCT user_id) AS n FROM ai_credentials`),
 		env.DB.prepare(`SELECT feature, model, COUNT(*) AS accounts FROM ai_feature_models GROUP BY feature, model ORDER BY feature, accounts DESC`),
 		env.DB.prepare(`SELECT COUNT(*) AS n FROM ai_ledger WHERE status = 'reserved' AND at < ?1`).bind(now - 10 * 60 * 1000),
+		env.DB.prepare(`SELECT COUNT(*) AS n, SUM(CASE WHEN check_error IS NOT NULL THEN 1 ELSE 0 END) AS failing FROM ai_providers WHERE enabled = 1`),
 		...TABLES.map((t) => env.DB.prepare(`SELECT COUNT(*) AS n FROM ${t}`))
 	]);
 
@@ -129,6 +130,9 @@ async function system(env: Env): Promise<AdminSystem> {
 	}
 	const meta = env.CF_VERSION_METADATA;
 	const stuckN = (stuck.results[0] as { n: number } | undefined)?.n ?? 0;
+	const prov = (providers.results[0] ?? {}) as { n?: number; failing?: number | null };
+	const provN = prov.n ?? 0;
+	const provFailing = prov.failing ?? 0;
 	const appliedName = applied?.name ?? null;
 	const appliedAt = applied?.appliedAt ? Date.parse(applied.appliedAt.replace(' ', 'T') + 'Z') : null;
 	return {
@@ -145,6 +149,11 @@ async function system(env: Env): Promise<AdminSystem> {
 			{ name: 'Content store (KV)', ok: kvOk, detail: kvOk ? 'reachable' : 'did not answer' },
 			{ name: 'Key encryption', ok: !!env.AI_MASTER_KEY, detail: env.AI_MASTER_KEY ? 'AI_MASTER_KEY is set' : 'AI_MASTER_KEY is missing, so nobody can save an AI key' },
 			{ name: 'Cloudflare Access', ok: !!(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD), detail: env.ACCESS_TEAM_DOMAIN ?? 'not configured (local dev)' },
+			{
+				name: 'AI providers',
+				ok: provFailing === 0,
+				detail: !provN ? 'none turned on yet' : provFailing ? `${provFailing} of ${provN} failed their last model list` : `${provN} turned on, all answering`
+			},
 			{ name: 'AI calls', ok: stuckN === 0, detail: stuckN ? `${stuckN} reserved for over 10 minutes` : 'none stuck' }
 		],
 		ai: {
