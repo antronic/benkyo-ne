@@ -26,8 +26,8 @@ export interface AdminAccountRow {
 	monthUsd: number;
 	/** agreed to the current beta terms and hasn't withdrawn */
 	consented: boolean;
-	/** package right now (worker/plans.ts) */
-	plan: 'free' | 'plus' | 'pro';
+	/** package id right now (worker/plans.ts) */
+	plan: AdminPlanId;
 }
 
 export interface AdminAccountList {
@@ -150,7 +150,8 @@ export interface AdminAuditList {
 	actions: string[];
 }
 
-export type AdminPlanId = 'free' | 'plus' | 'pro';
+/** 'free', 'plus', 'pro', or the id of a package made in the console */
+export type AdminPlanId = string;
 
 export interface AdminPlan {
 	id: AdminPlanId;
@@ -165,6 +166,126 @@ export interface AdminPlan {
 	/** accounts on it right now (Free: everyone without a live grant) */
 	accounts: number;
 	updatedAt: number;
+	/** Free, Plus and Pro can't be deleted */
+	builtin: boolean;
+	/** the managed AI models it includes, in order */
+	models: AdminPlanModel[];
+}
+
+export type AdminFeature = 'fill' | 'propose' | 'vision';
+
+/** A model included in a package. */
+export interface AdminPlanModel {
+	providerId: number;
+	/** provider label, null if the provider was removed */
+	providerLabel: string | null;
+	model: string;
+	label: string;
+	/** app features this model serves in the package (each feature at most once per package) */
+	features: AdminFeature[];
+	/** USD per million tokens when the model was added; null when unknown */
+	inputPerM: number | null;
+	outputPerM: number | null;
+}
+
+/** PUT /api/admin/packages/:id/models: the whole list, in order. */
+export interface AdminPlanModelsInput {
+	models: { providerId: number; model: string; features: AdminFeature[] }[];
+}
+
+/** POST /api/admin/packages */
+export interface AdminPlanCreate {
+	name: string;
+	blurb?: string;
+	priceMonthUsd: number;
+	priceYearUsd: number;
+	aiAllowanceUsd: number;
+}
+
+// ------------------------------------------------------------ AI providers ----
+
+export type AdminProviderKind = 'anthropic' | 'openai-compatible';
+
+/** Known providers; `custom` is any OpenAI-compatible server. */
+export interface AdminProviderPreset {
+	id: string;
+	name: string;
+	kind: AdminProviderKind;
+	/** fixed for known providers, null for anthropic and custom */
+	baseUrl: string | null;
+	/** where to make a key */
+	keysUrl: string | null;
+}
+
+/** A platform AI provider (the operator's own key, for managed AI). */
+export interface AdminProvider {
+	id: number;
+	kind: AdminProviderKind;
+	preset: string;
+	label: string;
+	baseUrl: string | null;
+	last4: string;
+	enabled: boolean;
+	modelCount: number | null;
+	checkedAt: number | null;
+	checkError: string | null;
+	createdAt: number;
+	updatedAt: number;
+	/** names of packages that include one of its models */
+	usedBy: string[];
+}
+
+/** GET /api/admin/ai/providers */
+export interface AdminProviders {
+	providers: AdminProvider[];
+	presets: AdminProviderPreset[];
+	/** false when AI_MASTER_KEY is missing, so no key can be saved */
+	canSaveKeys: boolean;
+}
+
+/** POST /api/admin/ai/providers. The key is checked by listing models before it's saved. */
+export interface AdminProviderInput {
+	preset: string;
+	label?: string;
+	/** custom only */
+	baseUrl?: string;
+	apiKey: string;
+}
+
+/** PATCH /api/admin/ai/providers/:id */
+export interface AdminProviderPatch {
+	label?: string;
+	enabled?: boolean;
+	/** replaces the key after a successful model list */
+	apiKey?: string;
+}
+
+/** A model as the provider's API lists it. */
+export interface AdminModel {
+	providerId: number;
+	id: string;
+	label: string;
+	contextTokens: number | null;
+	maxOutput: number | null;
+	vision: boolean | null;
+	structured: boolean | null;
+	/** USD per million tokens (provider list or built-in table), null when unknown */
+	inputPerM: number | null;
+	outputPerM: number | null;
+	priceSource: 'provider' | 'builtin' | null;
+	/** names of packages that include it */
+	inPackages: string[];
+}
+
+/** GET /api/admin/ai/providers/:id/models and GET /api/admin/ai/models */
+export interface AdminModels {
+	models: AdminModel[];
+	/** when the list was fetched from the provider (it's cached for an hour) */
+	fetchedAt: number;
+	/** the providers asked, for labels */
+	providers: { id: number; label: string }[];
+	/** providers whose list couldn't be fetched */
+	errors: { providerId: number; label: string; message: string }[];
 }
 
 export interface AdminGrant {
@@ -201,7 +322,8 @@ export interface AdminPlanPatch {
 
 /** POST /api/admin/accounts/:id/grants. Replaces the account's live grant. */
 export interface AdminGrantInput {
-	plan: 'plus' | 'pro';
+	/** any package except Free */
+	plan: AdminPlanId;
 	kind: 'comp' | 'trial';
 	/** null: until ended */
 	days: number | null;

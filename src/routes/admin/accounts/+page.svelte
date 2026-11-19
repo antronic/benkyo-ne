@@ -4,7 +4,7 @@
 	import LargeTitle from '#lib/components/LargeTitle.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
-	import { AdminError, listAccounts } from '#lib/admin/client.ts';
+	import { AdminError, getPackages, listAccounts } from '#lib/admin/client.ts';
 	import type { AdminAccountRow } from '#lib/admin/contract.ts';
 	import '#lib/admin/admin.css';
 
@@ -15,6 +15,12 @@
 	let loading = $state(true);
 	let error = $state<AdminError | null>(null);
 	let timer: ReturnType<typeof setTimeout> | undefined;
+	let planNames = $state<Record<string, string>>({ plus: 'Plus', pro: 'Pro' });
+	onMount(() => {
+		getPackages()
+			.then((p) => (planNames = Object.fromEntries(p.plans.map((x) => [x.id, x.name]))))
+			.catch(() => {});
+	});
 
 	async function load(more = false) {
 		loading = true;
@@ -71,7 +77,7 @@
 						</span>
 					</span>
 					<span class="spacer"></span>
-					{#if a.plan !== 'free'}<span class="pill">{a.plan === 'pro' ? 'Pro' : 'Plus'}</span>{/if}
+					{#if a.plan !== 'free'}<span class="pill">{planNames[a.plan] ?? a.plan}</span>{/if}
 					{#if a.isAdmin}<span class="pill muted">Admin</span>{/if}
 					{#if a.disabled}<span class="pill off">Disabled</span>{:else if !a.consented}<span class="pill muted">No consent</span>{/if}
 					<span class="caption" aria-hidden="true">›</span>

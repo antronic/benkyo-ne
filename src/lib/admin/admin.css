@@ -52,6 +52,8 @@
 }
 .fleet input[type='text'],
 .fleet input[type='search'],
+.fleet input[type='url'],
+.fleet input[type='password'],
 .fleet input[type='number'] {
 	font: inherit;
 	padding: 10px 12px;
@@ -128,4 +130,36 @@
 	border: 0.5px solid var(--hairline);
 	background: var(--glass-strong);
 	color: inherit;
+}
+
+/* AI providers and package models (src/routes/admin/ai, packages) */
+.fleet .chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.fleet .chip {
+	font: inherit;
+	font-size: 13px;
+	padding: 4px 10px;
+	border-radius: 999px;
+	border: 0.5px solid var(--hairline);
+	background: none;
+	color: inherit;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.fleet .chip[aria-pressed='true'] {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #fff;
+}
+.fleet .model-id {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	opacity: 0.7;
+	overflow-wrap: anywhere;
+}
+.fleet .warn-text {
+	color: var(--danger);
 }

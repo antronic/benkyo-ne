@@ -10,8 +10,8 @@
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
-	import { AdminError, deleteAccount, endGrant, getAccount, grantPackage, patchAccount, revokeSessions } from '#lib/admin/client.ts';
-	import type { AdminAccountDetail, AdminGrant } from '#lib/admin/contract.ts';
+	import { AdminError, deleteAccount, endGrant, getAccount, getPackages, grantPackage, patchAccount, revokeSessions } from '#lib/admin/client.ts';
+	import type { AdminAccountDetail, AdminGrant, AdminPlan } from '#lib/admin/contract.ts';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -21,7 +21,12 @@
 	let busy = $state(false);
 	let cap = $state('');
 	let confirmName = $state('');
-	let gPlan = $state<'plus' | 'pro'>('plus');
+	let gPlan = $state('plus');
+	/** paid packages to grant (all but Free) */
+	let paid = $state<Pick<AdminPlan, 'id' | 'name' | 'available'>[]>([
+		{ id: 'plus', name: 'Plus', available: true },
+		{ id: 'pro', name: 'Pro', available: true }
+	]);
 	let gKind = $state<'comp' | 'trial'>('trial');
 	let gDays = $state('7');
 	let gNote = $state('');
@@ -35,7 +40,12 @@
 			error = e instanceof AdminError ? e : new AdminError(0, 'server', String(e));
 		}
 	}
-	onMount(load);
+	onMount(() => {
+		load();
+		getPackages()
+			.then((p) => (paid = p.plans.filter((x) => x.id !== 'free')))
+			.catch(() => {});
+	});
 
 	async function act(fn: () => Promise<AdminAccountDetail | void>, done: string) {
 		busy = true;
@@ -100,7 +110,7 @@
 		if (!a || !(await confirmDestructive(`End ${PLAN_NAMES[g.plan]} now?`, `${a.name} goes back to Free.`, 'End'))) return;
 		await act(() => endGrant(id, g.id), 'Package ended');
 	}
-	const PLAN_NAMES = { free: 'Free', plus: 'Plus', pro: 'Pro' } as const;
+	const PLAN_NAMES = $derived({ free: 'Free', ...Object.fromEntries(paid.map((p) => [p.id, p.name])) } as Record<string, string>);
 	const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 	const day = (t: number | null) =>
@@ -158,8 +168,7 @@
 			<form class="item col" onsubmit={give}>
 				<span class="row" style:gap="8px" style:flex-wrap="wrap">
 					<select bind:value={gPlan} aria-label="Package">
-						<option value="plus">Plus</option>
-						<option value="pro">Pro</option>
+						{#each paid as p (p.id)}<option value={p.id}>{p.name}{p.available ? '' : ' (not offered)'}</option>{/each}
 					</select>
 					<select bind:value={gKind} aria-label="Kind" onchange={() => gKind === 'trial' && gDays === '' && (gDays = '7')}>
 						<option value="trial">Trial</option>
@@ -179,7 +188,7 @@
 				</span>
 			</form>
 		</div>
-		<p class="caption" style:margin="2px 6px">Packages aren’t enforced in the app yet. This records who gets Plus or Pro for when managed AI ships.</p>
+		<p class="caption" style:margin="2px 6px">Packages aren’t enforced in the app yet. This records who gets a paid package for when managed AI ships.</p>
 
 		<h2 class="eyebrow section">AI this month</h2>
 		<div class="glass group">
