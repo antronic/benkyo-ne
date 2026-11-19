@@ -13,7 +13,7 @@
 	import { LANGS, lang, planFor, profile, s } from '#lib/onboarding/profile.svelte.ts';
 	import { Button, Card, IconButton, Segmented } from '#lib/ui/index.ts';
 
-	let { ondone }: { ondone: (start?: string) => void } = $props();
+	let { ondone }: { ondone: () => void } = $props();
 
 	const prev = profile.value;
 	const editing = !!prev && !prev.skipped;
@@ -64,8 +64,7 @@
 		} finally {
 			saving = null;
 		}
-		const first = plan.find((p) => p.kind !== 'daily') as Exclude<Step, { kind: 'daily' }> | undefined;
-		ondone(first?.href);
+		ondone();
 	}
 
 	const stepIcon = (p: Step) =>
