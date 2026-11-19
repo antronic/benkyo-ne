@@ -9,7 +9,7 @@
  */
 import { lookupEnglish, lookupJapanese, lookupRomaji, verifyItem, verifyText, getGlosses, type DictHit } from '#lib/dict/dict.ts';
 import * as api from '#lib/ai/client.ts';
-import type { Bi, CardKind, FilledItem, ProposeRequest, SightingVia, UserCard } from '#lib/ai/contract.ts';
+import type { Bi, CardKind, FilledItem, ProposedItem, ProposeRequest, SightingVia, UserCard } from '#lib/ai/contract.ts';
 import { ai } from '#lib/state/ai.svelte.ts';
 import { progress } from '#lib/state/progress.svelte.ts';
 import { words } from '#lib/state/words.svelte.ts';
@@ -92,25 +92,32 @@ export async function candidatesFor(
 	try {
 		const r = await api.propose({ mode, input: q, image, secondLang: progress.settings.secondLang });
 		const items: Candidate[] = [];
-		for (const p of r.items) {
-			const v = await verifyItem({ text: p.text, reading: p.reading });
-			const hit = v.hit;
-			items.push({
-				key: hit ? `${hit.kind}:${hit.id}` : `${p.kind}:custom:${crypto.randomUUID()}`,
-				text: hit?.text ?? p.text,
-				reading: hit?.reading ?? p.reading,
-				written: hit?.written ?? (p.text !== p.reading ? [p.text] : []),
-				kind: hit?.kind ?? p.kind,
-				gloss: hit?.gloss ?? p.gloss,
-				verified: v.verified,
-				wordId: hit?.id ?? null,
-				note: p.note
-			});
-		}
+		for (const p of r.items) items.push(await verifiedCandidate(p));
 		return { items: dedupe(items), aiUsed: true, packName: r.packName ?? null };
 	} catch (e) {
 		return { items: [], aiUsed: false, aiNote: errText(e) };
 	}
+}
+
+/**
+ * An AI-proposed item, checked against the dictionary. `stableKey` gives an
+ * item the dictionary doesn't know the same card id every time (the Writing
+ * helper saves the same set phrases again and again); otherwise it is new.
+ */
+export async function verifiedCandidate(p: ProposedItem, stableKey = false): Promise<Candidate> {
+	const v = await verifyItem({ text: p.text, reading: p.reading });
+	const hit = v.hit;
+	return {
+		key: hit ? `${hit.kind}:${hit.id}` : `${p.kind}:custom:${stableKey ? p.text : crypto.randomUUID()}`,
+		text: hit?.text ?? p.text,
+		reading: hit?.reading ?? p.reading,
+		written: hit?.written ?? (p.text !== p.reading ? [p.text] : []),
+		kind: hit?.kind ?? p.kind,
+		gloss: hit?.gloss ?? p.gloss,
+		verified: v.verified,
+		wordId: hit?.id ?? null,
+		note: p.note
+	};
 }
 
 const dedupe = (xs: Candidate[]) => xs.filter((x, i) => xs.findIndex((y) => y.key === x.key) === i);

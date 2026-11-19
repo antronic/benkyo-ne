@@ -18,6 +18,7 @@
  *   POST   /api/ai/lesson                LessonRequest → LessonResponse
  *   POST   /api/ai/ask                   AskRequest → AskResponse
  *   POST   /api/ai/translate             TranslateRequest → TranslateResponse (a community note or reply)
+ *   POST   /api/ai/write                 WriteRequest → WriteResponse (Writing helper: politeness check)
  *   POST   /api/ai/ask/stream            AskRequest → text/event-stream (see ask.ts)
  */
 import type { Env } from '../env.ts';
@@ -85,6 +86,7 @@ export async function handleAi(req: Request, env: Env, ctx: ExecutionContext, ur
 	if (path === '/api/ai/lesson' && m === 'POST') return handleGenerate('lesson', req, env, ctx, session);
 	if (path === '/api/ai/ask' && m === 'POST') return handleGenerate('ask', req, env, ctx, session);
 	if (path === '/api/ai/translate' && m === 'POST') return handleGenerate('translate', req, env, ctx, session);
+	if (path === '/api/ai/write' && m === 'POST') return handleGenerate('write', req, env, ctx, session);
 	if (path === '/api/ai/ask/stream' && m === 'POST') return handleAskStream(req, env, ctx, session);
 	return aiError(404, 'bad_request', 'Not found');
 }

@@ -218,6 +218,43 @@ export interface AskResponse {
 	examples: { jp: string; reading: string; en: string }[];
 }
 
+// ----------------------------------------------------------------- write ----
+
+/** Who a message is for; sets the politeness the Writing helper aims at. */
+export type WriteTo = 'friend' | 'colleague' | 'boss' | 'customer';
+export const WRITE_TO: WriteTo[] = ['friend', 'colleague', 'boss', 'customer'];
+/** Where the politeness should sit for each person, 0 (casual) to 1 (keigo). */
+export const WRITE_TARGET: Record<WriteTo, number> = { friend: 0.1, colleague: 0.5, boss: 0.78, customer: 0.9 };
+export const WRITE_MAX = 2000;
+
+/** POST /api/ai/write: the Writing helper checks a message before it is sent. */
+export interface WriteRequest {
+	text: string;
+	to: WriteTo;
+	secondLang: string | null;
+}
+
+/** One edit: `from` is exact text in the message, `to` is exact text in `better`. */
+export interface WriteChange {
+	from: string;
+	to: string;
+	why: Bi;
+}
+
+export interface WriteResponse {
+	/** politeness of the learner's message, 0 (casual) to 1 (keigo) */
+	level: number;
+	/** true when the message already fits the person */
+	fits: boolean;
+	/** one line from Kuri: how it reads and the main fix */
+	verdict: Bi;
+	/** the whole message, natural and at the right politeness */
+	better: string;
+	changes: WriteChange[];
+	/** set phrases from `better` worth saving to the phrasebook */
+	phrases: ProposedItem[];
+}
+
 // ------------------------------------------------------------- translate ----
 
 /** Languages a community note or reply is written in or translated into. */

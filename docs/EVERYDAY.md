@@ -52,3 +52,19 @@ Everything else in the drafts is built from existing kit components (`ListRow` w
   ranked by sightings in the last 30 days, then all time, then newest. Filters: All, From photos,
   Look-ups, From my writing. A card's sheet shows **Where you met it**.
 - The Writing helper will record `writing` sightings for phrases it fixes.
+
+## Built: Writing helper (E1)
+
+- **Where.** AI tab › Writing helper (`/ai/write`). Pick who it is for (friend, colleague, boss,
+  customer; remembered on the device), paste the message, tap Check.
+- **AI.** `POST /api/ai/write` (`WriteRequest` → `WriteResponse` in `src/lib/ai/contract.ts`),
+  prompt `WRITE_SYSTEM` in `src/lib/ai/prompts.ts`. It runs on the **Suggestions** model (feature
+  `propose`), like Ask AI, so it uses the package allowance or the learner's own key with no new
+  model slot or migration. The validator keeps only changes whose `from` is in the message and
+  whose `to` is in the rewrite, and phrases that appear in the rewrite.
+- **Screen.** `PolitenessMeter` (the message's level against `WRITE_TARGET` for the person),
+  `MarkedText` with the edits in place (`markChanges` in `src/lib/words/writing.ts`) or the clean
+  suggestion, Kuri's verdict in a `SpeechBubble` (with the second language), each change with its
+  reason, Copy, and **Save phrases**: the phrases become cards with a `writing` sighting, so they
+  rank in the phrasebook. A phrase the dictionary doesn't know keeps the same card id each time.
+- Not yet: the "same pattern" sheet and Practise this pattern from the draft.
