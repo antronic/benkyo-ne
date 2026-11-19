@@ -83,6 +83,32 @@ describe('level units', () => {
 		expect(bad).toEqual([]);
 	}, 120_000);
 
+	it('a word written in kana finds the kana entry, not a kanji word with the same sound', async () => {
+		// e.g. いつ alone finds 五 (five) and あれ finds 荒れ (stormy weather)
+		const bad: string[] = [];
+		for (const u of all)
+			for (const w of u.words.filter((x) => !x.kanji)) {
+				const hit = (await verifyItem({ text: w.reading, reading: w.reading })).hit;
+				if (hit && hit.text !== w.reading) bad.push(`${u.id}: ${w.reading} → ${hit.text} (${hit.gloss})`);
+			}
+		expect(bad).toEqual([]);
+	});
+
+	it('no two words of a level are the same dictionary entry (they would be one card)', async () => {
+		const seen = new Map<string, string>();
+		const dup: string[] = [];
+		for (const u of all)
+			for (const w of u.words) {
+				const id = (await verifyItem({ text: w.kanji ?? w.reading, reading: w.reading })).hit?.id;
+				if (!id) continue;
+				const key = `${u.level}:${w.kind}:${id}`;
+				const at = `${u.id} ${w.kanji ?? ''}${w.reading}`;
+				if (seen.has(key)) dup.push(`${seen.get(key)} = ${at}`);
+				else seen.set(key, at);
+			}
+		expect(dup).toEqual([]);
+	}, 120_000);
+
 	it('Japanese lines use only kanji of the level (or ones the kanji lessons teach)', () => {
 		const bad: string[] = [];
 		for (const u of all) {
