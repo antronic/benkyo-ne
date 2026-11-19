@@ -422,7 +422,7 @@
 
 		<p class="caption foot">
 			A code gives its package from the moment it’s redeemed, once per account. It replaces a lower package and is refused when the account already has
-			the same package or a better one. Packages aren’t enforced in the app yet.
+			the same package or a better one.
 		</p>
 	{/if}
 </main>
