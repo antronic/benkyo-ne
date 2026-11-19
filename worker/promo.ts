@@ -108,11 +108,14 @@ export async function redeem(env: Env, accountId: number, raw: unknown, now = Da
 	const endsAt = p.days === null ? null : now + p.days * DAY;
 	// One batch (a transaction). The redemption row is only written while the
 	// code is still redeemable, and every later statement runs only if it was:
-	// two people racing for the last use can't both get it.
+	// two people racing for the last use can't both get it, and a grant made
+	// meanwhile at the same or a higher plan isn't replaced by this one.
 	const claimed = `EXISTS (SELECT 1 FROM promo_redemptions WHERE code = ?1 AND account_id = ?2 AND redeemed_at = ?3 AND grant_id IS NULL)`;
 	await env.DB.batch([
 		env.DB.prepare(
-			`INSERT OR IGNORE INTO promo_redemptions (code, account_id, redeemed_at) SELECT p.code, ?2, ?3 FROM promo_codes p WHERE p.code = ?1 AND ${redeemable('?3')}`
+			`INSERT OR IGNORE INTO promo_redemptions (code, account_id, redeemed_at) SELECT p.code, ?2, ?3 FROM promo_codes p JOIN plans cp ON cp.id = p.plan_id
+			  WHERE p.code = ?1 AND ${redeemable('?3')}
+			    AND NOT EXISTS (SELECT 1 FROM plan_grants g JOIN plans pl ON pl.id = g.plan_id WHERE g.account_id = ?2 AND ${liveGrant('?3')} AND pl.rank >= cp.rank)`
 		).bind(code, accountId, now),
 		env.DB.prepare(`UPDATE promo_codes SET uses = uses + 1 WHERE code = ?1 AND ${claimed}`).bind(code, accountId, now),
 		// one live grant per account: the new one replaces any other
@@ -129,8 +132,15 @@ export async function redeem(env: Env, accountId: number, raw: unknown, now = Da
 	const done = await env.DB.prepare(`SELECT grant_id AS grantId FROM promo_redemptions WHERE code = ?1 AND account_id = ?2 AND redeemed_at = ?3`)
 		.bind(code, accountId, now)
 		.first<{ grantId: number | null }>();
-	// lost a race for the last use, or the code changed in between
-	if (!done?.grantId) throw promoError('used_up');
+	if (!done?.grantId) {
+		// a same-or-better plan arrived in between, or the last use went to someone else
+		const nowBetter = await env.DB.prepare(
+			`SELECT 1 AS x FROM plan_grants g JOIN plans pl ON pl.id = g.plan_id WHERE g.account_id = ?2 AND ${liveGrant('?1')} AND pl.rank >= ?3`
+		)
+			.bind(now, accountId, p.rank)
+			.first();
+		throw promoError(nowBetter ? 'already_on_plan' : 'used_up');
+	}
 	return { code, ...(await promoStatus(env, accountId, now)) };
 }
 

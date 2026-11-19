@@ -57,7 +57,10 @@
 	const CODE_RE = /^[0-9A-Z]{6,24}$/;
 	const customClean = $derived(custom.toUpperCase().replace(/[\s\-_.]/g, ''));
 	const customProblem = $derived(source === 'custom' && custom && !CODE_RE.test(customClean) ? '6 to 24 letters and digits' : undefined);
-	const num = (s: string) => (/^\d+$/.test(s.trim()) ? Number(s) : NaN);
+	const num = (s: string | number | null | undefined) => {
+		const v = String(s ?? '').trim();
+		return /^\d+$/.test(v) ? Number(v) : NaN;
+	};
 
 	async function create(e: SubmitEvent) {
 		e.preventDefault();

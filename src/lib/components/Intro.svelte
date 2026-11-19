@@ -76,7 +76,7 @@
 				{:else if slide.key === 'cards'}
 					<div class="fan">
 						{#each ['き', 'つ', 'ね', 'み', 'あ'] as k, c}
-							<div class="card" style:--c={c}><span class="jp">{k}</span><small>{['ki', 'tsu', 'ne', 'mi', 'a'][c]}</small></div>
+							<div class="flash" style:--c={c}><span class="jp">{k}</span><small>{['ki', 'tsu', 'ne', 'mi', 'a'][c]}</small></div>
 						{/each}
 					</div>
 				{:else}
@@ -273,7 +273,7 @@
 		transform-style: preserve-3d;
 		transform: rotateX(18deg);
 	}
-	.card {
+	.flash {
 		position: absolute;
 		inset: 0;
 		border-radius: 20px;
@@ -291,16 +291,16 @@
 		--r: calc((var(--c) - 2) * 14deg);
 		transform: rotateZ(var(--r)) translateZ(calc(var(--c) * 8px));
 	}
-	.card small {
+	.flash small {
 		font-size: 13px;
 		color: var(--ink-3);
 		font-weight: 600;
 	}
-	.card:nth-child(5) {
+	.flash:nth-child(5) {
 		background: linear-gradient(135deg, hsl(var(--h) 70% 55%), hsl(calc(var(--h) + 30) 70% 45%));
 		color: #fff;
 	}
-	.card:nth-child(5) small {
+	.flash:nth-child(5) small {
 		color: rgb(255 255 255 / 0.8);
 	}
 	@keyframes deal {
@@ -369,7 +369,7 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.cube, .tilt, .ink, .pen, .card, .orbit, .orb, .moon, .bg {
+		.cube, .tilt, .ink, .pen, .flash, .orbit, .orb, .moon, .bg {
 			animation: none !important;
 		}
 		.ink {

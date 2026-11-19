@@ -83,12 +83,12 @@ Import from `#lib/ui/index.ts`:
 | `FileButton` | `onpick(file)`, `accept`, button props | `<input type="file">` |
 | `Stepper` | `bind:value`, `min`, `max`, `step`, `label` | `.stepper` in settings |
 | `Notice` | `tone`, `title`, `action` snippet | new |
-<<<<<<< HEAD
 | `Skeleton` | `variant` row · card · tile · line, `count`, `label` | blank space while data loads |
 | `Spinner` | `label`, `size`, `showLabel` | a short wait with no layout to preview |
 | `ProgressRing`, `BarChart` | progress and per-day bars | |
 | `Sheet` | `open`, `label`, `onclose` | bottom sheets |
 | `LargeTitle` | the screen's iOS large title and compact title bar | |
+| `StatTile` | `label`, `value`, `note`, `tone` default · danger; lay out in `<div class="ui-stats">` | `.tile` in the fleet console |
 
 ### Kit only
 
@@ -97,7 +97,7 @@ Every control and card in the app comes from the kit, and every kit component is
 using in app must came from storybook"; the storybook is `/design`).
 
 - Outside `src/lib/ui`, no raw `<button>`, `<input>`, `<select>` or `<textarea>`, and no hand-made
-  `class="btn"`, `"glass"`, `"chip"` or `"switch"`. If the kit lacks something, add it to
+  `class="btn"`, `"glass"`, `"card"`, `"chip"` or `"switch"`. If the kit lacks something, add it to
   `src/lib/ui`, export it from `index.ts` and show it on `/design` in the same PR.
 - A field and its action sit in a `FieldRow`: one height (md 44px by default), bottoms aligned, the
   field grows and the button keeps its label width. Never pair a 54px field with a 36px pill.
@@ -115,9 +115,6 @@ The user always knows what the app is doing (Job, 2026-11-19).
 - `npm run lint:ui` flags a component that awaits something but shows none of `Skeleton`,
   `Spinner`, `ProgressRing`, `busy` or `aria-busy`. An instant local read can say so with
   `// ui-ok: instant local read`.
-=======
-| `StatTile` | `label`, `value`, `note`, `tone` default · danger; lay out in `<div class="ui-stats">` | `.tile` in the fleet console |
->>>>>>> origin/claude/project-thread-f71va4
 
 `Button` and `IconButton` reuse the global `.btn` / `.icon-btn` styles in `app.css`, so a
 migrated button and an old one look the same.

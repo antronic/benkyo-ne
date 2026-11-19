@@ -90,7 +90,7 @@
 	{/if}
 
 	{#if next}
-		<a href="/learn/{next.id}" class="card lesson rise" style:--i="3" style:--h={next.hue}>
+		<Card href="/learn/{next.id}" padding="lg" radius="large" class="lesson rise" style="--i: 3; --h: {next.hue}">
 			<div class="lesson-glyphs">
 				{#each next.chars.slice(0, 3) as k, i}
 					<span style:--j={i}><KanaGlyph char={k.char} size="100%" color="#fff" weight={6} /></span>
@@ -109,7 +109,7 @@
 					{t('home.limit')}
 				</div>
 			{/if}
-		</a>
+		</Card>
 	{:else}
 		<Card padding="lg" radius="large" class="rise">{t('home.allDone')}</Card>
 	{/if}
@@ -140,7 +140,7 @@
 		.dash > :global(.tip) {
 			grid-column: 1 / -1;
 		}
-		.dash > .lesson {
+		.dash > :global(.lesson.lesson) {
 			grid-row: span 2;
 			min-height: 100%;
 		}
@@ -166,18 +166,6 @@
 	.stats b {
 		font-size: 1.125rem;
 	}
-	.card {
-		display: flex;
-		gap: var(--space-4);
-		padding: var(--space-5);
-		border-radius: var(--r-l);
-		text-decoration: none;
-		color: inherit;
-		transition: transform 450ms var(--spring);
-	}
-	a.card:active {
-		transform: scale(0.97);
-	}
 	.dash > :global(.review) {
 		display: flex;
 		gap: var(--space-4);
@@ -188,7 +176,9 @@
 		font-size: 34px;
 		color: var(--ink-3);
 	}
-	.lesson {
+	.dash > :global(.lesson) {
+		display: flex;
+		gap: var(--space-4);
 		flex-direction: column;
 		color: #fff;
 		min-height: 220px;

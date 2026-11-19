@@ -42,9 +42,9 @@ const KIT_FOR = {
 	select: 'Select',
 	textarea: 'TextArea'
 };
-const ADHOC = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)'|\{`([^`]*)`\})|\bclass:(btn|glass|chip|switch)\b/g;
-const ADHOC_WORD = /(?<![\w-])(btn|glass|chip|switch)(?![\w-])/;
-const KIT_FOR_CLASS = { btn: 'Button', glass: 'Card or ListGroup', chip: 'Chip', switch: 'Switch' };
+const ADHOC = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)'|\{`([^`]*)`\})|\bclass:(btn|glass|card|chip|switch)\b/g;
+const ADHOC_WORD = /(?<![\w-])(btn|glass|card|chip|switch)(?![\w-])/;
+const KIT_FOR_CLASS = { btn: 'Button', glass: 'Card or ListGroup', card: 'Card', chip: 'Chip', switch: 'Switch' };
 const ASYNC = /\bawait\b|\.then\(/;
 const LOADING = /<(Skeleton|Spinner|ProgressRing)\b|\bbusy\b|aria-busy/;
 
