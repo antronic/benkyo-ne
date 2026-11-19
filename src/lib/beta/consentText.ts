@@ -75,8 +75,9 @@ export const HOW_USED: string[] = [
 
 export const RETENTION: string[] = [
 	`Usage data is deleted automatically ${RETENTION_DAYS} days after it’s collected.`,
-	'Your record of agreeing is kept while your account exists.',
-	'Deleting your account deletes all of it straight away.'
+	'Your record of agreeing is kept as long as your account exists, including after you delete it.',
+	`Deleting your account closes it rather than erasing it. Your usage data is kept, and is still deleted ${RETENTION_DAYS} days after it’s collected.`,
+	'To remove your usage data sooner, delete it in Settings › Beta data before you delete your account, or email us (below) to have your closed account erased.'
 ];
 
 export const CHOICES: string[] = [
