@@ -50,7 +50,8 @@ To publish a unit, a reviewer checks it and sets `review.ja` (and `review.th` fo
 
 - ids are unique and start with the level; each unit has its parts (3 grammar points of 5 examples)
 - the unit's kanji are of its level (Waller) and in KANJIDIC2; no kanji or word is taught twice
-- every word is in JMdict with that reading
+- every word is in JMdict with that reading; a word written in kana finds the kana entry (いつ alone
+  finds 五), and no two words of a level are the same entry (they would be one card)
 - Japanese lines use only kanji of the unit's level or below, or ones the kanji lessons teach;
   anything harder is written in kana
 - every English text has Thai; reading answers point at a choice; choices are distinct
@@ -71,8 +72,42 @@ loaded on demand so the app bundle does not grow with it.
 
 | Level | Planned units | Written | Reviewed |
 | --- | --- | --- | --- |
-| N5 | 27 | 6 (n5-01 to n5-06) | 0 |
+| N5 | 27 | 27 (n5-01 to n5-27) | 0 |
 | N4–N1 | 30, 43, 63, 77 | 0 | 0 |
+
+### N5 units
+
+All 27 are AI drafts waiting for review. Kanji: all 79 N5 kanji on Waller's list, each taught once.
+
+| Unit | Title | Kanji | Grammar |
+| --- | --- | --- | --- |
+| n5-01 | Nice to meet you | 名 前 生 | 〜は〜です, 〜じゃありません, 〜か |
+| n5-02 | This and that | 何 語 国 | これ・それ・あれ, この・その・あの, 〜の〜 |
+| n5-03 | Where is it? | 右 左 外 | ここ・そこ・あそこ・どこ, あります・います, 〜に〜があります |
+| n5-04 | Time and prices | 時 半 円 午 百 | 〜時・〜時半, いくらですか・〜円, 〜から〜まで |
+| n5-05 | Everyday verbs | 行 来 食 見 | 〜ます・〜ません, 〜を〜ます, 〜へ行きます |
+| n5-06 | What I did | 今 毎 年 | 〜ました・〜ませんでした, 〜に (time), 〜で〜ます |
+| n5-07 | Counting things | 一 二 三 四 五 | 〜つ, 〜をください, 〜と〜 |
+| n5-08 | People and ages | 六 七 八 九 十 | 〜人（にん）, 〜さい, 〜も |
+| n5-09 | Shopping | 千 万 高 | 〜いです・〜くないです, 〜がほしいです, 〜だけ |
+| n5-10 | Making plans | 火 水 木 金 土 | 〜ませんか, 〜ましょう, 〜と（いっしょに） |
+| n5-11 | Dates and birthdays | 日 月 先 | 〜月〜日, いつ, 〜ね・〜よ |
+| n5-12 | My family | 父 母 子 男 女 | 父・お父さん, 〜や〜（など）, だれが・何が |
+| n5-13 | Describing places | 大 小 長 | 〜です・〜じゃないです（な-adjective）, A-い N・A-な N, あまり〜ない |
+| n5-14 | The weather | 天 気 雨 | 〜かったです・〜でした, 〜でしょう, 〜から（reason） |
+| n5-15 | School and likes | 学 校 友 | 〜が好きです・〜がきらいです, 〜が上手です・〜がへたです, 〜が、〜 |
+| n5-16 | Asking the way | 東 西 南 北 | 〜を（through）, 〜て、〜, 〜てください |
+| n5-17 | Going out and coming in | 出 入 休 | 〜を出ます, 〜に入ります, 〜てから |
+| n5-18 | On the phone | 電 話 | 〜ています（now）, 〜ています（state）, もう・まだ |
+| n5-19 | Rules at the library | 書 読 聞 | 〜てもいいです, 〜てはいけません, 〜に行きます（purpose） |
+| n5-20 | Talking with friends | 上 下 | dictionary form, ない form, 〜ないでください |
+| n5-21 | Before and after | 後 間 | た form, 〜前に, 〜後で |
+| n5-22 | When I was a child | 中 | 〜とき, 〜時間・〜か月・〜年（ぐらい）, 〜がわかります・〜ができます |
+| n5-23 | Comparing things | 山 川 | 〜より, どちらが〜・〜のほうが, 〜の中で〜が一番 |
+| n5-24 | Colours and changes | 白 | 〜くなる・〜になる, 〜くて・〜で, 〜く・〜に + verb |
+| n5-25 | Getting around | 車 | 〜で（means）, 〜にのる・〜をおりる, どうやって |
+| n5-26 | What I want to do | 本 | 〜たいです, どうして・なぜ, 何も・だれも・どこへも + negative |
+| n5-27 | A summer festival | 人 | ぜんぜん〜ない, 何か・どこか・だれか, それから・でも・だから |
 
 Not yet built: tracing for the new kanji (the kanji lessons' TRACE needs `build:strokes` for them),
 the onboarding level picker, a local review page, and recorded audio (🔊 uses the device voice).

@@ -44,3 +44,8 @@ export { emptyInk, inkDuration, sampleInk, type Ink, type InkPoint } from './ink
 export { default as Avatar } from './Avatar.svelte';
 export { default as TilePicker } from './TilePicker.svelte';
 export { default as SwatchPicker } from './SwatchPicker.svelte';
+export { default as PolitenessMeter } from './PolitenessMeter.svelte';
+export { default as MarkedText } from './MarkedText.svelte';
+export type { MarkedPart } from './MarkedText.svelte';
+export { default as KanjiTile } from './KanjiTile.svelte';
+export { default as SpeechBubble } from './SpeechBubble.svelte';
