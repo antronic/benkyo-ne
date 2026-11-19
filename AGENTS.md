@@ -57,7 +57,7 @@ Worker backend (D1, KV) at https://benkyo.jirachai.me. Learners are English and 
 | `worker/` | Cloudflare Worker: `/api/*` (auth, sync, AI proxy, beta data, admin), D1 migrations in `worker/migrations/` |
 | `wasm/stroke/` | Rust handwriting matcher (compiled output is committed) |
 | `scripts/` | Asset builders (strokes, wasm, icons, embedded deploy) |
-| `docs/` | Design docs (`PLAN`, `AI-PLAN`, `BETA-DATA`, `DESIGN-SYSTEM`, `FLEET`, …), the map and the guides |
+| `docs/` | Design docs (`PLAN`, `AI-PLAN`, `BETA-DATA`, `DESIGN-SYSTEM`, `FLEET`, `CI-RUNNER`, …), the map and the guides |
 
 The default branch is `claude/japanese-learning-pwa-hrznwf`, not `main`.
 
@@ -77,7 +77,7 @@ npx wrangler dev --port 8787 --infer-origin-from-routes=false   # full stack loc
 npm run dev                # Vite only, UI without /api (forever process: background it)
 ```
 
-**The gate** (run before every push, paste the result in the PR):
+**The gate** (run before every push, paste the result in the PR; CI runs it on the self-hosted runner, [docs/CI-RUNNER.md](docs/CI-RUNNER.md)):
 `npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout`.
 
 ## Hard rules
