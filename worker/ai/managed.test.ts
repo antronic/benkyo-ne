@@ -101,7 +101,9 @@ describe('managed AI', () => {
 		expect(s.body.spentUsd).toBeCloseTo((1000 * 3 + 200 * 15) / 1e6, 9);
 		expect(s.body.models).toEqual([
 			{ feature: 'fill', label: 'Claude Sonnet 5.5', model: 'claude-sonnet-5-5' },
-			{ feature: 'propose', label: 'Claude Sonnet 5.5', model: 'claude-sonnet-5-5' }
+			{ feature: 'propose', label: 'Claude Sonnet 5.5', model: 'claude-sonnet-5-5' },
+			// no model picked for translate: the package's cheapest one
+			{ feature: 'translate', label: 'Claude Sonnet 5.5', model: 'claude-sonnet-5-5' }
 		]);
 		// managed spend doesn't eat the learner's own cap
 		expect((await call('GET', '/api/ai/usage')).body).toMatchObject({ spentUsd: 0, calls: 0 });
@@ -159,7 +161,8 @@ describe('managed AI', () => {
 		expect(s.body.byFeature).toEqual([
 			{ feature: 'fill', source: 'own' },
 			{ feature: 'propose', source: 'package' },
-			{ feature: 'vision', source: null }
+			{ feature: 'vision', source: null },
+			{ feature: 'translate', source: 'package' }
 		]);
 		expect(s.body.active).toBe('own');
 	});

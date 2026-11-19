@@ -6,7 +6,7 @@
 
 	  <CommunityNotes subject="kana:あ" label="あ" note={notes.text('kana:あ')} />
 
-	`api`, `signedIn` and `accountId` default to the real ones; /design passes fakes.
+	`api`, `signedIn`, `accountId` and `canTranslate` default to the real ones; /design passes fakes.
 -->
 <script lang="ts">
 	import { t, tn, type MessageKey } from '#lib/i18n/index.svelte.ts';
@@ -26,11 +26,14 @@
 		api?: CommunityApi;
 		signedIn?: boolean;
 		accountId?: number;
+		/** offer 文A Translate (defaults to: AI is available) */
+		canTranslate?: boolean;
 		class?: string;
 	};
-	let { subject, label, note, api = communityApi, signedIn: signedInProp, accountId: accountProp, class: cls = '' }: Props = $props();
+	let { subject, label, note, api = communityApi, signedIn: signedInProp, accountId: accountProp, canTranslate: translateProp, class: cls = '' }: Props = $props();
 	const signedIn = $derived(signedInProp ?? ai.signedIn);
 	const accountId = $derived(accountProp ?? ai.account?.id);
+	const canTranslate = $derived(translateProp ?? ai.available);
 
 	const SHOWN = 3;
 	let data = $state<SubjectNotes | null>(null);
@@ -196,7 +199,7 @@
 		{/if}
 
 		{#each posts as p (p.id)}
-			<CommunityPost kind="post" item={p} {api} canReply={me.canPost} onblocked={blocked} />
+			<CommunityPost kind="post" item={p} {api} canReply={me.canPost} {canTranslate} onblocked={blocked} />
 		{:else}
 			<p class="caption">{t('community.empty')}</p>
 		{/each}

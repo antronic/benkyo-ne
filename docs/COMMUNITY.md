@@ -3,7 +3,7 @@
 The plan with all four phases is the
 [Notes and community plan](https://claude.ai/artifact/FS32YVZu5N4LfRUgVvESzA). Phase 1, private notes,
 is in [NOTES.md](NOTES.md). This file describes phase 2 as built: sharing a note, likes, replies,
-reports, blocks and the Fleet Community screen. The Translate button (文A) comes in its own PR.
+reports, blocks, the Translate button (文A) and the Fleet Community screen.
 
 ## What learners see
 
@@ -18,6 +18,12 @@ reports, blocks and the Fleet Community screen. The Translate button (文A) come
 - Each note or reply (`CommunityPost.svelte`) has a heart (one per person, the count is public),
   replies one level deep, and a ••• menu: Report (spam, harassment, wrong or misleading, sexual,
   other, with an optional detail), Block @handle, or Delete for your own.
+- **文A Translate** (an icon button with no label; the tooltip and accessible name say "Translate")
+  sits on someone else's note or reply when it is in another language than the interface (English
+  or Thai) and AI is available. It translates with the learner's AI on the **Translate** model slot
+  (Settings → AI), shows "Translated by AI", and pressing it again shows the original. Translations
+  are kept on the device (`src/lib/community/translations.ts`, localStorage, newest 200, keyed by
+  note, edit time and language), so the same note isn't paid for twice.
 - **Settings → Community** (`CommunitySettings.svelte`) shows your handle and the people you
   blocked, with Unblock.
 - Signed in only during the beta. Shared notes are fetched when an item opens and are not stored on
@@ -40,6 +46,17 @@ reports, blocks and the Fleet Community screen. The Translate button (文A) come
 
 Editing a shared note keeps the status a moderator gave it, so editing doesn't bring back a hidden note.
 
+## Translate (`POST /api/ai/translate`)
+
+- The request carries only `{kind, id, to}`; the Worker reads the text itself with the same
+  visibility rule as above (`visibleText` in `worker/communityData.ts`), so a hidden, removed or
+  blocked note can't be translated, and a note already in `to` is refused (400).
+- It runs through the normal AI pipeline (`worker/ai/run.ts`: rate limits, cap or package allowance,
+  ledger, beta usage data) on the `translate` feature. Default model: Haiku 5.5 on the learner's
+  first Anthropic key (`TRANSLATE_MODEL` in `worker/ai/models.ts`); on a package, the model the
+  console assigned to Translate, else the package's cheapest priced model.
+- Migration `0015_translate_feature.sql` rebuilds `ai_feature_models` so its CHECK allows `translate`.
+
 ## Fleet console: Community (`/admin/community`, `worker/admin/community.ts`)
 
 - Counts: open reports, hidden now, notes and replies this week, handles.
@@ -60,6 +77,7 @@ Editing a shared note keeps the status a moderator gave it, so editing doesn't b
 | `POST /api/community/posts` | share or update your note on an item |
 | `GET`/`DELETE /api/community/posts/:id` | a note with its replies / delete yours |
 | `POST /api/community/posts/:id/replies`, `DELETE /api/community/replies/:id` | reply / delete your reply |
+| `POST /api/ai/translate` | `{kind, id, to}` → `{text, to}` (文A, see above) |
 | `POST /api/community/like`, `/report`, `/block` | `{kind: 'post' \| 'reply', id, …}` |
 | `GET /api/community/blocks`, `DELETE /api/community/blocks/:handle` | blocked people / unblock |
 | `GET /api/admin/community`, `POST /api/admin/community/{content,author}` | Fleet queue and actions |
@@ -68,6 +86,6 @@ Tables (migration `0014_community.sql`): `community_profiles`, `community_posts`
 kind of post; phase 2 makes `note` only, one per person per item), `community_replies`,
 `community_likes`, `community_reports`, `community_blocks`.
 
-Not in phase 2: Translate (next PR), shared packs (phase 3), tips, blog, inbox and profiles pages
+Not in phase 2: shared packs (phase 3), tips, blog, inbox and profiles pages
 (phase 4). The beta privacy notice is unchanged: the guidelines shown before the first share say
 what becomes public, how long it is kept and how to delete it.

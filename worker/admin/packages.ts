@@ -37,7 +37,7 @@ export const MAX_ALLOWANCE_USD = 100;
 export const MAX_GRANT_DAYS = 730;
 export const MAX_PACKAGES = 12;
 export const MAX_PLAN_MODELS = 20;
-export const FEATURES: AdminFeature[] = ['fill', 'propose', 'vision'];
+export const FEATURES: AdminFeature[] = ['fill', 'propose', 'vision', 'translate'];
 
 type PlanRow = Omit<AdminPlan, 'available' | 'accounts' | 'builtin' | 'models'> & { available: number };
 type PlanModelRow = Omit<AdminPlanModel, 'features'> & { planId: string; features: string };

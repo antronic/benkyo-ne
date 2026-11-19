@@ -178,7 +178,7 @@ export interface AdminPlan {
 	models: AdminPlanModel[];
 }
 
-export type AdminFeature = 'fill' | 'propose' | 'vision';
+export type AdminFeature = 'fill' | 'propose' | 'vision' | 'translate';
 
 /** A model included in a package. */
 export interface AdminPlanModel {

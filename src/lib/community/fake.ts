@@ -76,6 +76,15 @@ export function fakeCommunity({ joined = true, empty = false, fail = false } = {
 			return wait({ liked: on, likes: (p?.likes ?? 0) + (on ? 1 : -1) }, 250);
 		},
 		report: async () => wait({ ok: true as const }),
-		block: async () => wait({ ok: true as const })
+		block: async () => wait({ ok: true as const }),
+		translate: async (_kind, id: number, to) =>
+			wait(
+				to === 'th'
+					? 'ลองนึกภาพหน้าต่างที่มีแสงอาทิตย์ส่องผ่าน 日 คือดวงอาทิตย์ และยังแปลว่าวันด้วย: 日曜日 คือวันอาทิตย์'
+					: id === 2
+						? 'An easy way to remember: it’s a window with the sun in it. Read にち or ひ.'
+						: 'Translated text.',
+				700
+			)
 	} as CommunityApi;
 }
