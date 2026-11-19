@@ -9,7 +9,7 @@
 	import { onMount } from 'svelte';
 	import LargeTitle from '#lib/ui/LargeTitle.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
-	import { Badge, Button, Card, Chip, ListGroup, ListRow, Notice, SectionHeader, TextField } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, Chip, Columns, ListGroup, ListRow, Notice, SectionHeader, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError, addProvider, getProviders, patchProvider, removeProvider } from '#lib/admin/client.ts';
@@ -105,66 +105,72 @@
 			<Notice tone="danger" title="Keys can’t be saved yet">Set the AI_MASTER_KEY Worker secret first (docs/FLEET.md). It encrypts every provider key.</Notice>
 		{/if}
 
-		{#each data.providers as p (p.id)}
-			<ListGroup class="provider">
-				<ListRow title={p.label} subtitle={sub(p)}>
-					{#snippet trailing()}
-						<Badge tone={!p.enabled || p.checkError ? 'danger' : 'success'}>{!p.enabled ? 'Off' : p.checkError ? 'Not answering' : 'On'}</Badge>
-					{/snippet}
-				</ListRow>
-				<ListRow
-					href="/admin/ai/{p.id}"
-					title={p.modelCount === null ? 'Models' : `${p.modelCount} models`}
-					subtitle={p.checkError ?? (p.checkedAt ? `Listed ${time(p.checkedAt)}` : undefined)}
-				/>
-				<ListRow subtitle={p.usedBy.length ? `In ${p.usedBy.join(', ')}` : 'Not in a package yet'} />
-				{#if rekey?.id === p.id}
-					<ListRow>
-						<div class="stack" style:--gap="var(--space-3)">
-							<TextField label="New API key" type="password" bind:value={rekey.key} autocomplete="off" spellcheck="false" />
-							<span class="row" style:gap="var(--space-2)">
-								<span class="spacer"></span>
-								<Button variant="ghost" size="sm" onclick={() => (rekey = null)} disabled={busy}>Cancel</Button>
-								<Button size="sm" onclick={saveKey} {busy}>Check and save</Button>
+		<Columns min="420px">
+			<section>
+				{#each data.providers as p (p.id)}
+					<ListGroup class="provider">
+						<ListRow title={p.label} subtitle={sub(p)}>
+							{#snippet trailing()}
+								<Badge tone={!p.enabled || p.checkError ? 'danger' : 'success'}>{!p.enabled ? 'Off' : p.checkError ? 'Not answering' : 'On'}</Badge>
+							{/snippet}
+						</ListRow>
+						<ListRow
+							href="/admin/ai/{p.id}"
+							title={p.modelCount === null ? 'Models' : `${p.modelCount} models`}
+							subtitle={p.checkError ?? (p.checkedAt ? `Listed ${time(p.checkedAt)}` : undefined)}
+						/>
+						<ListRow subtitle={p.usedBy.length ? `In ${p.usedBy.join(', ')}` : 'Not in a package yet'} />
+						{#if rekey?.id === p.id}
+							<ListRow>
+								<div class="stack" style:--gap="var(--space-3)">
+									<TextField label="New API key" type="password" bind:value={rekey.key} autocomplete="off" spellcheck="false" />
+									<span class="row" style:gap="var(--space-2)">
+										<span class="spacer"></span>
+										<Button variant="ghost" size="sm" onclick={() => (rekey = null)} disabled={busy}>Cancel</Button>
+										<Button size="sm" onclick={saveKey} {busy}>Check and save</Button>
+									</span>
+								</div>
+							</ListRow>
+						{:else}
+							<ListRow>
+								<span class="row" style:gap="var(--space-2) var(--space-5)" style:flex-wrap="wrap">
+									<Button variant="plain" size="sm" onclick={() => (rekey = { id: p.id, key: '' })} disabled={busy}>Replace key</Button>
+									<Button variant="plain" size="sm" onclick={() => toggle(p)} disabled={busy}>{p.enabled ? 'Turn off' : 'Turn on'}</Button>
+									<span class="spacer"></span>
+									<Button variant="plain" class="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Remove</Button>
+								</span>
+							</ListRow>
+						{/if}
+					</ListGroup>
+				{/each}
+			</section>
+			<section>
+				<SectionHeader title={data.providers.length ? 'Add another provider' : 'Add your first provider'} />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-4)">
+						<div class="stack" style:--gap="var(--space-1h)">
+							<span class="caption">Provider</span>
+							<span class="chips" role="group" aria-label="Provider">
+								{#each data.presets as pr (pr.id)}
+									<Chip selected={preset === pr.id} onclick={() => (preset = pr.id)}>{pr.name}</Chip>
+								{/each}
 							</span>
 						</div>
-					</ListRow>
-				{:else}
-					<ListRow>
-						<span class="row" style:gap="var(--space-2) var(--space-5)" style:flex-wrap="wrap">
-							<Button variant="plain" size="sm" onclick={() => (rekey = { id: p.id, key: '' })} disabled={busy}>Replace key</Button>
-							<Button variant="plain" size="sm" onclick={() => toggle(p)} disabled={busy}>{p.enabled ? 'Turn off' : 'Turn on'}</Button>
+						{#if preset === 'custom'}
+							<TextField id="base" label="Base URL" type="url" bind:value={baseUrl} placeholder="https://llm.example.com/v1" spellcheck="false" />
+						{/if}
+						<TextField id="label" label={preset === 'custom' ? 'Name' : 'Name (optional)'} bind:value={label} maxlength={40} placeholder={preset === 'custom' ? 'My server' : chosen?.name} />
+						<TextField id="key" label="API key" type="password" bind:value={apiKey} autocomplete="off" spellcheck="false" hint="Benkyo lists the provider’s models with this key before keeping it. It’s encrypted and never shown again." />
+						<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
+							{#if chosen?.keysUrl}<Button variant="plain" size="sm" href={chosen.keysUrl}>Get an API key from {chosen.name} ↗</Button>{/if}
 							<span class="spacer"></span>
-							<Button variant="plain" class="danger" size="sm" onclick={() => remove(p)} disabled={busy}>Remove</Button>
+							<Button onclick={add} {busy} disabled={!data.canSaveKeys}>Check and save</Button>
 						</span>
-					</ListRow>
-				{/if}
-			</ListGroup>
-		{/each}
+					</div>
+				</Card>
+			</section>
+		</Columns>
 
-		<SectionHeader title={data.providers.length ? 'Add another provider' : 'Add your first provider'} />
-		<Card padding="md">
-			<div class="stack" style:--gap="var(--space-4)">
-				<div class="stack" style:--gap="var(--space-1h)">
-					<span class="caption">Provider</span>
-					<span class="chips" role="group" aria-label="Provider">
-						{#each data.presets as pr (pr.id)}
-							<Chip selected={preset === pr.id} onclick={() => (preset = pr.id)}>{pr.name}</Chip>
-						{/each}
-					</span>
-				</div>
-				{#if preset === 'custom'}
-					<TextField id="base" label="Base URL" type="url" bind:value={baseUrl} placeholder="https://llm.example.com/v1" spellcheck="false" />
-				{/if}
-				<TextField id="label" label={preset === 'custom' ? 'Name' : 'Name (optional)'} bind:value={label} maxlength={40} placeholder={preset === 'custom' ? 'My server' : chosen?.name} />
-				<TextField id="key" label="API key" type="password" bind:value={apiKey} autocomplete="off" spellcheck="false" hint="Benkyo lists the provider’s models with this key before keeping it. It’s encrypted and never shown again." />
-				<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
-					{#if chosen?.keysUrl}<Button variant="plain" size="sm" href={chosen.keysUrl}>Get an API key from {chosen.name} ↗</Button>{/if}
-					<span class="spacer"></span>
-					<Button onclick={add} {busy} disabled={!data.canSaveKeys}>Check and save</Button>
-				</span>
-			</div>
-		</Card>
 
 		<p class="caption foot">
 			These keys pay for the managed AI in <a href="/admin/packages">packages</a>. Learners’ own keys stay separate. Changes ask for your passkey and go in the audit log.

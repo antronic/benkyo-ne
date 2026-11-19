@@ -2,7 +2,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { version } from '$app/env';
-	import { Button, LargeTitle, ListGroup, SectionHeader, Skeleton } from '#lib/ui/index.ts';
+	import { Button, Columns, LargeTitle, ListGroup, SectionHeader, Skeleton } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { AdminError, getSystem } from '#lib/admin/client.ts';
@@ -46,66 +46,74 @@
 	{:else if !s}
 		<Skeleton variant="row" count={4} label="Checking the system" />
 	{:else}
-		<SectionHeader title="Deployed" />
-		<ListGroup>
-			<div class="item">
-				<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
-					<span>Worker</span>
-					<span class="caption ellipsis">{s.worker ? `${s.worker.tag ?? s.worker.id}` : 'Local dev, no version metadata'}</span>
-				</span>
-				<span class="spacer"></span><span class="caption">{s.worker ? when(s.worker.deployedAt) : ''}</span>
-			</div>
-			<div class="item">
-				<span>App build</span><span class="spacer"></span><span class="caption">{appBuilt}</span>
-			</div>
-			<div class="item">
-				<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
-					<span>Database migrations</span>
-					<span class="caption wrap">
-						{#if s.migrations.applied}Last applied {s.migrations.applied}{#if s.migrations.appliedAt}, {when(s.migrations.appliedAt)}{/if}{:else}No migration record{/if}
-					</span>
-					{#if !s.migrations.upToDate}<span class="caption danger">This Worker expects {s.migrations.expected}. Run the migrations.</span>{/if}
-				</span>
-				<span class="spacer"></span>
-				<span class="pill" class:off={!s.migrations.upToDate}>{s.migrations.upToDate ? 'Up to date' : 'Behind'}</span>
-			</div>
-		</ListGroup>
+		<Columns min="420px">
+			<section>
+				<SectionHeader title="Deployed" />
+				<ListGroup>
+					<div class="item">
+						<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
+							<span>Worker</span>
+							<span class="caption ellipsis">{s.worker ? `${s.worker.tag ?? s.worker.id}` : 'Local dev, no version metadata'}</span>
+						</span>
+						<span class="spacer"></span><span class="caption">{s.worker ? when(s.worker.deployedAt) : ''}</span>
+					</div>
+					<div class="item">
+						<span>App build</span><span class="spacer"></span><span class="caption">{appBuilt}</span>
+					</div>
+					<div class="item">
+						<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
+							<span>Database migrations</span>
+							<span class="caption wrap">
+								{#if s.migrations.applied}Last applied {s.migrations.applied}{#if s.migrations.appliedAt}, {when(s.migrations.appliedAt)}{/if}{:else}No migration record{/if}
+							</span>
+							{#if !s.migrations.upToDate}<span class="caption danger">This Worker expects {s.migrations.expected}. Run the migrations.</span>{/if}
+						</span>
+						<span class="spacer"></span>
+						<span class="pill" class:off={!s.migrations.upToDate}>{s.migrations.upToDate ? 'Up to date' : 'Behind'}</span>
+					</div>
+				</ListGroup>
+			</section>
+			<section>
+				<SectionHeader title="Health" />
+				<ListGroup>
+					{#each s.checks as c (c.name)}
+						<div class="item">
+							<span class="dot" class:bad={!c.ok} aria-hidden="true"></span>
+							<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
+								<span>{c.name}</span>
+								<span class="caption">{c.detail}</span>
+							</span>
+							<span class="spacer"></span>
+							<span class="visually-hidden">{c.ok ? 'OK' : 'Problem'}</span>
+						</div>
+					{/each}
+				</ListGroup>
+			</section>
+			<section>
+				<SectionHeader title="AI" />
+				<ListGroup>
+					<div class="item"><span>Accounts with their own AI key</span><span class="spacer"></span><b class="num">{s.ai.accountsWithKey}</b></div>
+					{#each s.ai.featureModels as m (m.feature + m.model)}
+						<div class="item">
+							<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
+								<span>{FEATURES[m.feature] ?? m.feature}</span>
+								<span class="caption ellipsis">{m.model}</span>
+							</span>
+							<span class="spacer"></span><span class="caption">{m.accounts} {m.accounts === 1 ? 'account' : 'accounts'}</span>
+						</div>
+					{/each}
+				</ListGroup>
+			</section>
+			<section>
+				<SectionHeader title="Data" />
+				<ListGroup>
+					{#each s.tables as t (t.name)}
+						<div class="item"><code>{t.name}</code><span class="spacer"></span><b class="num">{t.rows.toLocaleString()}</b></div>
+					{/each}
+				</ListGroup>
+			</section>
+		</Columns>
 
-		<SectionHeader title="Health" />
-		<ListGroup>
-			{#each s.checks as c (c.name)}
-				<div class="item">
-					<span class="dot" class:bad={!c.ok} aria-hidden="true"></span>
-					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
-						<span>{c.name}</span>
-						<span class="caption">{c.detail}</span>
-					</span>
-					<span class="spacer"></span>
-					<span class="visually-hidden">{c.ok ? 'OK' : 'Problem'}</span>
-				</div>
-			{/each}
-		</ListGroup>
-
-		<SectionHeader title="AI" />
-		<ListGroup>
-			<div class="item"><span>Accounts with their own AI key</span><span class="spacer"></span><b class="num">{s.ai.accountsWithKey}</b></div>
-			{#each s.ai.featureModels as m (m.feature + m.model)}
-				<div class="item">
-					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
-						<span>{FEATURES[m.feature] ?? m.feature}</span>
-						<span class="caption ellipsis">{m.model}</span>
-					</span>
-					<span class="spacer"></span><span class="caption">{m.accounts} {m.accounts === 1 ? 'account' : 'accounts'}</span>
-				</div>
-			{/each}
-		</ListGroup>
-
-		<SectionHeader title="Data" />
-		<ListGroup>
-			{#each s.tables as t (t.name)}
-				<div class="item"><code>{t.name}</code><span class="spacer"></span><b class="num">{t.rows.toLocaleString()}</b></div>
-			{/each}
-		</ListGroup>
 
 		<p class="caption foot">
 			Checked {new Date(s.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} ·

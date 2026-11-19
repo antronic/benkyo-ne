@@ -9,7 +9,7 @@
 	import LargeTitle from '#lib/ui/LargeTitle.svelte';
 	import Skeleton from '#lib/ui/Skeleton.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
-	import { Badge, Button, Card, ListGroup, ListRow, Notice, SectionHeader, Segmented, Select, Switch, TextField } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, Columns, ListGroup, ListRow, Notice, SectionHeader, Segmented, Select, Switch, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError } from '#lib/admin/client.ts';
@@ -239,180 +239,186 @@
 		<Skeleton variant="card" count={1} label="Loading promo codes" />
 		<Skeleton variant="row" count={3} label="Loading promo codes" />
 	{:else}
-		<SectionHeader title="New code" />
-		<Card padding="md">
-			<form class="form" onsubmit={create}>
-				<Segmented
-					label="Code type"
-					bind:value={source}
-					options={[
-						{ value: 'random', label: 'Random' },
-						{ value: 'custom', label: 'Type my own' }
-					]}
-				/>
-				{#if source === 'custom'}
-					<TextField
-						label="Code"
-						bind:value={custom}
-						placeholder="SONGKRAN_27"
-						maxlength={30}
-						autocomplete="off"
-						autocapitalize="characters"
-						spellcheck={false}
-						error={customProblem}
-						hint={customClean && !customProblem ? `Saved as ${customClean}. Case, spaces, dashes and _ don’t matter when redeeming.` : 'Letters, digits and _, 6 to 24.'}
-					/>
-				{/if}
-				<Segmented
-					label="Kind"
-					bind:value={kind}
-					options={[
-						{ value: 'trial', label: 'Trial' },
-						{ value: 'comp', label: 'Complimentary' }
-					]}
-				/>
-				<ListGroup>
-					<ListRow title="Package" subtitle="What the code gives">
-						{#snippet trailing()}<Select label="Package" bind:value={plan} options={data!.plans.map((p) => ({ value: p.id, label: p.name }))} />{/snippet}
-					</ListRow>
-					{#if kind === 'comp'}
-						<ListRow title="No end date" subtitle="Lasts until you end it">
-							{#snippet trailing()}<Switch label="No end date" bind:checked={openEnded} />{/snippet}
-						</ListRow>
-					{/if}
-					<ListRow title="Limit uses" subtitle={limitUses ? 'Stops after this many people' : 'Anyone with the code can use it'}>
-						{#snippet trailing()}<Switch label="Limit uses" bind:checked={limitUses} />{/snippet}
-					</ListRow>
-					<ListRow title="Expires" subtitle={expires ? 'Stops accepting it after a while' : 'Accepted until you switch it off'}>
-						{#snippet trailing()}<Switch label="Expires" bind:checked={expires} />{/snippet}
-					</ListRow>
-				</ListGroup>
-				<div class="grid">
-					{#if kind === 'trial' || !openEnded}
-						<TextField label="Days of the package" type="number" inputmode="numeric" min={1} max={730} bind:value={days} hint="From redeeming, 1 to 730" />
-					{/if}
-					{#if limitUses}<TextField label="Uses" type="number" inputmode="numeric" min={1} max={10000} bind:value={maxUses} hint="1 to 10,000" />{/if}
-					{#if expires}<TextField label="Redeemable for (days)" type="number" inputmode="numeric" min={1} max={365} bind:value={expiresIn} hint="1 to 365" />{/if}
-				</div>
-				<TextField label="Note (only you see it)" bind:value={label} maxlength={60} placeholder="Songkran 2027 newsletter" />
-				{#if formError}<Notice tone="danger" title="Code not made">{formError}</Notice>{/if}
-				{#if made}
-					<Notice tone="success" title="Code {made.code} is live">
-						{gives(made)}. {limits(made)}.
-						{#snippet action()}<Button variant="ghost" size="sm" onclick={() => copy(made!.code)}>Copy</Button>{/snippet}
-					</Notice>
-				{/if}
-				<Button type="submit" block busy={creating} disabled={!!customProblem || (source === 'custom' && !customClean) || !data.plans.length}>
-					Make code
-				</Button>
-			</form>
-		</Card>
-
-		<SectionHeader title="Codes" />
-		<ListGroup>
-			{#each data.promos as p (p.code)}
-				<ListRow title={p.code} subtitle="{gives(p)} · {limits(p)}{p.label ? ` · ${p.label}` : ''}" onclick={() => show(p.code)} chevron>
-					{#snippet trailing()}<span class="uses">{usage(p)}</span><Badge tone={STATE[p.state].tone}>{STATE[p.state].label}</Badge>{/snippet}
-				</ListRow>
-			{:else}
-				<ListRow title="No codes yet" subtitle="Make one above. People redeem it in Settings, under Account." />
-			{/each}
-		</ListGroup>
-
-		{#if open}
-			<SectionHeader title="Code {open}" />
-			{#if detailError}
-				<ErrorCard error={detailError} onretry={retryDetail} />
-			{:else if !detail}
-				<Skeleton variant="row" count={2} label="Loading code" />
-			{:else}
-				{#if edit}
-					<Card padding="md">
-						<form class="form" onsubmit={saveEdit}>
+		<Columns min="420px">
+			<section>
+				<SectionHeader title="New code" />
+				<Card padding="md">
+					<form class="form" onsubmit={create}>
+						<Segmented
+							label="Code type"
+							bind:value={source}
+							options={[
+								{ value: 'random', label: 'Random' },
+								{ value: 'custom', label: 'Type my own' }
+							]}
+						/>
+						{#if source === 'custom'}
 							<TextField
 								label="Code"
-								bind:value={edit.code}
+								bind:value={custom}
+								placeholder="SONGKRAN_27"
 								maxlength={30}
 								autocomplete="off"
 								autocapitalize="characters"
 								spellcheck={false}
-								disabled={detail.uses > 0 || detail.redemptions.length > 0}
-								error={editCodeProblem}
-								hint={detail.uses > 0 || detail.redemptions.length > 0
-									? 'Can’t change after someone has redeemed it: they and their grant already name it. Make a new code instead.'
-									: editCode && !editCodeProblem && editCode !== detail.code
-										? `Saved as ${editCode}.`
-										: 'Nobody has used it yet, so you can still change it.'}
+								error={customProblem}
+								hint={customClean && !customProblem ? `Saved as ${customClean}. Case, spaces, dashes and _ don’t matter when redeeming.` : 'Letters, digits and _, 6 to 24.'}
 							/>
-							<Segmented
-								label="Kind"
-								bind:value={edit.kind}
-								options={[
-									{ value: 'trial', label: 'Trial' },
-									{ value: 'comp', label: 'Complimentary' }
-								]}
-							/>
-							<ListGroup>
-								<ListRow title="Package" subtitle="What the code gives">
-									{#snippet trailing()}<Select label="Package" bind:value={edit!.plan} options={data!.plans.map((p) => ({ value: p.id, label: p.name }))} />{/snippet}
-								</ListRow>
-								{#if edit.kind === 'comp'}
-									<ListRow title="No end date" subtitle="Lasts until you end it">
-										{#snippet trailing()}<Switch label="No end date" bind:checked={edit!.openEnded} />{/snippet}
-									</ListRow>
-								{/if}
-								<ListRow title="Limit uses" subtitle={`Used ${detail.uses} time${detail.uses === 1 ? '' : 's'} so far`}>
-									{#snippet trailing()}<Switch label="Limit uses" bind:checked={edit!.limitUses} />{/snippet}
-								</ListRow>
-								<ListRow title="Expires" subtitle={detail.expiresAt ? `Now ${detail.state === 'expired' ? 'expired' : 'until'} ${shortDay(detail.expiresAt)}` : 'Now accepted until you switch it off'}>
-									{#snippet trailing()}<Switch label="Expires" bind:checked={edit!.expires} />{/snippet}
-								</ListRow>
-							</ListGroup>
-							<div class="grid">
-								{#if edit.kind === 'trial' || !edit.openEnded}
-									<TextField label="Days of the package" type="number" inputmode="numeric" min={1} max={730} bind:value={edit.days} hint="From redeeming, 1 to 730" />
-								{/if}
-								{#if edit.limitUses}<TextField label="Uses" type="number" inputmode="numeric" min={Math.max(1, detail.uses)} max={10000} bind:value={edit.maxUses} hint="{Math.max(1, detail.uses)} to 10,000" />{/if}
-								{#if edit.expires}<TextField label="Redeemable for (days from today)" type="number" inputmode="numeric" min={1} max={365} bind:value={edit.expiresIn} hint="1 to 365" />{/if}
-							</div>
-							<TextField label="Note (only you see it)" bind:value={edit.label} maxlength={60} />
-							<Notice tone="info">Changes apply to people who redeem it from now on. Packages it already gave keep their terms.</Notice>
-							{#if editError}<Notice tone="danger" title="Not saved">{editError}</Notice>{/if}
-							<div class="actions">
-								<Button variant="ghost" onclick={() => (edit = null)} disabled={saving}>Cancel</Button>
-								<Button type="submit" busy={saving} disabled={!!editCodeProblem}>Save changes</Button>
-							</div>
-						</form>
-					</Card>
-				{:else}
-				<Card padding="md">
-					<div class="form">
-						<span class="caption">{gives(detail)}. {limits(detail)}. Made {shortDay(detail.createdAt)}.</span>
+						{/if}
+						<Segmented
+							label="Kind"
+							bind:value={kind}
+							options={[
+								{ value: 'trial', label: 'Trial' },
+								{ value: 'comp', label: 'Complimentary' }
+							]}
+						/>
 						<ListGroup>
-							<ListRow title="Accept this code" subtitle={detail.disabledAt === null ? 'People can redeem it' : `Off since ${shortDay(detail.disabledAt)}`}>
-								{#snippet trailing()}<Switch label="Accept this code" checked={detail!.disabledAt === null} disabled={switching} onchange={toggle} />{/snippet}
+							<ListRow title="Package" subtitle="What the code gives">
+								{#snippet trailing()}<Select label="Package" bind:value={plan} options={data!.plans.map((p) => ({ value: p.id, label: p.name }))} />{/snippet}
+							</ListRow>
+							{#if kind === 'comp'}
+								<ListRow title="No end date" subtitle="Lasts until you end it">
+									{#snippet trailing()}<Switch label="No end date" bind:checked={openEnded} />{/snippet}
+								</ListRow>
+							{/if}
+							<ListRow title="Limit uses" subtitle={limitUses ? 'Stops after this many people' : 'Anyone with the code can use it'}>
+								{#snippet trailing()}<Switch label="Limit uses" bind:checked={limitUses} />{/snippet}
+							</ListRow>
+							<ListRow title="Expires" subtitle={expires ? 'Stops accepting it after a while' : 'Accepted until you switch it off'}>
+								{#snippet trailing()}<Switch label="Expires" bind:checked={expires} />{/snippet}
 							</ListRow>
 						</ListGroup>
-						<span class="caption">Switching a code off stops new redemptions. Packages it already gave keep running; end one on the account’s page.</span>
-						<div class="actions">
-							<Button variant="ghost" size="sm" onclick={() => copy(detail!.code)}>Copy code</Button>
-							<Button size="sm" onclick={() => startEdit(detail!)}>Edit code</Button>
+						<div class="grid">
+							{#if kind === 'trial' || !openEnded}
+								<TextField label="Days of the package" type="number" inputmode="numeric" min={1} max={730} bind:value={days} hint="From redeeming, 1 to 730" />
+							{/if}
+							{#if limitUses}<TextField label="Uses" type="number" inputmode="numeric" min={1} max={10000} bind:value={maxUses} hint="1 to 10,000" />{/if}
+							{#if expires}<TextField label="Redeemable for (days)" type="number" inputmode="numeric" min={1} max={365} bind:value={expiresIn} hint="1 to 365" />{/if}
 						</div>
-					</div>
+						<TextField label="Note (only you see it)" bind:value={label} maxlength={60} placeholder="Songkran 2027 newsletter" />
+						{#if formError}<Notice tone="danger" title="Code not made">{formError}</Notice>{/if}
+						{#if made}
+							<Notice tone="success" title="Code {made.code} is live">
+								{gives(made)}. {limits(made)}.
+								{#snippet action()}<Button variant="ghost" size="sm" onclick={() => copy(made!.code)}>Copy</Button>{/snippet}
+							</Notice>
+						{/if}
+						<Button type="submit" block busy={creating} disabled={!!customProblem || (source === 'custom' && !customClean) || !data.plans.length}>
+							Make code
+						</Button>
+					</form>
 				</Card>
-				{/if}
-				<SectionHeader title="Redeemed by" level={3} trailing={redeemedCount} />
+			</section>
+			<section>
+				<SectionHeader title="Codes" />
 				<ListGroup>
-					{#each detail.redemptions as r (r.accountId)}
-						<ListRow title={r.accountName ?? `#${r.accountId}`} subtitle="#{r.accountId} · {shortDay(r.redeemedAt)}" href="/admin/accounts/{r.accountId}">
-							{#snippet trailing()}<Badge tone={r.live ? 'success' : 'neutral'}>{r.live ? 'Active' : 'Ended'}</Badge>{/snippet}
+					{#each data.promos as p (p.code)}
+						<ListRow title={p.code} subtitle="{gives(p)} · {limits(p)}{p.label ? ` · ${p.label}` : ''}" onclick={() => show(p.code)} chevron>
+							{#snippet trailing()}<span class="uses">{usage(p)}</span><Badge tone={STATE[p.state].tone}>{STATE[p.state].label}</Badge>{/snippet}
 						</ListRow>
 					{:else}
-						<ListRow title="Nobody yet" subtitle="Redemptions show up here." />
+						<ListRow title="No codes yet" subtitle="Make one above. People redeem it in Settings, under Account." />
 					{/each}
 				</ListGroup>
-			{/if}
-		{/if}
+
+				{#if open}
+					<SectionHeader title="Code {open}" />
+					{#if detailError}
+						<ErrorCard error={detailError} onretry={retryDetail} />
+					{:else if !detail}
+						<Skeleton variant="row" count={2} label="Loading code" />
+					{:else}
+						{#if edit}
+							<Card padding="md">
+								<form class="form" onsubmit={saveEdit}>
+									<TextField
+										label="Code"
+										bind:value={edit.code}
+										maxlength={30}
+										autocomplete="off"
+										autocapitalize="characters"
+										spellcheck={false}
+										disabled={detail.uses > 0 || detail.redemptions.length > 0}
+										error={editCodeProblem}
+										hint={detail.uses > 0 || detail.redemptions.length > 0
+											? 'Can’t change after someone has redeemed it: they and their grant already name it. Make a new code instead.'
+											: editCode && !editCodeProblem && editCode !== detail.code
+												? `Saved as ${editCode}.`
+												: 'Nobody has used it yet, so you can still change it.'}
+									/>
+									<Segmented
+										label="Kind"
+										bind:value={edit.kind}
+										options={[
+											{ value: 'trial', label: 'Trial' },
+											{ value: 'comp', label: 'Complimentary' }
+										]}
+									/>
+									<ListGroup>
+										<ListRow title="Package" subtitle="What the code gives">
+											{#snippet trailing()}<Select label="Package" bind:value={edit!.plan} options={data!.plans.map((p) => ({ value: p.id, label: p.name }))} />{/snippet}
+										</ListRow>
+										{#if edit.kind === 'comp'}
+											<ListRow title="No end date" subtitle="Lasts until you end it">
+												{#snippet trailing()}<Switch label="No end date" bind:checked={edit!.openEnded} />{/snippet}
+											</ListRow>
+										{/if}
+										<ListRow title="Limit uses" subtitle={`Used ${detail.uses} time${detail.uses === 1 ? '' : 's'} so far`}>
+											{#snippet trailing()}<Switch label="Limit uses" bind:checked={edit!.limitUses} />{/snippet}
+										</ListRow>
+										<ListRow title="Expires" subtitle={detail.expiresAt ? `Now ${detail.state === 'expired' ? 'expired' : 'until'} ${shortDay(detail.expiresAt)}` : 'Now accepted until you switch it off'}>
+											{#snippet trailing()}<Switch label="Expires" bind:checked={edit!.expires} />{/snippet}
+										</ListRow>
+									</ListGroup>
+									<div class="grid">
+										{#if edit.kind === 'trial' || !edit.openEnded}
+											<TextField label="Days of the package" type="number" inputmode="numeric" min={1} max={730} bind:value={edit.days} hint="From redeeming, 1 to 730" />
+										{/if}
+										{#if edit.limitUses}<TextField label="Uses" type="number" inputmode="numeric" min={Math.max(1, detail.uses)} max={10000} bind:value={edit.maxUses} hint="{Math.max(1, detail.uses)} to 10,000" />{/if}
+										{#if edit.expires}<TextField label="Redeemable for (days from today)" type="number" inputmode="numeric" min={1} max={365} bind:value={edit.expiresIn} hint="1 to 365" />{/if}
+									</div>
+									<TextField label="Note (only you see it)" bind:value={edit.label} maxlength={60} />
+									<Notice tone="info">Changes apply to people who redeem it from now on. Packages it already gave keep their terms.</Notice>
+									{#if editError}<Notice tone="danger" title="Not saved">{editError}</Notice>{/if}
+									<div class="actions">
+										<Button variant="ghost" onclick={() => (edit = null)} disabled={saving}>Cancel</Button>
+										<Button type="submit" busy={saving} disabled={!!editCodeProblem}>Save changes</Button>
+									</div>
+								</form>
+							</Card>
+						{:else}
+						<Card padding="md">
+							<div class="form">
+								<span class="caption">{gives(detail)}. {limits(detail)}. Made {shortDay(detail.createdAt)}.</span>
+								<ListGroup>
+									<ListRow title="Accept this code" subtitle={detail.disabledAt === null ? 'People can redeem it' : `Off since ${shortDay(detail.disabledAt)}`}>
+										{#snippet trailing()}<Switch label="Accept this code" checked={detail!.disabledAt === null} disabled={switching} onchange={toggle} />{/snippet}
+									</ListRow>
+								</ListGroup>
+								<span class="caption">Switching a code off stops new redemptions. Packages it already gave keep running; end one on the account’s page.</span>
+								<div class="actions">
+									<Button variant="ghost" size="sm" onclick={() => copy(detail!.code)}>Copy code</Button>
+									<Button size="sm" onclick={() => startEdit(detail!)}>Edit code</Button>
+								</div>
+							</div>
+						</Card>
+						{/if}
+						<SectionHeader title="Redeemed by" level={3} trailing={redeemedCount} />
+						<ListGroup>
+							{#each detail.redemptions as r (r.accountId)}
+								<ListRow title={r.accountName ?? `#${r.accountId}`} subtitle="#{r.accountId} · {shortDay(r.redeemedAt)}" href="/admin/accounts/{r.accountId}">
+									{#snippet trailing()}<Badge tone={r.live ? 'success' : 'neutral'}>{r.live ? 'Active' : 'Ended'}</Badge>{/snippet}
+								</ListRow>
+							{:else}
+								<ListRow title="Nobody yet" subtitle="Redemptions show up here." />
+							{/each}
+						</ListGroup>
+					{/if}
+				{/if}
+			</section>
+		</Columns>
+
 
 		<p class="caption foot">
 			A code gives its package from the moment it’s redeemed, once per account. It replaces a lower package and is refused when the account already has
