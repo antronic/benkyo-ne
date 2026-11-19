@@ -53,11 +53,11 @@
 
 	// promo code demo: no network, a short wait so the busy state shows
 	const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-	const fakePromoFree = async (): Promise<PromoStatus> => (await wait(600), { plan: 'free', planName: 'Free', grant: null });
-	const fakePromoTrial = async (): Promise<PromoStatus> => (
+	const fakePromoFree = async (): Promise<PromoStatus> => (await wait(600), { plan: 'free', planName: 'Free', grant: null }); // ui-ok: demo data for PromoCode, which shows its own skeleton and busy state
+	const fakePromoTrial = async (): Promise<PromoStatus> => ( // ui-ok: demo data for PromoCode, which shows its own skeleton and busy state
 		await wait(900), { plan: 'plus', planName: 'Plus', grant: { kind: 'trial', endsAt: Date.now() + 21 * 86_400_000, promoCode: 'WELCOME30' } }
 	);
-	async function fakeRedeem(code: string) {
+	async function fakeRedeem(code: string) { // ui-ok: demo data for PromoCode, which shows its own skeleton and busy state
 		await wait(700);
 		if (code.toUpperCase().replace(/[\s\-_.]/g, '') !== 'SONGKRAN27') throw new PromoRequestError(404, 'invalid', 'invalid');
 		return { code: 'SONGKRAN27', plan: 'pro', planName: 'Pro', grant: { kind: 'comp' as const, endsAt: Date.now() + 30 * 86_400_000, promoCode: 'SONGKRAN27' } };

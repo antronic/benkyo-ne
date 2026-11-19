@@ -1,8 +1,9 @@
 <!--
-	VIP invite card (DRAFT, on /design only until Job approves it). Opening a
-	named invite link pops this card up: it springs out with a tilt, a VIP seal
-	stamps on, a light sweeps across, the note rises in, and the handwriting
-	plays back as it was written (InkReplay). Then the accept button appears.
+	VIP invite card. Opening a named invite link (/invite/VIP) pops this card
+	up: it springs out with a tilt, a VIP seal stamps on, a light sweeps across,
+	the note rises in, and the handwriting plays back as it was written
+	(InkReplay). The buttons rise in with the note and work at once: nobody
+	waits on the drawing without knowing they can go on.
 	Under prefers-reduced-motion it all simply shows. `inline` renders it in
 	place (for /design) instead of over a scrim; change `replay` to play again.
 -->
@@ -48,12 +49,6 @@
 		onaccept?: () => void;
 		onclose?: () => void;
 	} = $props();
-
-	let inkDone = $state(false);
-	$effect(() => {
-		void replay;
-		inkDone = !ink;
-	});
 </script>
 
 {#snippet card()}
@@ -65,11 +60,11 @@
 			<h2 class="title">{title}</h2>
 			<p class="note">{note}</p>
 			{#if ink}
-				<div class="ink"><InkReplay {ink} label={inkLabel} delay={1300} ondone={() => (inkDone = true)} /></div>
+				<div class="ink"><InkReplay {ink} label={inkLabel} delay={1300} /></div>
 			{/if}
 			<span class="from">{from}</span>
 			{#if perk}<span class="perk"><Badge tone="violet">{perk}</Badge></span>{/if}
-			<div class="actions" class:ready={inkDone}>
+			<div class="actions">
 				<Button variant="accent" block onclick={onaccept}>{acceptLabel}</Button>
 				{#if onclose}<Button variant="ghost" block onclick={onclose}>{laterLabel}</Button>{/if}
 			</div>
@@ -226,15 +221,8 @@
 		flex-direction: column;
 		gap: var(--space-2);
 		margin-top: var(--space-2);
-		opacity: 0;
-		transform: translateY(8px);
-		transition:
-			opacity var(--dur-slow) var(--ease-out),
-			transform var(--dur-slow) var(--ease-out);
-	}
-	.actions.ready {
-		opacity: 1;
-		transform: none;
+		/* with the note, not after the drawing (ui rule: the user always knows what they can do) */
+		animation: rise var(--dur-slow) var(--ease-out) 900ms both;
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.invite-card,
@@ -254,7 +242,7 @@
 			display: none;
 		}
 		.actions {
-			transition: none;
+			animation: none;
 		}
 	}
 </style>

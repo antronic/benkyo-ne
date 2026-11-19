@@ -761,6 +761,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'promo.err.offline': 'คุณออฟไลน์อยู่ เชื่อมต่ออินเทอร์เน็ตเพื่อใช้โค้ด',
 	'promo.err.other': 'ใช้โค้ดไม่สำเร็จ ลองอีกครั้งในอีกสักครู่',
 	'promo.linkSaved': 'บันทึกโค้ด {code} ไว้แล้ว ลงชื่อเข้าใช้หรือสมัครเบต้าเพื่อใช้โค้ดนี้',
+	'promo.linkRedeeming': 'กำลังใช้โค้ด {code}…',
 	'promo.linkRedeemed': 'ใช้โค้ดโปรโมชันแล้ว เปิดใช้ {plan} แล้ว',
 	'promo.linkFailed': 'ไม่ได้ใช้โค้ด {code} {reason}',
 	'invite.eyebrow': 'คำเชิญส่วนตัว',

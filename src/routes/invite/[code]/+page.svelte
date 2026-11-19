@@ -59,7 +59,7 @@
 </script>
 
 <main class="page invite">
-	{#if !card}<Spinner label={t('invite.opening')} />{/if}
+	{#if !card}<Spinner label={t('invite.opening')} showLabel />{/if}
 </main>
 
 {#if card}

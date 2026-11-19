@@ -748,6 +748,7 @@ export const en = {
 	'promo.err.offline': 'You’re offline. Connect to redeem a code.',
 	'promo.err.other': 'Couldn’t redeem the code. Try again in a moment.',
 	'promo.linkSaved': 'Code {code} is saved. Sign in or join the beta to use it.',
+	'promo.linkRedeeming': 'Using code {code}…',
 	'promo.linkRedeemed': 'Promo code used: {plan} is on',
 	'promo.linkFailed': 'Code {code} wasn’t used. {reason}',
 	'invite.eyebrow': 'A personal invite',

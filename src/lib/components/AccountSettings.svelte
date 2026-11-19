@@ -70,7 +70,7 @@
 			pending = '';
 		}
 	}
-	async function after() {
+	async function after() { // ui-ok: refresh after an action whose busy button and toast already showed
 		await ai.refresh();
 		await onchange();
 	}

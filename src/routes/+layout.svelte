@@ -30,7 +30,7 @@
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { processOutbox } from '#lib/words/maker.ts';
 	import { takeAppleResult } from '#lib/ai/client.ts';
-	import { toast } from '#lib/ios/overlay.svelte.ts';
+	import { busyToast, clearToast, toast } from '#lib/ios/overlay.svelte.ts';
 	import KuriIntro from '#lib/companion/KuriIntro.svelte';
 	import KuriReaction from '#lib/companion/KuriReaction.svelte';
 	import { fleetParent } from '#lib/admin/nav.ts';
@@ -76,6 +76,7 @@
 			return;
 		}
 		redeeming = true;
+		busyToast(t('promo.linkRedeeming', { code: saved.code }));
 		try {
 			const r = await redeemPromo(saved.code);
 			clearPendingPromo();
@@ -84,7 +85,10 @@
 			toast(t('promo.linkRedeemed', { plan: r.planName }), '🎉', 3200);
 		} catch (e) {
 			const p = e instanceof PromoRequestError ? e.problem : 'other';
-			if (p === 'offline' || p === 'network' || p === 'signed_out') return; // try again on the next change
+			if (p === 'offline' || p === 'network' || p === 'signed_out') {
+				clearToast();
+				return; // try again on the next change
+			}
 			clearPendingPromo();
 			const reason = t(`promo.err.${LINK_ERR.has(p) ? p : 'other'}` as MessageKey);
 			toast(t('promo.linkFailed', { code: saved.code, reason }), '⚠️', 4200);
@@ -181,7 +185,7 @@
 	});
 
 	/** Back from Sign in with Apple (worker/auth/apple.ts): say how it went. */
-	async function finishApple(r: NonNullable<ReturnType<typeof takeAppleResult>>) {
+	async function finishApple(r: NonNullable<ReturnType<typeof takeAppleResult>>) { // ui-ok: runs at start-up under the splash
 		await ai.refresh();
 		if (!r.ok) {
 			if (r.message) toast(r.message, '⚠️', 3600);
@@ -215,7 +219,7 @@
 		ui.showKuriIntro = true;
 	});
 	/** the beta sign-up / sign-in (passkey only), unless already signed in */
-	async function offerWelcome() {
+	async function offerWelcome() { // ui-ok: only when the account check has not run yet; the sheet opens right after
 		if (!ai.checked) await ai.refresh();
 		if (!ai.signedIn) ui.showWelcome = true;
 	}

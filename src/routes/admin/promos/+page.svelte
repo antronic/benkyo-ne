@@ -9,7 +9,7 @@
 	import LargeTitle from '#lib/ui/LargeTitle.svelte';
 	import Skeleton from '#lib/ui/Skeleton.svelte';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
-	import { Badge, Button, Card, Columns, ListGroup, ListRow, Notice, SectionHeader, Segmented, Select, Switch, TextField } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, Columns, ListGroup, ListRow, Notice, SectionHeader, Segmented, Select, Spinner, Switch, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError } from '#lib/admin/client.ts';
@@ -419,7 +419,7 @@
 								</ListGroup>
 								<ListGroup>
 									<ListRow title="Link with an invite" subtitle={invites ? 'Opens sign-up with the invite filled in' : 'Loading invites…'}>
-										{#snippet trailing()}<Select label="Link with an invite" bind:value={linkInvite} options={inviteOptions} disabled={!invites} />{/snippet}
+										{#snippet trailing()}{#if invites}<Select label="Link with an invite" bind:value={linkInvite} options={inviteOptions} />{:else}<Spinner size="sm" label="Loading invites" />{/if}{/snippet}
 									</ListRow>
 								</ListGroup>
 								<span class="caption link">{promoLink(detail.code, location.origin, linkInvite || null)}</span>

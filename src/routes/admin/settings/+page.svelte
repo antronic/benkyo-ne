@@ -147,7 +147,7 @@
 
 <main class="page stack fleet" style:--gap="var(--space-3)">
 	<FleetTrail />
-	<LargeTitle title="Sign-ups and sessions" />
+	<LargeTitle title="Sign-up settings" />
 
 	{#if error}
 		<ErrorCard {error} onretry={load} />
