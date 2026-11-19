@@ -455,6 +455,7 @@ in Settings which AI to use.
   falls back to the learner's own key when the feature isn't in the package, the
   allowance is used up, or the managed daily limit is hit. With `own`, the
   package is used only when they have no key for that feature.
+- **Prices:** a package model's price is the one Fleet copied when it was added, else the built-in table, else $0 (a self-hosted model): calls still count and are rate-limited.
 - **Allowance:** the same worst-case reservation as the BYOK cap. `ai_ledger.source`
   (`own` / `package`) keeps the two budgets apart; `plan_id` records the package
   billed. The allowance is per calendar month (UTC), all packages together.

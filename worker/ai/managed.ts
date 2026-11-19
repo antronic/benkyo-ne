@@ -87,10 +87,15 @@ async function packageModels(env: Env, planId: string): Promise<PackageModelRow[
 
 const featuresOf = (r: PackageModelRow) => (r.pm_features ? (r.pm_features.split(',') as Feature[]) : []);
 
-/** Price the package pays: the console's snapshot, else the built-in table; null blocks the model. */
-function packagePrice(r: PackageModelRow): Price | null {
+/**
+ * Price the package pays: the console's snapshot, else the built-in table,
+ * else $0. The operator picked the model in Fleet, so an unlisted price (a
+ * self-hosted model, say) must not silently send learners to their own key:
+ * the call runs, is counted, and the rate limits still apply.
+ */
+export function packagePrice(r: Pick<PackageModelRow, 'pm_in' | 'pm_out' | 'pm_model'>): Price {
 	if (r.pm_in !== null && r.pm_out !== null) return { inputPerM: r.pm_in, outputPerM: r.pm_out };
-	return builtinPrice(r.pm_model);
+	return builtinPrice(r.pm_model) ?? { inputPerM: 0, outputPerM: 0 };
 }
 
 /** The package with managed AI: a paid package with an allowance and at least one model with a feature. */
@@ -104,16 +109,16 @@ async function livePackage(env: Env, userId: number) {
 
 /**
  * The package model for a feature. Translate falls back to the package's
- * cheapest priced model when the console didn't assign one.
+ * cheapest model when the console didn't assign one.
  */
 function packageRow(models: PackageModelRow[], feature: Feature): PackageModelRow | undefined {
-	const row = models.find((m) => featuresOf(m).includes(feature) && packagePrice(m));
+	const row = models.find((m) => featuresOf(m).includes(feature));
 	if (row || feature !== 'translate') return row;
 	const cost = (m: PackageModelRow) => {
 		const p = packagePrice(m);
-		return p ? p.inputPerM + p.outputPerM : Infinity;
+		return p.inputPerM + p.outputPerM;
 	};
-	return models.filter((m) => packagePrice(m)).sort((a, b) => cost(a) - cost(b))[0];
+	return [...models].sort((a, b) => cost(a) - cost(b))[0];
 }
 
 function packageTarget(plan: PlanRow, models: PackageModelRow[], feature: Feature, env: Env): AiTarget | null {
