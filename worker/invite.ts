@@ -12,9 +12,9 @@ import { CARD_FROM_MAX, CARD_NOTE_MAX } from '../src/lib/invite/contract.ts';
 import type { Ink, InkPoint } from '../src/lib/ui/ink.ts';
 import { rateLimit } from './ai/ledger.ts';
 import { clientIp } from './auth/passkey.ts';
-import { normalizeInvite } from './auth/signup.ts';
+import { INVITE_USED_UP, INVITE_VALID, normalizeInvite } from './auth/signup.ts';
 import type { Env } from './env.ts';
-import { httpError, json } from './http.ts';
+import { HttpError, httpError, json } from './http.ts';
 import { normalizePromo, promoKey, promoKeySql, redeemable } from './promo.ts';
 
 export const MAX_STROKES = 80;
@@ -60,7 +60,7 @@ export function parseCard(raw: unknown): InviteCardData | null {
 	return { note, from, ink };
 }
 
-const VALID = `deleted_at IS NULL AND revoked_at IS NULL AND uses < max_uses AND (expires_at IS NULL OR expires_at > ?2)`;
+const VALID = INVITE_VALID;
 
 export async function inviteCard(env: Env, rawCode: string, rawCoupon: string | null, now = Date.now()): Promise<InviteCardResponse | null> {
 	const code = normalizeInvite(rawCode);
@@ -106,8 +106,15 @@ export async function handleInviteCard(req: Request, env: Env, url: URL): Promis
 		const code = normalizeInvite(raw);
 		const ended =
 			code &&
-			(await env.DB.prepare(`SELECT 1 AS x FROM invite_codes WHERE code = ?1 AND NOT (${VALID})`).bind(code, Date.now()).first());
-		if (ended) throw httpError(410, 'bad_request', 'That invite has ended');
+			(await env.DB.prepare(`SELECT ${INVITE_USED_UP} AS full FROM invite_codes WHERE code = ?1 AND NOT (${VALID})`)
+				.bind(code, Date.now())
+				.first<{ full: number }>());
+		if (ended)
+			throw new HttpError(410, {
+				error: 'bad_request',
+				message: ended.full ? 'That invite is full' : 'That invite has ended',
+				reason: ended.full ? 'full' : 'ended'
+			} as never);
 		throw httpError(404, 'bad_request', 'No card for that invite');
 	}
 	return json(r);

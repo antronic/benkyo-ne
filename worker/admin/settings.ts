@@ -16,7 +16,7 @@ import type { AdminInvite, AdminSettings } from '../../src/lib/admin/contract.ts
 import { DEFAULT_SESSION_DAYS, sessionTtlMs } from '../auth/session.ts';
 import { parseCard } from '../invite.ts';
 import { normalizePromo, promoKey, promoKeySql } from '../promo.ts';
-import { generateInviteCode, isRandomShape, normalizeInvite, setSignupMode, signupState } from '../auth/signup.ts';
+import { INVITE_USED_UP, generateInviteCode, isRandomShape, normalizeInvite, setSignupMode, signupState } from '../auth/signup.ts';
 import type { Env } from '../env.ts';
 import { httpError, json, readJson } from '../http.ts';
 import { audited, requireFresh, type AdminContext } from './routes.ts';
@@ -67,7 +67,10 @@ async function settings(env: Env): Promise<AdminSettings> {
 }
 
 const INVITE_COLS = `code, label, max_uses AS maxUses, uses, expires_at AS expiresAt, created_at AS createdAt, revoked_at AS revokedAt,
-	card_note AS cardNote, card_from AS cardFrom, card_ink AS cardInk, coupon`;
+	card_note AS cardNote, card_from AS cardFrom, card_ink AS cardInk, coupon,
+	(SELECT pc.uses FROM promo_codes pc WHERE pc.code = invite_codes.coupon) AS couponUses,
+	(SELECT pc.max_uses FROM promo_codes pc WHERE pc.code = invite_codes.coupon) AS couponMaxUses,
+	CASE WHEN uses >= max_uses THEN 'invite' WHEN ${INVITE_USED_UP} THEN 'coupon' END AS usedUp`;
 async function listInvites(env: Env): Promise<AdminInvite[]> {
 	const r = await env.DB.prepare(`SELECT ${INVITE_COLS} FROM invite_codes WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 200`).all<InviteRow>();
 	return r.results.map(toAdminInvite);
@@ -88,6 +91,7 @@ async function resolveCoupon(env: Env, raw: unknown): Promise<string | null> {
 
 type InviteRow = Omit<AdminInvite, 'card'> & { cardNote: string | null; cardFrom: string | null; cardInk: string | null };
 function toAdminInvite({ cardNote, cardFrom, cardInk, ...r }: InviteRow): AdminInvite {
+	r = { ...r, couponUses: r.couponUses ?? null, couponMaxUses: r.couponMaxUses ?? null, usedUp: r.usedUp ?? null };
 	if (!cardNote && !cardInk) return { ...r, coupon: r.coupon ?? null, card: null };
 	let ink = null;
 	try {

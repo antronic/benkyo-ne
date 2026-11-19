@@ -149,6 +149,18 @@ describe('invite cards (VIP)', () => {
 		expect(audit().at(-1)?.action).toBe('invite.coupon');
 	});
 
+	it('marks a VIP used up by its own uses or by its promo code’s, with the code’s uses against its limit', async () => {
+		db.exec(`INSERT INTO promo_codes (code, plan_id, kind, days, max_uses, uses, created_at) VALUES ('MEETUP10', 'plus', 'trial', 30, 10, 9, ${NOW})`);
+		await call('POST', '/api/admin/invites', { code: 'meetup_26', maxUses: 30, card: { note: 'Thanks for coming' }, coupon: 'MEETUP10' });
+		await call('POST', '/api/admin/invites', { code: 'solo_vip', maxUses: 1, card: { note: 'Just you' } });
+		const get = async (c: string) => (await call('GET', '/api/admin/invites')).body.invites.find((i: { code: string }) => i.code === c);
+		expect(await get('MEETUP_26')).toMatchObject({ usedUp: null, couponUses: 9, couponMaxUses: 10 });
+		db.exec(`UPDATE promo_codes SET uses = 10 WHERE code = 'MEETUP10'`);
+		expect(await get('MEETUP_26')).toMatchObject({ usedUp: 'coupon', couponUses: 10 });
+		db.exec(`UPDATE invite_codes SET uses = 1 WHERE code = 'SOLO_VIP'`);
+		expect(await get('SOLO_VIP')).toMatchObject({ usedUp: 'invite', couponUses: null, couponMaxUses: null });
+	});
+
 	it('deletes an invite: hidden, unusable, the row and its name kept', async () => {
 		await call('POST', '/api/admin/invites', { code: 'vip', maxUses: 5, card: { note: 'Hi', from: 'Job' } });
 		db.exec(`UPDATE sessions SET stepup_at = NULL`);
