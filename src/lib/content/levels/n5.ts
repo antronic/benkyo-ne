@@ -128,7 +128,7 @@ export const N5_UNITS: LevelUnit[] = [
 		words: [
 			{ reading: 'これ', gloss: { en: 'this (near me)', th: 'นี่ (ใกล้ผู้พูด)' }, kind: 'word' },
 			{ reading: 'それ', gloss: { en: 'that (near you)', th: 'นั่น (ใกล้ผู้ฟัง)' }, kind: 'word' },
-			{ reading: 'あれ', gloss: { en: 'that over there', th: 'โน่น (ไกลจากทั้งคู่)' }, kind: 'word' },
+			{ reading: 'どれ', gloss: { en: 'which one (of three or more)', th: 'อันไหน (ตั้งแต่สามอย่างขึ้นไป)' }, kind: 'word' },
 			{ reading: 'ほん', kanji: '本', gloss: { en: 'book', th: 'หนังสือ' }, kind: 'word' },
 			{ reading: 'じしょ', kanji: '辞書', gloss: { en: 'dictionary', th: 'พจนานุกรม' }, kind: 'word' },
 			{ reading: 'かさ', kanji: '傘', gloss: { en: 'umbrella', th: 'ร่ม' }, kind: 'word' },
@@ -345,7 +345,6 @@ export const N5_UNITS: LevelUnit[] = [
 			{ reading: 'はん', kanji: '半', gloss: { en: 'half; half past', th: 'ครึ่ง' }, kind: 'word' },
 			{ reading: 'ごぜん', kanji: '午前', gloss: { en: 'morning; a.m.', th: 'ช่วงเช้า; ก่อนเที่ยง' }, kind: 'word' },
 			{ reading: 'ごご', kanji: '午後', gloss: { en: 'afternoon; p.m.', th: 'ช่วงบ่าย; หลังเที่ยง' }, kind: 'word' },
-			{ reading: 'いくら', gloss: { en: 'how much', th: 'เท่าไร' }, kind: 'word' },
 			{ reading: 'えん', kanji: '円', gloss: { en: 'yen', th: 'เยน' }, kind: 'word' },
 			{ reading: 'ひゃく', kanji: '百', gloss: { en: 'hundred', th: 'ร้อย' }, kind: 'word' },
 			{ reading: 'せん', kanji: '千', gloss: { en: 'thousand', th: 'พัน' }, kind: 'word' },
@@ -769,7 +768,7 @@ export const N5_UNITS: LevelUnit[] = [
 			{ reading: 'ななつ', kanji: '七つ', gloss: { en: 'seven (things)', th: 'เจ็ด (ชิ้น / อัน)' }, kind: 'word' },
 			{ reading: 'やっつ', kanji: '八つ', gloss: { en: 'eight (things)', th: 'แปด (ชิ้น / อัน)' }, kind: 'word' },
 			{ reading: 'ここのつ', kanji: '九つ', gloss: { en: 'nine (things)', th: 'เก้า (ชิ้น / อัน)' }, kind: 'word' },
-			{ reading: 'とお', gloss: { en: 'ten (things)', th: 'สิบ (ชิ้น / อัน)' }, kind: 'word' },
+			{ reading: 'はたち', kanji: '二十歳', gloss: { en: 'twenty years old', th: 'อายุยี่สิบปี' }, kind: 'word' },
 			{ reading: 'ろく', kanji: '六', gloss: { en: 'six', th: 'หก' }, kind: 'word' },
 			{ reading: 'なな', kanji: '七', gloss: { en: 'seven', th: 'เจ็ด' }, kind: 'word' },
 			{ reading: 'はち', kanji: '八', gloss: { en: 'eight', th: 'แปด' }, kind: 'word' },
@@ -1094,7 +1093,6 @@ export const N5_UNITS: LevelUnit[] = [
 			{ reading: 'なんにち', kanji: '何日', gloss: { en: 'what day of the month; how many days', th: 'วันที่เท่าไร; กี่วัน' }, kind: 'word' },
 			{ reading: 'なんがつ', kanji: '何月', gloss: { en: 'what month', th: 'เดือนอะไร' }, kind: 'word' },
 			{ reading: 'たんじょうび', kanji: '誕生日', gloss: { en: 'birthday', th: 'วันเกิด' }, kind: 'word' },
-			{ reading: 'いつ', gloss: { en: 'when', th: 'เมื่อไร' }, kind: 'word' },
 			{ reading: 'せんげつ', kanji: '先月', gloss: { en: 'last month', th: 'เดือนที่แล้ว' }, kind: 'word' },
 			{ reading: 'らいげつ', kanji: '来月', gloss: { en: 'next month', th: 'เดือนหน้า' }, kind: 'word' }
 		],
@@ -1920,6 +1918,959 @@ export const N5_UNITS: LevelUnit[] = [
 						{ en: 'Not yet', th: 'ยังไม่ได้กิน' }
 					],
 					answer: 1
+				}
+			]
+		},
+		review: DRAFT,
+		source: SOURCE
+	},
+	{
+		id: 'n5-19',
+		level: 'N5',
+		title: { en: 'Rules at the library', th: 'กฎของห้องสมุด' },
+		goal: { en: 'Ask for permission, say what is not allowed, and say why you go somewhere.', th: 'ขออนุญาต บอกสิ่งที่ห้ามทำ และบอกว่าไปที่ไหนเพื่อทำอะไร' },
+		kanji: ['書', '読', '聞'],
+		words: [
+			{ reading: 'かく', kanji: '書く', gloss: { en: 'to write', th: 'เขียน' }, kind: 'word' },
+			{ reading: 'きく', kanji: '聞く', gloss: { en: 'to listen; to ask', th: 'ฟัง; ถาม' }, kind: 'word' },
+			{ reading: 'どくしょ', kanji: '読書', gloss: { en: 'reading (books)', th: 'การอ่านหนังสือ' }, kind: 'word' },
+			{ reading: 'しんぶん', kanji: '新聞', gloss: { en: 'newspaper', th: 'หนังสือพิมพ์' }, kind: 'word' },
+			{ reading: 'としょかん', kanji: '図書館', gloss: { en: 'library', th: 'ห้องสมุด' }, kind: 'word' },
+			{ reading: 'てがみ', kanji: '手紙', gloss: { en: 'letter', th: 'จดหมาย' }, kind: 'word' },
+			{ reading: 'ざっし', kanji: '雑誌', gloss: { en: 'magazine', th: 'นิตยสาร' }, kind: 'word' },
+			{ reading: 'おんがく', kanji: '音楽', gloss: { en: 'music', th: 'ดนตรี' }, kind: 'word' },
+			{ reading: 'かんじ', kanji: '漢字', gloss: { en: 'kanji', th: 'คันจิ; ตัวอักษรจีน' }, kind: 'word' },
+			{ reading: 'えんぴつ', kanji: '鉛筆', gloss: { en: 'pencil', th: 'ดินสอ' }, kind: 'word' },
+			{ reading: 'ことば', kanji: '言葉', gloss: { en: 'word; language', th: 'คำ; ภาษา' }, kind: 'word' },
+			{ reading: 'かりる', kanji: '借りる', gloss: { en: 'to borrow', th: 'ยืม' }, kind: 'word' }
+		],
+		grammar: [
+			{
+				id: 'n5-te-mo-ii',
+				pattern: '〜てもいいです',
+				formation: 'V-て も いいです(か)',
+				meaning: { en: 'you may …; may I …?', th: '… ได้; … ได้ไหม' },
+				note: {
+					en: 'Ask permission with てもいいですか. Say yes with はい、どうぞ or ええ、いいですよ. A soft no is すみません、ちょっと…',
+					th: 'ขออนุญาตด้วย てもいいですか ตอบรับว่า はい、どうぞ หรือ ええ、いいですよ ปฏิเสธอย่างนุ่มนวลว่า すみません、ちょっと…'
+				},
+				examples: [
+					{ ja: '「この本を読んでもいいですか。」「はい、どうぞ。」', en: '“May I read this book?” “Yes, go ahead.”', th: '“อ่านหนังสือเล่มนี้ได้ไหม” “ได้เลย เชิญ”' },
+					{ ja: 'えんぴつで書いてもいいです。', en: 'You may write in pencil.', th: 'เขียนด้วยดินสอได้' },
+					{ ja: '「まどをあけてもいいですか。」「ええ、いいですよ。」', en: '“May I open the window?” “Sure.”', th: '“เปิดหน้าต่างได้ไหม” “ได้สิ”' },
+					{ ja: 'えいごで書いてもいいですか。', en: 'May I write in English?', th: 'เขียนเป็นภาษาอังกฤษได้ไหม' },
+					{ ja: '明日は休んでもいいです。', en: 'You can take tomorrow off.', th: 'พรุ่งนี้หยุดได้' }
+				]
+			},
+			{
+				id: 'n5-te-wa-ikenai',
+				pattern: '〜てはいけません',
+				formation: 'V-て は いけません',
+				meaning: { en: 'you must not …', th: 'ห้าม …' },
+				note: {
+					en: 'A strong “no”, for rules and signs. Said to a person face to face it can sound harsh, so in conversation people often just say すみません、ちょっと…',
+					th: 'เป็นการห้ามที่หนักแน่น ใช้กับกฎและป้าย ถ้าพูดกับคนตรง ๆ อาจฟังดูแรง ในบทสนทนาจึงมักพูดแค่ すみません、ちょっと…'
+				},
+				examples: [
+					{ ja: 'としょかんで電話をしてはいけません。', en: 'You must not make phone calls in the library.', th: 'ห้ามโทรศัพท์ในห้องสมุด' },
+					{ ja: 'ここで食べてはいけません。', en: 'You must not eat here.', th: 'ห้ามกินอาหารที่นี่' },
+					{ ja: 'テストでじしょを見てはいけません。', en: 'You must not look at a dictionary in the test.', th: 'ห้ามเปิดพจนานุกรมระหว่างสอบ' },
+					{ ja: 'このペンで書いてはいけません。', en: 'You must not write with this pen.', th: 'ห้ามเขียนด้วยปากกาด้ามนี้' },
+					{ ja: '「ここに入ってもいいですか。」「いいえ、入ってはいけません。」', en: '“May I go in here?” “No, you mustn’t.”', th: '“เข้าไปตรงนี้ได้ไหม” “ไม่ได้ ห้ามเข้า”' }
+				]
+			},
+			{
+				id: 'n5-ni-iku',
+				pattern: '〜に行きます（purpose）',
+				formation: 'V-ます stem + に 行きます / 来ます / かえります',
+				meaning: { en: 'go (come) to do …', th: 'ไป (มา) เพื่อ …' },
+				note: {
+					en: 'Take the ます off and add に: 読みます → 読みに行きます. With する nouns you can drop する: べんきょうに来ました.',
+					th: 'ตัด ます ออกแล้วเติม に เช่น 読みます → 読みに行きます ถ้าเป็นคำนามที่ใช้กับ する ตัด する ได้ เช่น べんきょうに来ました'
+				},
+				examples: [
+					{ ja: 'としょかんへ本を読みに行きます。', en: 'I’m going to the library to read.', th: 'ไปห้องสมุดเพื่ออ่านหนังสือ' },
+					{ ja: '日本へ日本語をべんきょうしに来ました。', en: 'I came to Japan to study Japanese.', th: 'มาญี่ปุ่นเพื่อเรียนภาษาญี่ปุ่น' },
+					{ ja: '友だちのうちへあそびに行きます。', en: 'I’m going over to a friend’s house.', th: 'ไปเที่ยวบ้านเพื่อน' },
+					{ ja: 'デパートへくつをかいに行きました。', en: 'I went to the department store to buy shoes.', th: 'ไปห้างเพื่อซื้อรองเท้า' },
+					{ ja: '「何をしに行きますか。」「えいがを見に行きます。」', en: '“What are you going there for?” “To see a movie.”', th: '“ไปทำอะไร” “ไปดูหนัง”' }
+				]
+			}
+		],
+		reading: {
+			title: { en: 'Library rules', th: 'กฎของห้องสมุด' },
+			lines: [
+				{ ja: 'としょかんの中で食べてはいけません。', en: 'You must not eat in the library.', th: 'ห้ามกินอาหารในห้องสมุด' },
+				{ ja: '電話で話してはいけません。', en: 'You must not talk on the phone.', th: 'ห้ามคุยโทรศัพท์' },
+				{ ja: '本は十四日かりてもいいです。', en: 'You may borrow books for fourteen days.', th: 'ยืมหนังสือได้สิบสี่วัน' },
+				{ ja: 'しんぶんやざっしは、ここで読んでください。', en: 'Please read newspapers and magazines here.', th: 'กรุณาอ่านหนังสือพิมพ์และนิตยสารที่นี่' },
+				{ ja: '本は入口でかえしてください。', en: 'Please return books at the entrance.', th: 'กรุณาคืนหนังสือที่ทางเข้า' }
+			],
+			questions: [
+				{
+					q: { en: 'How long can you borrow a book?', th: 'ยืมหนังสือได้นานเท่าไร' },
+					choices: [
+						{ en: 'Four days', th: 'สี่วัน' },
+						{ en: 'Ten days', th: 'สิบวัน' },
+						{ en: 'Fourteen days', th: 'สิบสี่วัน' }
+					],
+					answer: 2
+				},
+				{
+					q: { en: 'Where should you read newspapers?', th: 'ควรอ่านหนังสือพิมพ์ที่ไหน' },
+					choices: [
+						{ en: 'At home', th: 'ที่บ้าน' },
+						{ en: 'In the library', th: 'ในห้องสมุด' },
+						{ en: 'At the entrance', th: 'ที่ทางเข้า' }
+					],
+					answer: 1
+				}
+			]
+		},
+		review: DRAFT,
+		source: SOURCE
+	},
+	{
+		id: 'n5-20',
+		level: 'N5',
+		title: { en: 'Talking with friends', th: 'คุยกับเพื่อน' },
+		goal: { en: 'Use the casual dictionary and ない forms, and ask someone not to do something.', th: 'ใช้รูปพจนานุกรมและรูป ない แบบกันเอง และขอร้องไม่ให้ทำบางอย่าง' },
+		kanji: ['上', '下'],
+		words: [
+			{ reading: 'した', kanji: '下', gloss: { en: 'under; below', th: 'ใต้; ข้างล่าง' }, kind: 'word' },
+			{ reading: 'くつした', kanji: '靴下', gloss: { en: 'socks', th: 'ถุงเท้า' }, kind: 'word' },
+			{ reading: 'ちかてつ', kanji: '地下鉄', gloss: { en: 'subway; underground', th: 'รถไฟใต้ดิน' }, kind: 'word' },
+			{ reading: 'のぼる', kanji: '登る', gloss: { en: 'to climb', th: 'ปีน; ขึ้น (เขา)' }, kind: 'word' },
+			{ reading: 'おりる', kanji: '降りる', gloss: { en: 'to get off; to go down', th: 'ลง (จากรถ)' }, kind: 'word' },
+			{ reading: 'かいだん', kanji: '階段', gloss: { en: 'stairs', th: 'บันได' }, kind: 'word' },
+			{ reading: 'エレベーター', gloss: { en: 'lift; elevator', th: 'ลิฟต์' }, kind: 'word' },
+			{ reading: 'つかう', kanji: '使う', gloss: { en: 'to use', th: 'ใช้' }, kind: 'word' },
+			{ reading: 'わかる', kanji: '分かる', gloss: { en: 'to understand', th: 'เข้าใจ' }, kind: 'word' },
+			{ reading: 'いう', kanji: '言う', gloss: { en: 'to say', th: 'พูด; บอก' }, kind: 'word' },
+			{ reading: 'まつ', kanji: '待つ', gloss: { en: 'to wait', th: 'รอ' }, kind: 'word' },
+			{ reading: 'わすれる', kanji: '忘れる', gloss: { en: 'to forget', th: 'ลืม' }, kind: 'word' }
+		],
+		grammar: [
+			{
+				id: 'n5-plain-dict',
+				pattern: 'dictionary form',
+				formation: 'group 1: 行きます → 行く, 話します → 話す / group 2: 食べます → 食べる / します → する, 来ます → くる',
+				meaning: { en: 'the plain (casual) form of a verb', th: 'รูปธรรมดา (แบบกันเอง) ของกริยา' },
+				note: {
+					en: 'Friends and family talk in plain form. It is also the form dictionaries use and the one many patterns build on, like 前に in the next unit. Group 1: move the sound before ます from the い-row to the う-row (き → く). Group 2: drop ます, add る.',
+					th: 'เพื่อนและครอบครัวคุยกันด้วยรูปธรรมดา ซึ่งเป็นรูปที่พจนานุกรมใช้และเป็นฐานของหลายรูปประโยค เช่น 前に ในบทหน้า กลุ่ม 1: เปลี่ยนเสียงหน้า ます จากแถว い เป็นแถว う (き → く) กลุ่ม 2: ตัด ます แล้วเติม る'
+				},
+				examples: [
+					{ ja: '明日、学校に行く？', en: 'Are you going to school tomorrow?', th: 'พรุ่งนี้ไปโรงเรียนไหม' },
+					{ ja: 'うん、行く。', en: 'Yeah, I am.', th: 'อืม ไป' },
+					{ ja: '毎日、日本語をべんきょうする。', en: 'I study Japanese every day.', th: 'เรียนภาษาญี่ปุ่นทุกวัน' },
+					{ ja: '何を食べる？', en: 'What are you going to eat?', th: 'จะกินอะไร' },
+					{ ja: '日よう日に山にのぼる。', en: 'I’m climbing a mountain on Sunday.', th: 'วันอาทิตย์จะปีนเขา' }
+				]
+			},
+			{
+				id: 'n5-plain-nai',
+				pattern: 'ない form',
+				formation: 'group 1: 行く → 行かない, 話す → 話さない, かう → かわない / group 2: 食べる → 食べない / する → しない, くる → こない, ある → ない',
+				meaning: { en: 'the plain negative: don’t; won’t', th: 'รูปปฏิเสธแบบธรรมดา: ไม่ …' },
+				note: {
+					en: 'Group 1 verbs move the last sound to the あ-row and add ない. Verbs ending in う become わない, not あない: かう → かわない. ある has its own negative: ない.',
+					th: 'กริยากลุ่ม 1 เปลี่ยนเสียงท้ายเป็นแถว あ แล้วเติม ない กริยาที่ลงท้ายด้วย う กลายเป็น わない ไม่ใช่ あない เช่น かう → かわない ส่วน ある มีรูปปฏิเสธเฉพาะคือ ない'
+				},
+				examples: [
+					{ ja: '今日は学校に行かない。', en: 'I’m not going to school today.', th: 'วันนี้ไม่ไปโรงเรียน' },
+					{ ja: 'にくは食べない。', en: 'I don’t eat meat.', th: 'ไม่กินเนื้อ' },
+					{ ja: '「テレビ、見る？」「ううん、見ない。」', en: '“Want to watch TV?” “Nah, I won’t.”', th: '“ดูทีวีไหม” “ไม่ดู”' },
+					{ ja: '日よう日は何もしない。', en: 'On Sundays I don’t do anything.', th: 'วันอาทิตย์ไม่ทำอะไรเลย' },
+					{ ja: 'お金がない。', en: 'I have no money.', th: 'ไม่มีเงิน' }
+				]
+			},
+			{
+				id: 'n5-nai-de-kudasai',
+				pattern: '〜ないでください',
+				formation: 'V-ない で ください',
+				meaning: { en: 'please don’t …', th: 'กรุณาอย่า …' },
+				note: {
+					en: 'The polite way to ask someone not to do something. Between friends, ないで alone is enough: わすれないで.',
+					th: 'เป็นวิธีขอร้องอย่างสุภาพไม่ให้ทำบางอย่าง ถ้าพูดกับเพื่อน ใช้แค่ ないで ก็พอ เช่น わすれないで'
+				},
+				examples: [
+					{ ja: 'ここでたばこをすわないでください。', en: 'Please don’t smoke here.', th: 'กรุณาอย่าสูบบุหรี่ที่นี่' },
+					{ ja: 'わすれないでください。', en: 'Please don’t forget.', th: 'อย่าลืมนะ' },
+					{ ja: 'エレベーターをつかわないでください。', en: 'Please don’t use the lift.', th: 'กรุณาอย่าใช้ลิฟต์' },
+					{ ja: 'しんぱいしないでください。', en: 'Please don’t worry.', th: 'ไม่ต้องเป็นห่วงนะ' },
+					{ ja: 'まだ電車をおりないでください。', en: 'Please don’t get off the train yet.', th: 'อย่าเพิ่งลงจากรถไฟนะ' }
+				]
+			}
+		],
+		reading: {
+			title: { en: 'Messages between friends', th: 'ข้อความระหว่างเพื่อน' },
+			lines: [
+				{ ja: 'ナリン：明日、山にのぼる？', en: 'Narin: Are you climbing the mountain tomorrow?', th: 'นาริน: พรุ่งนี้จะปีนเขาไหม' },
+				{ ja: 'リン：うん、のぼる。ナリンも来る？', en: 'Lin: Yeah, I am. Are you coming too, Narin?', th: 'ลิน: อืม ปีน นารินจะมาด้วยไหม' },
+				{ ja: 'ナリン：ううん、行かない。しゅくだいがあるから。', en: 'Narin: No, I’m not going. I’ve got homework.', th: 'นาริน: ไม่ไปอะ มีการบ้าน' },
+				{ ja: 'リン：そう。じゃあ、山の上でしゃしんをとるね。', en: 'Lin: OK. Then I’ll take photos at the top.', th: 'ลิน: อย่างนั้นเหรอ งั้นจะถ่ายรูปบนยอดเขามาให้นะ' },
+				{ ja: 'ナリン：ありがとう。気をつけてね。', en: 'Narin: Thanks. Take care.', th: 'นาริน: ขอบใจนะ ระวังตัวด้วย' }
+			],
+			questions: [
+				{
+					q: { en: 'Is Lin going to climb the mountain?', th: 'ลินจะปีนเขาไหม' },
+					choices: [
+						{ en: 'Yes', th: 'ปีน' },
+						{ en: 'No', th: 'ไม่ปีน' }
+					],
+					answer: 0
+				},
+				{
+					q: { en: 'Why isn’t Narin going?', th: 'ทำไมนารินไม่ไป' },
+					choices: [
+						{ en: 'She has homework.', th: 'เพราะมีการบ้าน' },
+						{ en: 'It will rain.', th: 'เพราะฝนจะตก' },
+						{ en: 'She has no money.', th: 'เพราะไม่มีเงิน' }
+					],
+					answer: 0
+				}
+			]
+		},
+		review: DRAFT,
+		source: SOURCE
+	},
+	{
+		id: 'n5-21',
+		level: 'N5',
+		title: { en: 'Before and after', th: 'ก่อนและหลัง' },
+		goal: { en: 'Use the casual past and say what you do before and after something.', th: 'ใช้รูปอดีตแบบกันเอง และบอกว่าทำอะไรก่อนและหลังอีกสิ่งหนึ่ง' },
+		kanji: ['後', '間'],
+		words: [
+			{ reading: 'あと', kanji: '後', gloss: { en: 'after; later', th: 'หลัง; ทีหลัง' }, kind: 'word' },
+			{ reading: 'うしろ', kanji: '後ろ', gloss: { en: 'behind; the back', th: 'ข้างหลัง' }, kind: 'word' },
+			{ reading: 'まえ', kanji: '前', gloss: { en: 'before; in front; ago', th: 'ก่อน; ข้างหน้า; ที่แล้ว' }, kind: 'word' },
+			{ reading: 'あいだ', kanji: '間', gloss: { en: 'between; during', th: 'ระหว่าง' }, kind: 'word' },
+			{ reading: 'にんげん', kanji: '人間', gloss: { en: 'human being', th: 'มนุษย์' }, kind: 'word' },
+			{ reading: 'あさごはん', kanji: '朝ご飯', gloss: { en: 'breakfast', th: 'อาหารเช้า' }, kind: 'word' },
+			{ reading: 'ばんごはん', kanji: '晩ご飯', gloss: { en: 'dinner', th: 'อาหารเย็น' }, kind: 'word' },
+			{ reading: 'さんぽ', kanji: '散歩', gloss: { en: 'a walk', th: 'การเดินเล่น' }, kind: 'word' },
+			{ reading: 'あらう', kanji: '洗う', gloss: { en: 'to wash', th: 'ล้าง' }, kind: 'word' },
+			{ reading: 'みがく', kanji: '磨く', gloss: { en: 'to brush; to polish', th: 'แปรง; ขัด' }, kind: 'word' },
+			{ reading: 'ときどき', kanji: '時々', gloss: { en: 'sometimes', th: 'บางครั้ง' }, kind: 'word' },
+			{ reading: 'シャワー', gloss: { en: 'shower', th: 'ฝักบัว; การอาบน้ำฝักบัว' }, kind: 'word' }
+		],
+		grammar: [
+			{
+				id: 'n5-plain-ta',
+				pattern: 'た form',
+				formation: 'て → た, で → だ: 食べた, 行った, 読んだ, した, 来た (きた)',
+				meaning: { en: 'the plain past: did', th: 'รูปอดีตแบบธรรมดา: … แล้ว; ได้ …' },
+				note: {
+					en: 'Make it from the て-form: て becomes た and で becomes だ. The plain past negative is なかった: 行かなかった.',
+					th: 'สร้างจากรูป て โดยเปลี่ยน て เป็น た และ で เป็น だ รูปอดีตปฏิเสธแบบธรรมดาคือ なかった เช่น 行かなかった'
+				},
+				examples: [
+					{ ja: 'きのう、えいがを見た。', en: 'I saw a movie yesterday.', th: 'เมื่อวานดูหนัง' },
+					{ ja: 'もうごはん食べた？', en: 'Have you eaten yet?', th: 'กินข้าวหรือยัง' },
+					{ ja: '先月、日本に行った。', en: 'I went to Japan last month.', th: 'เดือนที่แล้วไปญี่ปุ่นมา' },
+					{ ja: '「しゅくだい、した？」「うん、した。」', en: '“Did you do your homework?” “Yeah.”', th: '“ทำการบ้านหรือยัง” “ทำแล้ว”' },
+					{ ja: 'きのうは学校に行かなかった。', en: 'I didn’t go to school yesterday.', th: 'เมื่อวานไม่ได้ไปโรงเรียน' }
+				]
+			},
+			{
+				id: 'n5-mae-ni',
+				pattern: '〜前に',
+				formation: 'V-る / N の + 前に',
+				meaning: { en: 'before …; … ago', th: 'ก่อน …; … ที่แล้ว' },
+				note: {
+					en: 'The verb before 前に is always in dictionary form, even when the sentence is about the past. After a length of time, 前に means “ago”: 三年前に.',
+					th: 'กริยาหน้า 前に เป็นรูปพจนานุกรมเสมอ แม้ประโยคจะพูดถึงอดีตก็ตาม ถ้าอยู่หลังช่วงเวลา 前に แปลว่า “… ที่แล้ว” เช่น 三年前に'
+				},
+				examples: [
+					{ ja: 'ねる前に、はをみがきます。', en: 'I brush my teeth before bed.', th: 'แปรงฟันก่อนนอน' },
+					{ ja: 'ごはんを食べる前に、手をあらいます。', en: 'I wash my hands before eating.', th: 'ล้างมือก่อนกินข้าว' },
+					{ ja: 'じゅぎょうの前に、トイレに行きます。', en: 'I go to the toilet before class.', th: 'เข้าห้องน้ำก่อนเข้าเรียน' },
+					{ ja: '日本へ行く前に、日本語をべんきょうしました。', en: 'I studied Japanese before going to Japan.', th: 'เรียนภาษาญี่ปุ่นก่อนไปญี่ปุ่น' },
+					{ ja: '三年前に大学に入りました。', en: 'I started university three years ago.', th: 'เข้ามหาวิทยาลัยเมื่อสามปีที่แล้ว' }
+				]
+			},
+			{
+				id: 'n5-ato-de',
+				pattern: '〜後で',
+				formation: 'V-た / N の + 後で',
+				meaning: { en: 'after …; later', th: 'หลังจาก …; ทีหลัง' },
+				note: {
+					en: 'The verb before 後で is in た-form. 後で on its own means “later”: 後で電話します.',
+					th: 'กริยาหน้า 後で อยู่ในรูป た ส่วน 後で ที่ใช้เดี่ยว ๆ แปลว่า “ทีหลัง” เช่น 後で電話します'
+				},
+				examples: [
+					{ ja: 'ごはんを食べた後で、さんぽします。', en: 'After eating, I go for a walk.', th: 'หลังกินข้าวแล้วไปเดินเล่น' },
+					{ ja: 'じゅぎょうの後で、としょかんへ行きます。', en: 'After class I go to the library.', th: 'หลังเลิกเรียนไปห้องสมุด' },
+					{ ja: 'シャワーをあびた後で、ねました。', en: 'I went to bed after a shower.', th: 'อาบน้ำเสร็จแล้วก็เข้านอน' },
+					{ ja: 'しごとの後で、のみに行きませんか。', en: 'Would you like to go for a drink after work?', th: 'เลิกงานแล้วไปดื่มกันไหม' },
+					{ ja: '後で電話します。', en: 'I’ll call you later.', th: 'เดี๋ยวจะโทรไปทีหลัง' }
+				]
+			}
+		],
+		reading: {
+			title: { en: 'My mornings', th: 'ตอนเช้าของฉัน' },
+			lines: [
+				{ ja: 'わたしは毎あさ六時におきます。', en: 'I get up at six every morning.', th: 'ฉันตื่นนอนตอนหกโมงทุกเช้า' },
+				{ ja: 'おきた後で、川のそばをさんぽします。', en: 'After getting up, I take a walk by the river.', th: 'หลังตื่นนอนจะไปเดินเล่นริมแม่น้ำ' },
+				{ ja: 'さんぽの後で、シャワーをあびます。', en: 'After the walk, I take a shower.', th: 'หลังเดินเล่นแล้วอาบน้ำ' },
+				{ ja: '学校に行く前に、あさごはんを食べます。', en: 'Before going to school, I have breakfast.', th: 'ก่อนไปโรงเรียนกินอาหารเช้า' },
+				{ ja: 'でも、きのうは七時におきましたから、さんぽしませんでした。', en: 'But yesterday I got up at seven, so I didn’t take a walk.', th: 'แต่เมื่อวานตื่นเจ็ดโมง เลยไม่ได้ไปเดินเล่น' }
+			],
+			questions: [
+				{
+					q: { en: 'What does the writer do right after getting up?', th: 'ผู้เขียนทำอะไรหลังตื่นนอน' },
+					choices: [
+						{ en: 'Takes a walk', th: 'ไปเดินเล่น' },
+						{ en: 'Has breakfast', th: 'กินอาหารเช้า' },
+						{ en: 'Takes a shower', th: 'อาบน้ำ' }
+					],
+					answer: 0
+				},
+				{
+					q: { en: 'Why didn’t the writer walk yesterday?', th: 'ทำไมเมื่อวานผู้เขียนไม่ได้ไปเดินเล่น' },
+					choices: [
+						{ en: 'It rained.', th: 'เพราะฝนตก' },
+						{ en: 'They got up late.', th: 'เพราะตื่นสาย' },
+						{ en: 'They went to school early.', th: 'เพราะไปโรงเรียนเช้า' }
+					],
+					answer: 1
+				}
+			]
+		},
+		review: DRAFT,
+		source: SOURCE
+	},
+	{
+		id: 'n5-22',
+		level: 'N5',
+		title: { en: 'When I was a child', th: 'ตอนเป็นเด็ก' },
+		goal: { en: 'Say when something happened, how long it lasted, and what you understand or can do.', th: 'บอกว่าเกิดขึ้นตอนไหน นานเท่าไร และเข้าใจหรือทำอะไรได้บ้าง' },
+		kanji: ['中'],
+		words: [
+			{ reading: 'なか', kanji: '中', gloss: { en: 'inside; middle', th: 'ข้างใน; ตรงกลาง' }, kind: 'word' },
+			{ reading: 'ちゅうがっこう', kanji: '中学校', gloss: { en: 'junior high school', th: 'โรงเรียนมัธยมต้น' }, kind: 'word' },
+			{ reading: 'ちゅうごく', kanji: '中国', gloss: { en: 'China', th: 'ประเทศจีน' }, kind: 'word' },
+			{ reading: 'しょうがっこう', kanji: '小学校', gloss: { en: 'primary school', th: 'โรงเรียนประถม' }, kind: 'word' },
+			{ reading: 'とき', kanji: '時', gloss: { en: 'time; when', th: 'เวลา; ตอนที่' }, kind: 'word' },
+			{ reading: 'むかし', kanji: '昔', gloss: { en: 'long ago; the old days', th: 'สมัยก่อน' }, kind: 'word' },
+			{ reading: 'はる', kanji: '春', gloss: { en: 'spring', th: 'ฤดูใบไม้ผลิ' }, kind: 'word' },
+			{ reading: 'なつ', kanji: '夏', gloss: { en: 'summer', th: 'ฤดูร้อน' }, kind: 'word' },
+			{ reading: 'あき', kanji: '秋', gloss: { en: 'autumn', th: 'ฤดูใบไม้ร่วง' }, kind: 'word' },
+			{ reading: 'ふゆ', kanji: '冬', gloss: { en: 'winter', th: 'ฤดูหนาว' }, kind: 'word' },
+			{ reading: 'ならう', kanji: '習う', gloss: { en: 'to learn (from someone)', th: 'เรียน (จากผู้สอน)' }, kind: 'word' },
+			{ reading: 'できる', kanji: '出来る', gloss: { en: 'can do; to be able', th: 'ทำได้' }, kind: 'word' }
+		],
+		grammar: [
+			{
+				id: 'n5-toki',
+				pattern: '〜とき',
+				formation: 'N の / A-な な / A-い / V plain + とき',
+				meaning: { en: 'when …; at the time of …', th: 'ตอนที่ …; เมื่อ …' },
+				note: {
+					en: 'Join とき the way you join a noun: 子どものとき, ひまなとき, さむいとき, 行ったとき.',
+					th: 'เชื่อม とき เหมือนเชื่อมกับคำนาม เช่น 子どものとき, ひまなとき, さむいとき, 行ったとき'
+				},
+				examples: [
+					{ ja: '子どものとき、ピアノをならいました。', en: 'I learned the piano when I was a child.', th: 'ตอนเป็นเด็กเคยเรียนเปียโน' },
+					{ ja: 'ひまなとき、本を読みます。', en: 'I read when I have free time.', th: 'ตอนว่างจะอ่านหนังสือ' },
+					{ ja: 'さむいとき、あたたかいおちゃをのみます。', en: 'When it’s cold, I drink hot tea.', th: 'ตอนอากาศหนาวจะดื่มชาร้อน' },
+					{ ja: '日本に行ったとき、すしを食べました。', en: 'When I went to Japan, I ate sushi.', th: 'ตอนไปญี่ปุ่นได้กินซูชิ' },
+					{ ja: '中学校のとき、テニスをしていました。', en: 'In junior high school I played tennis.', th: 'ตอนเรียนมัธยมต้นเคยเล่นเทนนิส' }
+				]
+			},
+			{
+				id: 'n5-jikan',
+				pattern: '〜時間・〜か月・〜年（ぐらい）',
+				formation: 'length of time (+ ぐらい) V',
+				meaning: { en: 'for (a length of time); about …', th: 'เป็นเวลา …; ประมาณ …' },
+				note: {
+					en: 'A length of time takes no particle: 二時間べんきょうします. ぐらい after it means “about”. Ask with どのぐらい.',
+					th: 'ช่วงเวลาไม่ต้องใส่คำช่วย เช่น 二時間べんきょうします เติม ぐらい ข้างหลังแปลว่า “ประมาณ” ถามด้วย どのぐらい'
+				},
+				examples: [
+					{ ja: '毎日、二時間ぐらい日本語をべんきょうします。', en: 'I study Japanese for about two hours every day.', th: 'ทุกวันเรียนภาษาญี่ปุ่นประมาณสองชั่วโมง' },
+					{ ja: '中国に三年いました。', en: 'I was in China for three years.', th: 'เคยอยู่ประเทศจีนสามปี' },
+					{ ja: '「えきまでどのぐらいかかりますか。」「じゅっぷんぐらいです。」', en: '“How long does it take to the station?” “About ten minutes.”', th: '“ไปสถานีใช้เวลาเท่าไร” “ประมาณสิบนาที”' },
+					{ ja: 'なつ休みは一か月です。', en: 'The summer holiday is one month long.', th: 'ปิดเทอมฤดูร้อนหนึ่งเดือน' },
+					{ ja: 'きのうは八時間ねました。', en: 'I slept for eight hours last night.', th: 'เมื่อคืนนอนแปดชั่วโมง' }
+				]
+			},
+			{
+				id: 'n5-wakaru',
+				pattern: '〜がわかります・〜ができます',
+				formation: 'N が わかります / できます',
+				meaning: { en: 'understand N / can do N', th: 'เข้าใจ N / ทำ N ได้' },
+				note: {
+					en: 'What you understand or can do takes が, not を. わかりました means “I see” or “got it”.',
+					th: 'สิ่งที่เข้าใจหรือทำได้ใช้คำช่วย が ไม่ใช่ を ส่วน わかりました แปลว่า “เข้าใจแล้ว” หรือ “รับทราบ”'
+				},
+				examples: [
+					{ ja: '日本語がすこしわかります。', en: 'I understand a little Japanese.', th: 'เข้าใจภาษาญี่ปุ่นนิดหน่อย' },
+					{ ja: '「わかりましたか。」「はい、わかりました。」', en: '“Did you understand?” “Yes, I did.”', th: '“เข้าใจไหม” “เข้าใจแล้ว”' },
+					{ ja: 'この字がわかりません。', en: 'I don’t know this character.', th: 'ไม่เข้าใจตัวอักษรตัวนี้' },
+					{ ja: '中国語ができます。', en: 'I can speak Chinese.', th: 'พูดภาษาจีนได้' },
+					{ ja: 'リンさんはピアノができます。', en: 'Lin can play the piano.', th: 'คุณลินเล่นเปียโนได้' }
+				]
+			}
+		],
+		reading: {
+			title: { en: 'When I was a child', th: 'ตอนฉันเป็นเด็ก' },
+			lines: [
+				{ ja: '子どものとき、わたしは中国にいました。', en: 'When I was a child, I lived in China.', th: 'ตอนเป็นเด็ก ฉันอยู่ที่ประเทศจีน' },
+				{ ja: '中国で小学校に入りました。', en: 'I started primary school in China.', th: 'เข้าโรงเรียนประถมที่ประเทศจีน' },
+				{ ja: 'そのとき、中国語をならいました。', en: 'That’s when I learned Chinese.', th: 'ตอนนั้นได้เรียนภาษาจีน' },
+				{ ja: '今も中国語がすこしわかります。', en: 'I still understand a little Chinese now.', th: 'ตอนนี้ก็ยังเข้าใจภาษาจีนอยู่นิดหน่อย' },
+				{ ja: '中学校のとき、日本に来ました。日本に十年います。', en: 'I came to Japan in junior high school. I’ve been in Japan for ten years.', th: 'ตอนมัธยมต้นย้ายมาญี่ปุ่น อยู่ญี่ปุ่นมาสิบปีแล้ว' }
+			],
+			questions: [
+				{
+					q: { en: 'Where did the writer live as a child?', th: 'ตอนเป็นเด็กผู้เขียนอยู่ที่ไหน' },
+					choices: [
+						{ en: 'Japan', th: 'ญี่ปุ่น' },
+						{ en: 'China', th: 'จีน' },
+						{ en: 'Thailand', th: 'ไทย' }
+					],
+					answer: 1
+				},
+				{
+					q: { en: 'When did the writer come to Japan?', th: 'ผู้เขียนมาญี่ปุ่นตอนไหน' },
+					choices: [
+						{ en: 'In primary school', th: 'ตอนเรียนประถม' },
+						{ en: 'In junior high school', th: 'ตอนเรียนมัธยมต้น' },
+						{ en: 'At university', th: 'ตอนเรียนมหาวิทยาลัย' }
+					],
+					answer: 1
+				}
+			]
+		},
+		review: DRAFT,
+		source: SOURCE
+	},
+	{
+		id: 'n5-23',
+		level: 'N5',
+		title: { en: 'Comparing things', th: 'การเปรียบเทียบ' },
+		goal: { en: 'Compare two things and say which one is the most.', th: 'เปรียบเทียบสองสิ่ง และบอกว่าสิ่งไหน … ที่สุด' },
+		kanji: ['山', '川'],
+		words: [
+			{ reading: 'やま', kanji: '山', gloss: { en: 'mountain', th: 'ภูเขา' }, kind: 'word' },
+			{ reading: 'かわ', kanji: '川', gloss: { en: 'river', th: 'แม่น้ำ' }, kind: 'word' },
+			{ reading: 'うみ', kanji: '海', gloss: { en: 'sea', th: 'ทะเล' }, kind: 'word' },
+			{ reading: 'しま', kanji: '島', gloss: { en: 'island', th: 'เกาะ' }, kind: 'word' },
+			{ reading: 'ふじさん', kanji: '富士山', gloss: { en: 'Mount Fuji', th: 'ภูเขาไฟฟูจิ' }, kind: 'word' },
+			{ reading: 'みずうみ', kanji: '湖', gloss: { en: 'lake', th: 'ทะเลสาบ' }, kind: 'word' },
+			{ reading: 'いちばん', kanji: '一番', gloss: { en: 'the most; number one', th: 'ที่สุด; อันดับหนึ่ง' }, kind: 'word' },
+			{ reading: 'ほう', kanji: '方', gloss: { en: 'side; (the one that is) more', th: 'ฝ่าย; ทาง (ที่ … กว่า)' }, kind: 'word' },
+			{ reading: 'どちら', gloss: { en: 'which (of two)', th: 'อันไหน (ในสองอย่าง)' }, kind: 'word' },
+			{ reading: 'せかい', kanji: '世界', gloss: { en: 'the world', th: 'โลก' }, kind: 'word' },
+			{ reading: 'ひくい', kanji: '低い', gloss: { en: 'low; short (height)', th: 'ต่ำ; เตี้ย' }, kind: 'word' },
+			{ reading: 'けしき', kanji: '景色', gloss: { en: 'scenery; view', th: 'ทิวทัศน์' }, kind: 'word' }
+		],
+		grammar: [
+			{
+				id: 'n5-yori',
+				pattern: '〜より',
+				formation: 'A は B より adjective',
+				meaning: { en: 'A is more … than B', th: 'A … กว่า B' },
+				note: {
+					en: 'より means “than” and comes after the thing you compare with. The adjective itself does not change: 高い can mean “taller”.',
+					th: 'より แปลว่า “กว่า” และวางหลังสิ่งที่นำมาเทียบ คุณศัพท์ไม่ต้องเปลี่ยนรูป 高い ก็แปลว่า “สูงกว่า” ได้'
+				},
+				examples: [
+					{ ja: '日本は中国より小さいです。', en: 'Japan is smaller than China.', th: 'ญี่ปุ่นเล็กกว่าจีน' },
+					{ ja: '山田さんは田中さんよりせが高いです。', en: 'Mr Yamada is taller than Ms Tanaka.', th: 'คุณยามาดะตัวสูงกว่าคุณทานากะ' },
+					{ ja: '今日はきのうよりさむいです。', en: 'Today is colder than yesterday.', th: 'วันนี้หนาวกว่าเมื่อวาน' },
+					{ ja: 'バスは電車より安いです。', en: 'The bus is cheaper than the train.', th: 'รถบัสถูกกว่ารถไฟ' },
+					{ ja: 'この川はあの川より長いです。', en: 'This river is longer than that one.', th: 'แม่น้ำสายนี้ยาวกว่าสายนั้น' }
+				]
+			},
+			{
+				id: 'n5-dochira',
+				pattern: 'どちらが〜・〜のほうが',
+				formation: 'A と B と どちらが … ですか / B の ほうが …',
+				meaning: { en: 'which is more …, A or B? / B is more …', th: 'A กับ B อันไหน … กว่า / B … กว่า' },
+				note: {
+					en: 'どちら asks about two choices. Answer with のほうが. If both are fine, say どちらもいいです or どちらでもいいです.',
+					th: 'どちら ใช้ถามเมื่อมีสองตัวเลือก ตอบด้วย のほうが ถ้าได้ทั้งสองอย่างให้พูดว่า どちらもいいです หรือ どちらでもいいです'
+				},
+				examples: [
+					{ ja: '山と海と、どちらが好きですか。', en: 'Which do you like better, the mountains or the sea?', th: 'ภูเขากับทะเล ชอบอันไหนมากกว่า' },
+					{ ja: '海のほうが好きです。', en: 'I like the sea better.', th: 'ชอบทะเลมากกว่า' },
+					{ ja: '「バスと電車と、どちらがはやいですか。」「電車のほうがはやいです。」', en: '“Which is faster, the bus or the train?” “The train.”', th: '“รถบัสกับรถไฟ อันไหนเร็วกว่า” “รถไฟเร็วกว่า”' },
+					{ ja: '「コーヒーとおちゃと、どちらがいいですか。」「どちらでもいいです。」', en: '“Coffee or tea?” “Either is fine.”', th: '“กาแฟกับชา เอาอะไรดี” “อะไรก็ได้”' },
+					{ ja: '東口より西口のほうがちかいです。', en: 'The west exit is closer than the east exit.', th: 'ทางออกฝั่งตะวันตกใกล้กว่าฝั่งตะวันออก' }
+				]
+			},
+			{
+				id: 'n5-ichiban',
+				pattern: '〜の中で〜が一番',
+				formation: 'group の中で / で + N が 一番 adjective',
+				meaning: { en: 'N is the most … (of a group)', th: 'N … ที่สุด (ในกลุ่ม)' },
+				note: {
+					en: 'Use 一番 for three or more things. Ask with 何, どこ, だれ or いつ + が一番: 何が一番好きですか.',
+					th: 'ใช้ 一番 เมื่อเปรียบเทียบตั้งแต่สามสิ่งขึ้นไป ถามด้วย 何, どこ, だれ หรือ いつ ตามด้วย が一番 เช่น 何が一番好きですか'
+				},
+				examples: [
+					{ ja: '日本で一番高い山はふじ山です。', en: 'The highest mountain in Japan is Mount Fuji.', th: 'ภูเขาที่สูงที่สุดในญี่ปุ่นคือภูเขาไฟฟูจิ' },
+					{ ja: 'くだものの中で、りんごが一番好きです。', en: 'Of all fruit, I like apples best.', th: 'ในบรรดาผลไม้ ชอบแอปเปิลที่สุด' },
+					{ ja: 'クラスの中で、だれが一番せが高いですか。', en: 'Who is the tallest in the class?', th: 'ในห้องเรียน ใครตัวสูงที่สุด' },
+					{ ja: '一年で八月が一番あついです。', en: 'August is the hottest month of the year.', th: 'ในหนึ่งปี เดือนสิงหาคมร้อนที่สุด' },
+					{ ja: 'せかいで一番長い川は何ですか。', en: 'What is the longest river in the world?', th: 'แม่น้ำที่ยาวที่สุดในโลกคืออะไร' }
+				]
+			}
+		],
+		reading: {
+			title: { en: 'Mountains and rivers of Japan', th: 'ภูเขาและแม่น้ำของญี่ปุ่น' },
+			lines: [
+				{ ja: '日本には山がたくさんあります。', en: 'Japan has a lot of mountains.', th: 'ญี่ปุ่นมีภูเขาเยอะมาก' },
+				{ ja: '一番高い山はふじ山です。三千七百七十六メートルです。', en: 'The highest is Mount Fuji. It is 3,776 metres.', th: 'ภูเขาที่สูงที่สุดคือภูเขาไฟฟูจิ สูงสามพันเจ็ดร้อยเจ็ดสิบหกเมตร' },
+				{ ja: '日本の川は、タイの川よりみじかいです。', en: 'Japan’s rivers are shorter than Thailand’s.', th: 'แม่น้ำของญี่ปุ่นสั้นกว่าแม่น้ำของไทย' },
+				{ ja: '日本で一番長い川は、しなの川です。', en: 'The longest river in Japan is the Shinano River.', th: 'แม่น้ำที่ยาวที่สุดในญี่ปุ่นคือแม่น้ำชินาโนะ' },
+				{ ja: 'わたしは山より海のほうが好きです。', en: 'I like the sea better than the mountains.', th: 'ฉันชอบทะเลมากกว่าภูเขา' }
+			],
+			questions: [
+				{
+					q: { en: 'How high is Mount Fuji?', th: 'ภูเขาไฟฟูจิสูงเท่าไร' },
+					choices: [
+						{ en: '3,776 metres', th: '3,776 เมตร' },
+						{ en: '7,776 metres', th: '7,776 เมตร' },
+						{ en: '376 metres', th: '376 เมตร' }
+					],
+					answer: 0
+				},
+				{
+					q: { en: 'Which does the writer like better?', th: 'ผู้เขียนชอบอะไรมากกว่า' },
+					choices: [
+						{ en: 'The mountains', th: 'ภูเขา' },
+						{ en: 'The sea', th: 'ทะเล' },
+						{ en: 'Rivers', th: 'แม่น้ำ' }
+					],
+					answer: 1
+				}
+			]
+		},
+		review: DRAFT,
+		source: SOURCE
+	},
+	{
+		id: 'n5-24',
+		level: 'N5',
+		title: { en: 'Colours and changes', th: 'สีและการเปลี่ยนแปลง' },
+		goal: { en: 'Say how things change, join adjectives and describe how you do something.', th: 'บอกว่าสิ่งต่าง ๆ เปลี่ยนไปอย่างไร เชื่อมคุณศัพท์ และบอกลักษณะการกระทำ' },
+		kanji: ['白'],
+		words: [
+			{ reading: 'しろい', kanji: '白い', gloss: { en: 'white', th: 'ขาว' }, kind: 'word' },
+			{ reading: 'しろ', kanji: '白', gloss: { en: 'white (the colour)', th: 'สีขาว' }, kind: 'word' },
+			{ reading: 'くろい', kanji: '黒い', gloss: { en: 'black', th: 'ดำ' }, kind: 'word' },
+			{ reading: 'あかい', kanji: '赤い', gloss: { en: 'red', th: 'แดง' }, kind: 'word' },
+			{ reading: 'あおい', kanji: '青い', gloss: { en: 'blue', th: 'น้ำเงิน; ฟ้า' }, kind: 'word' },
+			{ reading: 'きいろい', kanji: '黄色い', gloss: { en: 'yellow', th: 'เหลือง' }, kind: 'word' },
+			{ reading: 'いろ', kanji: '色', gloss: { en: 'colour', th: 'สี' }, kind: 'word' },
+			{ reading: 'みどり', kanji: '緑', gloss: { en: 'green', th: 'สีเขียว' }, kind: 'word' },
+			{ reading: 'はやい', kanji: '早い', gloss: { en: 'early; quick', th: 'เช้า; เร็ว' }, kind: 'word' },
+			{ reading: 'おそい', kanji: '遅い', gloss: { en: 'late; slow', th: 'สาย; ช้า' }, kind: 'word' },
+			{ reading: 'ゆっくり', gloss: { en: 'slowly; take your time', th: 'ช้า ๆ' }, kind: 'word' },
+			{ reading: 'すぐ', gloss: { en: 'right away; soon', th: 'ทันที; เดี๋ยวนี้' }, kind: 'word' }
+		],
+		grammar: [
+			{
+				id: 'n5-naru',
+				pattern: '〜くなる・〜になる',
+				formation: 'A-い → A-く なる / A-な, N + に なる',
+				meaning: { en: 'become …; get …', th: 'กลายเป็น …; … ขึ้น' },
+				note: {
+					en: 'い-adjectives change い to く: さむい → さむくなる. な-adjectives and nouns add に: 上手になる, いしゃになる.',
+					th: 'คุณศัพท์ い เปลี่ยน い เป็น く เช่น さむい → さむくなる คุณศัพท์ な และคำนามเติม に เช่น 上手になる, いしゃになる'
+				},
+				examples: [
+					{ ja: 'さむくなりました。', en: 'It’s got cold.', th: 'อากาศหนาวขึ้นแล้ว' },
+					{ ja: '外がくらくなりました。', en: 'It’s got dark outside.', th: 'ข้างนอกมืดแล้ว' },
+					{ ja: '子どもは大きくなりました。', en: 'The children have grown.', th: 'ลูก ๆ โตขึ้นแล้ว' },
+					{ ja: '日本語が上手になりました。', en: 'Your Japanese has got better.', th: 'ภาษาญี่ปุ่นเก่งขึ้นแล้ว' },
+					{ ja: '来年、二十さいになります。', en: 'I’ll be twenty next year.', th: 'ปีหน้าจะอายุยี่สิบปี' }
+				]
+			},
+			{
+				id: 'n5-kute',
+				pattern: '〜くて・〜で',
+				formation: 'A-い → A-くて / A-な, N + で',
+				meaning: { en: '… and … (joining adjectives or nouns)', th: '… และ … (เชื่อมคุณศัพท์หรือคำนาม)' },
+				note: {
+					en: 'Join descriptions with the て-form of adjectives: ひろい → ひろくて, しんせつ → しんせつで. いい becomes よくて.',
+					th: 'เชื่อมคำบรรยายด้วยรูป て ของคุณศัพท์ เช่น ひろい → ひろくて, しんせつ → しんせつで ส่วน いい กลายเป็น よくて'
+				},
+				examples: [
+					{ ja: 'このへやはひろくて、あかるいです。', en: 'This room is spacious and bright.', th: 'ห้องนี้กว้างและสว่าง' },
+					{ ja: '山田さんはしんせつで、おもしろい人です。', en: 'Mr Yamada is kind and fun.', th: 'คุณยามาดะเป็นคนใจดีและตลก' },
+					{ ja: 'このりんごは赤くて、おいしいです。', en: 'This apple is red and tasty.', th: 'แอปเปิลลูกนี้แดงและอร่อย' },
+					{ ja: '白くて大きいいぬがいます。', en: 'There’s a big white dog.', th: 'มีหมาตัวใหญ่สีขาว' },
+					{ ja: 'あには大学生で、いもうとは高校生です。', en: 'My brother is a university student and my sister is in high school.', th: 'พี่ชายเป็นนักศึกษามหาวิทยาลัย ส่วนน้องสาวเป็นนักเรียนมัธยมปลาย' }
+				]
+			},
+			{
+				id: 'n5-adverb',
+				pattern: '〜く・〜に + verb',
+				formation: 'A-い → A-く V / A-な → A-に V',
+				meaning: { en: 'do something in an … way (adverbs)', th: 'ทำอย่าง … (กริยาวิเศษณ์)' },
+				note: {
+					en: 'Change い to く or な to に to say how you do something: はやくおきる (get up early), しずかに話す (speak quietly).',
+					th: 'เปลี่ยน い เป็น く หรือ な เป็น に เพื่อบอกว่าทำอย่างไร เช่น はやくおきる (ตื่นเช้า) しずかに話す (พูดเบา ๆ)'
+				},
+				examples: [
+					{ ja: '明日ははやくおきてください。', en: 'Please get up early tomorrow.', th: 'พรุ่งนี้ตื่นเช้านะ' },
+					{ ja: 'としょかんではしずかに話してください。', en: 'Please speak quietly in the library.', th: 'ในห้องสมุดกรุณาพูดเบา ๆ' },
+					{ ja: '字をきれいに書いてください。', en: 'Please write the characters neatly.', th: 'กรุณาเขียนตัวอักษรให้สวย' },
+					{ ja: '名前を大きく書きました。', en: 'I wrote my name in big letters.', th: 'เขียนชื่อตัวใหญ่' },
+					{ ja: '父はいつもおそくかえります。', en: 'My father always comes home late.', th: 'พ่อกลับบ้านดึกเสมอ' }
+				]
+			}
+		],
+		reading: {
+			title: { en: 'Autumn in the mountains', th: 'ฤดูใบไม้ร่วงบนภูเขา' },
+			lines: [
+				{ ja: '十月になりました。', en: 'It’s October now.', th: 'เข้าเดือนตุลาคมแล้ว' },
+				{ ja: '山の木が赤くなりました。', en: 'The trees on the mountain have turned red.', th: 'ต้นไม้บนภูเขากลายเป็นสีแดงแล้ว' },
+				{ ja: '天気がよくて、すずしいです。', en: 'The weather is nice and cool.', th: 'อากาศดีและเย็นสบาย' },
+				{ ja: '山の上は白くなりました。雪です。', en: 'The top of the mountain has turned white. It’s snow.', th: 'ยอดเขากลายเป็นสีขาวแล้ว เป็นหิมะ' },
+				{ ja: '今年もきれいなあきになりましたね。', en: 'It’s turned into a beautiful autumn again this year.', th: 'ปีนี้ก็เป็นฤดูใบไม้ร่วงที่สวยงามอีกแล้วนะ' }
+			],
+			questions: [
+				{
+					q: { en: 'What colour have the trees turned?', th: 'ต้นไม้กลายเป็นสีอะไร' },
+					choices: [
+						{ en: 'Red', th: 'สีแดง' },
+						{ en: 'Yellow', th: 'สีเหลือง' },
+						{ en: 'White', th: 'สีขาว' }
+					],
+					answer: 0
+				},
+				{
+					q: { en: 'Why is the top of the mountain white?', th: 'ทำไมยอดเขาเป็นสีขาว' },
+					choices: [
+						{ en: 'Because of clouds', th: 'เพราะมีเมฆ' },
+						{ en: 'Because of snow', th: 'เพราะมีหิมะ' },
+						{ en: 'Because of white flowers', th: 'เพราะมีดอกไม้สีขาว' }
+					],
+					answer: 1
+				}
+			]
+		},
+		review: DRAFT,
+		source: SOURCE
+	},
+	{
+		id: 'n5-25',
+		level: 'N5',
+		title: { en: 'Getting around', th: 'การเดินทาง' },
+		goal: { en: 'Say how you travel, get on and off, and ask how to do something.', th: 'บอกว่าเดินทางด้วยอะไร ขึ้นและลงรถ และถามวิธีทำสิ่งต่าง ๆ' },
+		kanji: ['車'],
+		words: [
+			{ reading: 'じてんしゃ', kanji: '自転車', gloss: { en: 'bicycle', th: 'จักรยาน' }, kind: 'word' },
+			{ reading: 'じどうしゃ', kanji: '自動車', gloss: { en: 'car; automobile', th: 'รถยนต์' }, kind: 'word' },
+			{ reading: 'ちゅうしゃじょう', kanji: '駐車場', gloss: { en: 'car park', th: 'ที่จอดรถ' }, kind: 'word' },
+			{ reading: 'バス', gloss: { en: 'bus', th: 'รถบัส' }, kind: 'word' },
+			{ reading: 'タクシー', gloss: { en: 'taxi', th: 'แท็กซี่' }, kind: 'word' },
+			{ reading: 'ひこうき', kanji: '飛行機', gloss: { en: 'aeroplane', th: 'เครื่องบิน' }, kind: 'word' },
+			{ reading: 'くうこう', kanji: '空港', gloss: { en: 'airport', th: 'สนามบิน' }, kind: 'word' },
+			{ reading: 'のる', kanji: '乗る', gloss: { en: 'to ride; to get on', th: 'ขึ้น (รถ); นั่ง (ยานพาหนะ)' }, kind: 'word' },
+			{ reading: 'ちかい', kanji: '近い', gloss: { en: 'near; close', th: 'ใกล้' }, kind: 'word' },
+			{ reading: 'とおい', kanji: '遠い', gloss: { en: 'far', th: 'ไกล' }, kind: 'word' },
+			{ reading: 'きっぷ', kanji: '切符', gloss: { en: 'ticket', th: 'ตั๋ว' }, kind: 'word' },
+			{ reading: 'どうやって', gloss: { en: 'how; in what way', th: 'อย่างไร; ด้วยวิธีไหน' }, kind: 'word' }
+		],
+		grammar: [
+			{
+				id: 'n5-de-means',
+				pattern: '〜で（means）',
+				formation: 'N で V',
+				meaning: { en: 'by; with; in (a means, tool or language)', th: 'ด้วย; โดย; เป็น (วิธี เครื่องมือ หรือภาษา)' },
+				note: {
+					en: 'で marks how you do something: by bus, with chopsticks, in Japanese. On foot is あるいて, without で.',
+					th: 'で บอกวิธีทำ เช่น ด้วยรถบัส ด้วยตะเกียบ เป็นภาษาญี่ปุ่น ส่วนการเดินไปใช้ あるいて โดยไม่มี で'
+				},
+				examples: [
+					{ ja: 'バスで学校へ行きます。', en: 'I go to school by bus.', th: 'ไปโรงเรียนด้วยรถบัส' },
+					{ ja: 'じてんしゃでえきまで行きます。', en: 'I go to the station by bicycle.', th: 'ไปสถานีด้วยจักรยาน' },
+					{ ja: 'はしで食べます。', en: 'I eat with chopsticks.', th: 'กินด้วยตะเกียบ' },
+					{ ja: '日本語で話してください。', en: 'Please speak in Japanese.', th: 'กรุณาพูดเป็นภาษาญี่ปุ่น' },
+					{ ja: 'ひこうきでタイへかえります。', en: 'I’m flying back to Thailand.', th: 'กลับไทยด้วยเครื่องบิน' }
+				]
+			},
+			{
+				id: 'n5-ni-noru',
+				pattern: '〜にのる・〜をおりる',
+				formation: 'vehicle に のる / vehicle を おりる',
+				meaning: { en: 'get on / get off (a vehicle)', th: 'ขึ้น / ลง (ยานพาหนะ)' },
+				note: {
+					en: 'You get on to a vehicle with に and get off it with を: 電車にのる, 電車をおりる. The station where you get off takes で.',
+					th: 'ขึ้นรถใช้ に ลงรถใช้ を เช่น 電車にのる, 電車をおりる ส่วนสถานีที่ลงใช้ で'
+				},
+				examples: [
+					{ ja: '電車にのります。', en: 'I get on the train.', th: 'ขึ้นรถไฟ' },
+					{ ja: 'タクシーにのりましょう。', en: 'Let’s take a taxi.', th: 'นั่งแท็กซี่กันเถอะ' },
+					{ ja: '毎日バスにのって、学校へ行きます。', en: 'Every day I take the bus to school.', th: 'ทุกวันนั่งรถบัสไปโรงเรียน' },
+					{ ja: 'つぎのえきで電車をおります。', en: 'I get off the train at the next station.', th: 'ลงรถไฟที่สถานีหน้า' },
+					{ ja: '子どものとき、はじめてひこうきにのりました。', en: 'I flew for the first time as a child.', th: 'ขึ้นเครื่องบินครั้งแรกตอนเป็นเด็ก' }
+				]
+			},
+			{
+				id: 'n5-douyatte',
+				pattern: 'どうやって',
+				formation: 'どうやって V-ますか',
+				meaning: { en: 'how (by what method)?', th: '… อย่างไร (ด้วยวิธีไหน)' },
+				note: {
+					en: 'どうやって asks for the way or method. Answer with で (バスで) or a て-form (あるいて).',
+					th: 'どうやって ใช้ถามวิธีการ ตอบด้วย で (バスで) หรือรูป て (あるいて)'
+				},
+				examples: [
+					{ ja: '「くうこうまでどうやって行きますか。」「バスで行きます。」', en: '“How do you get to the airport?” “By bus.”', th: '“ไปสนามบินอย่างไร” “ไปด้วยรถบัส”' },
+					{ ja: 'このきかいはどうやってつかいますか。', en: 'How do you use this machine?', th: 'เครื่องนี้ใช้อย่างไร' },
+					{ ja: '「えきまでどうやって来ましたか。」「あるいて来ました。」', en: '“How did you get to the station?” “I walked.”', th: '“มาสถานีอย่างไร” “เดินมา”' },
+					{ ja: 'この字はどうやって書きますか。', en: 'How do you write this character?', th: 'ตัวอักษรนี้เขียนอย่างไร' },
+					{ ja: '電車のきっぷはどうやってかいますか。', en: 'How do I buy a train ticket?', th: 'ซื้อตั๋วรถไฟอย่างไร' }
+				]
+			}
+		],
+		reading: {
+			title: { en: 'Going home to Thailand', th: 'กลับบ้านที่ไทย' },
+			lines: [
+				{ ja: '明日、タイへかえります。', en: 'Tomorrow I’m going home to Thailand.', th: 'พรุ่งนี้จะกลับไทย' },
+				{ ja: 'うちからえきまで、じてんしゃで行きます。', en: 'I’ll cycle from home to the station.', th: 'จากบ้านไปสถานีจะไปด้วยจักรยาน' },
+				{ ja: 'えきから電車にのって、くうこうへ行きます。', en: 'From the station I’ll take the train to the airport.', th: 'จากสถานีนั่งรถไฟไปสนามบิน' },
+				{ ja: '電車で一時間ぐらいかかります。', en: 'It takes about an hour by train.', th: 'นั่งรถไฟประมาณหนึ่งชั่วโมง' },
+				{ ja: 'くうこうからタイまで、ひこうきで六時間です。', en: 'From the airport to Thailand is six hours by plane.', th: 'จากสนามบินถึงไทยใช้เวลาหกชั่วโมงด้วยเครื่องบิน' }
+			],
+			questions: [
+				{
+					q: { en: 'How does the writer get to the station?', th: 'ผู้เขียนไปสถานีด้วยอะไร' },
+					choices: [
+						{ en: 'By bus', th: 'รถบัส' },
+						{ en: 'By bicycle', th: 'จักรยาน' },
+						{ en: 'On foot', th: 'เดินไป' }
+					],
+					answer: 1
+				},
+				{
+					q: { en: 'How long is the train to the airport?', th: 'นั่งรถไฟไปสนามบินใช้เวลาเท่าไร' },
+					choices: [
+						{ en: 'About an hour', th: 'ประมาณหนึ่งชั่วโมง' },
+						{ en: 'Six hours', th: 'หกชั่วโมง' },
+						{ en: 'Ten minutes', th: 'สิบนาที' }
+					],
+					answer: 0
+				}
+			]
+		},
+		review: DRAFT,
+		source: SOURCE
+	},
+	{
+		id: 'n5-26',
+		level: 'N5',
+		title: { en: 'What I want to do', th: 'สิ่งที่อยากทำ' },
+		goal: { en: 'Say what you want to do, ask and answer “why”, and say “nothing” or “nobody”.', th: 'บอกสิ่งที่อยากทำ ถามและตอบว่า “ทำไม” และพูดว่า “ไม่มีอะไร” หรือ “ไม่มีใคร”' },
+		kanji: ['本'],
+		words: [
+			{ reading: 'ほんとう', kanji: '本当', gloss: { en: 'truth; really', th: 'จริง; ความจริง' }, kind: 'word' },
+			{ reading: 'にほん', kanji: '日本', gloss: { en: 'Japan', th: 'ประเทศญี่ปุ่น' }, kind: 'word' },
+			{ reading: 'ほんや', kanji: '本屋', gloss: { en: 'bookshop', th: 'ร้านหนังสือ' }, kind: 'word' },
+			{ reading: 'ほんだな', kanji: '本棚', gloss: { en: 'bookshelf', th: 'ชั้นหนังสือ' }, kind: 'word' },
+			{ reading: 'りょこう', kanji: '旅行', gloss: { en: 'trip; travel', th: 'การท่องเที่ยว' }, kind: 'word' },
+			{ reading: 'しゃしん', kanji: '写真', gloss: { en: 'photo', th: 'รูปถ่าย' }, kind: 'word' },
+			{ reading: 'ゆめ', kanji: '夢', gloss: { en: 'dream', th: 'ความฝัน' }, kind: 'word' },
+			{ reading: 'しょうらい', kanji: '将来', gloss: { en: 'the future', th: 'อนาคต' }, kind: 'word' },
+			{ reading: 'がいこく', kanji: '外国', gloss: { en: 'foreign country', th: 'ต่างประเทศ' }, kind: 'word' },
+			{ reading: 'りゅうがく', kanji: '留学', gloss: { en: 'studying abroad', th: 'การไปเรียนต่างประเทศ' }, kind: 'word' },
+			{ reading: 'どうして', gloss: { en: 'why', th: 'ทำไม' }, kind: 'word' },
+			{ reading: 'なぜ', gloss: { en: 'why (more formal)', th: 'ทำไม (ทางการกว่า)' }, kind: 'word' }
+		],
+		grammar: [
+			{
+				id: 'n5-tai',
+				pattern: '〜たいです',
+				formation: 'V-ます stem + たいです',
+				meaning: { en: 'I want to …', th: 'อยาก …' },
+				note: {
+					en: 'たい is for what you yourself want to do. It works like an い-adjective: 行きたくないです (I don’t want to go). For other people’s wishes you will learn たがっている at N4.',
+					th: 'たい ใช้บอกสิ่งที่ตัวเองอยากทำ ผันเหมือนคุณศัพท์ い เช่น 行きたくないです (ไม่อยากไป) ถ้าพูดถึงความต้องการของคนอื่นจะได้เรียน たがっている ในระดับ N4'
+				},
+				examples: [
+					{ ja: '日本へ行きたいです。', en: 'I want to go to Japan.', th: 'อยากไปญี่ปุ่น' },
+					{ ja: '何が食べたいですか。', en: 'What do you want to eat?', th: 'อยากกินอะไร' },
+					{ ja: '今日は何もしたくないです。', en: 'I don’t want to do anything today.', th: 'วันนี้ไม่อยากทำอะไรเลย' },
+					{ ja: 'しょうらい、先生になりたいです。', en: 'In the future I want to be a teacher.', th: 'ในอนาคตอยากเป็นครู' },
+					{ ja: '日本の本屋で本をかいたいです。', en: 'I want to buy books at a Japanese bookshop.', th: 'อยากซื้อหนังสือที่ร้านหนังสือในญี่ปุ่น' }
+				]
+			},
+			{
+				id: 'n5-doushite',
+				pattern: 'どうして・なぜ',
+				formation: 'どうして …か。— …から。',
+				meaning: { en: 'why? — because …', th: 'ทำไม — เพราะ …' },
+				note: {
+					en: 'どうして is the everyday word; なぜ sounds more formal or written. Answer with から at the end: …ですから.',
+					th: 'どうして เป็นคำที่ใช้ทั่วไป ส่วน なぜ ฟังดูทางการหรือเป็นภาษาเขียนมากกว่า ตอบโดยลงท้ายด้วย から เช่น …ですから'
+				},
+				examples: [
+					{ ja: 'どうして日本語をべんきょうしていますか。', en: 'Why are you studying Japanese?', th: 'ทำไมถึงเรียนภาษาญี่ปุ่น' },
+					{ ja: '日本のアニメが好きですから。', en: 'Because I like Japanese anime.', th: 'เพราะชอบอนิเมะญี่ปุ่น' },
+					{ ja: '「どうして休みましたか。」「かぜをひきましたから。」', en: '“Why were you off?” “Because I caught a cold.”', th: '“ทำไมถึงหยุด” “เพราะเป็นหวัด”' },
+					{ ja: 'このりんごはなぜ高いですか。', en: 'Why are these apples expensive?', th: 'ทำไมแอปเปิลนี้ถึงแพง' },
+					{ ja: 'どうして食べないの？', en: 'Why aren’t you eating?', th: 'ทำไมไม่กินล่ะ' }
+				]
+			},
+			{
+				id: 'n5-nanimo',
+				pattern: '何も・だれも・どこへも + negative',
+				formation: 'question word + も + negative',
+				meaning: { en: 'nothing; nobody; nowhere', th: 'ไม่ … อะไรเลย; ไม่มีใคร; ไม่ไปไหนเลย' },
+				note: {
+					en: 'A question word with も and a negative verb means “not any”. With a place, keep the particle: どこへも, どこにも.',
+					th: 'คำแสดงคำถามตามด้วย も และกริยาปฏิเสธ แปลว่า “ไม่ … เลย” ถ้าเป็นสถานที่ให้คงคำช่วยไว้ เช่น どこへも, どこにも'
+				},
+				examples: [
+					{ ja: '今日は何も食べませんでした。', en: 'I didn’t eat anything today.', th: 'วันนี้ไม่ได้กินอะไรเลย' },
+					{ ja: 'へやにはだれもいません。', en: 'There’s nobody in the room.', th: 'ในห้องไม่มีใครอยู่' },
+					{ ja: '日よう日はどこへも行きませんでした。', en: 'I didn’t go anywhere on Sunday.', th: 'วันอาทิตย์ไม่ได้ไปไหนเลย' },
+					{ ja: '「何かのみますか。」「いいえ、何もいりません。」', en: '“Would you like a drink?” “No, I don’t need anything.”', th: '“จะดื่มอะไรไหม” “ไม่ ไม่ต้องการอะไร”' },
+					{ ja: 'そのことは、だれもしりません。', en: 'Nobody knows about that.', th: 'เรื่องนั้นไม่มีใครรู้' }
+				]
+			}
+		],
+		reading: {
+			title: { en: 'My dream', th: 'ความฝันของฉัน' },
+			lines: [
+				{ ja: 'わたしは本が大好きです。', en: 'I love books.', th: 'ฉันชอบหนังสือมาก' },
+				{ ja: 'しょうらい、日本の本屋ではたらきたいです。', en: 'In the future I want to work in a bookshop in Japan.', th: 'ในอนาคตอยากทำงานที่ร้านหนังสือในญี่ปุ่น' },
+				{ ja: 'どうしてですか。日本の本屋は大きくて、おもしろいですから。', en: 'Why? Because Japanese bookshops are big and fun.', th: 'ทำไมน่ะเหรอ เพราะร้านหนังสือในญี่ปุ่นใหญ่และน่าสนใจ' },
+				{ ja: '来年、日本へりゅうがくに行きたいです。', en: 'Next year I want to go to Japan to study.', th: 'ปีหน้าอยากไปเรียนต่อที่ญี่ปุ่น' },
+				{ ja: 'でも、まだお金がありません。今はアルバイトをしています。', en: 'But I don’t have the money yet. I’m doing a part-time job now.', th: 'แต่ยังไม่มีเงิน ตอนนี้จึงทำงานพาร์ตไทม์อยู่' }
+			],
+			questions: [
+				{
+					q: { en: 'What does the writer want to do in the future?', th: 'ในอนาคตผู้เขียนอยากทำอะไร' },
+					choices: [
+						{ en: 'Work in a bookshop in Japan', th: 'ทำงานที่ร้านหนังสือในญี่ปุ่น' },
+						{ en: 'Write books', th: 'เขียนหนังสือ' },
+						{ en: 'Teach Japanese', th: 'สอนภาษาญี่ปุ่น' }
+					],
+					answer: 0
+				},
+				{
+					q: { en: 'Why can’t the writer go to Japan yet?', th: 'ทำไมผู้เขียนยังไปญี่ปุ่นไม่ได้' },
+					choices: [
+						{ en: 'They can’t speak Japanese.', th: 'เพราะพูดภาษาญี่ปุ่นไม่ได้' },
+						{ en: 'They don’t have the money yet.', th: 'เพราะยังไม่มีเงิน' },
+						{ en: 'They don’t like Japan.', th: 'เพราะไม่ชอบญี่ปุ่น' }
+					],
+					answer: 1
+				}
+			]
+		},
+		review: DRAFT,
+		source: SOURCE
+	},
+	{
+		id: 'n5-27',
+		level: 'N5',
+		title: { en: 'A summer festival', th: 'เทศกาลฤดูร้อน' },
+		goal: { en: 'Tell a short story with それから, でも and だから, and use “something” and “not at all”.', th: 'เล่าเรื่องสั้น ๆ ด้วย それから でも และ だから และใช้คำว่า “อะไรสักอย่าง” และ “ไม่ … เลย”' },
+		kanji: ['人'],
+		words: [
+			{ reading: 'おとな', kanji: '大人', gloss: { en: 'adult', th: 'ผู้ใหญ่' }, kind: 'word' },
+			{ reading: 'にんき', kanji: '人気', gloss: { en: 'popularity; popular', th: 'ความนิยม; เป็นที่นิยม' }, kind: 'word' },
+			{ reading: 'がいこくじん', kanji: '外国人', gloss: { en: 'foreigner', th: 'ชาวต่างชาติ' }, kind: 'word' },
+			{ reading: 'みんな', kanji: '皆', gloss: { en: 'everyone', th: 'ทุกคน' }, kind: 'word' },
+			{ reading: 'まつり', kanji: '祭り', gloss: { en: 'festival', th: 'เทศกาล; งานวัด' }, kind: 'word' },
+			{ reading: 'はなび', kanji: '花火', gloss: { en: 'fireworks', th: 'ดอกไม้ไฟ' }, kind: 'word' },
+			{ reading: 'こうえん', kanji: '公園', gloss: { en: 'park', th: 'สวนสาธารณะ' }, kind: 'word' },
+			{ reading: 'たのしい', kanji: '楽しい', gloss: { en: 'fun; enjoyable', th: 'สนุก' }, kind: 'word' },
+			{ reading: 'おもしろい', kanji: '面白い', gloss: { en: 'interesting; funny', th: 'น่าสนใจ; ตลก' }, kind: 'word' },
+			{ reading: 'つかれる', kanji: '疲れる', gloss: { en: 'to get tired', th: 'เหนื่อย' }, kind: 'word' },
+			{ reading: 'きもの', kanji: '着物', gloss: { en: 'kimono', th: 'กิโมโน' }, kind: 'word' },
+			{ reading: 'ぜんぜん', kanji: '全然', gloss: { en: '(not) at all', th: '(ไม่) … เลย' }, kind: 'word' }
+		],
+		grammar: [
+			{
+				id: 'n5-zenzen',
+				pattern: 'ぜんぜん〜ない',
+				formation: 'ぜんぜん + negative',
+				meaning: { en: 'not … at all', th: 'ไม่ … เลย' },
+				note: {
+					en: 'ぜんぜん with a negative is stronger than あまり: あまりわかりません (I don’t understand much), ぜんぜんわかりません (I don’t understand at all).',
+					th: 'ぜんぜん กับรูปปฏิเสธมีน้ำหนักมากกว่า あまり เช่น あまりわかりません (ไม่ค่อยเข้าใจ) ぜんぜんわかりません (ไม่เข้าใจเลย)'
+				},
+				examples: [
+					{ ja: '日本語がぜんぜんわかりません。', en: 'I don’t understand Japanese at all.', th: 'ไม่เข้าใจภาษาญี่ปุ่นเลย' },
+					{ ja: 'きのうはぜんぜんねませんでした。', en: 'I didn’t sleep at all last night.', th: 'เมื่อคืนไม่ได้นอนเลย' },
+					{ ja: 'このえいがはぜんぜんおもしろくなかったです。', en: 'This movie wasn’t interesting at all.', th: 'หนังเรื่องนี้ไม่สนุกเลย' },
+					{ ja: '今日はぜんぜんさむくないです。', en: 'It isn’t cold at all today.', th: 'วันนี้ไม่หนาวเลย' },
+					{ ja: '中国語はぜんぜんできません。', en: 'I can’t speak Chinese at all.', th: 'พูดภาษาจีนไม่ได้เลย' }
+				]
+			},
+			{
+				id: 'n5-dokoka',
+				pattern: '何か・どこか・だれか',
+				formation: 'question word + か',
+				meaning: { en: 'something; somewhere; someone', th: 'อะไรสักอย่าง; ที่ไหนสักแห่ง; ใครสักคน' },
+				note: {
+					en: 'A question word + か means “some …”. Compare 何か (something) with 何も + negative (nothing, unit 26).',
+					th: 'คำแสดงคำถามตามด้วย か แปลว่า “… สักอย่าง” เปรียบเทียบ 何か (อะไรสักอย่าง) กับ 何も + ปฏิเสธ (ไม่มีอะไรเลย บทที่ 26)'
+				},
+				examples: [
+					{ ja: '何か食べませんか。', en: 'Shall we eat something?', th: 'กินอะไรสักหน่อยไหม' },
+					{ ja: '休みにどこか行きますか。', en: 'Are you going anywhere for the holiday?', th: 'วันหยุดจะไปไหนไหม' },
+					{ ja: 'だれか来ましたか。', en: 'Did someone come?', th: 'มีใครมาหรือเปล่า' },
+					{ ja: '「何かかいましたか。」「いいえ、何もかいませんでした。」', en: '“Did you buy anything?” “No, nothing.”', th: '“ซื้ออะไรมาไหม” “ไม่ ไม่ได้ซื้ออะไรเลย”' },
+					{ ja: 'いつか、いっしょに日本へ行きましょう。', en: 'Let’s go to Japan together some day.', th: 'สักวันไปญี่ปุ่นด้วยกันนะ' }
+				]
+			},
+			{
+				id: 'n5-sorekara',
+				pattern: 'それから・でも・だから',
+				formation: 'sentence 1。それから / でも / だから、sentence 2。',
+				meaning: { en: 'and then / but / so (joining two sentences)', th: 'แล้วก็ / แต่ / ดังนั้น (เชื่อมสองประโยค)' },
+				note: {
+					en: 'These words start the second sentence. それから: and then. でも: but. だから: so, that’s why.',
+					th: 'คำเหล่านี้ใช้ขึ้นต้นประโยคที่สอง それから: แล้วก็ でも: แต่ だから: ดังนั้น เพราะฉะนั้น'
+				},
+				examples: [
+					{ ja: 'こうえんへ行きました。それから、えいがを見ました。', en: 'I went to the park. Then I saw a movie.', th: 'ไปสวนสาธารณะ แล้วก็ไปดูหนัง' },
+					{ ja: '日本語はむずかしいです。でも、おもしろいです。', en: 'Japanese is hard. But it’s interesting.', th: 'ภาษาญี่ปุ่นยาก แต่ก็สนุก' },
+					{ ja: '雨がふりました。だから、うちにいました。', en: 'It rained. So I stayed home.', th: 'ฝนตก ก็เลยอยู่บ้าน' },
+					{ ja: 'シャワーをあびました。それから、学校へ行きました。', en: 'I had a shower. Then I went to school.', th: 'อาบน้ำ แล้วก็ไปโรงเรียน' },
+					{ ja: '明日はテストです。だから、今日はべんきょうします。', en: 'There’s a test tomorrow. So I’ll study today.', th: 'พรุ่งนี้มีสอบ วันนี้จึงจะอ่านหนังสือ' }
+				]
+			}
+		],
+		reading: {
+			title: { en: 'The summer festival', th: 'เทศกาลฤดูร้อน' },
+			lines: [
+				{ ja: 'きのう、友だちとなつまつりに行きました。', en: 'Yesterday I went to a summer festival with friends.', th: 'เมื่อวานไปงานเทศกาลฤดูร้อนกับเพื่อน' },
+				{ ja: '人がたくさんいました。外国人もたくさんいました。', en: 'There were lots of people. There were lots of foreigners too.', th: 'มีคนเยอะมาก ชาวต่างชาติก็เยอะ' },
+				{ ja: 'はじめに、やきそばを食べました。それから、はなびを見ました。', en: 'First we ate yakisoba. Then we watched the fireworks.', th: 'ตอนแรกกินยากิโซบะ แล้วก็ดูดอกไม้ไฟ' },
+				{ ja: 'はなびはとてもきれいでした。でも、すこしつかれました。', en: 'The fireworks were very beautiful. But I got a little tired.', th: 'ดอกไม้ไฟสวยมาก แต่ก็เหนื่อยนิดหน่อย' },
+				{ ja: 'とてもたのしかったです。だから、来年もまた行きたいです。', en: 'It was great fun. So I want to go again next year.', th: 'สนุกมาก เลยอยากไปอีกปีหน้า' }
+			],
+			questions: [
+				{
+					q: { en: 'What did they do after eating?', th: 'หลังกินอาหารแล้วทำอะไร' },
+					choices: [
+						{ en: 'Watched the fireworks', th: 'ดูดอกไม้ไฟ' },
+						{ en: 'Went home', th: 'กลับบ้าน' },
+						{ en: 'Bought a kimono', th: 'ซื้อกิโมโน' }
+					],
+					answer: 0
+				},
+				{
+					q: { en: 'Why does the writer want to go again next year?', th: 'ทำไมผู้เขียนอยากไปอีกปีหน้า' },
+					choices: [
+						{ en: 'Because it was a lot of fun', th: 'เพราะสนุกมาก' },
+						{ en: 'Because there were few people', th: 'เพราะคนน้อย' },
+						{ en: 'Because the food was cheap', th: 'เพราะอาหารถูก' }
+					],
+					answer: 0
 				}
 			]
 		},
