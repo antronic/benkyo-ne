@@ -731,7 +731,7 @@ export const en = {
 	'promo.retry': 'Try again',
 	'promo.label': 'Have a code?',
 	'promo.placeholder': 'Enter code',
-	'promo.hint': 'Letters and digits. Spaces and dashes don’t matter.',
+	'promo.hint': 'Letters, digits and _. Case, spaces and dashes don’t matter.',
 	'promo.redeem': 'Redeem',
 	'promo.redeemed': '{plan} is on',
 	'promo.redeemedBody': 'Code {code} gave you {plan} until {date}.',

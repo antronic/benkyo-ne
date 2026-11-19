@@ -254,6 +254,9 @@ async function deletePlan(env: Env, ctx: AdminContext, id: string) {
 	if (!plan) throw httpError(404, 'bad_request', 'No such package');
 	const g = await env.DB.prepare(`SELECT COUNT(*) AS n FROM plan_grants WHERE plan_id = ?1`).bind(id).first<{ n: number }>();
 	if (g?.n) throw httpError(400, 'bad_request', 'Someone has had this package, so it stays for the record; turn off “Offered” instead');
+	const promos = await env.DB.prepare(`SELECT COUNT(*) AS n FROM promo_codes WHERE plan_id = ?1`).bind(id).first<{ n: number }>();
+	if (promos?.n)
+		throw httpError(400, 'bad_request', `${promos.n} promo code${promos.n === 1 ? ' gives' : 's give'} this package; move them to another package first (edit the code)`);
 	await audited(env, ctx, 'package.delete', null, { plan: id, name: plan.name }, [
 		env.DB.prepare(`DELETE FROM plan_models WHERE plan_id = ?1`).bind(id),
 		env.DB.prepare(`DELETE FROM plans WHERE id = ?1`).bind(id)

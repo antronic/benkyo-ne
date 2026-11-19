@@ -78,7 +78,18 @@ export interface AdminPromoInput {
 	expiresInDays: number | null;
 }
 
-/** PATCH /api/admin/promos/:code */
+/**
+ * PATCH /api/admin/promos/:code, any subset. Changes apply to future
+ * redemptions; grants already made keep their terms. `code` can only change
+ * before anyone has redeemed it. `expiresInDays` counts from now (null: never).
+ */
 export interface AdminPromoPatch {
-	disabled: boolean;
+	disabled?: boolean;
+	code?: string;
+	label?: string | null;
+	plan?: string;
+	kind?: 'comp' | 'trial';
+	days?: number | null;
+	maxUses?: number | null;
+	expiresInDays?: number | null;
 }

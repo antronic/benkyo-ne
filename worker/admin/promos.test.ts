@@ -59,7 +59,10 @@ const make = async (input: Record<string, unknown>) => {
 describe('promo code format', () => {
 	it('normalizes what people type', () => {
 		expect(normalizePromo(' songkran-2027 ')).toBe('SONGKRAN2027');
-		expect(normalizePromo('ab c_d.e')).toBe('ABCDE');
+		expect(normalizePromo('ab c_d.e')).toBe('ABC_DE');
+		expect(normalizePromo('songkran_27')).toBe('SONGKRAN_27');
+		expect(normalizePromo('_SONGKRAN')).toBeNull();
+		expect(normalizePromo('SONGKRAN_')).toBeNull();
 		expect(normalizePromo('abc')).toBeNull();
 		expect(normalizePromo('x'.repeat(25))).toBeNull();
 		expect(normalizePromo('ฟรี2027')).toBeNull();
@@ -202,5 +205,85 @@ describe('redeeming a code', () => {
 		await (env.DB as any).batch(accountDataStatements(env as never, 2));
 		expect(db.prepare(`SELECT COUNT(*) AS n FROM promo_redemptions`).get()).toEqual({ n: 0 });
 		expect(db.prepare(`SELECT uses FROM promo_codes WHERE code = 'BYE001'`).get()).toEqual({ uses: 1 });
+	});
+});
+
+describe('underscores in codes', () => {
+	it('keeps the underscore and redeems with or without it', async () => {
+		expect((await make({ code: 'songkran_27', plan: 'plus', kind: 'trial', days: 7, maxUses: 5 })).body.code).toBe('SONGKRAN_27');
+		expect((await asLearner(2, 'POST', '/api/promo/redeem', { code: 'Songkran_27' })).body.code).toBe('SONGKRAN_27');
+		expect((await asLearner(3, 'POST', '/api/promo/redeem', { code: 'songkran27' })).body.code).toBe('SONGKRAN_27');
+		session = ADMIN;
+		expect((await admin('GET', '/api/admin/promos/SONGKRAN_27')).body.uses).toBe(2);
+	});
+	it('refuses a code that matches another one with underscores ignored', async () => {
+		await make({ code: 'SONGKRAN27', plan: 'plus', kind: 'trial', days: 7 });
+		const r = await make({ code: 'SONG_KRAN27', plan: 'plus', kind: 'trial', days: 7 });
+		expect([r.status, r.body.message]).toEqual([409, 'That code matches SONGKRAN27, which already exists']);
+	});
+});
+
+describe('fleet: editing a code', () => {
+	it('changes the terms with a passkey tap, logs what changed, and new redemptions use them', async () => {
+		await make({ code: 'EDITME', plan: 'plus', kind: 'trial', days: 7, maxUses: 5, label: 'Old' });
+		db.exec(`UPDATE sessions SET stepup_at = NULL`);
+		expect((await admin('PATCH', '/api/admin/promos/EDITME', { days: 30 })).status).toBe(428);
+		stepUp();
+		const r = await admin('PATCH', '/api/admin/promos/EDITME', { plan: 'pro', kind: 'comp', days: null, maxUses: null, expiresInDays: 10, label: 'New' });
+		expect(r.status).toBe(200);
+		expect(r.body).toMatchObject({ code: 'EDITME', plan: 'pro', kind: 'comp', days: null, maxUses: null, label: 'New' });
+		expect(r.body.expiresAt).toBeGreaterThan(Date.now() + 9 * DAY);
+		const a = audit().at(-1)!;
+		expect(a.action).toBe('promo.update');
+		expect(JSON.parse(a.d)).toMatchObject({ code: 'EDITME', plan: { from: 'plus', to: 'pro' }, days: { from: 7, to: null }, label: { from: 'Old', to: 'New' } });
+		const red = await asLearner(2, 'POST', '/api/promo/redeem', { code: 'EDITME' });
+		expect(red.body).toMatchObject({ plan: 'pro', grant: { kind: 'comp', endsAt: null } });
+	});
+
+	it('keeps grants already made as they were', async () => {
+		await make({ code: 'KEEPTERMS', plan: 'plus', kind: 'trial', days: 7 });
+		await asLearner(2, 'POST', '/api/promo/redeem', { code: 'KEEPTERMS' });
+		session = ADMIN;
+		await admin('PATCH', '/api/admin/promos/KEEPTERMS', { plan: 'pro', days: 90 });
+		expect(await planOf(env as never, 2)).toBe('plus');
+	});
+
+	it('renames a code only before anyone has used it', async () => {
+		await make({ code: 'TYPO_CODE', plan: 'plus', kind: 'trial', days: 7 });
+		const r = await admin('PATCH', '/api/admin/promos/TYPO_CODE', { code: 'right-code' });
+		expect(r.body.code).toBe('RIGHTCODE');
+		expect((await admin('GET', '/api/admin/promos/TYPO_CODE')).status).toBe(404);
+		await asLearner(2, 'POST', '/api/promo/redeem', { code: 'RIGHTCODE' });
+		session = ADMIN;
+		const again = await admin('PATCH', '/api/admin/promos/RIGHTCODE', { code: 'OTHERCODE' });
+		expect(again.status).toBe(409);
+		await make({ code: 'TAKEN_ONE', plan: 'plus', kind: 'trial', days: 7 });
+		await make({ code: 'FRESHONE', plan: 'plus', kind: 'trial', days: 7 });
+		expect((await admin('PATCH', '/api/admin/promos/FRESHONE', { code: 'TAKENONE' })).status).toBe(409);
+	});
+
+	it('checks the new terms', async () => {
+		await make({ code: 'LIMITS', plan: 'plus', kind: 'comp', days: null, maxUses: 5 });
+		await asLearner(2, 'POST', '/api/promo/redeem', { code: 'LIMITS' });
+		await asLearner(3, 'POST', '/api/promo/redeem', { code: 'LIMITS' });
+		session = ADMIN;
+		expect((await admin('PATCH', '/api/admin/promos/LIMITS', { maxUses: 1 })).status).toBe(400);
+		expect((await admin('PATCH', '/api/admin/promos/LIMITS', { maxUses: 2 })).body.state).toBe('used_up');
+		expect((await admin('PATCH', '/api/admin/promos/LIMITS', { kind: 'trial' })).status).toBe(400); // a trial needs days
+		expect((await admin('PATCH', '/api/admin/promos/LIMITS', { plan: 'free' })).status).toBe(400);
+		expect((await admin('PATCH', '/api/admin/promos/LIMITS', { plan: 'gold' })).status).toBe(400);
+		expect((await admin('PATCH', '/api/admin/promos/LIMITS', {})).status).toBe(400);
+	});
+
+	it('stops a package from being deleted while a code gives it', async () => {
+		stepUp();
+		const made = await admin('POST', '/api/admin/packages', { name: 'Teacher', priceMonthUsd: 0, priceYearUsd: 0, aiAllowanceUsd: 0 });
+		expect(made.status).toBe(201);
+		const id = made.body.created as string;
+		await make({ code: 'TEACHERS', plan: id, kind: 'comp', days: 30 });
+		const r = await admin('DELETE', `/api/admin/packages/${id}`);
+		expect([r.status, r.body.message]).toEqual([400, expect.stringContaining('promo code gives this package')]);
+		await admin('PATCH', '/api/admin/promos/TEACHERS', { plan: 'plus' });
+		expect((await admin('DELETE', `/api/admin/packages/${id}`)).status).toBe(200);
 	});
 });
