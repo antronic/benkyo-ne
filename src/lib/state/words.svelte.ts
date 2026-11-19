@@ -10,7 +10,8 @@
  */
 import { browser } from '$app/env';
 import { get, getAll, put } from '#lib/db/idb.ts';
-import type { UserCard } from '#lib/ai/contract.ts';
+import type { SightingVia, UserCard } from '#lib/ai/contract.ts';
+import { addSighting } from '#lib/words/phrasebook.ts';
 import { progress } from '#lib/state/progress.svelte.ts';
 import { isReadable } from '#lib/dict/readable.ts';
 import { NOW_TAG, isSystemTag } from '#lib/content/courses.ts';
@@ -100,6 +101,17 @@ class Words {
 	async remove(id: string) {
 		const c = this.cards[id];
 		if (c) await this.save({ ...c, deleted: true });
+	}
+
+	/** Phrasebook: these cards came up in your life (a photo, a look-up, the Writing helper). */
+	async see(ids: string[], via: SightingVia, ctx: string | null = null) {
+		const at = Date.now();
+		for (const id of new Set(ids)) {
+			const c = this.cards[id];
+			if (!c || c.deleted) continue;
+			const seen = addSighting(c.seen, { at, via, ctx });
+			if (seen !== c.seen) await this.save({ ...c, seen });
+		}
 	}
 
 	async setTags(id: string, tags: string[]) {

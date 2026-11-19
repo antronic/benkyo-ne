@@ -9,7 +9,7 @@
  */
 import { lookupEnglish, lookupJapanese, lookupRomaji, verifyItem, verifyText, getGlosses, type DictHit } from '#lib/dict/dict.ts';
 import * as api from '#lib/ai/client.ts';
-import type { Bi, CardKind, FilledItem, ProposeRequest, UserCard } from '#lib/ai/contract.ts';
+import type { Bi, CardKind, FilledItem, ProposeRequest, SightingVia, UserCard } from '#lib/ai/contract.ts';
 import { ai } from '#lib/state/ai.svelte.ts';
 import { progress } from '#lib/state/progress.svelte.ts';
 import { words } from '#lib/state/words.svelte.ts';
@@ -122,7 +122,7 @@ const kanjiOf = (c: Pick<Candidate, 'written' | 'reading' | 'text'>) =>
 /** Create cards for the chosen candidates, then enrich them with AI (now or later). */
 export async function saveCandidates(
 	chosen: Candidate[],
-	opts: { tags: string[]; source: UserCard['source'] }
+	opts: { tags: string[]; source: UserCard['source']; via?: SightingVia; ctx?: string | null }
 ): Promise<UserCard[]> {
 	const now = Date.now();
 	const second = progress.settings.secondLang;
@@ -146,12 +146,15 @@ export async function saveCandidates(
 				source: opts.source,
 				tags: [...new Set([...(prev?.tags ?? []), ...opts.tags])],
 				createdAt: prev?.createdAt ?? now,
-				deleted: false
+				deleted: false,
+				seen: prev?.seen ?? null
 			})
 		);
 	}
+	// phrasebook: saving from a photo or a look-up counts as it coming up in your life
+	if (opts.via) await words.see(saved.map((c) => c.id), opts.via, opts.ctx ?? null);
 	await enrich(saved.map((c) => c.id));
-	return saved;
+	return saved.map((c) => words.cards[c.id] ?? c);
 }
 
 interface OutboxItem {

@@ -298,4 +298,22 @@ export interface UserCard {
 	createdAt: number;
 	updatedAt: number;
 	deleted: boolean;
+	/** Phrasebook: how often it came up in your life, and the last few places (docs/EVERYDAY.md). */
+	seen?: Seen | null;
 }
+
+/** Where a word or phrase came up: a photo you read, a look-up, or a message the Writing helper checked. */
+export type SightingVia = 'photo' | 'lookup' | 'writing' | 'add';
+export interface Sighting {
+	at: number;
+	via: SightingVia;
+	/** the sentence it came up in, when there was one */
+	ctx: string | null;
+}
+export interface Seen {
+	count: number;
+	/** newest first, at most SEEN_RECENT */
+	recent: Sighting[];
+}
+export const SEEN_RECENT = 10;
+export const SIGHTING_VIAS: SightingVia[] = ['photo', 'lookup', 'writing', 'add'];

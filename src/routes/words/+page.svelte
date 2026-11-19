@@ -1,8 +1,8 @@
 <!-- Words hub: reading packs, card maker, tags, and your word/phrase cards. -->
 <script lang="ts">
-	import { t as tr, tn } from '#lib/i18n/index.svelte.ts';
+	import { t as tr, tn, fmtDate } from '#lib/i18n/index.svelte.ts';
 	import { gloss } from '#lib/i18n/content.ts';
-	import { Button, Card, Chip, FieldRow, LargeTitle, ListGroup, ListRow, Segmented, Sheet, Skeleton, TextField } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, Chip, FieldRow, LargeTitle, ListGroup, ListRow, Segmented, Sheet, Skeleton, TextField } from '#lib/ui/index.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
@@ -10,7 +10,8 @@
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
 import WordCardView from '#lib/components/WordCardView.svelte';
-	import type { UserCard } from '#lib/ai/contract.ts';
+	import type { SightingVia, UserCard } from '#lib/ai/contract.ts';
+	import { filterCounts, rankPhrasebook, viasOf, type PhrasebookFilter } from '#lib/words/phrasebook.ts';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
@@ -31,8 +32,14 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 	let filterTag = $state<string | null>(null);
 	let open = $state<UserCard | null>(null);
 	let tagInput = $state('');
-	/** Cards, or every note you wrote (on cards, kana, kanji, units) */
-	let view = $state<'cards' | 'notes'>('cards');
+	/** Cards, your phrasebook (what comes up in your life), or every note you wrote (on cards, kana, kanji, units) */
+	let view = $state<'cards' | 'phrasebook' | 'notes'>('cards');
+	let pbFilter = $state<PhrasebookFilter>('all');
+	const phrasebook = $derived(rankPhrasebook(words.list, pbFilter));
+	const pbCounts = $derived(filterCounts(words.list));
+	const PB_FILTERS: PhrasebookFilter[] = ['all', 'photo', 'lookup', 'writing'];
+	const sources = (c: UserCard) => viasOf(c).map((v) => tr(`phrasebook.src.${v}`)).join(' · ');
+	const viaIcon: Record<SightingVia, string> = { photo: '📷', lookup: '🔎', writing: '✍️', add: '＋' };
 	let noteQuery = $state('');
 	let openNote = $state<Note | null>(null);
 
@@ -44,6 +51,7 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 	);
 	const viewOptions = $derived([
 		{ value: 'cards' as const, label: tr('notes.filterAll') },
+		{ value: 'phrasebook' as const, label: tr('words.viewPhrasebook', { n: pbCounts.all }) },
 		{ value: 'notes' as const, label: `${tr('notes.filter')} · ${notes.list.length}` }
 	]);
 
@@ -176,7 +184,35 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 
 	<Segmented options={viewOptions} value={view} label={tr('nav.words')} onchange={(v) => (view = v)} />
 
-	{#if view === 'notes'}
+	{#if view === 'phrasebook'}
+	<section class="stack" style:--gap="var(--space-2)">
+		<h2 class="eyebrow">{tr('phrasebook.title')}</h2>
+		<p class="caption hint">{tr('phrasebook.intro')}</p>
+		<div class="chips">
+			{#each PB_FILTERS as f (f)}
+				<Chip selected={pbFilter === f} count={pbCounts[f]} onclick={() => (pbFilter = f)}>{f === 'all' ? tr('phrasebook.all') : tr(`phrasebook.via.${f}`)}</Chip>
+			{/each}
+		</div>
+		<ListGroup class="cards">
+			{#each phrasebook as c, i (c.id)}
+				{@const n = c.seen?.count ?? 0}
+				<ListRow class="item" onclick={() => (open = c)}>
+					{#snippet leading()}<span class="rank">{i + 1}</span>{/snippet}
+					<span class="jp front">{c.kanji ?? c.front}</span>
+					{#if c.kanji}<span class="jp kanji">{c.front}</span>{/if}
+					<Romaji text={c.front} />
+					<span class="caption">{gloss(c.gloss)}{n ? ` · ${sources(c)}` : ''}</span>
+					{#snippet trailing()}
+						{#if n}<span title={tr('phrasebook.seenTitle', { n })}><Badge tone="accent">{tr('phrasebook.seenN', { n })}</Badge></span>
+						{:else}<span class="pill">{tr('phrasebook.notYet')}</span>{/if}
+					{/snippet}
+				</ListRow>
+			{:else}
+				<ListRow class="item"><span class="caption">{pbFilter === 'all' ? tr('phrasebook.empty') : tr('phrasebook.emptyFilter')}</span></ListRow>
+			{/each}
+		</ListGroup>
+	</section>
+	{:else if view === 'notes'}
 	<section class="stack" style:--gap="var(--space-2)">
 		<h2 class="eyebrow">{tr('notes.count', { n: notes.list.length })}</h2>
 		{#if notes.list.length > 4}
@@ -238,6 +274,21 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 <Sheet open={!!open} label={tr('words.card')} onclose={() => (open = null)}>
 	{#if open}
 		<WordCardView card={open} />
+		{#if open.seen?.count}
+			<section class="stack where" style:--gap="var(--space-1h)">
+				<h3 class="eyebrow">{tr('phrasebook.where')}</h3>
+				<span class="caption">{tr('phrasebook.whereCount', { n: open.seen.count })}</span>
+				{#each open.seen.recent as s (s.at + s.via)}
+					<span class="row met" style:--gap="var(--space-2)">
+						<span aria-hidden="true">{viaIcon[s.via]}</span>
+						<span class="met-text">
+							<span class="caption">{tr(`phrasebook.src.${s.via}`)} · {fmtDate(s.at, { day: 'numeric', month: 'short' })}</span>
+							{#if s.ctx}<span class="jp ctx">{s.ctx}</span>{/if}
+						</span>
+					</span>
+				{/each}
+			</section>
+		{/if}
 		{#key open.id}
 			{@const card = open}
 			<NoteCard value={notes.text(card.id)} loading={!notes.ready} onsave={(b) => notes.save(card.id, card.front, b)} />
@@ -292,6 +343,25 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 	}
 	.hint {
 		margin: 0;
+	}
+	.rank {
+		display: inline-grid;
+		place-items: center;
+		min-width: 28px;
+		color: var(--ink-2);
+		font-variant-numeric: tabular-nums;
+		font-weight: 600;
+	}
+	.where .met {
+		align-items: flex-start;
+	}
+	.met-text {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+	.ctx {
+		overflow-wrap: anywhere;
 	}
 .packs {
 		display: grid;
