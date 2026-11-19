@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Button, FieldRow, LargeTitle, ListGroup, ListRow, SectionHeader, Select, Skeleton, TextField } from '#lib/ui/index.ts';
+	import { BarChart, Button, Columns, FieldRow, LargeTitle, ListGroup, ListRow, SectionHeader, Select, Skeleton, TextField } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
@@ -117,81 +117,89 @@
 	{:else if !s}
 		<Skeleton variant="row" count={4} label="Loading settings" />
 	{:else}
-		<SectionHeader title="Sign-ups" />
-		<ListGroup>
-			{#if s.signup.hardClosed}
-				<div class="item col">
-					<b class="danger">Closed on the Worker</b>
-					<span class="caption">SIGNUP_MODE=closed is set, so nobody can sign up, even with an invite. Remove the variable to use this switch.</span>
-				</div>
-			{/if}
-			<ListRow
-				title={s.signup.mode === 'open' ? 'Open to everyone' : 'Invite only'}
-				subtitle={s.signup.mode === 'open' ? 'Anyone can create an account.' : 'New accounts need an invite code. Apple sign-up is off.'}
-			>
-				{#snippet trailing()}
-					<Button size="sm" variant={s!.signup.mode === 'open' ? 'ghost' : 'primary'} onclick={toggleSignups} busy={pending === 'signup'} disabled={busy}>
-						{s!.signup.mode === 'open' ? 'Make invite-only' : 'Open to everyone'}
-					</Button>
-				{/snippet}
-			</ListRow>
-			<div class="item col">
-				<span class="row" style:gap="var(--space-2)">
-					<span>New accounts, last 30 days</span><span class="spacer"></span><b class="num">{total}</b>
-				</span>
-				<BarChart days={s.signupsByDay.map((d) => ({ day: d.day, value: d.count }))} label="New accounts per day" column="New accounts" />
-			</div>
-		</ListGroup>
-
-		<SectionHeader title="Invite codes" />
-		<ListGroup>
-			<form class="item col" onsubmit={newInvite}>
-				<TextField placeholder="Who it’s for (optional)" bind:value={label} maxlength={60} aria-label="Who the invite is for" />
-				<FieldRow stack="narrow">
-					<TextField label="Uses" class="num-field" type="number" min="1" max="100" bind:value={uses} />
-					<span class="pick">
-						<label class="pick-label" for="exp">Expires</label>
-						<Select id="exp" options={EXPIRY} bind:value={expiry} label="Expires" />
-					</span>
-					<span class="spacer"></span>
-					<Button type="submit" busy={pending === 'invite'} disabled={busy}>Create</Button>
-				</FieldRow>
-			</form>
-			{#each s.invites as inv (inv.code)}
-				<div class="item" class:gone={!live(inv)}>
-					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
-						<Button variant="link" class="code" onclick={() => copy(inv.code)} title="Copy">{inv.code}</Button>
-						<span class="caption">
-							{inv.label ? `${inv.label} · ` : ''}{inv.uses} of {inv.maxUses} used ·
-							{#if inv.revokedAt}revoked{:else if inv.expiresAt && inv.expiresAt <= Date.now()}expired{:else if inv.expiresAt}until {shortDay(inv.expiresAt)}{:else}no expiry{/if}
+		<Columns min="420px">
+			<section>
+				<SectionHeader title="Sign-ups" />
+				<ListGroup>
+					{#if s.signup.hardClosed}
+						<div class="item col">
+							<b class="danger">Closed on the Worker</b>
+							<span class="caption">SIGNUP_MODE=closed is set, so nobody can sign up, even with an invite. Remove the variable to use this switch.</span>
+						</div>
+					{/if}
+					<ListRow
+						title={s.signup.mode === 'open' ? 'Open to everyone' : 'Invite only'}
+						subtitle={s.signup.mode === 'open' ? 'Anyone can create an account.' : 'New accounts need an invite code. Apple sign-up is off.'}
+					>
+						{#snippet trailing()}
+							<Button size="sm" variant={s!.signup.mode === 'open' ? 'ghost' : 'primary'} onclick={toggleSignups} busy={pending === 'signup'} disabled={busy}>
+								{s!.signup.mode === 'open' ? 'Make invite-only' : 'Open to everyone'}
+							</Button>
+						{/snippet}
+					</ListRow>
+					<div class="item col">
+						<span class="row" style:gap="var(--space-2)">
+							<span>New accounts, last 30 days</span><span class="spacer"></span><b class="num">{total}</b>
 						</span>
-					</span>
-					<span class="spacer"></span>
-					{#if !inv.revokedAt}<Button variant="link" class="danger" onclick={() => revoke(inv)} busy={pending === `revoke:${inv.code}`} disabled={busy}>Revoke</Button>{/if}
-				</div>
-			{:else}
-				<ListRow subtitle="No invites yet." />
-			{/each}
-		</ListGroup>
+						<BarChart days={s.signupsByDay.map((d) => ({ day: d.day, value: d.count }))} label="New accounts per day" column="New accounts" />
+					</div>
+				</ListGroup>
+			</section>
+			<section>
+				<SectionHeader title="Invite codes" />
+				<ListGroup>
+					<form class="item col" onsubmit={newInvite}>
+						<TextField placeholder="Who it’s for (optional)" bind:value={label} maxlength={60} aria-label="Who the invite is for" />
+						<FieldRow stack="narrow">
+							<TextField label="Uses" class="num-field" type="number" min="1" max="100" bind:value={uses} />
+							<span class="pick">
+								<label class="pick-label" for="exp">Expires</label>
+								<Select id="exp" options={EXPIRY} bind:value={expiry} label="Expires" />
+							</span>
+							<span class="spacer"></span>
+							<Button type="submit" busy={pending === 'invite'} disabled={busy}>Create</Button>
+						</FieldRow>
+					</form>
+					{#each s.invites as inv (inv.code)}
+						<div class="item" class:gone={!live(inv)}>
+							<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
+								<Button variant="link" class="code" onclick={() => copy(inv.code)} title="Copy">{inv.code}</Button>
+								<span class="caption">
+									{inv.label ? `${inv.label} · ` : ''}{inv.uses} of {inv.maxUses} used ·
+									{#if inv.revokedAt}revoked{:else if inv.expiresAt && inv.expiresAt <= Date.now()}expired{:else if inv.expiresAt}until {shortDay(inv.expiresAt)}{:else}no expiry{/if}
+								</span>
+							</span>
+							<span class="spacer"></span>
+							{#if !inv.revokedAt}<Button variant="link" class="danger" onclick={() => revoke(inv)} busy={pending === `revoke:${inv.code}`} disabled={busy}>Revoke</Button>{/if}
+						</div>
+					{:else}
+						<ListRow subtitle="No invites yet." />
+					{/each}
+				</ListGroup>
+			</section>
+			<section>
+				<SectionHeader title="Sign-in sessions" />
+				<ListGroup>
+					<div class="item inline-form">
+						<FieldRow as="form" onsubmit={() => saveDays(Number(days))}>
+							<span class="stack grow" style:--gap="var(--space-px)">
+								<label for="days">Session lifetime (days)</label>
+								<span class="caption">Now {s.session.effectiveDays} days{s.session.days === null ? ' (default)' : ''}. Renewed while the app is used.</span>
+							</span>
+							<TextField id="days" class="num-field" type="number" min="1" max="400" placeholder={String(s.session.defaultDays)} bind:value={days} />
+							<Button type="submit" busy={pending === 'days'} disabled={busy || !days || Number(days) === s.session.days}>Save</Button>
+						</FieldRow>
+					</div>
+					{#if s.session.days !== null}
+						<div class="item">
+							<Button variant="link" onclick={() => saveDays(null)} busy={pending === 'default'} disabled={busy}>Use the default ({s.session.defaultDays} days)</Button>
+						</div>
+					{/if}
+				</ListGroup>
+			</section>
+		</Columns>
 
-		<SectionHeader title="Sign-in sessions" />
-		<ListGroup>
-			<div class="item inline-form">
-				<FieldRow as="form" onsubmit={() => saveDays(Number(days))}>
-					<span class="stack grow" style:--gap="var(--space-px)">
-						<label for="days">Session lifetime (days)</label>
-						<span class="caption">Now {s.session.effectiveDays} days{s.session.days === null ? ' (default)' : ''}. Renewed while the app is used.</span>
-					</span>
-					<TextField id="days" class="num-field" type="number" min="1" max="400" placeholder={String(s.session.defaultDays)} bind:value={days} />
-					<Button type="submit" busy={pending === 'days'} disabled={busy || !days || Number(days) === s.session.days}>Save</Button>
-				</FieldRow>
-			</div>
-			{#if s.session.days !== null}
-				<div class="item">
-					<Button variant="link" onclick={() => saveDays(null)} busy={pending === 'default'} disabled={busy}>Use the default ({s.session.defaultDays} days)</Button>
-				</div>
-			{/if}
-		</ListGroup>
+
 		<p class="caption" style:text-align="center">Switching sign-ups and changing the lifetime ask for your passkey. Every change is in the audit log.</p>
 	{/if}
 </main>

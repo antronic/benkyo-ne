@@ -6,7 +6,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Button, FieldRow, LargeTitle, ListGroup, ListRow, SectionHeader, Select, Skeleton, TextField } from '#lib/ui/index.ts';
+	import { Button, Columns, FieldRow, LargeTitle, ListGroup, ListRow, SectionHeader, Select, Skeleton, TextField } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
@@ -149,114 +149,120 @@
 		<Skeleton variant="row" count={5} label="Loading the account" />
 	{:else}
 		{@const acc = a}
-		<ListGroup>
-			<ListRow title="Account">{#snippet trailing()}<span class="caption">#{acc.id}</span>{/snippet}</ListRow>
-			<ListRow title="Status">
-				{#snippet trailing()}
-					{#if acc.isAdmin}<span class="pill muted">Admin</span>{/if}
-					<span class="pill" class:off={acc.disabled}>{acc.disabled ? 'Disabled' : 'Active'}</span>
-				{/snippet}
-			</ListRow>
-			<ListRow title="Created">{#snippet trailing()}<span class="caption">{day(acc.createdAt)}</span>{/snippet}</ListRow>
-			<ListRow title="Last seen">{#snippet trailing()}<span class="caption">{day(acc.lastSeenAt)}</span>{/snippet}</ListRow>
-			<ListRow title="Beta consent">
-				{#snippet trailing()}
-					<span class="caption">
-						{#if !acc.consent}Never agreed{:else if acc.consent.withdrawnAt}Withdrawn {day(acc.consent.withdrawnAt)}{:else}Version {acc.consent.version}, {day(acc.consent.acceptedAt)}{/if}
-					</span>
-				{/snippet}
-			</ListRow>
-			<ListRow title="Apple ID">{#snippet trailing()}<span class="caption">{acc.appleLinked ? 'Connected' : 'Not connected'}</span>{/snippet}</ListRow>
-			<ListRow title="Recovery code">
-				{#snippet trailing()}<span class="caption">{acc.recoveryCode === 'unused' ? 'Ready' : acc.recoveryCode === 'used' ? 'Used' : 'None'}</span>{/snippet}
-			</ListRow>
-		</ListGroup>
-
-		<SectionHeader title="Package" />
-		<ListGroup>
-			<ListRow title="Now on">
-				{#snippet trailing()}<span class="pill" class:muted={acc.plan === 'free'}>{PLAN_NAMES[acc.plan]}</span>{/snippet}
-			</ListRow>
-			{#each acc.grants as g (g.id)}
-				<ListRow
-					class={g.live ? '' : 'gone'}
-					title="{PLAN_NAMES[g.plan]} · {g.kind === 'trial' ? 'Trial' : 'Complimentary'}"
-					subtitle="{g.endedAt
-						? `${shortDay(g.startsAt)} to ${shortDay(g.endedAt)}, ended early`
-						: g.endsAt
-							? `${shortDay(g.startsAt)} to ${shortDay(g.endsAt)}`
-							: `Since ${shortDay(g.startsAt)}, until ended`}{g.note ? ` · ${g.note}` : ''}"
-				>
-					{#snippet trailing()}
-						{#if g.live}<Button variant="plain" size="sm" class="danger" onclick={() => end(g)} busy={pending === `end:${g.id}`} disabled={busy}>End</Button>{/if}
-					{/snippet}
-				</ListRow>
-			{/each}
-			<form class="item grant" onsubmit={(e) => (e.preventDefault(), give())}>
-				<div class="picks">
-					<Select options={PLAN_OPTIONS} bind:value={gPlan} label="Package" block />
-					<Select options={KIND_OPTIONS} bind:value={gKind} label="Kind" block />
-					<Select options={dayOptions} bind:value={gDays} label="How long" block />
-				</div>
-				<FieldRow>
-					<TextField bind:value={gNote} maxlength={120} placeholder="Note (optional)" aria-label="Note" grow />
-					<Button type="submit" busy={pending === 'grant'} disabled={busy}>Grant</Button>
-				</FieldRow>
-			</form>
-		</ListGroup>
-		<p class="caption" style:margin="var(--space-px) var(--space-1h)">Packages aren’t enforced in the app yet. This records who gets a paid package for when managed AI ships.</p>
-
-		<SectionHeader title="AI this month" />
-		<ListGroup>
-			<ListRow title="Spend">{#snippet trailing()}<b class="num">{usd(acc.monthUsd)}</b>{/snippet}</ListRow>
-			<div class="item inline-form">
-				<FieldRow as="form" onsubmit={saveCap}>
-					<label class="grow" for="cap">Monthly cap ($)</label>
-					<TextField id="cap" class="num-field" type="number" min="0" max="1000" step="0.5" bind:value={cap} />
-					<Button type="submit" busy={pending === 'cap'} disabled={busy || Number(cap) === acc.capUsd}>Save</Button>
-				</FieldRow>
-			</div>
-			{#each acc.spendByModel as m (m.feature + m.provider + m.model)}
-				<ListRow title={m.model} subtitle="{m.feature} · {m.provider} · {m.calls} {m.calls === 1 ? 'call' : 'calls'}">
-					{#snippet trailing()}<span class="num">{usd(m.usd)}</span>{/snippet}
-				</ListRow>
-			{/each}
-		</ListGroup>
-
-		{#if acc.recentCalls.length}
-			<SectionHeader title="Recent AI calls" />
-			<ListGroup>
-				{#each acc.recentCalls as c, i (i)}
-					<ListRow title="{c.feature} · {c.model}" subtitle={day(c.at)}>
+		<Columns min="420px">
+			<section>
+				<SectionHeader title="Details" />
+				<ListGroup>
+					<ListRow title="Account">{#snippet trailing()}<span class="caption">#{acc.id}</span>{/snippet}</ListRow>
+					<ListRow title="Status">
 						{#snippet trailing()}
-							<span class="pill" class:off={c.status === 'failed'} class:muted={c.status === 'reserved'}>{c.status}</span>
-							<span class="num caption">{usd(c.usd)}</span>
+							{#if acc.isAdmin}<span class="pill muted">Admin</span>{/if}
+							<span class="pill" class:off={acc.disabled}>{acc.disabled ? 'Disabled' : 'Active'}</span>
 						{/snippet}
 					</ListRow>
-				{/each}
-			</ListGroup>
-		{/if}
+					<ListRow title="Created">{#snippet trailing()}<span class="caption">{day(acc.createdAt)}</span>{/snippet}</ListRow>
+					<ListRow title="Last seen">{#snippet trailing()}<span class="caption">{day(acc.lastSeenAt)}</span>{/snippet}</ListRow>
+					<ListRow title="Beta consent">
+						{#snippet trailing()}
+							<span class="caption">
+								{#if !acc.consent}Never agreed{:else if acc.consent.withdrawnAt}Withdrawn {day(acc.consent.withdrawnAt)}{:else}Version {acc.consent.version}, {day(acc.consent.acceptedAt)}{/if}
+							</span>
+						{/snippet}
+					</ListRow>
+					<ListRow title="Apple ID">{#snippet trailing()}<span class="caption">{acc.appleLinked ? 'Connected' : 'Not connected'}</span>{/snippet}</ListRow>
+					<ListRow title="Recovery code">
+						{#snippet trailing()}<span class="caption">{acc.recoveryCode === 'unused' ? 'Ready' : acc.recoveryCode === 'used' ? 'Used' : 'None'}</span>{/snippet}
+					</ListRow>
+				</ListGroup>
 
-		<SectionHeader title="Passkeys" />
-		<ListGroup>
-			{#each acc.passkeyList as p (p.id)}
-				<ListRow title={p.name ?? 'Passkey'} subtitle="Added {day(p.createdAt)} · last used {day(p.lastUsedAt)}" />
-			{:else}
-				<ListRow subtitle="No passkeys" />
-			{/each}
-		</ListGroup>
+				<SectionHeader title="Package" />
+				<ListGroup>
+					<ListRow title="Now on">
+						{#snippet trailing()}<span class="pill" class:muted={acc.plan === 'free'}>{PLAN_NAMES[acc.plan]}</span>{/snippet}
+					</ListRow>
+					{#each acc.grants as g (g.id)}
+						<ListRow
+							class={g.live ? '' : 'gone'}
+							title="{PLAN_NAMES[g.plan]} · {g.kind === 'trial' ? 'Trial' : 'Complimentary'}"
+							subtitle="{g.endedAt
+								? `${shortDay(g.startsAt)} to ${shortDay(g.endedAt)}, ended early`
+								: g.endsAt
+									? `${shortDay(g.startsAt)} to ${shortDay(g.endsAt)}`
+									: `Since ${shortDay(g.startsAt)}, until ended`}{g.note ? ` · ${g.note}` : ''}"
+						>
+							{#snippet trailing()}
+								{#if g.live}<Button variant="plain" size="sm" class="danger" onclick={() => end(g)} busy={pending === `end:${g.id}`} disabled={busy}>End</Button>{/if}
+							{/snippet}
+						</ListRow>
+					{/each}
+					<form class="item grant" onsubmit={(e) => (e.preventDefault(), give())}>
+						<div class="picks">
+							<Select options={PLAN_OPTIONS} bind:value={gPlan} label="Package" block />
+							<Select options={KIND_OPTIONS} bind:value={gKind} label="Kind" block />
+							<Select options={dayOptions} bind:value={gDays} label="How long" block />
+						</div>
+						<FieldRow>
+							<TextField bind:value={gNote} maxlength={120} placeholder="Note (optional)" aria-label="Note" grow />
+							<Button type="submit" busy={pending === 'grant'} disabled={busy}>Grant</Button>
+						</FieldRow>
+					</form>
+				</ListGroup>
+				<p class="caption" style:margin="var(--space-px) var(--space-1h)">Packages aren’t enforced in the app yet. This records who gets a paid package for when managed AI ships.</p>
+			</section>
+			<section>
+				<SectionHeader title="AI this month" />
+				<ListGroup>
+					<ListRow title="Spend">{#snippet trailing()}<b class="num">{usd(acc.monthUsd)}</b>{/snippet}</ListRow>
+					<div class="item inline-form">
+						<FieldRow as="form" onsubmit={saveCap}>
+							<label class="grow" for="cap">Monthly cap ($)</label>
+							<TextField id="cap" class="num-field" type="number" min="0" max="1000" step="0.5" bind:value={cap} />
+							<Button type="submit" busy={pending === 'cap'} disabled={busy || Number(cap) === acc.capUsd}>Save</Button>
+						</FieldRow>
+					</div>
+					{#each acc.spendByModel as m (m.feature + m.provider + m.model)}
+						<ListRow title={m.model} subtitle="{m.feature} · {m.provider} · {m.calls} {m.calls === 1 ? 'call' : 'calls'}">
+							{#snippet trailing()}<span class="num">{usd(m.usd)}</span>{/snippet}
+						</ListRow>
+					{/each}
+				</ListGroup>
 
-		<SectionHeader title="Sessions" />
-		<ListGroup>
-			{#each acc.sessions as s, i (i)}
-				<ListRow title={s.kind}>{#snippet trailing()}<span class="caption">until {day(s.expiresAt)}</span>{/snippet}</ListRow>
-			{:else}
-				<ListRow subtitle="Not signed in anywhere" />
-			{/each}
-			{#if acc.sessions.length && !acc.isAdmin}
-				<div class="item"><Button variant="plain" size="sm" class="danger" onclick={revoke} busy={pending === 'revoke'} disabled={busy}>Sign out everywhere</Button></div>
-			{/if}
-		</ListGroup>
+				{#if acc.recentCalls.length}
+					<SectionHeader title="Recent AI calls" />
+					<ListGroup>
+						{#each acc.recentCalls as c, i (i)}
+							<ListRow title="{c.feature} · {c.model}" subtitle={day(c.at)}>
+								{#snippet trailing()}
+									<span class="pill" class:off={c.status === 'failed'} class:muted={c.status === 'reserved'}>{c.status}</span>
+									<span class="num caption">{usd(c.usd)}</span>
+								{/snippet}
+							</ListRow>
+						{/each}
+					</ListGroup>
+				{/if}
+
+				<SectionHeader title="Passkeys" />
+				<ListGroup>
+					{#each acc.passkeyList as p (p.id)}
+						<ListRow title={p.name ?? 'Passkey'} subtitle="Added {day(p.createdAt)} · last used {day(p.lastUsedAt)}" />
+					{:else}
+						<ListRow subtitle="No passkeys" />
+					{/each}
+				</ListGroup>
+
+				<SectionHeader title="Sessions" />
+				<ListGroup>
+					{#each acc.sessions as s, i (i)}
+						<ListRow title={s.kind}>{#snippet trailing()}<span class="caption">until {day(s.expiresAt)}</span>{/snippet}</ListRow>
+					{:else}
+						<ListRow subtitle="Not signed in anywhere" />
+					{/each}
+					{#if acc.sessions.length && !acc.isAdmin}
+						<div class="item"><Button variant="plain" size="sm" class="danger" onclick={revoke} busy={pending === 'revoke'} disabled={busy}>Sign out everywhere</Button></div>
+					{/if}
+				</ListGroup>
+			</section>
+		</Columns>
 
 		{#if !acc.isAdmin}
 			<SectionHeader title="Danger zone" />

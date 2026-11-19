@@ -1,7 +1,7 @@
 <!-- Fleet console: every admin action, newest first. Read-only. -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Button, LargeTitle, ListGroup, ListRow, Select, Skeleton, Spinner } from '#lib/ui/index.ts';
+	import { Button, DataTable, LargeTitle, ListGroup, ListRow, Select, Skeleton, Spinner, type DataColumn } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { AdminError, getAudit } from '#lib/admin/client.ts';
@@ -55,6 +55,14 @@
 	const actionOptions = $derived([{ value: '', label: 'All actions' }, ...actions.map((a) => ({ value: a, label: label(a) }))]);
 	const when = (t: number) => new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
+	const COLUMNS: DataColumn[] = [
+		{ key: 'action', label: 'Action', width: '24%' },
+		{ key: 'target', label: 'Account' },
+		{ key: 'detail', label: 'Detail', width: '30%' },
+		{ key: 'by', label: 'By' },
+		{ key: 'at', label: 'When', align: 'end' }
+	];
+
 	/** Short one-line summary of the detail object. */
 	function summary(d: unknown): string {
 		if (d === null || d === undefined) return '';
@@ -93,24 +101,15 @@
 	{:else if !rows.length}
 		<ListGroup><ListRow subtitle="Nothing logged yet. Every change you make in the console shows up here." /></ListGroup>
 	{:else}
-		<ListGroup>
-			<ol>
-				{#each rows as r (r.id)}
-					<li class="item col">
-						<span class="row" style:gap="var(--space-2)">
-							<b>{label(r.action)}</b><span class="spacer"></span><span class="caption">{when(r.at)}</span>
-						</span>
-						{#if r.targetId !== null}
-							<span class="caption">
-								<a href="/admin/accounts/{r.targetId}">{r.targetName ?? 'deleted account'} #{r.targetId}</a>
-							</span>
-						{/if}
-						{#if summary(r.detail)}<span class="caption detail">{summary(r.detail)}</span>{/if}
-						<span class="caption">by {r.actorName ?? `#${r.actorId}`}{r.actorEmail ? ` (${r.actorEmail})` : ''}</span>
-					</li>
-				{/each}
-			</ol>
-		</ListGroup>
+		<DataTable columns={COLUMNS} {rows} key={(r) => r.id} label="Audit log">
+			{#snippet cell(r, c)}
+				{#if c.key === 'action'}<b>{label(r.action)}</b>
+				{:else if c.key === 'target'}{#if r.targetId !== null}<a href="/admin/accounts/{r.targetId}">{r.targetName ?? 'deleted account'} #{r.targetId}</a>{/if}
+				{:else if c.key === 'detail'}<span class="caption detail">{summary(r.detail)}</span>
+				{:else if c.key === 'by'}<span class="caption">{r.actorName ?? `#${r.actorId}`}</span>
+				{:else}<span class="caption">{when(r.at)}</span>{/if}
+			{/snippet}
+		</DataTable>
 		{#if next !== null}
 			<Button variant="ghost" onclick={() => load(true)} busy={loading && more} disabled={loading}>{loading && more ? 'Loading…' : 'Show more'}</Button>
 		{/if}
@@ -118,11 +117,6 @@
 </main>
 
 <style>
-	ol {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
 	.detail {
 		overflow-wrap: anywhere;
 	}

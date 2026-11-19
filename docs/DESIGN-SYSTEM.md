@@ -91,6 +91,8 @@ Import from `#lib/ui/index.ts`:
 | `StatTile` | `label`, `value`, `note`, `tone` default · danger; lay out in `<div class="ui-stats">` | `.tile` in the fleet console |
 | `SideNav` | `items` (href, label, icon, group, note), `current`, `label`, `header`/`footer` snippets | a section's pages; Fleet's sidebar and phone menu |
 | `MenuBar` | `current`, `label`, `icon`, `onmenu`, `expanded`, `floating` | phone pill naming the current page; opens the section menu |
+| `Columns` | `min` (column width, default 340px); `<section>` children stack their header and content; `.span-all` takes the row | side-by-side sections on desktop, stacked on phones (Fleet) |
+| `DataTable` | `columns` (key, label, align, width), `rows`, `key`, `label`, `cell` snippet, `href` (whole row opens it) | records in columns; under 560px of its own width each row stacks with labels |
 | `Breadcrumbs` | `items` (label, href); last is the current page; phones show only `‹ parent` | where you are and the way back, below a section's top page |
 
 ### Kit only
@@ -192,7 +194,7 @@ The checks:
 | `npm run lint:ui` (`scripts/check-spacing.mjs`) | the gate and CI | hard-coded px in padding, margin, gap; `--fix` snaps them to the nearest token (ties round up) |
 | `npm run lint:ui` (`scripts/check-ui.mjs`) | the gate and CI | raw native controls and hand-made kit classes outside `src/lib/ui`, a kit component not exported or not on `/design`, async work with no loading state |
 | Claude Code hook (`.claude/settings.json`, PostToolUse on Edit/Write) | after every agent edit of a `.svelte` or `.css` file | both lints, reported back to the agent at once (exit 2) |
-| `npm run check:layout` (`scripts/check-layout.mjs`) | the gate and CI, after `npm run build` | horizontal scroll, an off-centre column (≥ 600px), text hugging a card edge, controls under 32px, and a compact title bar that does not span rail to edge or whose title is off the column centre; at 390, 768, 1024 (side rail) and 1280px. A second pass loads Fleet's AI, packages, promo and account screens with synthetic data (`scripts/layout-fixtures.mjs`) and opens their forms and the model picker. A navigation pass then walks Fleet: every page under `src/routes/admin` must be in the Fleet nav (or linked from its parent, for detail pages), be marked current there with the same name as its title, and show a breadcrumb back; every top-level screen must be in the tab bar |
+| `npm run check:layout` (`scripts/check-layout.mjs`) | the gate and CI, after `npm run build` | horizontal scroll, an off-centre column (≥ 600px), text hugging a card edge, controls under 32px, and a compact title bar that does not span rail to edge or whose title is off the column centre; at 390, 768, 1024 (side rail) and 1280px. A second pass loads Fleet's AI, packages, promo and account screens with synthetic data (`scripts/layout-fixtures.mjs`) and opens their forms and the model picker. A navigation pass then walks Fleet: every page under `src/routes/admin` must be in the Fleet nav (or linked from its parent, for detail pages), be marked current there with the same name as its title, and show a breadcrumb back; every top-level screen must be in the tab bar. At 1280px every Fleet page must fill at least 900px beside the sidebar |
 | `src/lib/design/spacing.test.ts` | `npm test` | the lint's scale drifting from `tokens.css` |
 | `src/lib/ui/kit.test.ts` | `npm test` | the UI kit lint's rules, and every kit component exported and on `/design` |
 

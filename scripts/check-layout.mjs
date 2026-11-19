@@ -31,7 +31,8 @@
  *     (aria-current="page") nav link that is the page or its section, and
  *     below the overview a visible breadcrumb link to its parent;
  *   - the Fleet nav has a way back out to the app;
- *   - every top-level app screen under src/routes is in the tab bar.
+ *   - every top-level app screen under src/routes is in the tab bar;
+ *   - at 1200px and wider, every Fleet page fills at least 900px beside the sidebar.
  * Set LAYOUT_URL to check a server that is already running.
  */
 import { spawn } from 'node:child_process';
@@ -340,6 +341,14 @@ async function main() {
 				await fpage.goto(BASE + url, { waitUntil: 'networkidle' });
 				await fpage.waitForTimeout(300);
 				const { problems: found, title } = await fpage.evaluate(whereAmI, parent);
+				// Desktop: Fleet uses the screen, not a phone-width column (Columns, DataTable, --page-max).
+				if (width >= 1200) {
+					const used = await fpage.evaluate(() => {
+						const kids = [...document.querySelectorAll('main.page > *')].filter((el) => el.getBoundingClientRect().width > 0 && getComputedStyle(el).position !== 'fixed');
+						return Math.max(0, ...kids.map((el) => el.getBoundingClientRect().width));
+					});
+					if (used < 900) found.push(`content is only ${Math.round(used)}px wide on a ${width}px screen (expected at least 900px beside the sidebar)`);
+				}
 				if (await openNav()) {
 					const current = (await fpage.evaluate(navLinks, FLEET_NAV_SEL)).filter((l) => l.current);
 					if (current.length !== 1) found.push(`${current.length} current links in the Fleet nav, expected 1 (aria-current="page")`);

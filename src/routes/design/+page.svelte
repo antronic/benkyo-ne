@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, ProgressRing, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
+	import { BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, ProgressRing, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
 	import PromoCode from '#lib/components/PromoCode.svelte';
 	import { PromoRequestError } from '#lib/promo/client.ts';
 	import type { PromoStatus } from '#lib/promo/contract.ts';
@@ -302,6 +302,35 @@
 				</Card>
 				<Breadcrumbs items={[{ label: 'Fleet', href: '#nav-overview' }, { label: 'Accounts', href: '#nav-accounts' }, { label: 'Example Learner' }]} />
 				<MenuBar floating={false} current="Accounts" label="Example menu" icon="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20a7.5 7.5 0 0 1 15 0" onmenu={() => (sheetOpen = true)} />
+
+				<SectionHeader title="Wide layouts" />
+				<p class="caption">On a desktop, Columns puts sections side by side and stacks them on phones. DataTable shows records in columns, and becomes one stacked block per row when it is narrow.</p>
+				<Columns min="200px">
+					<section>
+						<SectionHeader title="Left" level={3} />
+						<ListGroup><ListRow title="First column" /></ListGroup>
+					</section>
+					<section>
+						<SectionHeader title="Right" level={3} />
+						<ListGroup><ListRow title="Second column" /></ListGroup>
+					</section>
+				</Columns>
+				<DataTable
+					label="Example accounts"
+					columns={[
+						{ key: 'name', label: 'Account' },
+						{ key: 'plan', label: 'Package' },
+						{ key: 'ai', label: 'AI this month', align: 'end' }
+					]}
+					rows={[
+						{ id: 1, name: 'Example Learner', plan: 'Plus', ai: '$0.42' },
+						{ id: 2, name: 'Second Learner', plan: 'Free', ai: '$0.00' }
+					]}
+					key={(r) => r.id}
+					href={(r) => `#account-${r.id}`}
+				>
+					{#snippet cell(r, c)}{c.key === 'name' ? r.name : c.key === 'plan' ? r.plan : r.ai}{/snippet}
+				</DataTable>
 
 				<SectionHeader title="Segmented control" />
 				<Segmented

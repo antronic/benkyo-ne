@@ -17,7 +17,8 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 | 5 | Packages: Free / Plus / Pro, manual grants | merged (#15) |
 | 6 | AI providers, live model lists, packages built from models, new packages | PR #30 |
 | 7 | Promo codes: made in the console, redeemed in Settings | PR #32 |
-| 8 | Navigation: sidebar (≥ 960px), menu pill and sheet on phones, breadcrumbs (`src/lib/admin/nav.ts`, `FleetNav.svelte`, `src/routes/admin/+layout.svelte`) | this PR |
+| 8 | Navigation: sidebar (≥ 960px), menu pill and sheet on phones, breadcrumbs (`src/lib/admin/nav.ts`, `FleetNav.svelte`, `src/routes/admin/+layout.svelte`) | merged (#38) |
+| 9 | Desktop layouts: 1160px column from 1200px, accounts and audit log as tables (`DataTable`), sections side by side (`Columns`) | this PR |
 
 ## Security
 
