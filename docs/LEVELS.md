@@ -36,6 +36,25 @@ site", his "Use my data!" page). The unit screen credits it, and KANJIDIC2, on t
   right: the unit is done and its words go into the learner's cards, graded Good (as the kana
   placement check does). One wrong: the unit opens as usual.
 
+## Browse
+
+The **Browse** row at the top of Learn opens:
+
+- **Kanji** (`/learn/browse/kanji`): every kanji the app teaches (the kanji lessons, then the level
+  units' kanji) in one grid, filtered by lessons or level and searched by meaning or reading
+  (`src/lib/content/kanjiIndex.ts`). A kanji page (`/learn/browse/kanji/[char]`) plays the strokes
+  (the origin picture first for lesson kanji), then **Trace** or **Write** from memory with the
+  handwriting check, and lists the lesson or unit that teaches it and the unit words that use it.
+  Facts are KANJIDIC2; nothing AI-written shows unless the unit is visible.
+- **Grammar** (`/learn/browse/grammar`): every grammar point of the visible units, searchable; a row
+  opens the point in its unit (`#<grammar id>`).
+- **Kana** and **Words** link to their tabs.
+
+Stroke data for the level kanji is `src/lib/content/level-kanji-strokes.json`, made by
+`npm run build:strokes` (KanjiVG, CC BY-SA 3.0) for every level kanji not already in the kanji
+lessons. It is a separate chunk loaded by `loadLevelStrokes()` before a screen draws those kanji.
+Add a level to `LEVEL_KANJI` in `scripts/build-strokes.mjs` when its units are written.
+
 ## Drafts and review
 
 A unit whose `review.ja` is null is a **draft**. Drafts are hidden from learners unless they turn
@@ -109,5 +128,4 @@ All 27 are AI drafts waiting for review. Kanji: all 79 N5 kanji on Waller's list
 | n5-26 | What I want to do | 本 | 〜たいです, どうして・なぜ, 何も・だれも・どこへも + negative |
 | n5-27 | A summer festival | 人 | ぜんぜん〜ない, 何か・どこか・だれか, それから・でも・だから |
 
-Not yet built: tracing for the new kanji (the kanji lessons' TRACE needs `build:strokes` for them),
-the onboarding level picker, a local review page, and recorded audio (🔊 uses the device voice).
+Not yet built: the onboarding level picker, a local review page, and recorded audio (🔊 uses the device voice).

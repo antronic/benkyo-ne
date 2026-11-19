@@ -50,6 +50,9 @@
 		loading = false;
 		if (!unit) return;
 		const u = unit;
+		// opened from the grammar index: scroll to that point once it is drawn
+		const hash = decodeURIComponent(location.hash.slice(1));
+		if (hash) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView({ block: 'start' }));
 		const [{ readKanji }, { KANJI }] = await Promise.all([import('@johnmorrisdotca/jisho'), import('@johnmorrisdotca/jisho/kanji')]);
 		const all = readKanji(KANJI);
 		kanjiRows = u.kanji.map((k) => all.find((r) => r.kanji === k)).filter((r): r is Kanji => !!r);
@@ -126,7 +129,7 @@
 			{:else}
 				<div class="kanji-grid">
 					{#each kanjiRows as k (k.kanji)}
-						<Card class="kanji-card">
+						<Card sheen class="kanji-card" href="/learn/browse/kanji/{encodeURIComponent(k.kanji)}">
 							<span class="jp glyph" lang="ja">{k.kanji}</span>
 							<span class="stack" style:--gap="var(--space-px)">
 								<span class="headline">{k.meanings.slice(0, 3).join(', ')}</span>
@@ -143,7 +146,7 @@
 		<section class="stack" style:--gap="var(--space-3)">
 			<SectionHeader title={t('levels.grammar')} />
 			{#each unit.grammar as g (g.id)}
-				<Card class="grammar stack" style="--gap: var(--space-2)">
+				<Card id={g.id} class="grammar stack" style="--gap: var(--space-2)">
 					<span class="jp pattern" lang="ja">{g.pattern}</span>
 					<span class="caption formation" lang="ja">{g.formation}</span>
 					<span class="headline">{et(g.meaning)}</span>
