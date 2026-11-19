@@ -53,10 +53,10 @@
 		const coupon = ref?.code ?? pendingPromo()?.code ?? null;
 		void (async () => {
 			const [c] = await Promise.all([invite ? fetchInviteCard(invite, coupon) : null, splashGone()]);
-			if (c === 'ended') {
-				// deleted or used up in Fleet: don't fill in a code sign-up would refuse
+			if (c === 'ended' || c === 'full') {
+				// deleted, revoked, expired or every use taken: don't fill in a code sign-up would refuse
 				clearPendingInvite();
-				toast(t('invite.ended'), '🎟️', 3600);
+				toast(t(c === 'full' ? 'invite.full' : 'invite.ended'), '🎟️', 3600);
 				await go(true);
 				return;
 			}

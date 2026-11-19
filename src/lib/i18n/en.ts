@@ -754,6 +754,7 @@ export const en = {
 	'invite.eyebrow': 'A personal invite',
 	'invite.title': 'You’re invited to Benkyo',
 	'invite.ended': 'That invite link has ended. You can still sign up if sign-ups are open, or ask for a new invite.',
+	'invite.full': 'That invite is full: every place has been taken. You can still sign up if sign-ups are open, or ask for a new invite.',
 	'invite.accept': 'Accept invite',
 	'invite.later': 'Not now',
 	'invite.inkLabel': 'Handwritten note',

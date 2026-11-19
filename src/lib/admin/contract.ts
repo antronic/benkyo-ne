@@ -70,6 +70,11 @@ export interface AdminInvite {
 	card: InviteCardData | null;
 	/** promo code a VIP link uses without ?coupon=; null: none */
 	coupon: string | null;
+	/** that promo code's redemptions so far and its limit (null: no code, or no limit) */
+	couponUses: number | null;
+	couponMaxUses: number | null;
+	/** every use is taken, so the invite is off: its own uses ('invite') or its promo code's ('coupon'); null: uses left */
+	usedUp: 'invite' | 'coupon' | null;
 }
 
 export interface AdminSettings {

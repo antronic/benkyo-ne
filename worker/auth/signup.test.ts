@@ -68,6 +68,14 @@ describe('passkey sign-up with invites', () => {
 	it('uses up a code exactly max_uses times', async () => {
 		expect(await consumeInvite(env as never, 'BK-AAAA-BBBB')).toBe(true);
 		expect(await consumeInvite(env as never, 'BK-AAAA-BBBB')).toBe(false);
+	});
+
+	it('refuses a VIP whose promo code has no redemptions left', async () => {
+		db.exec(`INSERT INTO promo_codes (code, plan_id, kind, days, max_uses, uses, created_at) VALUES ('ONCE', 'plus', 'trial', 7, 1, 1, 0)`);
+		db.exec(`INSERT INTO invite_codes (code, max_uses, uses, created_at, card_note, coupon) VALUES ('MEETUP_26', 30, 0, 0, 'Hi', 'ONCE')`);
+		expect(await consumeInvite(env as never, 'MEETUP_26')).toBe(false);
+		db.exec(`UPDATE promo_codes SET max_uses = 2 WHERE code = 'ONCE'`);
+		expect(await consumeInvite(env as never, 'MEETUP_26')).toBe(true);
 		expect(await consumeInvite(env as never, 'BK-OLDD-CODE')).toBe(false);
 	});
 });

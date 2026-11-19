@@ -54,6 +54,24 @@ describe('invite cards', () => {
 		expect((await at('plain')).status).toBe(404);
 	});
 
+	it('turns a VIP off once its quota is used: its own uses or its promo code’s, and says it is full', async () => {
+		const at = (c: string) => handleInviteCard(new Request(`http://x/api/auth/invite/${c}`), env as never, new URL(`http://x/api/auth/invite/${c}`)).catch((e) => e);
+		expect((await at('full')).body).toMatchObject({ reason: 'full', message: 'That invite is full' });
+		// NEWYEAR has uses left, but its promo code's last redemption is gone
+		expect(await inviteCard(env as never, 'newyear', null)).not.toBeNull();
+		db.exec(`UPDATE promo_codes SET max_uses = 3, uses = 3 WHERE code = 'VIP_WELCOME'`);
+		expect(await inviteCard(env as never, 'newyear', null)).toBeNull();
+		const r = await at('newyear');
+		expect(r.status).toBe(410);
+		expect(r.body.reason).toBe('full');
+		// raising the code's limit turns it back on
+		db.exec(`UPDATE promo_codes SET max_uses = 10 WHERE code = 'VIP_WELCOME'`);
+		expect(await inviteCard(env as never, 'newyear', null)).not.toBeNull();
+		// revoked is "ended", not "full"
+		db.exec(`UPDATE invite_codes SET revoked_at = ${NOW} WHERE code = 'NEWYEAR'`);
+		expect((await at('newyear')).body.reason).toBe('ended');
+	});
+
 	it('says nothing for an invite without a card, used up, or unknown', async () => {
 		expect(await inviteCard(env as never, 'plain', null)).toBeNull();
 		expect(await inviteCard(env as never, 'full', null)).toBeNull();
