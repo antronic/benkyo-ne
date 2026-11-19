@@ -66,7 +66,7 @@
 			toast(t('sync.synced'), '✓');
 		}
 	}
-	async function reset() {
+	async function reset() { // ui-ok: instant local IndexedDB write after the confirm sheet
 		const ok = await confirmDestructive(
 			t('settings.eraseTitle'),
 			t('settings.eraseBody'),

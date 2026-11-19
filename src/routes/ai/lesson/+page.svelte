@@ -57,7 +57,7 @@
 		}
 	}
 
-	async function save() {
+	async function save() { // ui-ok: instant local IndexedDB write
 		if (!draft) return;
 		const id = `p${Date.now().toString(36)}`;
 		await lessonPacks.add({

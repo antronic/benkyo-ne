@@ -1,6 +1,6 @@
 /**
  * Invite cards: shared shapes between the app (src/routes/invite/[code]), the
- * fleet console (Settings → Invite codes) and the Worker (worker/invite.ts).
+ * fleet console (Invitations → VIP invites) and the Worker (worker/invite.ts).
  * Change both sides in the same PR.
  */
 import type { Ink } from '../ui/ink.ts';
@@ -21,9 +21,13 @@ export interface InviteCardResponse {
 	card: InviteCardData;
 	/** what the coupon in the link gives, when it can still be redeemed */
 	perk: { planName: string; kind: 'comp' | 'trial'; days: number | null } | null;
+	/** the promo code the link uses (?coupon= or the VIP's own), as stored; save it for after sign-up. null: none that can be redeemed */
+	coupon: string | null;
 }
 
-/** PATCH /api/admin/invites/:code {card}: set or clear (null) an invite's card. */
-export interface AdminInviteCardInput {
-	card: InviteCardData | null;
+/** PATCH /api/admin/invites/:code: change a VIP's card and/or its promo code; null clears, left out keeps. */
+export interface AdminInvitePatch {
+	card?: InviteCardData | null;
+	/** a promo code from Fleet → Promo codes; null: none */
+	coupon?: string | null;
 }

@@ -66,8 +66,10 @@ export interface AdminInvite {
 	expiresAt: number | null;
 	createdAt: number;
 	revokedAt: number | null;
-	/** VIP card shown on /invite/<code>; null: none */
+	/** VIP card shown on /invite/<code>; null: none (a plain invite code) */
 	card: InviteCardData | null;
+	/** promo code a VIP link uses without ?coupon=; null: none */
+	coupon: string | null;
 }
 
 export interface AdminSettings {
@@ -96,6 +98,10 @@ export interface AdminInviteInput {
 	label?: string;
 	maxUses?: number;
 	expiresInDays?: number | null;
+	/** a VIP: its card (needs a name in `code`) */
+	card?: InviteCardData | null;
+	/** a VIP's promo code */
+	coupon?: string | null;
 }
 
 /** GET /api/admin/usage?days=7|30|90. Money is USD, finished calls only. */

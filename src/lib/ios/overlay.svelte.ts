@@ -18,7 +18,7 @@ interface ActionSheetState {
 
 export const overlay = $state({
 	sheet: null as ActionSheetState | null,
-	toast: null as { text: string; icon?: string; id: number } | null
+	toast: null as { text: string; icon?: string; busy?: boolean; id: number } | null
 });
 
 /** Resolves with the chosen action index, or -1 when cancelled. */
@@ -48,4 +48,16 @@ export function toast(text: string, icon?: string, ms = 1800) {
 	clearTimeout(toastTimer);
 	overlay.toast = { text, icon, id: Date.now() };
 	toastTimer = setTimeout(() => (overlay.toast = null), ms);
+}
+
+/** A toast with a spinner for work the user didn't start on screen (a link's promo code being used). Stays until the next toast() or clearToast(); gives up after `ms`. */
+export function busyToast(text: string, ms = 15000) {
+	clearTimeout(toastTimer);
+	overlay.toast = { text, busy: true, id: Date.now() };
+	toastTimer = setTimeout(() => (overlay.toast = null), ms);
+}
+
+export function clearToast() {
+	clearTimeout(toastTimer);
+	overlay.toast = null;
 }

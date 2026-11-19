@@ -4,7 +4,9 @@
  *   GET    /api/admin/settings                     sign-up mode, session lifetime, invites, sign-ups per day
  *   PUT    /api/admin/settings/signup {mode}       'open' | 'closed'                      step-up
  *   PUT    /api/admin/settings/session {days}      1–400, or null for the default         step-up
- *   POST   /api/admin/invites {label?, maxUses?, expiresInDays?}  → AdminInvite
+ *   GET    /api/admin/invites                      → {invites}
+ *   POST   /api/admin/invites {code?, label?, maxUses?, expiresInDays?, card?, coupon?}  → AdminInvite (a VIP has a name and a card)
+ *   PATCH  /api/admin/invites/:code {card?, coupon?}  a VIP's card and promo code (step-up)
  *   DELETE /api/admin/invites/:code                revoke
  *
  * Every change is written to admin_audit.
@@ -12,6 +14,7 @@
 import type { AdminInvite, AdminSettings } from '../../src/lib/admin/contract.ts';
 import { DEFAULT_SESSION_DAYS, sessionTtlMs } from '../auth/session.ts';
 import { parseCard } from '../invite.ts';
+import { normalizePromo, promoKey, promoKeySql } from '../promo.ts';
 import { generateInviteCode, isRandomShape, normalizeInvite, setSignupMode, signupState } from '../auth/signup.ts';
 import type { Env } from '../env.ts';
 import { httpError, json, readJson } from '../http.ts';
@@ -40,9 +43,7 @@ async function settings(env: Env): Promise<AdminSettings> {
 		sessionTtlMs(env),
 		env.DB.prepare(`SELECT value FROM ai_settings WHERE key = 'session_ttl_days'`).first<{ value: string }>(),
 		env.DB.prepare(
-			`SELECT code, label, max_uses AS maxUses, uses, expires_at AS expiresAt, created_at AS createdAt, revoked_at AS revokedAt,
-			        card_note AS cardNote, card_from AS cardFrom, card_ink AS cardInk
-			   FROM invite_codes ORDER BY created_at DESC LIMIT 200`
+			`SELECT ${INVITE_COLS} FROM invite_codes ORDER BY created_at DESC LIMIT 200`
 		).all<InviteRow>(),
 		env.DB.prepare(
 			`SELECT strftime('%Y-%m-%d', created_at / 1000, 'unixepoch') AS day, COUNT(*) AS count
@@ -64,16 +65,36 @@ async function settings(env: Env): Promise<AdminSettings> {
 	};
 }
 
+const INVITE_COLS = `code, label, max_uses AS maxUses, uses, expires_at AS expiresAt, created_at AS createdAt, revoked_at AS revokedAt,
+	card_note AS cardNote, card_from AS cardFrom, card_ink AS cardInk, coupon`;
+async function listInvites(env: Env): Promise<AdminInvite[]> {
+	const r = await env.DB.prepare(`SELECT ${INVITE_COLS} FROM invite_codes ORDER BY created_at DESC LIMIT 200`).all<InviteRow>();
+	return r.results.map(toAdminInvite);
+}
+async function oneInvite(env: Env, code: string): Promise<AdminInvite> {
+	const row = await env.DB.prepare(`SELECT ${INVITE_COLS} FROM invite_codes WHERE code = ?1`).bind(code).first<InviteRow>();
+	return toAdminInvite(row!);
+}
+
+/** A promo code for a VIP: as promo_codes stores it, or null to clear. 400 when there is no such code. */
+async function resolveCoupon(env: Env, raw: unknown): Promise<string | null> {
+	if (raw === null || raw === undefined || raw === '') return null;
+	const c = normalizePromo(raw);
+	const row = c && (await env.DB.prepare(`SELECT code FROM promo_codes WHERE ${promoKeySql('code')} = ?1`).bind(promoKey(c)).first<{ code: string }>());
+	if (!row) throw httpError(400, 'bad_request', 'No promo code with that name. Make it in Promo codes first');
+	return row.code;
+}
+
 type InviteRow = Omit<AdminInvite, 'card'> & { cardNote: string | null; cardFrom: string | null; cardInk: string | null };
 function toAdminInvite({ cardNote, cardFrom, cardInk, ...r }: InviteRow): AdminInvite {
-	if (!cardNote && !cardInk) return { ...r, card: null };
+	if (!cardNote && !cardInk) return { ...r, coupon: r.coupon ?? null, card: null };
 	let ink = null;
 	try {
 		ink = cardInk ? JSON.parse(cardInk) : null;
 	} catch {
 		ink = null;
 	}
-	return { ...r, card: { note: cardNote ?? '', from: cardFrom ?? '', ink } };
+	return { ...r, coupon: r.coupon ?? null, card: { note: cardNote ?? '', from: cardFrom ?? '', ink } };
 }
 
 export function parseInviteInput(body: unknown) {
@@ -91,7 +112,9 @@ export function parseInviteInput(body: unknown) {
 		if (!code) throw httpError(400, 'bad_request', 'A name is 3 to 20 letters, digits and underscores, starting and ending with a letter or digit');
 		if (isRandomShape(code)) throw httpError(400, 'bad_request', 'That name looks like a random invite code. Use another length, or add an underscore');
 	}
-	return { label, maxUses, expiresInDays: exp, code };
+	const card = b.card === undefined || b.card === null ? null : parseCard(b.card);
+	if (card && !code) throw httpError(400, 'bad_request', 'A VIP needs a name, such as VIP or NEWYEAR27');
+	return { label, maxUses, expiresInDays: exp, code, card };
 }
 
 export async function handleSettings(req: Request, env: Env, url: URL, ctx: AdminContext): Promise<Response | null> {
@@ -124,19 +147,33 @@ export async function handleSettings(req: Request, env: Env, url: URL, ctx: Admi
 		return json(await settings(env));
 	}
 
+	if (p === '/api/admin/invites' && m === 'GET') return json({ invites: await listInvites(env) });
+
 	if (p === '/api/admin/invites' && m === 'POST') {
-		const input = parseInviteInput(await readJson(req, 2048));
+		const raw = (await readJson(req, 96 * 1024)) as Record<string, unknown> | null;
+		const input = parseInviteInput(raw);
+		const coupon = await resolveCoupon(env, raw?.coupon);
+		if (coupon && !input.card) throw httpError(400, 'bad_request', 'Only a VIP (with a card) carries a promo code');
 		const now = Date.now();
 		const code = input.code ?? generateInviteCode();
 		if (input.code && (await env.DB.prepare(`SELECT 1 AS x FROM invite_codes WHERE code = ?1`).bind(code).first()))
 			throw httpError(409, 'bad_request', 'An invite with that name already exists');
 		const expiresAt = input.expiresInDays ? now + input.expiresInDays * DAY : null;
-		await audited(env, ctx, 'invite.create', null, { code, named: !!input.code, label: input.label, maxUses: input.maxUses, expiresAt }, [
-			env.DB.prepare(
-				`INSERT INTO invite_codes (code, label, max_uses, expires_at, created_at, created_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6)`
-			).bind(code, input.label, input.maxUses, expiresAt, now, ctx.session.userId)
-		]);
-		return json({ code, label: input.label, maxUses: input.maxUses, uses: 0, expiresAt, createdAt: now, revokedAt: null, card: null } satisfies AdminInvite);
+		const card = input.card;
+		await audited(
+			env,
+			ctx,
+			card ? 'invite.vip' : 'invite.create',
+			null,
+			{ code, named: !!input.code, label: input.label, maxUses: input.maxUses, expiresAt, ...(card ? { note: card.note, from: card.from, ink: card.ink ? `${card.ink.strokes.length} strokes` : null, coupon } : {}) },
+			[
+				env.DB.prepare(
+					`INSERT INTO invite_codes (code, label, max_uses, expires_at, created_at, created_by, card_note, card_from, card_ink, coupon)
+					 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`
+				).bind(code, input.label, input.maxUses, expiresAt, now, ctx.session.userId, card?.note || null, card?.from || null, card?.ink ? JSON.stringify(card.ink) : null, coupon)
+			]
+		);
+		return json(await oneInvite(env, code));
 	}
 
 	const inv = /^\/api\/admin\/invites\/([A-Za-z0-9_-]{3,20})$/.exec(p);
@@ -144,36 +181,35 @@ export async function handleSettings(req: Request, env: Env, url: URL, ctx: Admi
 		const code = normalizeInvite(decodeURIComponent(inv[1]));
 		const before =
 			code &&
-			(await env.DB.prepare(`SELECT card_note AS note, card_from AS fromName, card_ink IS NOT NULL AS hasInk FROM invite_codes WHERE code = ?1`)
+			(await env.DB.prepare(`SELECT card_note AS note, card_from AS fromName, card_ink IS NOT NULL AS hasInk, coupon FROM invite_codes WHERE code = ?1`)
 				.bind(code)
-				.first<{ note: string | null; fromName: string | null; hasInk: number }>());
+				.first<{ note: string | null; fromName: string | null; hasInk: number; coupon: string | null }>());
 		if (!code || !before) throw httpError(404, 'bad_request', 'No such invite');
-		const body = ((await readJson(req, 96 * 1024)) ?? {}) as { card?: unknown };
-		if (!('card' in body)) throw httpError(400, 'bad_request', 'Nothing to change');
-		const card = parseCard(body.card);
+		const body = ((await readJson(req, 96 * 1024)) ?? {}) as { card?: unknown; coupon?: unknown };
+		if (!('card' in body) && !('coupon' in body)) throw httpError(400, 'bad_request', 'Nothing to change');
+		const sets: string[] = [];
+		const args: unknown[] = [];
+		const detail: Record<string, unknown> = { code };
+		let action = 'invite.coupon';
+		if ('card' in body) {
+			const card = parseCard(body.card);
+			sets.push('card_note = ?', 'card_from = ?', 'card_ink = ?');
+			args.push(card?.note || null, card?.from || null, card?.ink ? JSON.stringify(card.ink) : null);
+			Object.assign(detail, { note: card?.note ?? null, from: card?.from ?? null, ink: card?.ink ? `${card.ink.strokes.length} strokes` : null });
+			action = card ? 'invite.card' : 'invite.card.clear';
+		}
+		if ('coupon' in body) {
+			const coupon = await resolveCoupon(env, body.coupon);
+			sets.push('coupon = ?');
+			args.push(coupon);
+			detail.coupon = coupon;
+		}
+		detail.before = { note: before.note, from: before.fromName, ink: !!before.hasInk, coupon: before.coupon };
 		await requireFresh(env, ctx);
-		await audited(
-			env,
-			ctx,
-			card ? 'invite.card' : 'invite.card.clear',
-			null,
-			{ code, note: card?.note ?? null, from: card?.from ?? null, ink: card?.ink ? `${card.ink.strokes.length} strokes` : null, before: { note: before.note, from: before.fromName, ink: !!before.hasInk } },
-			[
-				env.DB.prepare(`UPDATE invite_codes SET card_note = ?1, card_from = ?2, card_ink = ?3 WHERE code = ?4`).bind(
-					card?.note || null,
-					card?.from || null,
-					card?.ink ? JSON.stringify(card.ink) : null,
-					code
-				)
-			]
-		);
-		const row = await env.DB.prepare(
-			`SELECT code, label, max_uses AS maxUses, uses, expires_at AS expiresAt, created_at AS createdAt, revoked_at AS revokedAt,
-			        card_note AS cardNote, card_from AS cardFrom, card_ink AS cardInk FROM invite_codes WHERE code = ?1`
-		)
-			.bind(code)
-			.first<InviteRow>();
-		return json(toAdminInvite(row!));
+		await audited(env, ctx, action, null, detail, [
+			env.DB.prepare(`UPDATE invite_codes SET ${sets.join(', ')} WHERE code = ?`).bind(...args, code)
+		]);
+		return json(await oneInvite(env, code));
 	}
 	if (inv && m === 'DELETE') {
 		const code = normalizeInvite(decodeURIComponent(inv[1]));

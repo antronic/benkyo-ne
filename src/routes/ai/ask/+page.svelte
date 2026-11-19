@@ -83,7 +83,7 @@
 		});
 	}
 
-	async function persist() {
+	async function persist() { // ui-ok: instant local IndexedDB write
 		if (current) {
 			current.updatedAt = Date.now();
 			current.title = titleFor(current.msgs);
@@ -170,7 +170,7 @@
 		await setCurrent(t.id);
 		await scrollDown(false);
 	}
-	async function remove(t: AskThread) {
+	async function remove(t: AskThread) { // ui-ok: instant local IndexedDB write
 		threads = threads.filter((x) => x.id !== t.id);
 		if (current?.id === t.id) current = null;
 		await saveThreads($state.snapshot(threads) as AskThread[]);

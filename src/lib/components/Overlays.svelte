@@ -4,7 +4,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { overlay } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
-	import { Button, Card } from '#lib/ui/index.ts';
+	import { Button, Card, Spinner } from '#lib/ui/index.ts';
 
 	const s = $derived(overlay.sheet);
 	const cancelIndex = $derived(s ? s.actions.findIndex((a) => a.role === 'cancel') : -1);
@@ -41,7 +41,7 @@
 	{#key overlay.toast.id}
 		<div class="toast" role="status" in:scale={{ start: 0.85, duration: 380, easing: cubicOut }} out:fade={{ duration: 200 }}>
 			<Card strong padding="none" class="toast-pill">
-				{#if overlay.toast.icon}<span>{overlay.toast.icon}</span>{/if}
+				{#if overlay.toast.busy}<Spinner size="sm" label={overlay.toast.text} />{:else if overlay.toast.icon}<span>{overlay.toast.icon}</span>{/if}
 				{overlay.toast.text}
 			</Card>
 		</div>

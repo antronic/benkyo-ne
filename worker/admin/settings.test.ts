@@ -136,6 +136,29 @@ describe('invite cards (VIP)', () => {
 		expect(audit().at(-1)?.action).toBe('invite.card.clear');
 	});
 
+	it('creates a VIP with its card and promo code in one go, and changes the code', async () => {
+		db.exec(`INSERT INTO promo_codes (code, plan_id, kind, days, max_uses, uses, created_at) VALUES ('VIP_WELCOME', 'plus', 'trial', 14, NULL, 0, ${NOW})`);
+		const r = await call('POST', '/api/admin/invites', { code: 'newyear', maxUses: 50, card: { note: 'Happy new year', from: 'Job', ink }, coupon: 'vip-welcome' });
+		expect(r.status).toBe(200);
+		expect(r.body).toMatchObject({ code: 'NEWYEAR', maxUses: 50, coupon: 'VIP_WELCOME', card: { note: 'Happy new year', from: 'Job', ink } });
+		expect(audit().at(-1)?.action).toBe('invite.vip');
+		expect((await call('GET', '/api/admin/invites')).body.invites[0]).toMatchObject({ code: 'NEWYEAR', coupon: 'VIP_WELCOME' });
+		stepUp();
+		const off = await call('PATCH', '/api/admin/invites/newyear', { coupon: null });
+		expect(off.body).toMatchObject({ coupon: null, card: { note: 'Happy new year' } });
+		expect(audit().at(-1)?.action).toBe('invite.coupon');
+	});
+
+	it('refuses a VIP without a name, an unknown promo code, and a code on a plain invite', async () => {
+		const card = { note: 'Hi', from: 'Job' };
+		expect((await call('POST', '/api/admin/invites', { card })).status).toBe(400);
+		expect((await call('POST', '/api/admin/invites', { code: 'vip', card, coupon: 'NOPE99' })).status).toBe(400);
+		expect((await call('POST', '/api/admin/invites', { code: 'vip', coupon: 'NOPE99' })).status).toBe(400);
+		stepUp();
+		await call('POST', '/api/admin/invites', { code: 'vip', card });
+		expect((await call('PATCH', '/api/admin/invites/vip', { coupon: 'NOPE99' })).status).toBe(400);
+	});
+
 	it('refuses an empty card, bad handwriting and unknown invites', async () => {
 		stepUp();
 		await call('POST', '/api/admin/invites', { code: 'vip', maxUses: 5 });

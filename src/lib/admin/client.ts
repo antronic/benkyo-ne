@@ -7,7 +7,7 @@
  * Dangerous actions answer 428 `stepup_required`; `withStepUp` then asks for
  * a passkey tap and retries once.
  */
-import type { AdminInviteCardInput, InviteCardData } from '../invite/contract.ts';
+import type { AdminInvitePatch } from '../invite/contract.ts';
 import { startAuthentication } from '@simplewebauthn/browser';
 import {
 	STEPUP_REQUIRED,
@@ -121,8 +121,9 @@ export const setSignupMode = (mode: 'open' | 'closed') =>
 export const setSessionDays = (days: number | null) =>
 	withStepUp(() => call<AdminSettings>('/api/admin/settings/session', { method: 'PUT', json: { days } }));
 export const createInvite = (input: AdminInviteInput) => call<AdminInvite>('/api/admin/invites', { method: 'POST', json: input });
-export const setInviteCard = (code: string, card: InviteCardData | null) =>
-	withStepUp(() => call<AdminInvite>(`/api/admin/invites/${encodeURIComponent(code)}`, { method: 'PATCH', json: { card } satisfies AdminInviteCardInput }));
+export const listInvites = () => call<{ invites: AdminInvite[] }>('/api/admin/invites');
+export const updateInvite = (code: string, patch: AdminInvitePatch) =>
+	withStepUp(() => call<AdminInvite>(`/api/admin/invites/${encodeURIComponent(code)}`, { method: 'PATCH', json: patch }));
 export const revokeInvite = (code: string) => call<{ ok: true }>(`/api/admin/invites/${encodeURIComponent(code)}`, { method: 'DELETE' });
 
 export const getUsage = (days: 7 | 30 | 90) => call<AdminUsage>(`/api/admin/usage?days=${days}`);

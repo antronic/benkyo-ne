@@ -30,10 +30,45 @@ describe('UI kit lint (scripts/check-ui.mjs)', () => {
 		expect(rules(bare)).toEqual(['3:loading-state']);
 		const withSkeleton = bare + '\n{#if !rows.length}<Skeleton />{/if}';
 		expect(rules(withSkeleton)).toEqual([]);
-		const busy = '<script>\n\tasync function save() { await put(); }\n</script>\n<Button busy={saving} onclick={save}>Save</Button>';
+		const busy = '<script>\n\tasync function save() { saving = true; await put(); saving = false; }\n</script>\n<Button busy={saving} onclick={save}>Save</Button>';
 		expect(rules(busy)).toEqual([]);
 		const local = '<script>\n\tonMount(async () => (x = await meta.get("k"))); // ui-ok: instant local read\n</script>';
 		expect(rules(local)).toEqual([]);
+	});
+
+	it('one spinner does not cover every await in the file', () => {
+		// the invite list in Fleet promos loaded with no spinner while the page had a skeleton elsewhere (2026-11-19)
+		const src = [
+			'<script>',
+			'\tasync function load() { data = await list(); }',
+			'\tasync function loadInvites() { invites = await getSettings(); }',
+			'</script>',
+			'{#if !data}<Skeleton />{/if}',
+			'<Select options={invites ?? []} disabled={!invites} />'
+		].join('\n');
+		expect(rules(src)).toEqual(['3:loading-state']);
+		const fixed = src.replace('<Select', '{#if invites}<Select').replace('disabled={!invites} />', '/>{:else}<Spinner label="Loading invites" />{/if}');
+		expect(rules(fixed)).toEqual([]);
+	});
+
+	it('accepts a helper that shows the state, busyToast, and ui-ok on the function line', () => {
+		const helper = [
+			'<script>',
+			'\tasync function act(key, fn) { pending = key; try { return await fn(); } finally { pending = null; } }',
+			'\tasync function save() { await act("save", () => put()); }',
+			'\tasync function wipe() { await act("wipe", async () => await del()); }',
+			'</script>',
+			'<Button busy={pending === "save"} onclick={save}>Save</Button>'
+		].join('\n');
+		expect(rules(helper)).toEqual([]);
+		expect(rules('<script>\n\tasync function use() { busyToast("Using code…"); await redeem(); }\n</script>')).toEqual([]);
+		expect(rules('<script>\n\tasync function tag() { // ui-ok: instant local write\n\t\tawait words.setTags(id, t);\n\t\tawait words.save();\n\t}\n</script>')).toEqual([]);
+		expect(rules('<script>\n\tasync function back() { if (!(await confirmDestructive("a", "b", "c"))) return; await goto("/"); }\n</script>')).toEqual([]);
+	});
+
+	it('flags waiting text with no spinner', () => {
+		expect(rules('<span class="caption">Asking your providers for their models…</span>')).toEqual(['1:loading-state']);
+		expect(rules('<Spinner label="Asking your providers for their models…" showLabel />')).toEqual([]);
 	});
 
 	it('flags full-turn spins on an element box (they wobble in Safari)', () => {

@@ -52,6 +52,8 @@
 		const coupon = ref?.code ?? pendingPromo()?.code ?? null;
 		void (async () => {
 			const [c] = await Promise.all([invite ? fetchInviteCard(invite, coupon) : null, splashGone()]);
+			// a VIP's own promo code (Fleet → Invitations) is used after sign-up, like ?coupon=
+			if (c?.coupon && !ref?.code) savePendingPromo(c.coupon);
 			if (c) card = c;
 			else await go(true);
 		})();
@@ -59,7 +61,7 @@
 </script>
 
 <main class="page invite">
-	{#if !card}<Spinner label={t('invite.opening')} />{/if}
+	{#if !card}<Spinner label={t('invite.opening')} showLabel />{/if}
 </main>
 
 {#if card}

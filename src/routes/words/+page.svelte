@@ -71,7 +71,7 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 		)
 	);
 
-	async function refresh() {
+	async function refresh() { // ui-ok: instant local IndexedDB read; the first load shows the skeleton (loaded)
 		packs = await listPacks();
 	}
 
@@ -97,26 +97,26 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 		return { label: s.state === 'review' ? tr('words.learningDone') : tr('words.learning'), title: '' };
 	}
 
-	async function addTag() {
+	async function addTag() { // ui-ok: instant local IndexedDB write
 		if (!open || !tagInput.trim()) return;
 		await words.setTags(open.id, [...open.tags, tagInput.trim()]);
 		open = words.cards[open.id];
 		tagInput = '';
 		haptic('selection');
 	}
-	async function removeTag(t: string) {
+	async function removeTag(t: string) { // ui-ok: instant local IndexedDB write
 		if (!open) return;
 		await words.setTags(open.id, open.tags.filter((x) => x !== t));
 		open = words.cards[open.id];
 	}
-	async function learnNow() {
+	async function learnNow() { // ui-ok: instant local IndexedDB write
 		if (!open) return;
 		await words.setTags(open.id, [...open.tags, NOW_TAG]);
 		open = words.cards[open.id];
 		haptic('success');
 		toast(tr('words.addedToday'), '✓');
 	}
-	async function removeCard() {
+	async function removeCard() { // ui-ok: instant local IndexedDB write
 		if (!open) return;
 		if (!(await confirmDestructive(tr('words.deleteTitle'), tr('words.deleteBody', { text: open.front }), tr('words.deleteConfirm')))) return;
 		await words.remove(open.id);

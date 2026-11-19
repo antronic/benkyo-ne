@@ -2,7 +2,7 @@
  * Invite cards (VIP invites): a named invite can carry a note, who it's from
  * and handwriting; /invite/<name> shows them as a card before sign-up.
  *
- *   GET /api/auth/invite/:code[?coupon=CODE]   the card, and what the coupon gives   signed out, 30 a minute per IP
+ *   GET /api/auth/invite/:code[?coupon=CODE]   the card, and what the coupon (or the VIP's own) gives   signed out, 30 a minute per IP
  *
  * Fleet sets the card with PATCH /api/admin/invites/:code (worker/admin/settings.ts).
  * Only live invites with a card answer, so this reveals no more than the link does.
@@ -65,9 +65,11 @@ const VALID = `revoked_at IS NULL AND uses < max_uses AND (expires_at IS NULL OR
 export async function inviteCard(env: Env, rawCode: string, rawCoupon: string | null, now = Date.now()): Promise<InviteCardResponse | null> {
 	const code = normalizeInvite(rawCode);
 	if (!code) return null;
-	const row = await env.DB.prepare(`SELECT code, card_note AS note, card_from AS fromName, card_ink AS ink FROM invite_codes WHERE code = ?1 AND ${VALID}`)
+	const row = await env.DB.prepare(
+		`SELECT code, card_note AS note, card_from AS fromName, card_ink AS ink, coupon FROM invite_codes WHERE code = ?1 AND ${VALID}`
+	)
 		.bind(code, now)
-		.first<{ code: string; note: string | null; fromName: string | null; ink: string | null }>();
+		.first<{ code: string; note: string | null; fromName: string | null; ink: string | null; coupon: string | null }>();
 	if (!row || (!row.note && !row.ink)) return null;
 	let ink: Ink | null = null;
 	try {
@@ -76,16 +78,21 @@ export async function inviteCard(env: Env, rawCode: string, rawCoupon: string | 
 		ink = null;
 	}
 	let perk: InviteCardResponse['perk'] = null;
-	const coupon = normalizePromo(rawCoupon);
+	let used: string | null = null;
+	// ?coupon= in the link wins over the VIP's own promo code
+	const coupon = normalizePromo(rawCoupon) ?? normalizePromo(row.coupon);
 	if (coupon) {
 		const p = await env.DB.prepare(
-			`SELECT pl.name AS planName, p.kind, p.days FROM promo_codes p JOIN plans pl ON pl.id = p.plan_id WHERE ${promoKeySql('p.code')} = ?1 AND ${redeemable('?2')}`
+			`SELECT p.code, pl.name AS planName, p.kind, p.days FROM promo_codes p JOIN plans pl ON pl.id = p.plan_id WHERE ${promoKeySql('p.code')} = ?1 AND ${redeemable('?2')}`
 		)
 			.bind(promoKey(coupon), now)
-			.first<{ planName: string; kind: 'comp' | 'trial'; days: number | null }>();
-		if (p) perk = p;
+			.first<{ code: string; planName: string; kind: 'comp' | 'trial'; days: number | null }>();
+		if (p) {
+			perk = { planName: p.planName, kind: p.kind, days: p.days };
+			used = p.code;
+		}
 	}
-	return { code: row.code, card: { note: row.note ?? '', from: row.fromName ?? '', ink }, perk };
+	return { code: row.code, card: { note: row.note ?? '', from: row.fromName ?? '', ink }, perk, coupon: used };
 }
 
 export async function handleInviteCard(req: Request, env: Env, url: URL): Promise<Response | null> {

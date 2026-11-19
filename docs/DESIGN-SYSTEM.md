@@ -121,9 +121,19 @@ The user always knows what the app is doing (Job, 2026-11-19).
   box (`rotate(1turn)` on a span, a border ring, a whole `<svg>`) wobbles in Safari, because WebKit
   pivots the rotation on a pixel-snapped point while the box sits at a fractional position or size.
   `npm run lint:ui` (rule `spin-box`) rejects full-turn rotate keyframes anywhere under `src/`.
-- `npm run lint:ui` flags a component that awaits something but shows none of `Skeleton`,
-  `Spinner`, `ProgressRing`, `busy` or `aria-busy`. An instant local read can say so with
-  `// ui-ok: instant local read`.
+- Work the user didn't start on screen (a link's promo code being used after sign-in) shows
+  `busyToast(text)` (a toast with a spinner) until the result toast replaces it.
+- Text that says something is under way ("Asking your providers…") sits in a `Spinner` label, so
+  it reads as loading and not as a message.
+- Buttons never wait on an animation: the VIP invite card's Accept appears with the note, not
+  after the drawing has played.
+- `npm run lint:ui` checks each async function on its own: it must set a value that the markup
+  uses next to a `Skeleton`, `Spinner`, `ProgressRing`, `busy` or `aria-busy` (on that line, or in
+  an `{#if}` / `{:else if}` around it), call `busyToast()`, or await a function in the same file
+  that does. A spinner elsewhere in the file no longer counts, and "…Loading…" text without a
+  spinner fails. Waits that are not loading (tick, timers, confirm sheets, clipboard, goto) are
+  skipped. An instant local read or write says so with `// ui-ok: reason` on the function's first
+  line.
 
 `Button` and `IconButton` reuse the global `.btn` / `.icon-btn` styles in `app.css`, so a
 migrated button and an old one look the same.

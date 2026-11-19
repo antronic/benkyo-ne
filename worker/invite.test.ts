@@ -15,6 +15,7 @@ beforeEach(() => {
 		('VIP', 5, 0, ${NOW}, 'Saved you a seat', 'Job', '${JSON.stringify(INK)}'),
 		('PLAIN', 5, 0, ${NOW}, NULL, NULL, NULL),
 		('FULL', 1, 1, ${NOW}, 'Hi', 'Job', NULL)`);
+	db.exec(`INSERT INTO invite_codes (code, max_uses, uses, created_at, card_note, coupon) VALUES ('NEWYEAR', 50, 0, ${NOW}, 'Happy new year', 'VIP_WELCOME')`);
 	db.exec(`INSERT INTO promo_codes (code, plan_id, kind, days, max_uses, uses, created_at) VALUES ('VIP_WELCOME', 'plus', 'trial', 14, NULL, 0, ${NOW})`);
 });
 
@@ -24,10 +25,24 @@ describe('invite cards', () => {
 		expect(r).toEqual({
 			code: 'VIP',
 			card: { note: 'Saved you a seat', from: 'Job', ink: INK },
-			perk: { planName: 'Plus', kind: 'trial', days: 14 }
+			perk: { planName: 'Plus', kind: 'trial', days: 14 },
+			coupon: 'VIP_WELCOME'
 		});
 		expect((await inviteCard(env as never, 'vip', 'NOPE123'))?.perk).toBeNull();
 		expect((await inviteCard(env as never, 'vip', null))?.perk).toBeNull();
+	});
+
+	it('uses the VIP’s own promo code unless the link has ?coupon=', async () => {
+		db.exec(`INSERT INTO promo_codes (code, plan_id, kind, days, max_uses, uses, created_at) VALUES ('PRO30', 'pro', 'comp', 30, NULL, 0, ${NOW})`);
+		const own = await inviteCard(env as never, 'newyear', null);
+		expect(own?.coupon).toBe('VIP_WELCOME');
+		expect(own?.perk?.planName).toBe('Plus');
+		const over = await inviteCard(env as never, 'newyear', 'pro30');
+		expect(over?.coupon).toBe('PRO30');
+		expect(over?.perk?.kind).toBe('comp');
+		// a bound code that was switched off gives no perk and nothing to save
+		db.exec(`UPDATE promo_codes SET disabled_at = ${NOW} WHERE code = 'VIP_WELCOME'`);
+		expect(await inviteCard(env as never, 'newyear', null)).toMatchObject({ perk: null, coupon: null });
 	});
 
 	it('says nothing for an invite without a card, used up, or unknown', async () => {

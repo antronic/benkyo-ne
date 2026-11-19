@@ -9,7 +9,7 @@
 	import LargeTitle from '#lib/ui/LargeTitle.svelte';
 	import { Columns } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
-	import { Badge, Button, Card, Chip, ListGroup, ListRow, SectionHeader, Switch, TextField } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, Chip, ListGroup, ListRow, SectionHeader, Spinner, Switch, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError, createPackage, deletePackage, getAllModels, getPackages, setPackageModels, updatePackage } from '#lib/admin/client.ts';
@@ -96,12 +96,16 @@
 		mq = '';
 		if (!catalog) await loadCatalog(false);
 	}
+	let catalogLoading = $state(false);
 	async function loadCatalog(refresh: boolean) {
 		catalogError = null;
+		catalogLoading = true;
 		try {
 			catalog = await getAllModels(refresh);
 		} catch (e) {
 			catalogError = e instanceof AdminError ? e.message : String(e);
+		} finally {
+			catalogLoading = false;
 		}
 	}
 	const catalogLabel = (id: number) => catalog?.providers.find((p) => p.id === id)?.label ?? providerLabels.get(id) ?? null;
@@ -358,7 +362,7 @@
 			{#if catalogError}
 				<span class="caption warn-text">{catalogError}</span>
 			{:else if !catalog}
-				<span class="caption">Asking your providers for their models…</span>
+				<Spinner label="Asking your providers for their models…" showLabel />
 			{:else}
 				{#each catalog.errors as e (e.providerId)}<span class="caption warn-text">{e.label}: {e.message}</span>{/each}
 				{#if !catalog.models.length && !catalog.errors.length}
@@ -382,7 +386,7 @@
 				</div>
 				{#if matches.length > results.length}<span class="caption">Showing {results.length} of {matches.length}. Search to narrow it down.</span>{:else if mq.trim() && !matches.length}<span class="caption">No model matches.</span>{/if}
 			{/if}
-			<span class="row"><Button variant="plain" size="sm" onclick={() => loadCatalog(true)} disabled={busy}>Ask providers again</Button></span>
+			<span class="row"><Button variant="plain" size="sm" onclick={() => loadCatalog(true)} busy={catalogLoading} disabled={busy}>Ask providers again</Button></span>
 			<span class="row" style:gap="var(--space-2)" style:justify-content="flex-end">
 				<Button variant="ghost" size="sm" onclick={() => (picking = null)} disabled={busy}>Cancel</Button>
 				<Button size="sm" onclick={saveModels} {busy}>Save models</Button>

@@ -13,9 +13,16 @@
  *                 Checkbox, Switch, Slider or FileButton from '#lib/ui/index.ts'.
  *   adhoc-class   no hand-made kit looks: class="btn", "glass", "chip" or
  *                 "switch" (use Button, Card/ListGroup, Chip, Switch).
- *   loading-state a component whose script awaits something must show it in the
- *                 markup: <Skeleton>, <Spinner>, <ProgressRing>, a `busy` Button
- *                 or aria-busy.
+ *   loading-state every piece of async work shows itself while it runs. Each
+ *                 async function or arrow that awaits something must set a value
+ *                 that the markup uses next to a loading marker (<Skeleton>,
+ *                 <Spinner>, <ProgressRing>, `busy`, aria-busy): on the marker's
+ *                 own line or in an {#if}/{#await} around it. Or it calls
+ *                 busyToast(), or awaits a function in the same file that does
+ *                 this. One spinner elsewhere in the file no longer covers it
+ *                 (that let the invite and promo-link loads through, 2026-11-19).
+ *                 Waits that are not loading (tick, timers, confirm sheets,
+ *                 clipboard, goto) don't count.
  *   spin-box      (every .svelte and .css under src/, the kit too) no full-turn rotate
  *                 animation (rotate(1turn) / rotate(360deg)) on an element: Safari
  *                 rotates the box around a pixel-snapped pivot, so it wobbles at
@@ -26,7 +33,8 @@
  *   kit-catalog   every kit component is shown on /design (src/routes/design/+page.svelte).
  *
  * A deliberate exception carries `ui-ok: <reason>` on its line (in a
- * `<!-- -->` or `//` comment). `ui-ok-file: <reason>` anywhere in a file
+ * `<!-- -->` or `//` comment); on an async function's first line it covers the
+ * whole function. `ui-ok-file: <reason>` anywhere in a file
  * exempts the whole file from raw-control and adhoc-class (the app shell:
  * the tab bar, drawing canvases).
  */
@@ -68,6 +76,107 @@ function scripts(text) {
 	return out;
 }
 
+/** Waits that are not "loading": the user already sees what happens. */
+const NOT_LOADING = /\bawait\s+(?:tick\(|new Promise\b|confirmDestructive\(|actionSheet\(|navigator\.(?:clipboard|share)\b|goto\(|ui\.backGuard\(|navigation\.complete\b)/;
+/** Words that tell the user something is under way: such text needs a spinner beside it. */
+const WAIT_TEXT = />[^<{]*\b(?:Loading|Asking|Opening|Checking|Saving|Sending|Fetching|Preparing)\b[^<{]*…/;
+const IDENT = /[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*/g;
+const KEYWORDS = new Set(['if', 'else', 'each', 'await', 'then', 'catch', 'key', 'snippet', 'as', 'true', 'false', 'null', 'undefined', 'const', 'let', 'return', 'new', 'typeof', 'void', 'await']);
+
+/** Identifiers (and their first segment) on a piece of text. */
+function idents(text, into = new Set()) {
+	for (const m of text.matchAll(IDENT)) {
+		if (KEYWORDS.has(m[0])) continue;
+		into.add(m[0]);
+		into.add(m[0].split('.')[0]);
+	}
+	return into;
+}
+
+/** What the markup's loading markers depend on: the marker line plus every block opener around it. */
+function loadingIdents(markupLines) {
+	const out = new Set();
+	const stack = [];
+	markupLines.forEach((line) => {
+		for (const m of line.matchAll(/\{([#/:])(\w+)?([^}]*)\}/g)) {
+			if (m[1] === '#') stack.push(m[3]);
+			else if (m[1] === '/') stack.pop();
+			else if (stack.length) stack[stack.length - 1] += ' ' + m[3]; // {:else if …}
+		}
+		if (LOADING.test(line)) {
+			idents(line, out);
+			for (const opener of stack) idents(opener, out);
+		}
+	});
+	return out;
+}
+
+/** Async functions and arrows in a script: { name, body, line } (line of the first real await). */
+function asyncUnits(body, startLine) {
+	const units = [];
+	const re = /async\s+function\s*\*?\s*([\w$]*)\s*(?:<[^>]*>)?\s*\([^)]*\)[^{]*\{|(?:(?:const|let)\s+([\w$]+)\s*=\s*)?async\s*(?:\([^)]*\)|[\w$]+)\s*(?::[^=]*)?=>\s*(\{|\()?/g;
+	for (const m of body.matchAll(re)) {
+		const name = m[1] || m[2] || '';
+		// an anonymous arrow passed straight to a call: guard(async () => …)
+		const callee = name ? '' : (body.slice(Math.max(0, m.index - 60), m.index).match(/([\w$]+)\(\s*(?:[^()]*,\s*)?$/)?.[1] ?? '');
+		let start = m.index + m[0].length;
+		let text;
+		const opener = m[0].endsWith('{') ? '{' : m[0].endsWith('(') ? '(' : null;
+		if (opener) {
+			const close = opener === '{' ? '}' : ')';
+			let depth = 1, i = start;
+			for (; i < body.length && depth; i++) {
+				if (body[i] === opener) depth++;
+				else if (body[i] === close) depth--;
+			}
+			text = body.slice(start, i - 1);
+		} else {
+			const end = body.indexOf('\n', start);
+			text = body.slice(start, end < 0 ? body.length : end);
+		}
+		const pre = body.slice(0, start).split('\n').length - 1;
+		// ui-ok on the function's own line covers the whole function
+		const declLine = body.slice(body.lastIndexOf('\n', m.index) + 1, body.indexOf('\n', m.index) < 0 ? body.length : body.indexOf('\n', m.index));
+		if (EXEMPT.test(declLine)) {
+			units.push({ name, callee: '', text, from: start, to: start, line: -1 });
+			continue;
+		}
+		const ls = text.split('\n');
+		const hit = ls.findIndex((l) => /\bawait\b/.test(l) && !NOT_LOADING.test(l) && !/^\s*(\/\/|\*)/.test(l) && !EXEMPT.test(l));
+		units.push({ name, callee, text, from: start, to: start + text.length, line: hit < 0 ? -1 : startLine + pre + hit });
+	}
+	return units;
+}
+
+function loadingProblems(text, markupLines) {
+	const seen = loadingIdents(markupLines);
+	const units = scripts(text).flatMap((s, i) => asyncUnits(s.body, s.startLine).map((u) => ({ ...u, script: i })));
+	const ok = new Set();
+	const okNames = new Set();
+	const shows = (u) => {
+		if (u.line < 0 || /\bbusyToast\(/.test(u.text) || (u.callee && okNames.has(u.callee))) return true;
+		// an arrow inside a function that already shows its state (items.map(async …) in a busy save)
+		if (!u.name && [...ok].some((o) => o.script === u.script && o.from <= u.from && u.to <= o.to)) return true;
+		for (const m of u.text.matchAll(/(?<![=!<>])([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*(?:=(?![=>])|\+\+|--|\+=|-=)/g)) {
+			if (seen.has(m[1]) || seen.has(m[1].split('.')[0])) return true;
+		}
+		for (const name of okNames) if (new RegExp(String.raw`\bawait\s+${name.replace(/\$/g, '\\$')}\(`).test(u.text)) return true;
+		return false;
+	};
+	// a helper that shows the state covers the functions that await it
+	for (let changed = true; changed; ) {
+		changed = false;
+		for (const u of units) if (!ok.has(u) && shows(u)) (ok.add(u), u.name && okNames.add(u.name), (changed = true));
+	}
+	return units
+		.filter((u) => !ok.has(u))
+		.map((u) => ({
+			line: u.line,
+			rule: 'loading-state',
+			message: `async work${u.name ? ` in ${u.name}()` : ''} with no loading state: set a flag the markup shows with <Skeleton>, <Spinner> or a busy Button (on that line or in an {#if} around it), call busyToast(), or mark the line ui-ok: reason (e.g. "instant local read")`
+		}));
+}
+
 /** Lint one component's text. Returns problems: { file, line, rule, message }. */
 export function lintComponent(text, file = '<text>') {
 	const problems = [];
@@ -85,22 +194,11 @@ export function lintComponent(text, file = '<text>') {
 			}
 		});
 	}
-	const markup = lines.join('\n');
-	if (!LOADING.test(markup)) {
-		for (const s of scripts(text)) {
-			const sl = s.body.split('\n');
-			const hit = sl.findIndex((l) => ASYNC.test(l) && !EXEMPT.test(l) && !/^\s*(\/\/|\*)/.test(l));
-			if (hit >= 0) {
-				problems.push({
-					file,
-					line: s.startLine + hit,
-					rule: 'loading-state',
-					message: 'async work with no loading state: show <Skeleton>, <Spinner> or a busy Button while it runs (or mark the line ui-ok: reason, e.g. "instant local read")'
-				});
-				break;
-			}
-		}
-	}
+	for (const p of loadingProblems(text, lines)) problems.push({ file, ...p });
+	lines.forEach((line, i) => {
+		if (WAIT_TEXT.test(line) && !LOADING.test(line) && !EXEMPT.test(line))
+			problems.push({ file, line: i + 1, rule: 'loading-state', message: 'text says something is under way: put a <Spinner> (or Skeleton) with it so it reads as loading, not as a message' });
+	});
 	return problems;
 }
 

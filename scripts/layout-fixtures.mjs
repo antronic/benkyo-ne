@@ -101,6 +101,16 @@ const community = {
 	]
 };
 
+const INK = { aspect: 2.4, strokes: [[[0.1, 0.5, 0], [0.3, 0.3, 120], [0.5, 0.6, 240], [0.7, 0.3, 360], [0.9, 0.5, 480]]] };
+const invites = {
+	invites: [
+		{ code: 'VIP', label: 'Friends from the meetup', maxUses: 50, uses: 12, expiresAt: null, createdAt: now - 3 * D, revokedAt: null, coupon: 'WELCOME30', card: { note: 'Saved you a seat. Start with kana, I’ll check in on Friday.', from: 'Job', ink: INK } },
+		{ code: 'NEWYEAR27', label: null, maxUses: 100, uses: 0, expiresAt: now + 30 * D, createdAt: now - D, revokedAt: null, coupon: null, card: { note: 'Happy new year. Ten minutes a day.', from: 'Job', ink: null } },
+		{ code: 'BK-7KQ2-MX9D', label: 'Example Learner', maxUses: 1, uses: 0, expiresAt: now + 14 * D, createdAt: now - D, revokedAt: null, coupon: null, card: null },
+		{ code: 'BK-OLD0-CODE', label: null, maxUses: 1, uses: 1, expiresAt: null, createdAt: now - 20 * D, revokedAt: null, coupon: null, card: null }
+	]
+};
+
 /** API path → JSON body for the signed-in Fleet pass. */
 export const FLEET_FIXTURES = {
 	'/api/admin/ai/providers': providers,
@@ -108,6 +118,7 @@ export const FLEET_FIXTURES = {
 	'/api/admin/ai/models': models,
 	'/api/admin/packages': packages,
 	'/api/admin/promos': promos,
+	'/api/admin/invites': invites,
 	'/api/admin/accounts': { accounts: [{ ...account, passkeyList: undefined }], next: null },
 	'/api/admin/accounts/3': account,
 	'/api/admin/community': community,
@@ -127,6 +138,9 @@ export const FLEET_SCREENS = [
 	{ path: '/admin/packages', open: ['＋ New package'], label: 'new package form' },
 	{ path: '/admin/packages', open: ['Change'], label: 'model picker' },
 	{ path: '/admin/promos', open: [] },
+	{ path: '/admin/invitations', open: [] },
+	{ path: '/admin/invitations', open: ['＋ New VIP'], label: 'new VIP' },
+	{ path: '/admin/invitations', open: ['Edit'], label: 'edit VIP' },
 	{ path: '/admin/community', open: [] },
 	{ path: '/admin/accounts/3', open: [] }
 ];
