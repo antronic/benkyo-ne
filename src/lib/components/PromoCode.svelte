@@ -10,13 +10,20 @@
 	import { Badge, Button, Card, Notice, TextField } from '#lib/ui/index.ts';
 	import Skeleton from '#lib/ui/Skeleton.svelte';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { ai } from '#lib/state/ai.svelte.ts';
 	import { PromoRequestError, promoStatus, redeemPromo } from '#lib/promo/client.ts';
 	import type { PromoRedeemed, PromoStatus } from '#lib/promo/contract.ts';
 
 	let {
 		load = promoStatus,
-		redeem = redeemPromo
-	}: { load?: () => Promise<PromoStatus>; redeem?: (code: string) => Promise<PromoRedeemed> } = $props();
+		redeem = redeemPromo,
+		onredeemed
+	}: {
+		load?: () => Promise<PromoStatus>;
+		redeem?: (code: string) => Promise<PromoRedeemed>;
+		/** after a code works, with the new package (Settings updates the Today badge) */
+		onredeemed?: (r: PromoRedeemed) => void;
+	} = $props();
 
 	let status = $state<PromoStatus | null>(null);
 	let loadFailed = $state(false);
@@ -55,8 +62,11 @@
 			const r = await redeem(code.trim());
 			done = r;
 			status = r;
+			onredeemed?.(r);
 			code = '';
 			haptic('success');
+			// a package can bring managed AI: Settings and the AI screens pick it up
+			void ai.refresh();
 		} catch (err) {
 			const p = err instanceof PromoRequestError ? err.problem : 'other';
 			problem = t(`promo.err.${ERR_KEYS.has(p) ? p : 'other'}` as MessageKey);

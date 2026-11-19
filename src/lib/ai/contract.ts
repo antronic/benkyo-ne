@@ -108,6 +108,38 @@ export interface Usage {
 	calls: number;
 }
 
+// ------------------------------------------------------------ managed AI ----
+
+/** Whose AI a call runs on: the learner's own key, or the package's (the operator's keys). */
+export type AiSource = 'own' | 'package';
+
+/**
+ * GET /api/ai/managed: the package's AI for the signed-in account.
+ * Provider keys never appear here; only package, model names and allowance.
+ */
+export interface ManagedAi {
+	/** the live paid package with AI, null on Free or a package without AI */
+	plan: { id: string; name: string; endsAt: number | null } | null;
+	/** what each feature runs on under the package (only features it covers) */
+	models: { feature: Feature; label: string; model: string }[];
+	/** which AI each feature runs on now (with "My own key", a feature their key can't do still uses the package) */
+	byFeature: { feature: Feature; source: AiSource | null }[];
+	month: string; // YYYY-MM (UTC)
+	allowanceUsd: number;
+	spentUsd: number;
+	calls: number;
+	/** first moment of next month (UTC): when the allowance starts again */
+	resetsAt: number;
+	/** which AI the learner prefers when both exist */
+	prefer: AiSource;
+	/** the AI in use now: the preferred one when any feature uses it, else the other; null: none */
+	active: AiSource | null;
+	/** the package AI can't be used right now, and why */
+	blocked: 'allowance' | null;
+	/** the latest package that ended in the last 30 days, while there's no live one */
+	ended: { name: string; endedAt: number } | null;
+}
+
 // ------------------------------------------------------- card generation ----
 
 export type CardKind = 'word' | 'phrase';
@@ -211,7 +243,15 @@ export interface FillResponse {
 }
 
 export interface AiError {
-	error: 'unauthorized' | 'consent_required' | 'cap_reached' | 'rate_limited' | 'no_model' | 'no_price' | 'provider' | 'invalid_output' | 'bad_request';
+	error:
+		| 'unauthorized'
+		| 'consent_required'
+		| 'cap_reached'
+		/** the package's monthly AI allowance is used up (and there's no own key to fall back on) */
+		| 'allowance_reached'
+		/** the package that gave managed AI has ended (and there's no own key) */
+		| 'package_ended'
+		| 'rate_limited' | 'no_model' | 'no_price' | 'provider' | 'invalid_output' | 'bad_request';
 	message: string;
 }
 

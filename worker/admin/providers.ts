@@ -82,7 +82,7 @@ async function masterKey(env: Env) {
 	}
 }
 
-async function decrypt(env: Env, r: ProviderRow) {
+export async function decryptProvider(env: Env, r: ProviderRow) {
 	const key = await masterKey(env);
 	try {
 		return await open(key, { cipher: r.key_cipher, iv: r.key_iv }, providerAad(r.kind, r.base_url));
@@ -128,7 +128,7 @@ export async function modelsOf(env: Env, r: ProviderRow, refresh = false): Promi
 	const now = Date.now();
 	let list: ProviderModel[];
 	try {
-		list = await fetchModels(r.kind, r.base_url, await decrypt(env, r));
+		list = await fetchModels(r.kind, r.base_url, await decryptProvider(env, r));
 	} catch (e) {
 		// Only our own errors (undecryptable key, missing master key) pass their text through; a provider's
 		// error text is third-party and is replaced by listError's fixed message.

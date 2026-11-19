@@ -32,7 +32,7 @@ SELECT a.id, a.name, a.created_at AS createdAt, a.last_seen_at AS lastSeenAt,
        (SELECT COUNT(*) FROM passkeys p WHERE p.user_id = a.id) AS passkeys,
        EXISTS (SELECT 1 FROM apple_identities ap WHERE ap.user_id = a.id) AS appleLinked,
        (SELECT COALESCE(SUM(l.cost_usd), 0) FROM ai_ledger l
-         WHERE l.user_id = a.id AND l.at >= ?1 AND l.status = 'done') AS monthUsd,
+         WHERE l.user_id = a.id AND l.at >= ?1 AND l.status = 'done' AND l.source = 'own') AS monthUsd,
        EXISTS (SELECT 1 FROM beta_consents c
                 WHERE c.user_id = a.id AND c.version >= ?2 AND c.withdrawn_at IS NULL) AS consented,
        ${planOfSql('a.id')} AS plan

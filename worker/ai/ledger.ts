@@ -6,8 +6,12 @@
  * interleave with another call), then settles the row to the actual cost.
  * Rows count toward the month whatever their status, so a crash mid-call
  * leaves the conservative worst case on the books.
+ *
+ * Two budgets share the ledger, told apart by `source`: 'own' rows (the
+ * learner's key) count toward accounts.cap_usd, 'package' rows (the
+ * operator's keys, managed AI) toward the package's monthly allowance.
  */
-import type { Usage } from '../../src/lib/ai/contract.ts';
+import type { AiSource, Usage } from '../../src/lib/ai/contract.ts';
 import type { TokenUsage } from '../../src/lib/ai/prices.ts';
 import type { Env } from '../env.ts';
 
@@ -30,7 +34,7 @@ export async function getUsage(env: Env, userId: number, now = Date.now()): Prom
 		`SELECT COALESCE(SUM(cost_usd), 0) AS spent,
 		        COALESCE(SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END), 0) AS calls,
 		        ${capSql('?2')} AS cap
-		   FROM ai_ledger WHERE at >= ?1 AND user_id = ?2`
+		   FROM ai_ledger WHERE at >= ?1 AND user_id = ?2 AND source = 'own'`
 	)
 		.bind(monthStart(now), userId)
 		.first<{ spent: number; calls: number; cap: number }>();
@@ -46,20 +50,37 @@ export async function setCap(env: Env, userId: number, capUsd: number) {
 	await env.DB.prepare(`UPDATE accounts SET cap_usd = ?1 WHERE id = ?2`).bind(capUsd, userId).run();
 }
 
-/** Reserve `worstUsd` if it fits under this month's cap. Returns the ledger id, or null when it doesn't fit. */
+/** This month's managed AI spend and finished calls for an account (all packages together). */
+export async function getPackageSpend(env: Env, userId: number, now = Date.now()) {
+	const row = await env.DB.prepare(
+		`SELECT COALESCE(SUM(cost_usd), 0) AS spent, COALESCE(SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END), 0) AS calls
+		   FROM ai_ledger WHERE at >= ?1 AND user_id = ?2 AND source = 'package'`
+	)
+		.bind(monthStart(now), userId)
+		.first<{ spent: number; calls: number }>();
+	return { spentUsd: Math.round((row?.spent ?? 0) * 1e6) / 1e6, calls: row?.calls ?? 0 };
+}
+
+/**
+ * Reserve `worstUsd` if it fits under this month's budget: the account's own
+ * cap for 'own' calls (the default), `capUsd` (the package allowance) for
+ * 'package' calls. Returns the ledger id, or null when it doesn't fit.
+ */
 export async function reserve(
 	env: Env,
 	userId: number,
-	r: { feature: string; provider: string; model: string; worstUsd: number },
+	r: { feature: string; provider: string; model: string; worstUsd: number; source?: AiSource; planId?: string | null; capUsd?: number },
 	now = Date.now()
 ): Promise<number | null> {
+	const source = r.source ?? 'own';
+	const cap = source === 'package' ? '?9' : capSql('?7');
 	const row = await env.DB.prepare(
-		`INSERT INTO ai_ledger (at, feature, provider, model, status, cost_usd, user_id)
-		 SELECT ?1, ?2, ?3, ?4, 'reserved', ?5, ?7
-		  WHERE (SELECT COALESCE(SUM(cost_usd), 0) FROM ai_ledger WHERE at >= ?6 AND user_id = ?7) + ?5 <= ${capSql('?7')} + 1e-9
+		`INSERT INTO ai_ledger (at, feature, provider, model, status, cost_usd, user_id, source, plan_id)
+		 SELECT ?1, ?2, ?3, ?4, 'reserved', ?5, ?7, ?8, ?10
+		  WHERE (SELECT COALESCE(SUM(cost_usd), 0) FROM ai_ledger WHERE at >= ?6 AND user_id = ?7 AND source = ?8) + ?5 <= ${cap} + 1e-9
 		 RETURNING id`
 	)
-		.bind(now, r.feature, r.provider, r.model, r.worstUsd, monthStart(now), userId)
+		.bind(now, r.feature, r.provider, r.model, r.worstUsd, monthStart(now), userId, source, r.capUsd ?? 0, source === 'package' ? (r.planId ?? null) : null)
 		.first<{ id: number }>();
 	return row?.id ?? null;
 }

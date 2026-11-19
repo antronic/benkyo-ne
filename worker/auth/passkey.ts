@@ -37,7 +37,7 @@ import { b64urlDecode, b64urlEncode, randomBytes, randomToken, sha256Hex } from 
 import type { Env } from '../env.ts';
 import { aiError, cookieSecure, getCookie, httpError, isLocalhost, json, readJson } from '../http.ts';
 import { rateLimit } from '../ai/ledger.ts';
-import { deleteAccountData } from '../ai/credentials.ts';
+import { closeAccountStatements } from '../ai/credentials.ts';
 import { appleEnabled, handleApple } from './apple.ts';
 import { betaStatus } from '../beta/routes.ts';
 import { checkInvite, consumeInvite, normalizeInvite, signupState } from './signup.ts';
@@ -550,7 +550,8 @@ async function deleteAccount(req: Request, session: Session, env: Env) {
 	const body = (await readJson(req)) as { confirm?: unknown };
 	if (body?.confirm !== 'DELETE') throw httpError(400, 'bad_request', 'Confirmation required');
 	if (session.kind === 'dev') throw httpError(400, 'bad_request', 'Not available in dev mode');
-	await deleteAccountData(env, session.userId);
+	// "Delete account" closes it: disabled, signed out, API keys gone, data kept (docs/BETA-DATA.md).
+	await env.DB.batch(closeAccountStatements(env, session.userId));
 	const url = new URL(req.url);
 	return json(await meOf(null, env), { headers: { 'set-cookie': sessionCookie(url, '', 0) } });
 }

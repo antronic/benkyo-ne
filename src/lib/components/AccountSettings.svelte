@@ -17,7 +17,10 @@
 	import { SectionHeader } from '#lib/ui/index.ts';
 	import BetaConsent from '#lib/components/BetaConsent.svelte';
 	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
+	import { RETENTION_DAYS } from '#lib/beta/contract.ts';
+	import { OPERATOR } from '#lib/beta/consentText.ts';
 	import { Badge, Button, FieldRow, ListGroup, ListRow, Segmented, TextField } from '#lib/ui/index.ts';
+	import { plan } from '#lib/state/plan.svelte.ts';
 
 	let { onchange }: { onchange: () => void | Promise<void> } = $props();
 
@@ -134,7 +137,7 @@
 		if (
 			!(await confirmDestructive(
 				t('account.deleteTitle'),
-				t('account.deleteBody'),
+				t('account.deleteBody', { days: RETENTION_DAYS, email: OPERATOR.email }),
 				t('account.deleteConfirm')
 			))
 		)
@@ -344,7 +347,7 @@
 	</ListGroup>
 
 	<div id="promo"><SectionHeader title={t('promo.section')} level={3} /></div>
-	<PromoCode />
+	<PromoCode onredeemed={(r) => plan.set(r)} />
 
 	{#if ai.beta?.acceptedAt && !ai.needsConsent}
 		<h3 class="eyebrow section" id="beta-data">{t('beta.section')}</h3>
