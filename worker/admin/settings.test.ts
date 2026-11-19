@@ -117,3 +117,31 @@ describe('fillDays', () => {
 		]);
 	});
 });
+
+describe('invite cards (VIP)', () => {
+	const ink = { aspect: 2.4, strokes: [[[0.1, 0.2, 0], [0.5, 0.5, 120], [0.9, 0.2, 240]]] };
+
+	it('sets a card with a passkey step-up, audits it, and lists it', async () => {
+		await call('POST', '/api/admin/invites', { code: 'vip', maxUses: 5 });
+		db.exec(`UPDATE sessions SET stepup_at = NULL`);
+		expect((await call('PATCH', '/api/admin/invites/vip', { card: { note: 'Hi', from: 'Job', ink } })).status).toBe(428);
+		stepUp();
+		const r = await call('PATCH', '/api/admin/invites/vip', { card: { note: '  Saved you a seat \u0007', from: 'Job', ink } });
+		expect(r.status).toBe(200);
+		expect(r.body.card).toEqual({ note: 'Saved you a seat', from: 'Job', ink });
+		expect((await call('GET', '/api/admin/settings')).body.invites[0].card.note).toBe('Saved you a seat');
+		expect(audit().at(-1)?.action).toBe('invite.card');
+		const cleared = await call('PATCH', '/api/admin/invites/vip', { card: null });
+		expect(cleared.body.card).toBeNull();
+		expect(audit().at(-1)?.action).toBe('invite.card.clear');
+	});
+
+	it('refuses an empty card, bad handwriting and unknown invites', async () => {
+		stepUp();
+		await call('POST', '/api/admin/invites', { code: 'vip', maxUses: 5 });
+		expect((await call('PATCH', '/api/admin/invites/vip', { card: { note: ' ', from: 'Job' } })).status).toBe(400);
+		expect((await call('PATCH', '/api/admin/invites/vip', { card: { note: 'x', ink: { aspect: 2, strokes: [[[2, 0, 0]]] } } })).status).toBe(400);
+		expect((await call('PATCH', '/api/admin/invites/vip', { card: { note: 'x', ink: { aspect: 2, strokes: Array(81).fill([[0, 0, 0]]) } } })).status).toBe(400);
+		expect((await call('PATCH', '/api/admin/invites/nobody', { card: { note: 'x' } })).status).toBe(404);
+	});
+});

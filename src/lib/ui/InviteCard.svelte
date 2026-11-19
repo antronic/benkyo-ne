@@ -89,7 +89,7 @@
 	.scrim {
 		position: fixed;
 		inset: 0;
-		z-index: 60;
+		z-index: 180; /* above sheets, the intro and sign-up (150-160), below the splash (200) */
 		display: grid;
 		place-items: center;
 		padding: var(--space-4);

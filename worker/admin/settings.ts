@@ -11,6 +11,7 @@
  */
 import type { AdminInvite, AdminSettings } from '../../src/lib/admin/contract.ts';
 import { DEFAULT_SESSION_DAYS, sessionTtlMs } from '../auth/session.ts';
+import { parseCard } from '../invite.ts';
 import { generateInviteCode, isRandomShape, normalizeInvite, setSignupMode, signupState } from '../auth/signup.ts';
 import type { Env } from '../env.ts';
 import { httpError, json, readJson } from '../http.ts';
@@ -39,9 +40,10 @@ async function settings(env: Env): Promise<AdminSettings> {
 		sessionTtlMs(env),
 		env.DB.prepare(`SELECT value FROM ai_settings WHERE key = 'session_ttl_days'`).first<{ value: string }>(),
 		env.DB.prepare(
-			`SELECT code, label, max_uses AS maxUses, uses, expires_at AS expiresAt, created_at AS createdAt, revoked_at AS revokedAt
+			`SELECT code, label, max_uses AS maxUses, uses, expires_at AS expiresAt, created_at AS createdAt, revoked_at AS revokedAt,
+			        card_note AS cardNote, card_from AS cardFrom, card_ink AS cardInk
 			   FROM invite_codes ORDER BY created_at DESC LIMIT 200`
-		).all<AdminInvite>(),
+		).all<InviteRow>(),
 		env.DB.prepare(
 			`SELECT strftime('%Y-%m-%d', created_at / 1000, 'unixepoch') AS day, COUNT(*) AS count
 			   FROM accounts WHERE created_at >= ?1 GROUP BY day`
@@ -57,9 +59,21 @@ async function settings(env: Env): Promise<AdminSettings> {
 			effectiveDays: Math.round(effective / DAY),
 			defaultDays: DEFAULT_SESSION_DAYS
 		},
-		invites: invites.results,
+		invites: invites.results.map(toAdminInvite),
 		signupsByDay: fillDays(days.results, now)
 	};
+}
+
+type InviteRow = Omit<AdminInvite, 'card'> & { cardNote: string | null; cardFrom: string | null; cardInk: string | null };
+function toAdminInvite({ cardNote, cardFrom, cardInk, ...r }: InviteRow): AdminInvite {
+	if (!cardNote && !cardInk) return { ...r, card: null };
+	let ink = null;
+	try {
+		ink = cardInk ? JSON.parse(cardInk) : null;
+	} catch {
+		ink = null;
+	}
+	return { ...r, card: { note: cardNote ?? '', from: cardFrom ?? '', ink } };
 }
 
 export function parseInviteInput(body: unknown) {
@@ -122,10 +136,45 @@ export async function handleSettings(req: Request, env: Env, url: URL, ctx: Admi
 				`INSERT INTO invite_codes (code, label, max_uses, expires_at, created_at, created_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6)`
 			).bind(code, input.label, input.maxUses, expiresAt, now, ctx.session.userId)
 		]);
-		return json({ code, label: input.label, maxUses: input.maxUses, uses: 0, expiresAt, createdAt: now, revokedAt: null } satisfies AdminInvite);
+		return json({ code, label: input.label, maxUses: input.maxUses, uses: 0, expiresAt, createdAt: now, revokedAt: null, card: null } satisfies AdminInvite);
 	}
 
 	const inv = /^\/api\/admin\/invites\/([A-Za-z0-9_-]{3,20})$/.exec(p);
+	if (inv && m === 'PATCH') {
+		const code = normalizeInvite(decodeURIComponent(inv[1]));
+		const before =
+			code &&
+			(await env.DB.prepare(`SELECT card_note AS note, card_from AS fromName, card_ink IS NOT NULL AS hasInk FROM invite_codes WHERE code = ?1`)
+				.bind(code)
+				.first<{ note: string | null; fromName: string | null; hasInk: number }>());
+		if (!code || !before) throw httpError(404, 'bad_request', 'No such invite');
+		const body = ((await readJson(req, 96 * 1024)) ?? {}) as { card?: unknown };
+		if (!('card' in body)) throw httpError(400, 'bad_request', 'Nothing to change');
+		const card = parseCard(body.card);
+		await requireFresh(env, ctx);
+		await audited(
+			env,
+			ctx,
+			card ? 'invite.card' : 'invite.card.clear',
+			null,
+			{ code, note: card?.note ?? null, from: card?.from ?? null, ink: card?.ink ? `${card.ink.strokes.length} strokes` : null, before: { note: before.note, from: before.fromName, ink: !!before.hasInk } },
+			[
+				env.DB.prepare(`UPDATE invite_codes SET card_note = ?1, card_from = ?2, card_ink = ?3 WHERE code = ?4`).bind(
+					card?.note || null,
+					card?.from || null,
+					card?.ink ? JSON.stringify(card.ink) : null,
+					code
+				)
+			]
+		);
+		const row = await env.DB.prepare(
+			`SELECT code, label, max_uses AS maxUses, uses, expires_at AS expiresAt, created_at AS createdAt, revoked_at AS revokedAt,
+			        card_note AS cardNote, card_from AS cardFrom, card_ink AS cardInk FROM invite_codes WHERE code = ?1`
+		)
+			.bind(code)
+			.first<InviteRow>();
+		return json(toAdminInvite(row!));
+	}
 	if (inv && m === 'DELETE') {
 		const code = normalizeInvite(decodeURIComponent(inv[1]));
 		const row = code && (await env.DB.prepare(`SELECT 1 AS x FROM invite_codes WHERE code = ?1 AND revoked_at IS NULL`).bind(code).first());

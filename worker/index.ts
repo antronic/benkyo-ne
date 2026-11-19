@@ -8,6 +8,7 @@
  *   /api/auth/*         passkey auth (worker/auth/passkey.ts), Sign in with Apple (worker/auth/apple.ts)
  *   /api/ai/*           AI features behind the passkey session (worker/ai/routes.ts)
  *   /api/beta/*         beta consent and usage data (worker/beta/routes.ts)
+ *   /api/auth/invite/:c invite card for /invite links, signed out (worker/invite.ts)
  *   /api/promo/*        promo codes: the account's package, redeem a code (worker/promo.ts)
  *   /api/community/*    shared notes, replies, likes, reports, blocks (worker/community.ts)
  *   /api/admin/*        fleet console, admin only, behind Cloudflare Access (worker/admin/routes.ts)
@@ -24,6 +25,7 @@ import type { Env } from './env.ts';
 import { HttpError, json } from './http.ts';
 import { handleCommunity, purgeCommunity } from './community.ts';
 import { handlePromo } from './promo.ts';
+import { handleInviteCard } from './invite.ts';
 import { handleSync } from './sync.ts';
 
 export type { Env } from './env.ts';
@@ -68,6 +70,10 @@ export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): 
 				const res = await handleCommunity(req, env, url);
 				if (res) return res;
 				return json({ error: 'not found' }, { status: 404 });
+			}
+			if (p.startsWith('/api/auth/invite/')) {
+				const card = await handleInviteCard(req, env, url);
+				if (card) return card;
 			}
 			const res = await handleAuth(req, env, p);
 			if (res) return res;

@@ -1,5 +1,5 @@
 <!--
-	A pad to write or draw on (draft, for the VIP invite card's handwriting).
+	A pad to write or draw on (the VIP invite card's handwriting, drawn in Fleet).
 	Records each stroke with its timing (ink.ts) so InkReplay can play it back
 	as it was written. bind:value for the ink. Undo takes the last stroke off.
 -->

@@ -38,7 +38,7 @@
 	const demoCommunityFail = fakeCommunity({ fail: true });
 	let demoNote = $state("Think tabe-ru = table.\nPast: 食べた, not 食べった.");
 	let dotPage = $state(1);
-	// VIP invite card (draft): Fleet writes the note and draws; the link plays it back
+	// VIP invite card: Fleet writes the note and draws; the link plays it back
 	let vipInk = $state<Ink>(sampleInk());
 	let vipNote = $state('Saved you a seat. Start with kana, I’ll check in on Friday.');
 	let vipFrom = $state('Job');
@@ -283,7 +283,7 @@
 					</div>
 				</Card>
 
-				<SectionHeader title="VIP invite card (draft)" />
+				<SectionHeader title="VIP invite card" />
 				<Card padding="md">
 					<div class="stack" style:--gap="var(--space-3)">
 						<span class="caption">
