@@ -28,6 +28,13 @@
 		void lessonPacks.load();
 		for (const l of LEVELS) void levels.load(l.id);
 	});
+	/** Browse everything of one kind, whatever lesson teaches it. */
+	const BROWSE = [
+		{ href: '/learn/browse/kanji', key: 'browse.kanjiTitle', icon: '漢', hue: 25 },
+		{ href: '/learn/browse/grammar', key: 'browse.grammarTitle', icon: '文', hue: 150 },
+		{ href: '/kana', key: 'nav.kana', icon: 'あ', hue: 8 },
+		{ href: '/words', key: 'nav.words', icon: '語', hue: 220 }
+	] as const;
 	const FILTERS = $derived<{ id: Filter; label: string }[]>([
 		{ id: 'all', label: 'All' },
 		{ id: 'fundamentals', label: '🔤 Fundamentals' },
@@ -97,6 +104,15 @@
 			<Chip selected={filter === f.id} onclick={() => choose(f.id)}>{filterLabel(f)}</Chip>
 		{/each}
 	</div>
+
+	<nav class="browse" aria-label={t('browse.label')}>
+		{#each BROWSE as b (b.href)}
+			<Card sheen padding="sm" href={b.href} class="browse-item" style="--h: {b.hue}">
+				<span class="browse-icon jp" aria-hidden="true">{b.icon}</span>
+				<span class="headline">{t(b.key)}</span>
+			</Card>
+		{/each}
+	</nav>
 
 {#snippet practiceSection()}
 		<section class="practice rise" style:--h={265}>
@@ -255,6 +271,28 @@
 </main>
 
 <style>
+	.browse {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--space-2);
+	}
+	@media (min-width: 640px) {
+		.browse {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
+	}
+	.browse :global(.browse-item) {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+	.browse-icon {
+		font-size: 1.5rem;
+		font-weight: 600;
+		line-height: 1.2;
+		color: hsl(var(--h) 70% 50%);
+	}
 	.filters {
 		display: flex;
 		gap: var(--space-2);

@@ -14,6 +14,8 @@
 //            (e.g. 休 → 亻 (from 人) strokes 0–1, 木 strokes 2–5)
 
 import { writeFile } from 'node:fs/promises';
+import { JLPT } from '@johnmorrisdotca/jisho/jlpt';
+import { kanjiOfLevel } from '@johnmorrisdotca/jisho';
 
 const SAMPLES = 24;
 const BASE = 'https://raw.githubusercontent.com/KanjiVG/kanjivg/master/kanji/';
@@ -30,6 +32,9 @@ const KANJI = '日月山川木火' + '水雨田土石' + '口目耳手足' + '�
 
 const kanaChars = [...HIRAGANA, ...KATAKANA];
 const kanjiChars = [...KANJI];
+// Level-course kanji (docs/LEVELS.md) not already in the kanji lessons. Loaded on
+// demand by the app (strokes.ts loadLevelStrokes), so the main bundle stays small.
+const LEVEL_KANJI = ['N5'].flatMap((l) => kanjiOfLevel(JLPT, l)).filter((k) => !KANJI.includes(k));
 
 /** Tokenise and flatten an SVG path into polylines (one per subpath). */
 function flatten(d) {
@@ -210,3 +215,4 @@ async function build(chars, file, withGroups) {
 
 await build(kanaChars, 'strokes.json', false);
 await build(kanjiChars, 'kanji-strokes.json', true);
+await build(LEVEL_KANJI, 'level-kanji-strokes.json', true);
