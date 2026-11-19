@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Badge, Button, Card, Checkbox, Chip, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, Notice, PageDots, ProgressRing, SectionHeader, Segmented, Select, Sheet, Skeleton, Slider, Spinner, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
+	import { BarChart, Badge, Button, Card, Checkbox, Chip, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, Notice, PageDots, ProgressRing, SectionHeader, Segmented, Select, Sheet, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
 	import { colorGroups, motionPatterns, motionTokens, radiusTokens, spaceTokens, textStyles } from '#lib/design/tokens.ts';
 
 	type Mode = 'auto' | 'light' | 'dark' | 'both';
@@ -232,6 +232,13 @@
 						<Badge variant="tag" tone="info">New</Badge>
 					</div>
 				</Card>
+
+				<SectionHeader title="Stat tiles" />
+				<div class="ui-stats">
+					<StatTile label="Models listed" value={318} />
+					<StatTile label="Active, 7 days" value={42} note="6 in the last 24 h" />
+					<StatTile label="Failed, 24 h" value={3} tone="danger" />
+				</div>
 
 				<SectionHeader title="Grouped list" />
 				<ListGroup>

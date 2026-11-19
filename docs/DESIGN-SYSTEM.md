@@ -83,6 +83,7 @@ Import from `#lib/ui/index.ts`:
 | `FileButton` | `onpick(file)`, `accept`, button props | `<input type="file">` |
 | `Stepper` | `bind:value`, `min`, `max`, `step`, `label` | `.stepper` in settings |
 | `Notice` | `tone`, `title`, `action` snippet | new |
+<<<<<<< HEAD
 | `Skeleton` | `variant` row · card · tile · line, `count`, `label` | blank space while data loads |
 | `Spinner` | `label`, `size`, `showLabel` | a short wait with no layout to preview |
 | `ProgressRing`, `BarChart` | progress and per-day bars | |
@@ -114,6 +115,9 @@ The user always knows what the app is doing (Job, 2026-11-19).
 - `npm run lint:ui` flags a component that awaits something but shows none of `Skeleton`,
   `Spinner`, `ProgressRing`, `busy` or `aria-busy`. An instant local read can say so with
   `// ui-ok: instant local read`.
+=======
+| `StatTile` | `label`, `value`, `note`, `tone` default · danger; lay out in `<div class="ui-stats">` | `.tile` in the fleet console |
+>>>>>>> origin/claude/project-thread-f71va4
 
 `Button` and `IconButton` reuse the global `.btn` / `.icon-btn` styles in `app.css`, so a
 migrated button and an old one look the same.

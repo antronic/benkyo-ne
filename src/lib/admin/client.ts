@@ -18,6 +18,12 @@ import {
 	type AdminPackages,
 	type AdminPlanId,
 	type AdminPlanPatch,
+	type AdminPlanCreate,
+	type AdminPlanModelsInput,
+	type AdminProviders,
+	type AdminProviderInput,
+	type AdminProviderPatch,
+	type AdminModels,
 	type AdminInvite,
 	type AdminInviteInput,
 	type AdminOverview,
@@ -127,3 +133,20 @@ export const grantPackage = (accountId: number, input: AdminGrantInput) =>
 	withStepUp(() => call<AdminAccountDetail>(`/api/admin/accounts/${accountId}/grants`, { method: 'POST', json: input }));
 export const endGrant = (accountId: number, grantId: number) =>
 	withStepUp(() => call<AdminAccountDetail>(`/api/admin/accounts/${accountId}/grants/${grantId}`, { method: 'DELETE' }));
+export const createPackage = (input: AdminPlanCreate) =>
+	withStepUp(() => call<AdminPackages & { created: string }>('/api/admin/packages', { method: 'POST', json: input }));
+export const deletePackage = (id: AdminPlanId) =>
+	withStepUp(() => call<AdminPackages>(`/api/admin/packages/${id}`, { method: 'DELETE' }));
+export const setPackageModels = (id: AdminPlanId, input: AdminPlanModelsInput) =>
+	withStepUp(() => call<AdminPackages>(`/api/admin/packages/${id}/models`, { method: 'PUT', json: input }));
+
+export const getProviders = () => call<AdminProviders>('/api/admin/ai/providers');
+export const addProvider = (input: AdminProviderInput) =>
+	withStepUp(() => call<AdminProviders>('/api/admin/ai/providers', { method: 'POST', json: input }));
+export const patchProvider = (id: number, patch: AdminProviderPatch) =>
+	withStepUp(() => call<AdminProviders>(`/api/admin/ai/providers/${id}`, { method: 'PATCH', json: patch }));
+export const removeProvider = (id: number) =>
+	withStepUp(() => call<AdminProviders>(`/api/admin/ai/providers/${id}`, { method: 'DELETE' }));
+export const getProviderModels = (id: number, refresh = false) =>
+	call<AdminModels>(`/api/admin/ai/providers/${id}/models${refresh ? '?refresh=1' : ''}`);
+export const getAllModels = (refresh = false) => call<AdminModels>(`/api/admin/ai/models${refresh ? '?refresh=1' : ''}`);

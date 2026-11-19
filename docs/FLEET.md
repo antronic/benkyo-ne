@@ -15,6 +15,7 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 | 3 | Settings: sign-up switch, invite codes, session lifetime, sign-ups per day | merged (#11) |
 | 4 | Usage, System and Audit log screens (read-only) | merged (#14) |
 | 5 | Packages: Free / Plus / Pro, manual grants | merged (#15) |
+| 6 | AI providers, live model lists, packages built from models, new packages | this PR |
 
 ## Security
 
@@ -114,8 +115,35 @@ account's package is the highest live grant, else Free (`worker/plans.ts`).
 Grants and package edits need a passkey tap and are audited; deleting an
 account deletes its grants.
 
+More packages can be made with **New package** (they start not offered,
+so they can be set up first) and deleted while nobody has ever had one.
+Free, Plus and Pro can't be deleted. Grants can give any package but Free.
+
+### AI providers and package models
+
+`/admin/ai` holds the operator's own provider keys (`ai_providers`,
+migration 0010): Anthropic, any OpenAI-compatible server, and presets for
+OpenAI, Google Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI and
+Together. A key is only kept after it lists the provider's models; it's
+sealed with `AI_MASTER_KEY` (bound to this table, so a learner's key row
+can't be swapped in) and never returned, logged or shown again, only its
+last four characters. Keys can be replaced, providers turned off, and
+removed once no package uses them.
+
+`/admin/ai/:id` shows every model the provider's API lists (cached an
+hour, **Refresh** asks again), with context size, image input, price per
+million tokens (from the provider's list or the built-in table) and which
+packages include it.
+
+On `/admin/packages`, **Choose models** picks models from every turned-on
+provider into a package (`plan_models`, up to 20). Each is checked against
+its provider's list when saved, and its name and price are copied so the
+page can show what a package keeps after its AI allowance. Each app feature
+(fill a card, suggest cards and Ask AI, read a photo) is given to one model
+in the package. Free has no models: learners there use their own key.
+
 Not built yet: nothing in the app checks the package, there's no checkout
-or payment webhook, and managed AI (the operator's key) doesn't exist. Those
+or payment webhook, and the app doesn't call the package's models yet. Those
 come with Phase B of `docs/AI-PLAN.md`, which will add `subscription` grants.
 
 ## Local development

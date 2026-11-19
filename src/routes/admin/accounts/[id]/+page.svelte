@@ -10,8 +10,8 @@
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
-	import { AdminError, deleteAccount, endGrant, getAccount, grantPackage, patchAccount, revokeSessions } from '#lib/admin/client.ts';
-	import type { AdminAccountDetail, AdminGrant } from '#lib/admin/contract.ts';
+	import { AdminError, deleteAccount, endGrant, getAccount, getPackages, grantPackage, patchAccount, revokeSessions } from '#lib/admin/client.ts';
+	import type { AdminAccountDetail, AdminGrant, AdminPlan } from '#lib/admin/contract.ts';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -23,14 +23,16 @@
 	const busy = $derived(pending !== null);
 	let cap = $state('');
 	let confirmName = $state('');
-	let gPlan = $state<'plus' | 'pro'>('plus');
+	let gPlan = $state('plus');
+	/** paid packages to grant (all but Free) */
+	let paid = $state<Pick<AdminPlan, 'id' | 'name' | 'available'>[]>([
+		{ id: 'plus', name: 'Plus', available: true },
+		{ id: 'pro', name: 'Pro', available: true }
+	]);
 	let gKind = $state<'comp' | 'trial'>('trial');
 	let gDays = $state('7');
 	let gNote = $state('');
-	const PLAN_OPTIONS = [
-		{ value: 'plus', label: 'Plus' },
-		{ value: 'pro', label: 'Pro' }
-	] as const satisfies { value: 'plus' | 'pro'; label: string }[];
+	const PLAN_OPTIONS = $derived(paid.map((p) => ({ value: p.id, label: p.available ? p.name : `${p.name} (not offered)` })));
 	const KIND_OPTIONS = [
 		{ value: 'trial', label: 'Trial' },
 		{ value: 'comp', label: 'Complimentary' }
@@ -52,7 +54,12 @@
 			error = e instanceof AdminError ? e : new AdminError(0, 'server', String(e));
 		}
 	}
-	onMount(load);
+	onMount(() => {
+		load();
+		getPackages()
+			.then((p) => (paid = p.plans.filter((x) => x.id !== 'free')))
+			.catch(() => {}); // ui-ok: package names only; the defaults show until they arrive
+	});
 
 	async function act(key: string, fn: () => Promise<AdminAccountDetail | void>, done: string) {
 		pending = key;
@@ -121,7 +128,7 @@
 		if (!a || !(await confirmDestructive(`End ${PLAN_NAMES[g.plan]} now?`, `${a.name} goes back to Free.`, 'End'))) return;
 		await act(`end:${g.id}`, () => endGrant(id, g.id), 'Package ended');
 	}
-	const PLAN_NAMES = { free: 'Free', plus: 'Plus', pro: 'Pro' } as const;
+	const PLAN_NAMES = $derived({ free: 'Free', ...Object.fromEntries(paid.map((p) => [p.id, p.name])) } as Record<string, string>);
 	const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 	const day = (t: number | null) =>
@@ -195,7 +202,7 @@
 				</FieldRow>
 			</form>
 		</ListGroup>
-		<p class="caption" style:margin="var(--space-px) var(--space-1h)">Packages aren’t enforced in the app yet. This records who gets Plus or Pro for when managed AI ships.</p>
+		<p class="caption" style:margin="var(--space-px) var(--space-1h)">Packages aren’t enforced in the app yet. This records who gets a paid package for when managed AI ships.</p>
 
 		<SectionHeader title="AI this month" />
 		<ListGroup>

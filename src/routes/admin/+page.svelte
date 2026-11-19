@@ -81,6 +81,7 @@
 				<ListRow title="Devices on a sync key">
 					{#snippet trailing()}<b class="num">{data!.syncDevices}</b>{/snippet}
 				</ListRow>
+				<ListRow title="AI providers and models" href="/admin/ai" />
 				<ListRow title="Packages" href="/admin/packages" />
 				<ListRow title="System and health" href="/admin/system" />
 				<ListRow title="Audit log" href="/admin/audit" />
