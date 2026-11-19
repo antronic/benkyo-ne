@@ -44,6 +44,14 @@
 	let vipFrom = $state('Job');
 	let vipReplay = $state(0);
 	let vipPopup = $state(false);
+	// a VIP can carry a promo code (Fleet → Invitations); the card shows what it gives
+	let vipCoupon = $state('WELCOME30');
+	const VIP_COUPONS = [
+		{ value: '', label: 'No promo code' },
+		{ value: 'WELCOME30', label: 'WELCOME30 · Plus trial · 14 days' },
+		{ value: 'SONGKRAN27', label: 'SONGKRAN27 · Pro on us · 30 days' }
+	];
+	const vipPerk = $derived(vipCoupon === 'WELCOME30' ? 'Plus trial · 14 days' : vipCoupon === 'SONGKRAN27' ? 'Pro on us · 30 days' : null);
 	let saving = $state(false);
 	const barDays = Array.from({ length: 14 }, (_, i) => ({ day: `2026-11-${String(i + 1).padStart(2, '0')}`, value: [2, 4, 3, 6, 5, 8, 7, 4, 9, 6, 5, 7, 10, 8][i] }));
 	function fakeSave() {
@@ -287,19 +295,21 @@
 				<Card padding="md">
 					<div class="stack" style:--gap="var(--space-3)">
 						<span class="caption">
-							Draft for Job to review, not in the app yet. In Fleet, a named invite gets a note and handwriting; opening
-							/invite/VIP shows this card, then sign-up with the invite and coupon filled in. Reduced motion shows it without animation.
+							A VIP is made in Fleet → Invitations: a name (the link, /invite/VIP), a note, who it's from, an optional drawing and
+							an optional promo code. Opening the link plays this card, then sign-up with the invite filled in; the promo code is used
+							after sign-up (a ?coupon= in the link wins). The buttons come in with the note. Reduced motion shows it without animation.
 						</span>
 						<TextField label="Note" bind:value={vipNote} maxlength={160} />
 						<TextField label="From" bind:value={vipFrom} maxlength={40} />
 						<InkPad bind:value={vipInk} label="Handwriting for the invite" placeholder="Write or draw here (Fleet)" />
+						<Select label="Promo code" options={VIP_COUPONS} bind:value={vipCoupon} />
 						<span class="caption">InkReplay on its own: plays the handwriting back at the writer's speed.</span>
 						{#key vipReplay}<InkReplay ink={vipInk} label="Handwriting played back" />{/key}
 						<div class="wrap">
 							<Button size="sm" onclick={() => vipReplay++}>Play again</Button>
 							<Button size="sm" variant="ghost" onclick={() => (vipPopup = true)}>Open as popup</Button>
 						</div>
-						<InviteCard inline replay={vipReplay} code="VIP" from={vipFrom} note={vipNote} ink={vipInk.strokes.length ? vipInk : null} perk="Plus trial · 14 days" />
+						<InviteCard inline replay={vipReplay} code="VIP" from={vipFrom} note={vipNote} ink={vipInk.strokes.length ? vipInk : null} perk={vipPerk} />
 					</div>
 				</Card>
 				<InviteCard
@@ -308,7 +318,7 @@
 					from={vipFrom}
 					note={vipNote}
 					ink={vipInk.strokes.length ? vipInk : null}
-					perk="Plus trial · 14 days"
+					perk={vipPerk}
 					onaccept={() => (vipPopup = false)}
 					onclose={() => (vipPopup = false)}
 				/>

@@ -1,38 +1,26 @@
 <!--
-	Fleet console: sign-ups, invite codes and session lifetime.
+	Fleet console: sign-up mode and session lifetime. Invites and VIPs are in
+	Invitations (src/routes/admin/invitations).
 	Switching sign-ups and changing the session lifetime ask for a passkey tap.
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { BarChart, Button, Columns, FieldRow, InkPad, InviteCard, LargeTitle, ListGroup, ListRow, SectionHeader, Select, Sheet, Skeleton, TextArea, TextField, emptyInk, type Ink } from '#lib/ui/index.ts';
-	import { CARD_FROM_MAX, CARD_NOTE_MAX } from '#lib/invite/contract.ts';
+	import { BarChart, Button, Columns, FieldRow, LargeTitle, ListGroup, ListRow, SectionHeader, Skeleton, TextField } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
-	import { AdminError, createInvite, getSettings, revokeInvite, setInviteCard, setSessionDays, setSignupMode } from '#lib/admin/client.ts';
-	import type { AdminInvite, AdminSettings } from '#lib/admin/contract.ts';
+	import { AdminError, getSettings, setSessionDays, setSignupMode } from '#lib/admin/client.ts';
+	import type { AdminSettings } from '#lib/admin/contract.ts';
 	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
 	let s = $state<AdminSettings | null>(null);
 	let error = $state<AdminError | null>(null);
-	/** which action's request is running ('signup', 'invite', 'days', 'default', 'revoke:<code>'), or null */
+	/** which action's request is running ('signup', 'days', 'default'), or null */
 	let pending = $state<string | null>(null);
 	const busy = $derived(pending !== null);
 	let days = $state('');
-	let label = $state('');
-	/** optional name such as VIP, for /invite/vip links; empty: a random code */
-	let inviteName = $state('');
-	let uses = $state('1');
-	let expiry = $state('14');
-	const EXPIRY = [
-		{ value: '7', label: '7 days' },
-		{ value: '14', label: '14 days' },
-		{ value: '30', label: '30 days' },
-		{ value: '', label: 'Never' }
-	];
-
 	async function load() {
 		error = null;
 		try {
@@ -57,39 +45,6 @@
 		}
 	}
 
-	// VIP card: a note, who it's from and handwriting, shown when /invite/<code> opens
-	let cardFor = $state<AdminInvite | null>(null);
-	let cardNote = $state('');
-	let cardFrom = $state('');
-	let cardInk = $state<Ink>(emptyInk());
-	let cardPreview = $state(false);
-	let cardError = $state('');
-	function editCard(inv: AdminInvite) {
-		cardFor = inv;
-		cardNote = inv.card?.note ?? '';
-		cardFrom = inv.card?.from ?? '';
-		cardInk = inv.card?.ink ?? emptyInk();
-		cardError = '';
-	}
-	async function saveCard(clear = false) {
-		if (!cardFor || !s) return;
-		if (!clear && !cardNote.trim() && !cardInk.strokes.length) {
-			cardError = 'Write a note or draw something first.';
-			return;
-		}
-		cardError = '';
-		const code = cardFor.code;
-		const r = await act(
-			clear ? 'card-clear' : 'card',
-			() => setInviteCard(code, clear ? null : { note: cardNote.trim(), from: cardFrom.trim(), ink: cardInk.strokes.length ? cardInk : null }),
-			clear ? 'Card removed' : 'Card saved'
-		);
-		if (r) {
-			s.invites = s.invites.map((i) => (i.code === r.code ? r : i));
-			cardFor = null;
-		}
-	}
-
 	async function toggleSignups() {
 		if (!s) return;
 		const to = s.signup.mode === 'open' ? 'closed' : 'open';
@@ -105,45 +60,11 @@
 			days = r.session.days === null ? '' : String(r.session.days);
 		}
 	}
-	async function newInvite(e: SubmitEvent) {
-		e.preventDefault();
-		const inv = await act(
-			'invite',
-			() => createInvite({ code: inviteName.trim() || undefined, label: label.trim() || undefined, maxUses: Number(uses) || 1, expiresInDays: Number(expiry) || null }),
-			'Invite created'
-		);
-		if (inv && s) {
-			s.invites = [inv, ...s.invites];
-			label = '';
-			inviteName = '';
-			void copy(inv.code);
-		}
-	}
-	async function copy(code: string, link = false) {
-		try {
-			await navigator.clipboard.writeText(link ? `${location.origin}/invite/${encodeURIComponent(code)}` : code);
-			toast(link ? 'Sign-up link copied' : 'Code copied', '📋');
-		} catch {
-			/* still on screen */
-		}
-	}
-	async function revoke(inv: AdminInvite) {
-		if (!(await confirmDestructive(`Revoke ${inv.code}?`, 'Nobody can sign up with it after this.', 'Revoke'))) return;
-		const key = `revoke:${inv.code}`;
-		if (!(await act(key, () => revokeInvite(inv.code), 'Invite revoked'))) return;
-		// keep the Revoke button spinning while the list reloads
-		pending = key;
-		await load();
-		pending = null;
-	}
-
-	const live = (i: AdminInvite) => !i.revokedAt && i.uses < i.maxUses && (!i.expiresAt || i.expiresAt > Date.now());
-	const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
 	const total = $derived(s?.signupsByDay.reduce((n, d) => n + d.count, 0) ?? 0);
 </script>
 
-<svelte:head><title>Sign-ups and settings · Fleet</title></svelte:head>
+<svelte:head><title>Sign-up settings · Fleet</title></svelte:head>
 
 <main class="page stack fleet" style:--gap="var(--space-3)">
 	<FleetTrail />
@@ -183,49 +104,6 @@
 				</ListGroup>
 			</section>
 			<section>
-				<SectionHeader title="Invite codes" />
-				<ListGroup>
-					<form class="item col" onsubmit={newInvite}>
-						<TextField placeholder="Who it’s for (optional)" bind:value={label} maxlength={60} aria-label="Who the invite is for" />
-						<TextField
-							placeholder="Name, e.g. VIP (optional)"
-							bind:value={inviteName}
-							maxlength={20}
-							autocapitalize="characters"
-							autocomplete="off"
-							aria-label="Invite name"
-							hint={inviteName.trim() ? `Link: ${location.origin}/invite/${inviteName.trim().toUpperCase()}` : 'Leave empty for a random code.'}
-						/>
-						<FieldRow stack="narrow">
-							<TextField label="Uses" class="num-field" type="number" min="1" max="100" bind:value={uses} />
-							<span class="pick">
-								<label class="pick-label" for="exp">Expires</label>
-								<Select id="exp" options={EXPIRY} bind:value={expiry} label="Expires" />
-							</span>
-							<span class="spacer"></span>
-							<Button type="submit" busy={pending === 'invite'} disabled={busy}>Create</Button>
-						</FieldRow>
-					</form>
-					{#each s.invites as inv (inv.code)}
-						<div class="item" class:gone={!live(inv)}>
-							<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
-								<Button variant="link" class="code" onclick={() => copy(inv.code)} title="Copy">{inv.code}</Button>
-								<span class="caption">
-									{inv.label ? `${inv.label} · ` : ''}{inv.uses} of {inv.maxUses} used ·
-									{#if inv.revokedAt}revoked{:else if inv.expiresAt && inv.expiresAt <= Date.now()}expired{:else if inv.expiresAt}until {shortDay(inv.expiresAt)}{:else}no expiry{/if}
-								</span>
-							</span>
-							<span class="spacer"></span>
-							{#if live(inv)}<Button variant="link" onclick={() => editCard(inv)}>{inv.card ? 'Edit card' : 'Add card'}</Button>{/if}
-							{#if live(inv)}<Button variant="link" onclick={() => copy(inv.code, true)}>Copy link</Button>{/if}
-							{#if !inv.revokedAt}<Button variant="link" class="danger" onclick={() => revoke(inv)} busy={pending === `revoke:${inv.code}`} disabled={busy}>Revoke</Button>{/if}
-						</div>
-					{:else}
-						<ListRow subtitle="No invites yet." />
-					{/each}
-				</ListGroup>
-			</section>
-			<section>
 				<SectionHeader title="Sign-in sessions" />
 				<ListGroup>
 					<div class="item inline-form">
@@ -248,69 +126,16 @@
 		</Columns>
 
 
-		<p class="caption" style:text-align="center">Switching sign-ups and changing the lifetime ask for your passkey. Every change is in the audit log.</p>
+		<p class="caption" style:text-align="center">Invite codes and VIP links are in <a href="/admin/invitations">Invitations</a>. Switching sign-ups and changing the lifetime ask for your passkey. Every change is in the audit log.</p>
 	{/if}
 </main>
 
-<Sheet open={!!cardFor} label="Invite card" onclose={() => (cardFor = null)}>
-	{#if cardFor}
-		<div class="stack" style:--gap="var(--space-3)">
-			<SectionHeader title="Card for {cardFor.code}" />
-			<span class="caption">Opening {location.origin}/invite/{cardFor.code} shows this card first, then sign-up with the invite filled in.</span>
-			<TextArea label="Note" bind:value={cardNote} maxlength={CARD_NOTE_MAX} rows={3} placeholder="Saved you a seat. Start with kana, I’ll check in on Friday." />
-			<TextField label="From" bind:value={cardFrom} maxlength={CARD_FROM_MAX} placeholder="Job" />
-			<InkPad bind:value={cardInk} label="Handwriting for the card" placeholder="Write or draw here (optional)" />
-			{#if cardError}<span class="caption danger-text" role="alert">{cardError}</span>{/if}
-			<FieldRow stack="narrow">
-				<Button variant="ghost" onclick={() => (cardPreview = true)} disabled={!cardNote.trim() && !cardInk.strokes.length}>Preview</Button>
-				{#if cardFor.card}<Button variant="ghost-danger" busy={pending === 'card-clear'} disabled={!!pending} onclick={() => saveCard(true)}>Remove card</Button>{/if}
-				<span class="spacer"></span>
-				<Button busy={pending === 'card'} disabled={!!pending} onclick={() => saveCard()}>Save card</Button>
-			</FieldRow>
-		</div>
-	{/if}
-</Sheet>
-<InviteCard
-	open={cardPreview}
-	code={cardFor?.code ?? ''}
-	from={cardFrom}
-	note={cardNote}
-	ink={cardInk.strokes.length ? cardInk : null}
-	acceptLabel="Close preview"
-	onaccept={() => (cardPreview = false)}
-/>
-
 <style>
-	.danger-text {
-		color: var(--color-danger);
-	}
-	.fleet :global(.ui-link.code) {
-		font: 600 15px ui-monospace, 'SF Mono', Menlo, monospace;
-		letter-spacing: 0.04em;
-		color: inherit;
-		text-align: left;
-		cursor: copy;
-	}
-	.pick {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1h);
-	}
-	/* Same look as a TextField label, so "Uses" and "Expires" match. */
-	.pick-label {
-		font-size: var(--text-footnote);
-		font-weight: var(--weight-semibold);
-		color: var(--color-text-2);
-		padding-left: var(--space-1);
-	}
 	.inline-form :global(.field-row) {
 		align-items: center;
 	}
 	.grow {
 		flex: 1;
 		min-width: 0;
-	}
-	.gone {
-		opacity: 0.55;
 	}
 </style>

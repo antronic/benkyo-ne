@@ -76,12 +76,12 @@ change (`audited()` in `worker/admin/routes.ts`).
 
 ## Sign-ups
 
-`/admin/settings` switches sign-ups between **open to everyone** and
+`/admin/settings` (menu: People → Sign-up settings) switches sign-ups between **open to everyone** and
 **invite only** (`app_settings.signup_mode`, cached 30 s per isolate).
-While invite-only, a passkey sign-up needs a valid code from the console
-(`BK-XXXX-XXXX`, or a name Job picks such as `VIP`: 3 to 20 letters, digits
-and underscores, not 8 letters which would read as a random code; with a use
-count and optional expiry; `invite_codes`), and
+While invite-only, a passkey sign-up needs a valid invite from **Invitations**
+(`/admin/invitations`, menu: People → Invitations): a random code `BK-XXXX-XXXX`, or a VIP
+whose name Job picks such as `VIP` (3 to 20 letters, digits and underscores, not 8 letters which
+would read as a random code); each with a use count and optional expiry (`invite_codes`), and
 the account remembers which code it used (`accounts.invite_code`). Apple
 sign-up only works while sign-ups are open. `SIGNUP_MODE=closed` on the
 Worker overrides the console and stops invites too.
@@ -176,27 +176,34 @@ their account, with the date and whether that grant is still live.
 **Links.** Each code has a shareable link, `https://benkyo.jirachai.me/?ref=CODE` (or
 `?coupon=CODE`), and a sign-up link with an invite, `/invite/VIP?coupon=CODE`: pick the invite
 under "Link with an invite" on the code's page, or copy an invite's own link (`/invite/VIP`)
-in Settings. `/invite/<invite>` (`src/routes/invite/[code]`, a static SPA path) fills the
+in Invitations. `/invite/<invite>` (`src/routes/invite/[code]`, a static SPA path) fills the
 invite into the sign-up sheet (sessionStorage `benkyo.inviteLink`) and opens it. The coupon is
 kept on that device (localStorage `benkyo.promoLink`, 30 days) through the intro, sign-up,
 onboarding and consent; once the person is signed in the app redeems it once and says how it
 went (a toast), then forgets it. Offline, it waits for the next try. `src/lib/promo/link.ts`,
 used by the root layout.
 
-**VIP invite card.** A live invite can carry a card: a note (up to 280 characters), a "from"
-name (up to 40) and handwriting. In Fleet Settings, "Add card" / "Edit card" on an invite opens a
-sheet with the note, the name, an `InkPad` to draw on, Preview and Remove card
-(`PATCH /api/admin/invites/:code {card}`, step-up, audited as `invite.card` /
-`invite.card.clear`; `card: null` removes it). Stored in `invite_codes.card_note`, `card_from` and
-`card_ink` (JSON: `{aspect, strokes: [[x, y, ms]…]}`, x and y from 0 to 1; migration 0016;
-`worker/invite.ts` checks the shape and size). When `/invite/<invite>` opens, the page asks
-`GET /api/auth/invite/:code[?coupon=CODE]` (signed out, 30 a minute per IP; 404 without a live
-invite and a card) and plays `InviteCard` once the splash has gone: it springs up, the seal stamps
-on, the note rises in and the handwriting plays back as it was drawn, with the coupon's perk
-("Plus trial · 14 days") when the link has a redeemable coupon. Accept opens sign-up with the
-invite filled in (after the intro on a first visit); Not now goes to the app. With no card, offline
-or slow (4 s), the link goes straight to sign-up as before. Kit components `InviteCard`, `InkPad`
-and `InkReplay`, ink model in `src/lib/ui/ink.ts`, all on `/design`.
+**VIP invites.** Made only in Fleet → Invitations ("＋ New VIP"): a name (the link,
+`/invite/NAME`), who it's for, a note (up to 280 characters), who it's from (up to 40), an optional
+drawing on an `InkPad`, an optional promo code picked from Promo codes, uses and expiry; Preview
+plays the card. One call, `POST /api/admin/invites {code, card, coupon, …}` (audited `invite.vip`;
+a card needs a name, a promo code needs a card). Edit changes the card and the promo code
+(`PATCH /api/admin/invites/:code {card?, coupon?}`, step-up, audited `invite.card` /
+`invite.card.clear` / `invite.coupon`). Stored in `invite_codes.card_note`, `card_from`, `card_ink`
+(JSON: `{aspect, strokes: [[x, y, ms]…]}`, x and y from 0 to 1; migration 0016; `worker/invite.ts`
+checks the shape and size) and `coupon` (the promo code as stored; migration 0017). A VIP is an
+invite with a card; `GET /api/admin/invites` lists them all.
+
+When `/invite/<vip>` opens, the page asks `GET /api/auth/invite/:code[?coupon=CODE]` (signed out,
+30 a minute per IP; 404 without a live invite and a card). The answer has the card, the perk and
+`coupon`: the link's `?coupon=` if it has one, else the VIP's own, and only while it can still be
+redeemed. The page saves that code like a `?coupon=` link (used once signed in) and plays
+`InviteCard` once the splash has gone: it springs up, the seal stamps on, the note rises in, the
+handwriting plays back as it was drawn, and the perk ("Plus trial · 14 days") shows. Accept and Not
+now come in with the note. Accept opens sign-up with the invite filled in (after the intro on a
+first visit); Not now goes to the app. With no card, offline or slow (4 s), the link goes straight
+to sign-up. Kit components `InviteCard`, `InkPad` and `InkReplay`, ink model in
+`src/lib/ui/ink.ts`, all on `/design`.
 
 **Editing** (`PATCH /api/admin/promos/:code`) changes the package, kind,
 days, use limit (not below the uses so far), expiry (days from today, or
