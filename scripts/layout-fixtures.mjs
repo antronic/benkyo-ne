@@ -61,6 +61,27 @@ const promos = {
 		{ id: 'pro', name: 'Pro' }
 	]
 };
+const account = {
+	id: 3,
+	name: 'Example Learner',
+	createdAt: now - 30 * D,
+	lastSeenAt: now - 3600_000,
+	isAdmin: false,
+	disabled: false,
+	capUsd: 5,
+	passkeys: 1,
+	appleLinked: false,
+	monthUsd: 0.42,
+	consented: true,
+	plan: 'plus',
+	passkeyList: [{ id: 'pk1', name: 'Example phone', deviceType: 'multiDevice', createdAt: now - 30 * D, lastUsedAt: now - 3600_000 }],
+	sessions: [{ kind: 'passkey', createdAt: now - D, expiresAt: now + 29 * D }],
+	recoveryCode: 'unused',
+	spendByModel: [{ feature: 'fill', provider: 'anthropic', model: 'example-small-1', calls: 12, usd: 0.42 }],
+	recentCalls: [{ at: now - 3600_000, feature: 'fill', model: 'example-small-1', status: 'ok', usd: 0.03 }],
+	consent: { version: 1, acceptedAt: now - 30 * D, withdrawnAt: null },
+	grants: [{ ...packages.grants[0] }]
+};
 
 /** API path → JSON body for the signed-in Fleet pass. */
 export const FLEET_FIXTURES = {
@@ -69,6 +90,7 @@ export const FLEET_FIXTURES = {
 	'/api/admin/ai/models': models,
 	'/api/admin/packages': packages,
 	'/api/admin/promos': promos,
+	'/api/admin/accounts/3': account,
 	'/api/admin/promos/WELCOME30': { ...promos.promos[0], redemptions: [{ accountId: 3, accountName: 'Example Learner', redeemedAt: now - D, grantId: 1, live: true }] }
 };
 
@@ -84,5 +106,6 @@ export const FLEET_SCREENS = [
 	{ path: '/admin/packages', open: ['Edit'], label: 'edit form' },
 	{ path: '/admin/packages', open: ['＋ New package'], label: 'new package form' },
 	{ path: '/admin/packages', open: ['Change'], label: 'model picker' },
-	{ path: '/admin/promos', open: [] }
+	{ path: '/admin/promos', open: [] },
+	{ path: '/admin/accounts/3', open: [] }
 ];

@@ -186,7 +186,7 @@
 							: `Since ${shortDay(g.startsAt)}, until ended`}{g.note ? ` · ${g.note}` : ''}"
 				>
 					{#snippet trailing()}
-						{#if g.live}<Button variant="link" class="danger" onclick={() => end(g)} busy={pending === `end:${g.id}`} disabled={busy}>End</Button>{/if}
+						{#if g.live}<Button variant="plain" size="sm" class="danger" onclick={() => end(g)} busy={pending === `end:${g.id}`} disabled={busy}>End</Button>{/if}
 					{/snippet}
 				</ListRow>
 			{/each}
@@ -252,7 +252,7 @@
 				<ListRow subtitle="Not signed in anywhere" />
 			{/each}
 			{#if acc.sessions.length && !acc.isAdmin}
-				<div class="item"><Button variant="link" class="danger" onclick={revoke} busy={pending === 'revoke'} disabled={busy}>Sign out everywhere</Button></div>
+				<div class="item"><Button variant="plain" size="sm" class="danger" onclick={revoke} busy={pending === 'revoke'} disabled={busy}>Sign out everywhere</Button></div>
 			{/if}
 		</ListGroup>
 
@@ -298,6 +298,15 @@
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: var(--space-2);
+	}
+	/* On a phone the package name needs the full width; Kind and How long share the next row. */
+	@media (max-width: 599px) {
+		.picks {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.picks > :global(:first-child) {
+			grid-column: 1 / -1;
+		}
 	}
 	.inline-form :global(.field-row) {
 		align-items: center;
