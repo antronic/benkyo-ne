@@ -14,6 +14,7 @@
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError, addProvider, getProviders, patchProvider, removeProvider } from '#lib/admin/client.ts';
 	import type { AdminProvider, AdminProviders } from '#lib/admin/contract.ts';
+	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -92,6 +93,7 @@
 <svelte:head><title>AI providers · Fleet</title></svelte:head>
 
 <main class="page stack fleet" style:--gap="var(--space-2)">
+	<FleetTrail />
 	<LargeTitle title="AI providers" />
 
 	{#if error}

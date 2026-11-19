@@ -17,6 +17,7 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 | 5 | Packages: Free / Plus / Pro, manual grants | merged (#15) |
 | 6 | AI providers, live model lists, packages built from models, new packages | PR #30 |
 | 7 | Promo codes: made in the console, redeemed in Settings | PR #32 |
+| 8 | Navigation: sidebar (≥ 960px), menu pill and sheet on phones, breadcrumbs (`src/lib/admin/nav.ts`, `FleetNav.svelte`, `src/routes/admin/+layout.svelte`) | this PR |
 
 ## Security
 
@@ -37,8 +38,10 @@ Four locks, all required:
 
 Guard rails: you can't disable, delete or sign out your own account, and
 admin accounts can't be disabled or deleted from the console. Deleting
-needs the account's name typed exactly and removes the same data as the
-person's own "Delete account".
+needs the account's name typed exactly and erases every table's rows for
+it, beta data included. The person's own "Delete account" only closes the
+account (disabled, data kept, `account.close` in the audit log); erase a
+closed account here when its owner asks by email.
 
 Every admin write is logged in `admin_audit` in the same D1 batch as the
 change (`audited()` in `worker/admin/routes.ts`).

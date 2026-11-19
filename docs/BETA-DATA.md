@@ -38,7 +38,16 @@ Worker, including inside AI prompts.
   **Delete data** (usage data only, collection continues), **Withdraw from the
   beta** (marks consent withdrawn, deletes usage data, locks account features
   until the person agrees again).
-- Deleting the account deletes all three tables' rows for it.
+- **Deleting the account keeps the data** (Job, 2026-11-19; consent version 2).
+  The person's own "Delete account" closes it instead of erasing it
+  (`closeAccountStatements` in `worker/ai/credentials.ts`): `accounts.disabled = 1`,
+  every session ends, the encrypted API keys are deleted, and an
+  `account.close` row goes in the Fleet audit log. Everything else stays,
+  including these three tables (usage data is still purged after
+  180 days). To remove usage data sooner, the person deletes it in Settings
+  before closing the account, or emails the operator, who erases the closed
+  account with the Fleet console's **Delete** (`accountDataStatements`: every
+  table, beta data included).
 
 These cover what Japan's APPI (notice of purpose of use, third-party
 provision, disclosure and deletion requests) and the GDPR (informed, specific,

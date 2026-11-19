@@ -6,6 +6,7 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { AdminError, getAudit } from '#lib/admin/client.ts';
 	import type { AdminAuditEntry } from '#lib/admin/contract.ts';
+	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -42,6 +43,7 @@
 		'account.cap': 'Changed a spend cap',
 		'account.revoke_sessions': 'Signed an account out everywhere',
 		'account.delete': 'Deleted an account',
+		'account.close': 'Closed their own account (disabled, data kept)',
 		'signup.mode': 'Switched sign-ups',
 		'session.lifetime': 'Changed the session lifetime',
 		'invite.create': 'Created an invite',
@@ -75,6 +77,7 @@
 <svelte:head><title>Audit log · Fleet</title></svelte:head>
 
 <main class="page stack fleet" style:--gap="var(--space-3)">
+	<FleetTrail />
 	<LargeTitle title="Audit log" />
 
 	{#if actions.length > 1}

@@ -11,6 +11,8 @@ import { t } from '#lib/i18n/index.svelte.ts';
 
 class Ai {
 	checked = $state(false);
+	/** /api/auth/me answered this session, so signedIn is the server's word (not just the default) */
+	reached = $state(false);
 	signedIn = $state(false);
 	account = $state<Me['account']>(null);
 	signupOpen = $state(true);
@@ -55,6 +57,7 @@ class Ai {
 			const m = await api.me();
 			this.signedIn = m.signedIn;
 			this.account = m.account;
+			this.reached = true;
 			this.signupOpen = m.signupOpen;
 			this.signupInvite = !!m.signupInvite;
 			this.appleEnabled = !!m.appleEnabled;
