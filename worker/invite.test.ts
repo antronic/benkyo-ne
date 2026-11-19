@@ -45,6 +45,15 @@ describe('invite cards', () => {
 		expect(await inviteCard(env as never, 'newyear', null)).toMatchObject({ perk: null, coupon: null });
 	});
 
+	it('says a deleted or used-up invite has ended (410), and a plain one has no card (404)', async () => {
+		db.exec(`UPDATE invite_codes SET deleted_at = ${NOW} WHERE code = 'VIP'`);
+		expect(await inviteCard(env as never, 'vip', null)).toBeNull();
+		const at = (c: string) => handleInviteCard(new Request(`http://x/api/auth/invite/${c}`), env as never, new URL(`http://x/api/auth/invite/${c}`)).catch((e) => e);
+		expect((await at('vip')).status).toBe(410);
+		expect((await at('full')).status).toBe(410);
+		expect((await at('plain')).status).toBe(404);
+	});
+
 	it('says nothing for an invite without a card, used up, or unknown', async () => {
 		expect(await inviteCard(env as never, 'plain', null)).toBeNull();
 		expect(await inviteCard(env as never, 'full', null)).toBeNull();

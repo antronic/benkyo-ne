@@ -194,6 +194,16 @@ a card needs a name, a promo code needs a card). Edit changes the card and the p
 checks the shape and size) and `coupon` (the promo code as stored; migration 0017). A VIP is an
 invite with a card; `GET /api/admin/invites` lists them all.
 
+**Deleting.** VIPs and invite codes have Delete next to Revoke (`POST /api/admin/invites/:code/delete`,
+step-up, a confirm dialog, audited `invite.delete` with `{code, vip, uses}`); promo codes have
+"Delete this code" on their sheet (`DELETE /api/admin/promos/:code`, step-up, confirm, audited
+`promo.delete` with `{code, uses, unboundVips}`). Delete only hides: it sets `deleted_at`
+(migration 0018) and keeps the row, its redemptions and every package it already gave. A deleted
+item leaves the lists, can't be used or redeemed (a deleted promo code reads as not valid), and
+its name stays taken. Deleting a promo code also unbinds it from any VIP. A deleted, revoked,
+used-up or expired VIP link answers 410, and the app says the invite has ended and opens sign-up
+without filling in the code.
+
 When `/invite/<vip>` opens, the page asks `GET /api/auth/invite/:code[?coupon=CODE]` (signed out,
 30 a minute per IP; 404 without a live invite and a card). The answer has the card, the perk and
 `coupon`: the link's `?coupon=` if it has one, else the VIP's own, and only while it can still be

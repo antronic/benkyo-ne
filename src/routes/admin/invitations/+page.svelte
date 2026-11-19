@@ -33,7 +33,7 @@
 	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
-	import { AdminError, createInvite, listInvites, revokeInvite, updateInvite } from '#lib/admin/client.ts';
+	import { AdminError, createInvite, deleteInvite, listInvites, revokeInvite, updateInvite } from '#lib/admin/client.ts';
 	import { listPromos } from '#lib/admin/promos.ts';
 	import type { AdminInvite } from '#lib/admin/contract.ts';
 	import '#lib/admin/admin.css';
@@ -41,7 +41,7 @@
 	ui.hue = 200;
 	let invites = $state<AdminInvite[] | null>(null);
 	let error = $state<AdminError | null>(null);
-	/** which request is running ('code', 'vip', 'revoke:<code>'), or null */
+	/** which request is running ('code', 'vip', 'revoke:<code>', 'delete:<code>'), or null */
 	let pending = $state<string | null>(null);
 	const busy = $derived(pending !== null);
 
@@ -186,6 +186,19 @@
 			/* still on screen */
 		}
 	}
+	async function remove(inv: AdminInvite) {
+		const vip = !!inv.card;
+		if (
+			!(await confirmDestructive(
+				`Delete ${inv.code}?`,
+				`It disappears from this list and can’t be used again${vip ? ', and its link goes straight to sign-up' : ''}. People who already joined with it keep their accounts and packages. The name can’t be reused.`,
+				'Delete'
+			))
+		)
+			return;
+		if (!(await act(`delete:${inv.code}`, () => deleteInvite(inv.code), vip ? 'VIP deleted' : 'Invite deleted'))) return;
+		invites = (invites ?? []).filter((i) => i.code !== inv.code);
+	}
 	async function revoke(inv: AdminInvite) {
 		if (!(await confirmDestructive(`Revoke ${inv.code}?`, 'Nobody can sign up with it after this, and its link stops showing the card.', 'Revoke'))) return;
 		const key = `revoke:${inv.code}`;
@@ -228,7 +241,7 @@
 							<span class="row actions">
 								{#if live(inv)}<Button size="sm" variant="ghost" onclick={() => copy(inv.code, true)}>Copy link</Button>{/if}
 								{#if live(inv)}<Button size="sm" variant="ghost" onclick={() => openVip(inv)} disabled={busy}>Edit</Button>{/if}
-								{#if !inv.revokedAt}<Button size="sm" variant="ghost-danger" onclick={() => revoke(inv)} busy={pending === `revoke:${inv.code}`} disabled={busy}>Revoke</Button>{/if}
+								{#if !inv.revokedAt}<Button size="sm" variant="ghost-danger" onclick={() => revoke(inv)} busy={pending === `revoke:${inv.code}`} disabled={busy}>Revoke</Button>{/if}<Button size="sm" variant="ghost-danger" onclick={() => remove(inv)} busy={pending === `delete:${inv.code}`} disabled={busy}>Delete</Button>
 							</span>
 						</div>
 					{:else}
@@ -261,7 +274,7 @@
 							<span class="spacer"></span>
 							<span class="row actions">
 								{#if live(inv)}<Button size="sm" variant="ghost" onclick={() => copy(inv.code)}>Copy code</Button>{/if}
-								{#if !inv.revokedAt}<Button size="sm" variant="ghost-danger" onclick={() => revoke(inv)} busy={pending === `revoke:${inv.code}`} disabled={busy}>Revoke</Button>{/if}
+								{#if !inv.revokedAt}<Button size="sm" variant="ghost-danger" onclick={() => revoke(inv)} busy={pending === `revoke:${inv.code}`} disabled={busy}>Revoke</Button>{/if}<Button size="sm" variant="ghost-danger" onclick={() => remove(inv)} busy={pending === `delete:${inv.code}`} disabled={busy}>Delete</Button>
 							</span>
 						</div>
 					{:else}

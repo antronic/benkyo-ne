@@ -5,10 +5,11 @@
  *   POST  /api/admin/promos {AdminPromoInput}  make a code, random or typed in   step-up
  *   GET   /api/admin/promos/:code              one code and who redeemed it
  *   PATCH /api/admin/promos/:code {AdminPromoPatch}  switch it off or on, or edit it   step-up
+ *   DELETE /api/admin/promos/:code             hide it for good                   step-up
  *
- * Codes aren't deleted: switching one off keeps its redemptions for the
- * record, and grants already made stay until they end (end them on the
- * account's page). Every change is written to admin_audit.
+ * Delete only hides a code (deleted_at): its row and redemptions stay for the
+ * record, grants already made stay until they end (end them on the account's
+ * page), and its name stays taken. Every change is written to admin_audit.
  */
 import type { AdminPromo, AdminPromoDetail, AdminPromoInput, AdminPromoList, AdminPromoPatch } from '../../src/lib/promo/contract.ts';
 import type { Env } from '../env.ts';
@@ -32,7 +33,7 @@ const PROMO_SELECT = `SELECT p.code, p.label, p.plan_id AS plan, p.kind, p.days,
 
 async function list(env: Env): Promise<AdminPromoList> {
 	const [promos, plans] = await env.DB.batch<Record<string, never>>([
-		env.DB.prepare(`${PROMO_SELECT} ORDER BY p.created_at DESC LIMIT 200`).bind(Date.now()),
+		env.DB.prepare(`${PROMO_SELECT} WHERE p.deleted_at IS NULL ORDER BY p.created_at DESC LIMIT 200`).bind(Date.now()),
 		env.DB.prepare(`SELECT id, name FROM plans WHERE id != 'free' ORDER BY rank`)
 	]);
 	return { promos: promos.results as unknown as AdminPromo[], plans: plans.results as unknown as AdminPromoList['plans'] };
@@ -40,7 +41,7 @@ async function list(env: Env): Promise<AdminPromoList> {
 
 async function detail(env: Env, code: string): Promise<AdminPromoDetail> {
 	const now = Date.now();
-	const p = await env.DB.prepare(`${PROMO_SELECT} WHERE p.code = ?2`).bind(now, code).first<AdminPromo>();
+	const p = await env.DB.prepare(`${PROMO_SELECT} WHERE p.code = ?2 AND p.deleted_at IS NULL`).bind(now, code).first<AdminPromo>();
 	if (!p) throw httpError(404, 'bad_request', 'No such code');
 	const r = await env.DB.prepare(
 		`SELECT r.account_id AS accountId, a.name AS accountName, r.redeemed_at AS redeemedAt, r.grant_id AS grantId,
@@ -197,7 +198,7 @@ async function update(req: Request, env: Env, ctx: AdminContext, code: string) {
 	const before = await env.DB.prepare(
 		`SELECT p.code, p.label, p.plan_id AS plan, p.kind, p.days, p.max_uses AS maxUses, p.uses, p.expires_at AS expiresAt,
 		        p.disabled_at AS disabledAt, (SELECT COUNT(*) FROM promo_redemptions r WHERE r.code = p.code) AS redemptions
-		   FROM promo_codes p WHERE p.code = ?1`
+		   FROM promo_codes p WHERE p.code = ?1 AND p.deleted_at IS NULL`
 	)
 		.bind(code)
 		.first<PromoRowFull>();
@@ -225,6 +226,22 @@ async function update(req: Request, env: Env, ctx: AdminContext, code: string) {
 	return json(await detail(env, (cols.code as string | undefined) ?? code));
 }
 
+/**
+ * Delete hides a code: it can't be redeemed and isn't listed, but its row,
+ * redemptions and the packages it gave stay. VIPs that used it lose it.
+ */
+async function remove(env: Env, ctx: AdminContext, code: string) {
+	const row = await env.DB.prepare(`SELECT code, uses FROM promo_codes WHERE code = ?1 AND deleted_at IS NULL`).bind(code).first<{ code: string; uses: number }>();
+	if (!row) throw httpError(404, 'bad_request', 'No such code');
+	await requireFresh(env, ctx);
+	const vips = await env.DB.prepare(`SELECT code FROM invite_codes WHERE coupon = ?1`).bind(row.code).all<{ code: string }>();
+	await audited(env, ctx, 'promo.delete', null, { code: row.code, uses: row.uses, unboundVips: vips.results.map((v) => v.code) }, [
+		env.DB.prepare(`UPDATE promo_codes SET deleted_at = ?1 WHERE code = ?2`).bind(Date.now(), row.code),
+		env.DB.prepare(`UPDATE invite_codes SET coupon = NULL WHERE coupon = ?1`).bind(row.code)
+	]);
+	return json({ ok: true });
+}
+
 export async function handlePromos(req: Request, env: Env, url: URL, ctx: AdminContext): Promise<Response | null> {
 	const p = url.pathname;
 	const m = req.method;
@@ -236,5 +253,6 @@ export async function handlePromos(req: Request, env: Env, url: URL, ctx: AdminC
 	if (!code) throw httpError(404, 'bad_request', 'No such code');
 	if (m === 'GET') return json(await detail(env, code));
 	if (m === 'PATCH') return update(req, env, ctx, code);
+	if (m === 'DELETE') return remove(env, ctx, code);
 	return null;
 }

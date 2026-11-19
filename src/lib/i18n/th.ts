@@ -766,6 +766,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'promo.linkFailed': 'ไม่ได้ใช้โค้ด {code} {reason}',
 	'invite.eyebrow': 'คำเชิญส่วนตัว',
 	'invite.title': 'คุณได้รับเชิญให้มาเรียนกับ Benkyo',
+	'invite.ended': 'ลิงก์คำเชิญนี้หมดอายุแล้ว คุณยังสมัครได้หากเปิดรับสมัครอยู่ หรือขอคำเชิญใหม่',
 	'invite.accept': 'รับคำเชิญ',
 	'invite.later': 'ไว้ทีหลัง',
 	'invite.inkLabel': 'ข้อความเขียนด้วยลายมือ',

@@ -124,6 +124,8 @@ export const createInvite = (input: AdminInviteInput) => call<AdminInvite>('/api
 export const listInvites = () => call<{ invites: AdminInvite[] }>('/api/admin/invites');
 export const updateInvite = (code: string, patch: AdminInvitePatch) =>
 	withStepUp(() => call<AdminInvite>(`/api/admin/invites/${encodeURIComponent(code)}`, { method: 'PATCH', json: patch }));
+export const deleteInvite = (code: string) =>
+	withStepUp(() => call<{ ok: true }>(`/api/admin/invites/${encodeURIComponent(code)}/delete`, { method: 'POST' }));
 export const revokeInvite = (code: string) => call<{ ok: true }>(`/api/admin/invites/${encodeURIComponent(code)}`, { method: 'DELETE' });
 
 export const getUsage = (days: 7 | 30 | 90) => call<AdminUsage>(`/api/admin/usage?days=${days}`);

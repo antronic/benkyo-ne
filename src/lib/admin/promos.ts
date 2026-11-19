@@ -8,5 +8,7 @@ export const createPromo = (input: AdminPromoInput) =>
 	withStepUp(() => call<AdminPromoDetail>('/api/admin/promos', { method: 'POST', json: input }));
 export const setPromoDisabled = (code: string, disabled: boolean) =>
 	withStepUp(() => call<AdminPromoDetail>(`/api/admin/promos/${encodeURIComponent(code)}`, { method: 'PATCH', json: { disabled } }));
+export const deletePromo = (code: string) =>
+	withStepUp(() => call<{ ok: true }>(`/api/admin/promos/${encodeURIComponent(code)}`, { method: 'DELETE' }));
 export const updatePromo = (code: string, patch: AdminPromoPatch) =>
 	withStepUp(() => call<AdminPromoDetail>(`/api/admin/promos/${encodeURIComponent(code)}`, { method: 'PATCH', json: patch }));

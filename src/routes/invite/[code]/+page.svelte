@@ -15,7 +15,8 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
-	import { cleanInvite, pendingPromo, savePendingInvite, savePendingPromo, takeRef } from '#lib/promo/link.ts';
+	import { cleanInvite, clearPendingInvite, pendingPromo, savePendingInvite, savePendingPromo, takeRef } from '#lib/promo/link.ts';
+	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { fetchInviteCard } from '#lib/invite/client.ts';
 	import type { InviteCardResponse } from '#lib/invite/contract.ts';
 
@@ -52,6 +53,13 @@
 		const coupon = ref?.code ?? pendingPromo()?.code ?? null;
 		void (async () => {
 			const [c] = await Promise.all([invite ? fetchInviteCard(invite, coupon) : null, splashGone()]);
+			if (c === 'ended') {
+				// deleted or used up in Fleet: don't fill in a code sign-up would refuse
+				clearPendingInvite();
+				toast(t('invite.ended'), '🎟️', 3600);
+				await go(true);
+				return;
+			}
 			// a VIP's own promo code (Fleet → Invitations) is used after sign-up, like ?coupon=
 			if (c?.coupon && !ref?.code) savePendingPromo(c.coupon);
 			if (c) card = c;

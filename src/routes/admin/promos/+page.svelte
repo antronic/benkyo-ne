@@ -11,9 +11,9 @@
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { Badge, Button, Card, Columns, ListGroup, ListRow, Notice, SectionHeader, Segmented, Select, Spinner, Switch, TextField } from '#lib/ui/index.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
-	import { toast } from '#lib/ios/overlay.svelte.ts';
+	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError } from '#lib/admin/client.ts';
-	import { createPromo, getPromo, listPromos, setPromoDisabled, updatePromo } from '#lib/admin/promos.ts';
+	import { createPromo, deletePromo, getPromo, listPromos, setPromoDisabled, updatePromo } from '#lib/admin/promos.ts';
 	import type { AdminPromo, AdminPromoDetail, AdminPromoInput, AdminPromoList, AdminPromoPatch } from '#lib/promo/contract.ts';
 	import { promoLink } from '#lib/promo/link.ts';
 	import { getSettings } from '#lib/admin/client.ts';
@@ -191,6 +191,32 @@
 		const code = open;
 		open = null;
 		if (code) void show(code);
+	}
+
+	let deleting = $state(false);
+	async function removePromo() {
+		if (!detail) return;
+		const code = detail.code;
+		if (
+			!(await confirmDestructive(
+				`Delete ${code}?`,
+				'It disappears from this list and can’t be redeemed again. People who already used it keep their package. VIP invites that carry it lose it. The code can’t be reused.',
+				'Delete'
+			))
+		)
+			return;
+		deleting = true;
+		try {
+			await deletePromo(code);
+			toast('Code deleted', '✓');
+			detail = null;
+			open = null;
+			await load();
+		} catch (err) {
+			toast(err instanceof AdminError ? err.message : 'Passkey confirmation cancelled', '⚠️', 2600);
+		} finally {
+			deleting = false;
+		}
 	}
 
 	async function toggle(on: boolean) {
@@ -415,6 +441,11 @@
 								<ListGroup>
 									<ListRow title="Accept this code" subtitle={detail.disabledAt === null ? 'People can redeem it' : `Off since ${shortDay(detail.disabledAt)}`}>
 										{#snippet trailing()}<Switch label="Accept this code" checked={detail!.disabledAt === null} disabled={switching} onchange={toggle} />{/snippet}
+									</ListRow>
+								</ListGroup>
+								<ListGroup>
+									<ListRow title="Delete this code" subtitle="Hides it for good. Packages people already got from it stay.">
+										{#snippet trailing()}<Button size="sm" variant="ghost-danger" busy={deleting} disabled={deleting || switching} onclick={removePromo}>Delete</Button>{/snippet}
 									</ListRow>
 								</ListGroup>
 								<ListGroup>
