@@ -61,6 +61,7 @@ handwriting checked in WebAssembly, FSRS spaced repetition and a bring-your-own-
 
 | Doc | What's inside |
 |---|---|
+| [`AGENTS.md`](AGENTS.md) | How work is done here (people and AI agents): the task loop, hard rules, the gate, and the guides in [`docs/guides/`](docs/guides/) and the [`docs/map.md`](docs/map.md) index. |
 | [`docs/OVERVIEW.md`](docs/OVERVIEW.md) | A tour of the app and how the iOS-style UI and UX are built. |
 | [`docs/PLAN.md`](docs/PLAN.md) | The learning design: curriculum, memory techniques, visuals, architecture, free-tier budget. |
 | [`docs/AI-PLAN.md`](docs/AI-PLAN.md) | The AI design: BYOK, passkeys, spend cap, prompts, decisions, and the multi-user plan. |
