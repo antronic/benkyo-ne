@@ -267,11 +267,12 @@
 {/if}
 {#if ui.showOnboarding}
 	<Onboarding
-		ondone={async (start) => {
+		ondone={async () => {
 			ui.showOnboarding = false;
 			if (!firstRun) return;
 			firstRun = false;
-			if (start) void goto(start);
+			// land on Today, where the plan card offers the first step; never jump into a lesson
+			if (page.url.pathname !== '/') void goto('/', { replaceState: true });
 			await offerWelcome();
 			// after the questions (and sign-up, if it's showing), Kuri says hello on Today
 			kuriPending = true;

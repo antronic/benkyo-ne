@@ -13,7 +13,8 @@ installs get three tappable questions and the plan they produce.
 
 - Single-choice questions advance on tap. **Skip** is on every question and keeps the
   defaults without touching Settings. Back and "Change answers" let people revise.
-- **Start learning** opens the first step of the plan, then the beta sign-up shows on top.
+- **Start learning** lands on Today (never inside a lesson), where the plan card links the first
+  step; the beta sign-up shows on top. The same holds for `/invite` links and passkey sign-up.
 - If the build has the interface language (`src/lib/i18n`), a language switch sits on the first
   question and the questionnaire switches live. Its copy (English + Thai) is in
   `src/lib/onboarding/strings.ts`; move it into `en.ts` / `th.ts` once i18n is merged.
