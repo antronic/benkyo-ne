@@ -74,6 +74,30 @@
 			</div>
 		</ListGroup>
 
+		<SectionHeader title="Who paid" />
+		<ListGroup>
+			{#each ['package', 'own'] as src (src)}
+				{@const row = u.bySource.find((b) => b.source === src)}
+				<ListRow
+					title={src === 'package' ? 'Managed AI (your provider keys)' : 'Learners’ own keys'}
+					subtitle="{plural(row?.calls ?? 0, 'call')} · {share(row?.usd ?? 0)}% of spend"
+				>
+					{#snippet trailing()}<b class="num">{usd(row?.usd ?? 0)}</b>{/snippet}
+				</ListRow>
+			{/each}
+		</ListGroup>
+
+		<SectionHeader title="Managed AI by package" />
+		<ListGroup>
+			{#each u.byPackage as p (p.planId)}
+				<ListRow href="/admin/packages" title={p.name} subtitle="{plural(p.accounts, 'account')} · {plural(p.calls, 'call')} · allowance {usd(p.allowanceUsd)} a month each">
+					{#snippet trailing()}<b class="num">{usd(p.usd)}</b>{/snippet}
+				</ListRow>
+			{:else}
+				<ListRow subtitle="No package used managed AI in this window." />
+			{/each}
+		</ListGroup>
+
 		<SectionHeader title="By feature" />
 		<ListGroup>
 			{#each u.byFeature as f (f.feature)}

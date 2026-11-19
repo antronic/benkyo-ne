@@ -101,6 +101,10 @@ export interface AdminUsage {
 	byFeature: { feature: string; calls: number; usd: number }[];
 	byModel: { provider: string; model: string; calls: number; usd: number; inputTokens: number; outputTokens: number }[];
 	topAccounts: { id: number; name: string; calls: number; usd: number }[];
+	/** finished calls by whose key paid: the learner's own ('own') or a package's managed AI ('package') */
+	bySource: { source: 'own' | 'package'; calls: number; usd: number }[];
+	/** managed AI per package: spend on the operator's keys, and how many accounts used it */
+	byPackage: { planId: string; name: string; calls: number; usd: number; accounts: number; allowanceUsd: number }[];
 	/** the latest failed calls in the window */
 	failures: { at: number; feature: string; model: string; accountId: number | null; name: string | null }[];
 }

@@ -208,7 +208,7 @@
 
 		<SectionHeader title="AI this month" />
 		<ListGroup>
-			<ListRow title="Spend">{#snippet trailing()}<b class="num">{usd(acc.monthUsd)}</b>{/snippet}</ListRow>
+			<ListRow title="Own-key spend">{#snippet trailing()}<b class="num">{usd(acc.monthUsd)}</b>{/snippet}</ListRow>
 			<div class="item inline-form">
 				<FieldRow as="form" onsubmit={saveCap}>
 					<label class="grow" for="cap">Monthly cap ($)</label>
