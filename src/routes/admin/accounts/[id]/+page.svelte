@@ -12,6 +12,7 @@
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError, deleteAccount, endGrant, getAccount, getPackages, grantPackage, patchAccount, revokeSessions } from '#lib/admin/client.ts';
 	import type { AdminAccountDetail, AdminGrant, AdminPlan } from '#lib/admin/contract.ts';
+	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -139,6 +140,7 @@
 <svelte:head><title>{a?.name ?? 'Account'} · Fleet</title></svelte:head>
 
 <main class="page stack fleet" style:--gap="var(--space-3)">
+	<FleetTrail detail={a?.name} />
 	<LargeTitle title={a?.name ?? 'Account'} />
 
 	{#if error}

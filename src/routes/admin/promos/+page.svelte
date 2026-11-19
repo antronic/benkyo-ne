@@ -15,6 +15,7 @@
 	import { AdminError } from '#lib/admin/client.ts';
 	import { createPromo, getPromo, listPromos, setPromoDisabled } from '#lib/admin/promos.ts';
 	import type { AdminPromo, AdminPromoDetail, AdminPromoInput, AdminPromoList } from '#lib/promo/contract.ts';
+	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -152,6 +153,7 @@
 <svelte:head><title>Promo codes · Fleet</title></svelte:head>
 
 <main class="page stack fleet" style:--gap="var(--space-2)">
+	<FleetTrail />
 	<LargeTitle title="Promo codes" />
 
 	{#if error}

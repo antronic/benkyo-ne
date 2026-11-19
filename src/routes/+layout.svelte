@@ -32,6 +32,7 @@
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import KuriIntro from '#lib/companion/KuriIntro.svelte';
 	import KuriReaction from '#lib/companion/KuriReaction.svelte';
+	import { fleetParent } from '#lib/admin/nav.ts';
 	import { attempt, bootDone, reloadOnStaleChunk, safeMode, withTimeout } from '#lib/boot.ts';
 
 	let { children } = $props();
@@ -44,7 +45,7 @@
 	// Immersive screens hide the navigation and can be swiped back from.
 	const immersive = $derived(/^\/(learn\/.+|review|words\/.+|ai\/.+|admin)/.test(page.url.pathname));
 	const parent = $derived(
-		page.url.pathname.startsWith('/learn/') ? '/learn' : page.url.pathname.startsWith('/words/') ? '/words' : page.url.pathname.startsWith('/ai/') ? '/ai' : page.url.pathname.startsWith('/admin/accounts/') ? '/admin/accounts' : page.url.pathname.startsWith('/admin/') ? '/admin' : page.url.pathname.startsWith('/admin') ? '/settings' : '/'
+		page.url.pathname.startsWith('/learn/') ? '/learn' : page.url.pathname.startsWith('/words/') ? '/words' : page.url.pathname.startsWith('/ai/') ? '/ai' : page.url.pathname.startsWith('/admin') ? fleetParent(page.url.pathname) : '/'
 	);
 
 	// Beta usage data (only once the account has agreed): screens and a daily progress summary.

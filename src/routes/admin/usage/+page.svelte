@@ -6,6 +6,7 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { AdminError, getUsage } from '#lib/admin/client.ts';
 	import type { AdminUsage } from '#lib/admin/contract.ts';
+	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -47,6 +48,7 @@
 <svelte:head><title>Usage · Fleet</title></svelte:head>
 
 <main class="page stack fleet" style:--gap="var(--space-3)">
+	<FleetTrail />
 	<LargeTitle title="Usage" />
 
 	<div class="window">

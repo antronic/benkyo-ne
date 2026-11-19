@@ -14,6 +14,7 @@
 	import { AdminError, createPackage, deletePackage, getAllModels, getPackages, setPackageModels, updatePackage } from '#lib/admin/client.ts';
 	import type { AdminFeature, AdminModels, AdminPackages, AdminPlan, AdminPlanModel, AdminPlanPatch } from '#lib/admin/contract.ts';
 	import { FEATURE_NAMES, FEATURE_SHORT, priceLabel } from '#lib/admin/models.ts';
+	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -187,6 +188,7 @@
 <svelte:head><title>Packages · Fleet</title></svelte:head>
 
 <main class="page stack fleet" style:--gap="var(--space-2)">
+	<FleetTrail />
 	<LargeTitle title="Packages" />
 
 	{#if error}

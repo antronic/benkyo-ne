@@ -97,3 +97,16 @@
 .fleet .warn-text {
 	color: var(--color-danger);
 }
+
+/* Fleet navigation (FleetNav.svelte). The sidebar takes the rail's place, so
+   .page and the compact title bar (both offset by --rail) make room for it.
+   The width query matches FLEET_SIDEBAR_QUERY in nav.ts. */
+html.fleet-shell {
+	--fleet-sidebar-w: 280px;
+	--rail: 0px;
+}
+@media (min-width: 960px) {
+	html.fleet-shell {
+		--rail: calc(var(--fleet-sidebar-w) + env(safe-area-inset-left, 0px));
+	}
+}
