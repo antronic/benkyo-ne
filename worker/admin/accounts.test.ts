@@ -7,6 +7,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Session } from '../auth/passkey.ts';
+import { CONSENT_VERSION } from '../../src/lib/beta/contract.ts';
 
 let session: Session | null = null;
 vi.mock('../auth/passkey.ts', async (importOriginal) => ({
@@ -60,7 +61,7 @@ beforeEach(() => {
 	db.exec(`INSERT INTO ai_ledger (at, feature, provider, model, status, cost_usd, user_id) VALUES
 		(${NOW}, 'fill', 'anthropic', 'm1', 'done', 0.25, 2),
 		(${NOW}, 'fill', 'anthropic', 'm1', 'failed', 9, 2)`);
-	db.exec(`INSERT INTO beta_consents (user_id, version, accepted_at) VALUES (2, 1, ${NOW})`);
+	db.exec(`INSERT INTO beta_consents (user_id, version, accepted_at) VALUES (2, ${CONSENT_VERSION}, ${NOW})`);
 	env = { DB: d1(db) as unknown as D1Database, CONTENT: {} as KVNamespace, DEV_AUTH_BYPASS: '1' };
 	session = { tokenHash: 'admin-token', passkeyId: 'pk1', kind: 'passkey', userId: 1, name: 'Owner', isAdmin: true, appleLinked: false };
 });

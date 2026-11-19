@@ -37,8 +37,10 @@ Four locks, all required:
 
 Guard rails: you can't disable, delete or sign out your own account, and
 admin accounts can't be disabled or deleted from the console. Deleting
-needs the account's name typed exactly and removes the same data as the
-person's own "Delete account".
+needs the account's name typed exactly and erases every table's rows for
+it, beta data included. The person's own "Delete account" only closes the
+account (disabled, data kept, `account.close` in the audit log); erase a
+closed account here when its owner asks by email.
 
 Every admin write is logged in `admin_audit` in the same D1 batch as the
 change (`audited()` in `worker/admin/routes.ts`).

@@ -44,7 +44,7 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | Beta consent and usage data | signed-in learner | `/api/beta/{status,consent,events,data,export}` | `beta_consents`, `beta_events`, `beta_ai_calls` | `worker/beta/` | `src/lib/beta/`, `BetaConsent.svelte` |
 | Fleet console | Job (Cloudflare Access + step-up) | `/api/admin/{overview,usage,audit,system,stepup/*,accounts,invites,settings,packages,promos,ai/*}` | `admin_audit`, `ai_providers`, `plan_models` (+ reads most tables) | `worker/admin/` | `src/routes/admin/`, `src/lib/admin/` |
 | Session length | Job | `/api/admin/settings/session` | `ai_settings` (`session_ttl_days`) | `worker/auth/session.ts` | `src/routes/admin/settings/` |
-| Account deletion | learner, Job | `/api/auth/account`, `/api/admin/accounts/:id` | every table with a user id | `accountDataStatements` / `deleteAccountData` in `worker/ai/credentials.ts` | `AccountSettings.svelte` |
+| Account deletion | learner, Job | `/api/auth/account`, `/api/admin/accounts/:id` | every table with a user id | `closeAccountStatements` (learner: disable, keep data) / `accountDataStatements` (Fleet: erase) in `worker/ai/credentials.ts` | `AccountSettings.svelte` |
 | Health | anyone | `/api/health` | none | `worker/index.ts` | none |
 
 A new table with a user id must be added to `accountDataStatements` (used by both deletes), and to the beta export if it holds

@@ -512,8 +512,8 @@ Scope chosen: **passkeys only**, each account brings its own key (BYOK).
   (`aad_version` 2). Older rows keep version 1 and still decrypt.
 - **Account controls in Settings → Account:** rename, passkey list (with
   the device name), add or remove passkeys (never the last one), new
-  recovery code, sign out, delete account (keys, passkeys, AI settings and
-  usage are deleted at once).
+  recovery code, sign out, delete account (closes it: disabled, signed out
+  and API keys deleted; everything else is kept, see docs/BETA-DATA.md).
 - **Progress sync:** learning progress (review log and cards) follows the
   signed-in account (`worker/sync.ts`). Signed out, it stays on the device.
   An old sync key is moved into the account the first time that device syncs

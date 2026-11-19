@@ -109,12 +109,33 @@ export async function deleteCredential(env: Env, userId: number, id: number): Pr
 	return (res[1].meta.changes ?? 0) > 0;
 }
 
-/** Delete an account and everything tied to it (keys first). */
+/**
+ * What the person's own "Delete account" does (Job, 2026-11-19): the account is
+ * disabled, not erased. It can't sign in, every session ends and its API keys
+ * are deleted (a secret has no use once the account is closed); everything
+ * else stays, including beta usage data until the daily purge removes it
+ * RETENTION_DAYS after collection. The Fleet console's "Delete" still erases
+ * everything (accountDataStatements), for an erasure request by email.
+ */
+export function closeAccountStatements(env: Env, userId: number): D1PreparedStatement[] {
+	return [
+		env.DB.prepare(`DELETE FROM ai_feature_models WHERE user_id = ?1`).bind(userId),
+		env.DB.prepare(`DELETE FROM ai_credentials WHERE user_id = ?1`).bind(userId),
+		env.DB.prepare(`DELETE FROM sessions WHERE user_id = ?1`).bind(userId),
+		env.DB.prepare(`UPDATE accounts SET disabled = 1 WHERE id = ?1`).bind(userId),
+		// shows in the Fleet audit log, so a closed account reads differently from one an admin disabled
+		env.DB.prepare(
+			`INSERT INTO admin_audit (at, actor_id, actor_email, action, target_id, detail_json) VALUES (?1, ?2, NULL, 'account.close', ?2, '{"by":"self"}')`
+		).bind(Date.now(), userId)
+	];
+}
+
+/** Erase an account and everything tied to it (keys first). */
 export async function deleteAccountData(env: Env, userId: number) {
 	await env.DB.batch(accountDataStatements(env, userId));
 }
 
-/** Every statement that deletes an account and its data (also used by the fleet console). */
+/** Every statement that erases an account and its data (the fleet console's Delete). */
 export function accountDataStatements(env: Env, userId: number): D1PreparedStatement[] {
 	return [
 		// synced learning progress (worker/sync.ts); the copy on each device stays

@@ -440,7 +440,7 @@ export const en = {
 	'account.renamed': 'Name updated',
 	'account.signedOut': 'Signed out',
 	'account.deleteTitle': 'Delete your account?',
-	'account.deleteBody': 'Your API keys are deleted right away, with your passkey list, AI settings, usage history, beta usage data and the synced copy of your progress. Learning progress on this device stays. This can’t be undone.',
+	'account.deleteBody': 'Your account is closed: you can’t sign in with it any more, it’s signed out everywhere and your API keys are deleted. Everything else is kept, including your beta usage data (deleted {days} days after it was collected) and the synced copy of your progress. To have it all erased, email {email}. Learning progress on this device stays. This can’t be undone.',
 	'account.deleteConfirm': 'Delete Account',
 	'account.deleted': 'Account deleted',
 	'beta.downloadStarted': 'Download started',

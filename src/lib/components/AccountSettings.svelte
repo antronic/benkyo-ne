@@ -17,6 +17,8 @@
 	import { SectionHeader } from '#lib/ui/index.ts';
 	import BetaConsent from '#lib/components/BetaConsent.svelte';
 	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
+	import { RETENTION_DAYS } from '#lib/beta/contract.ts';
+	import { OPERATOR } from '#lib/beta/consentText.ts';
 	import { Badge, Button, FieldRow, ListGroup, ListRow, Segmented, TextField } from '#lib/ui/index.ts';
 
 	let { onchange }: { onchange: () => void | Promise<void> } = $props();
@@ -134,7 +136,7 @@
 		if (
 			!(await confirmDestructive(
 				t('account.deleteTitle'),
-				t('account.deleteBody'),
+				t('account.deleteBody', { days: RETENTION_DAYS, email: OPERATOR.email }),
 				t('account.deleteConfirm')
 			))
 		)

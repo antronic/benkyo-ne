@@ -42,6 +42,7 @@
 		'account.cap': 'Changed a spend cap',
 		'account.revoke_sessions': 'Signed an account out everywhere',
 		'account.delete': 'Deleted an account',
+		'account.close': 'Closed their own account (disabled, data kept)',
 		'signup.mode': 'Switched sign-ups',
 		'session.lifetime': 'Changed the session lifetime',
 		'invite.create': 'Created an invite',
