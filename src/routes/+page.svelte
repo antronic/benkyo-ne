@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { t, tn, fmtDate } from '#lib/i18n/index.svelte.ts';
 	import { c, scriptName } from '#lib/i18n/content.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
@@ -20,13 +21,19 @@
 	const greeting = greetingFor(new Date().getHours());
 	const name = $derived(greetName(ai.signedIn ? ai.account?.name : plan.name));
 
-	// the package badge follows the signed-in account (Fleet grant or promo code)
+	// The package badge follows the signed-in account (Fleet grant or promo code).
+	// Track only who is signed in: the store's own state must not re-run this.
 	$effect(() => {
-		if (ai.signedIn && ai.account) void plan.load(ai.account.id, ai.account.name);
-		// the server says nobody is signed in: forget the cached package
-		else if (ai.reached) void plan.load(null);
-		// offline launch, server unreachable or not asked yet: last known package on this device
-		else plan.restore();
+		const id = ai.signedIn ? (ai.account?.id ?? null) : null;
+		const accountName = ai.account?.name ?? '';
+		const reached = ai.reached;
+		untrack(() => {
+			if (id !== null) void plan.load(id, accountName);
+			// the server says nobody is signed in: forget the cached package
+			else if (reached) void plan.load(null);
+			// offline launch, server unreachable or not asked yet: last known package on this device
+			else plan.restore();
+		});
 	});
 
 	const next = $derived(LESSONS.find((l) => !progress.completed.includes(l.id)));
