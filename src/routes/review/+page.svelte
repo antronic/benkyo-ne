@@ -29,6 +29,8 @@
 	import RecallPad from '#lib/components/RecallPad.svelte';
 	import { Button, Card, IconButton, ProgressRing, TextField } from '#lib/ui/index.ts';
 	import WordQuiz from '#lib/components/WordQuiz.svelte';
+	import NoteCard from '#lib/components/NoteCard.svelte';
+	import { notes } from '#lib/state/notes.svelte.ts';
 	import { DRILLS, isDrillId, pickDrill } from '#lib/practice/drills.ts';
 	import KanjiInfo from '#lib/components/KanjiInfo.svelte';
 	import { kanjiByChar, meaningChoices, type Kanji } from '#lib/content/kanji.ts';
@@ -269,6 +271,7 @@
 									{/if}
 								</Card></div>
 							{/if}
+							<NoteCard peek value={notes.text(`kanji:${kanji.char}`)} onsave={(b) => notes.save(`kanji:${kanji.char}`, kanji.char, b)} />
 							{#if !(result.correct && mode === 'choose')}
 								<Button variant={result.correct ? 'primary' : 'accent'} block onclick={next}>{t('common.continue')}</Button>
 							{/if}
@@ -363,6 +366,7 @@
 								{/if}
 							</Card></div>
 						{/if}
+						<NoteCard peek value={notes.text(`kana:${kana.char}`)} onsave={(b) => notes.save(`kana:${kana.char}`, kana.char, b)} />
 						{#if !(result.correct && mode === 'choose')}
 							<Button variant={result.correct ? 'primary' : 'accent'} block onclick={next}>{t('common.continue')}</Button>
 						{/if}

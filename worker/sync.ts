@@ -13,13 +13,15 @@
  *     device can ask you to sign in instead.
  *
  * The log is append-only and card state is derived by replaying it, so merging
- * two stores can't produce conflicting card states. Cards merge last-write-wins.
+ * two stores can't produce conflicting card states. Cards and notes merge last-write-wins.
  */
 import { getSession } from './auth/passkey.ts';
 import { renewSession } from './auth/session.ts';
 import { MAX_CARDS_PULL, MAX_CARDS_PUSH, pullCards, upsertCardStatements, validCard } from './cards.ts';
 import type { Env } from './env.ts';
 import { json } from './http.ts';
+import { claimNotesStatement, MAX_NOTES_PULL, MAX_NOTES_PUSH, pullNotes, upsertNoteStatements, validNote } from './notes.ts';
+import type { Note } from '../src/lib/notes/contract.ts';
 import type { UserCard } from '../src/lib/ai/contract.ts';
 
 interface LogIn {
@@ -79,6 +81,9 @@ export async function claimKeyStore(env: Env, keyHash: string, store: number, ac
 	const top = await env.DB.prepare(`SELECT COALESCE(MAX(rev), 0) AS rev FROM user_cards WHERE user_id = ?1`)
 		.bind(store)
 		.first<{ rev: number }>();
+	const topNote = await env.DB.prepare(`SELECT COALESCE(MAX(rev), 0) AS rev FROM user_notes WHERE user_id = ?1`)
+		.bind(store)
+		.first<{ rev: number }>();
 	await env.DB.batch([
 		env.DB.prepare(
 			`INSERT OR IGNORE INTO review_log (user_id, id, card_id, grade, reviewed_at, elapsed_days, duration_ms)
@@ -98,8 +103,10 @@ export async function claimKeyStore(env: Env, keyHash: string, store: number, ac
 			   deleted = excluded.deleted, rev = excluded.rev
 			 WHERE excluded.updated_at > user_cards.updated_at`
 		).bind(store, old.id, top?.rev ?? 0),
+		claimNotesStatement(env.DB, store, old.id, topNote?.rev ?? 0),
 		env.DB.prepare(`DELETE FROM review_log WHERE user_id = ?1`).bind(old.id),
 		env.DB.prepare(`DELETE FROM user_cards WHERE user_id = ?1`).bind(old.id),
+		env.DB.prepare(`DELETE FROM user_notes WHERE user_id = ?1`).bind(old.id),
 		env.DB.prepare(`UPDATE users SET claimed_by = ?1, last_seen_at = ?2 WHERE id = ?3 AND claimed_by IS NULL`).bind(
 			accountId,
 			now,
@@ -114,6 +121,7 @@ export function deleteSyncStatements(db: D1Database, accountId: number): D1Prepa
 	return [
 		db.prepare(`DELETE FROM review_log WHERE user_id IN (SELECT id FROM users WHERE account_id = ?1)`).bind(accountId),
 		db.prepare(`DELETE FROM user_cards WHERE user_id IN (SELECT id FROM users WHERE account_id = ?1)`).bind(accountId),
+		db.prepare(`DELETE FROM user_notes WHERE user_id IN (SELECT id FROM users WHERE account_id = ?1)`).bind(accountId),
 		db.prepare(`DELETE FROM users WHERE account_id = ?1 OR claimed_by = ?1`).bind(accountId)
 	];
 }
@@ -128,7 +136,7 @@ export async function handleSync(req: Request, env: Env): Promise<Response> {
 	const keyOk = key.length >= 24 && key.length <= 128;
 	if (!session && !keyOk) return json({ error: 'signed-out' }, { status: 401 });
 
-	let body: { cursor?: number; logs?: LogIn[]; cards?: UserCard[]; cardsCursor?: number };
+	let body: { cursor?: number; logs?: LogIn[]; cards?: UserCard[]; cardsCursor?: number; notes?: Note[]; notesCursor?: number };
 	try {
 		body = await req.json();
 	} catch {
@@ -142,6 +150,11 @@ export async function handleSync(req: Request, env: Env): Promise<Response> {
 	const cards = Array.isArray(body.cards) ? body.cards.slice(0, MAX_CARDS_PUSH) : [];
 	if (!cards.every(validCard)) return json({ error: 'bad card' }, { status: 400 });
 	const cardsCursor = Number.isInteger(body.cardsCursor) ? Number(body.cardsCursor) : 0;
+	// Notes are optional too (docs/NOTES.md); older clients don't send them.
+	const withNotes = body.notes !== undefined || body.notesCursor !== undefined;
+	const notes = Array.isArray(body.notes) ? body.notes.slice(0, MAX_NOTES_PUSH) : [];
+	if (!notes.every(validNote)) return json({ error: 'bad note' }, { status: 400 });
+	const notesCursor = Number.isInteger(body.notesCursor) ? Number(body.notesCursor) : 0;
 
 	const now = Date.now();
 	let store: number;
@@ -182,6 +195,7 @@ export async function handleSync(req: Request, env: Env): Promise<Response> {
 		.all<LogIn & { seq: number }>();
 
 	if (cards.length) await env.DB.batch(upsertCardStatements(env.DB, store, cards));
+	if (notes.length) await env.DB.batch(upsertNoteStatements(env.DB, store, notes));
 
 	const next = results.length ? results[results.length - 1].seq : cursor;
 	const out: Record<string, unknown> = {
@@ -195,6 +209,10 @@ export async function handleSync(req: Request, env: Env): Promise<Response> {
 	if (withCards) {
 		const c = await pullCards(env.DB, store, cardsCursor);
 		Object.assign(out, c, { more: out.more || c.cards.length === MAX_CARDS_PULL });
+	}
+	if (withNotes) {
+		const n = await pullNotes(env.DB, store, notesCursor);
+		Object.assign(out, n, { more: out.more || n.notes.length === MAX_NOTES_PULL });
 	}
 	// Using the app keeps you signed in (worker/auth/session.ts).
 	const cookie = session ? await renewSession(req, env, session) : null;

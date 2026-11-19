@@ -18,6 +18,8 @@
 	import { words } from '#lib/state/words.svelte.ts';
 	import { shuffle } from '#lib/quiz.ts';
 	import WordCardView from './WordCardView.svelte';
+	import NoteCard from './NoteCard.svelte';
+	import { notes } from '#lib/state/notes.svelte.ts';
 	import { Button, Card as Surface, TextField } from '#lib/ui/index.ts';
 
 	interface Props {
@@ -149,6 +151,7 @@
 						<WordCardView {card} />
 					</Surface>
 				</div>
+				<NoteCard peek value={notes.text(card.id)} onsave={(b) => notes.save(card.id, card.front, b)} />
 				{#if !(result.correct && mode === 'choose')}
 					<Button variant={result.correct ? 'primary' : 'accent'} block onclick={onnext}>{t('common.continue')}</Button>
 				{/if}

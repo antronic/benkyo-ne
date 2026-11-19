@@ -5,6 +5,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { BarChart, Badge, Button, Card, Checkbox, Chip, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, Notice, PageDots, ProgressRing, SectionHeader, Segmented, Select, Sheet, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
+	import NoteCard from '#lib/components/NoteCard.svelte';
 	import PromoCode from '#lib/components/PromoCode.svelte';
 	import { PromoRequestError } from '#lib/promo/client.ts';
 	import type { PromoStatus } from '#lib/promo/contract.ts';
@@ -29,6 +30,7 @@
 	let confirmName = $state('');
 	let picked = $state('');
 	let sheetOpen = $state(false);
+	let demoNote = $state("Think tabe-ru = table.\nPast: 食べた, not 食べった.");
 	let dotPage = $state(1);
 	let saving = $state(false);
 	const barDays = Array.from({ length: 14 }, (_, i) => ({ day: `2026-11-${String(i + 1).padStart(2, '0')}`, value: [2, 4, 3, 6, 5, 8, 7, 4, 9, 6, 5, 7, 10, 8][i] }));
@@ -368,6 +370,15 @@
 
 				<SectionHeader title="Sheet" />
 				<Button variant="ghost" onclick={() => (sheetOpen = true)}>Open a sheet</Button>
+
+				<SectionHeader title="My note (words, kana, kanji, units)" />
+				<p class="caption">A private note on any study item. Saves as you type; empty deletes it. In Review it shows as a "My note" button only after you answer.</p>
+				<div class="stack" style:--gap="var(--space-2)">
+					<NoteCard value={demoNote} onsave={async (b) => (demoNote = b)} />
+					<NoteCard value="" onsave={async () => {}} />
+					<NoteCard value="" loading onsave={async () => {}} />
+					<NoteCard peek value={demoNote || 'Looks like 大 with a dot: the dog’s ear.'} onsave={async () => {}} />
+				</div>
 
 				<SectionHeader title="Promo code (Settings)" />
 				<p class="caption">Try SONGKRAN27 for success; any other code shows an error. The second card is an account already on a trial.</p>

@@ -6,6 +6,8 @@
 	import { t, tn } from '#lib/i18n/index.svelte.ts';
 	import { Button, Card, IconButton, Skeleton } from '#lib/ui/index.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
+	import NoteCard from '#lib/components/NoteCard.svelte';
+	import { notes } from '#lib/state/notes.svelte.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -121,6 +123,7 @@
 										}}
 									/>
 								</Card>
+								<NoteCard value={notes.text(item.key)} loading={!notes.ready} onsave={(b) => notes.save(item.key, item.reading, b)} />
 							</div>
 							<Button variant="accent" block onclick={next} busy={saving === 'finish'} disabled={saving === 'skip'}>{i < pack.items.length - 1 ? t('pack.next') : t('pack.finish')}</Button>
 						{:else}
@@ -184,5 +187,8 @@
 	.back {
 		width: 100%;
 		max-width: 440px;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
 	}
 </style>

@@ -2,7 +2,10 @@
 <script lang="ts">
 	import { t as tr, tn } from '#lib/i18n/index.svelte.ts';
 	import { gloss } from '#lib/i18n/content.ts';
-	import { Button, Card, Chip, FieldRow, LargeTitle, ListGroup, ListRow, Sheet, Skeleton, TextField } from '#lib/ui/index.ts';
+	import { Button, Card, Chip, FieldRow, LargeTitle, ListGroup, ListRow, Segmented, Sheet, Skeleton, TextField } from '#lib/ui/index.ts';
+	import NoteCard from '#lib/components/NoteCard.svelte';
+	import { notes } from '#lib/state/notes.svelte.ts';
+	import { subjectKind, type Note } from '#lib/notes/contract.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
 import WordCardView from '#lib/components/WordCardView.svelte';
@@ -27,6 +30,35 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 	let filterTag = $state<string | null>(null);
 	let open = $state<UserCard | null>(null);
 	let tagInput = $state('');
+	/** Cards, or every note you wrote (on cards, kana, kanji, units) */
+	let view = $state<'cards' | 'notes'>('cards');
+	let noteQuery = $state('');
+	let openNote = $state<Note | null>(null);
+
+	const shownNotes = $derived(
+		notes.list.filter((n) => {
+			const q = noteQuery.trim().toLowerCase();
+			return !q || n.label.toLowerCase().includes(q) || n.body.toLowerCase().includes(q);
+		})
+	);
+	const viewOptions = $derived([
+		{ value: 'cards' as const, label: tr('notes.filterAll') },
+		{ value: 'notes' as const, label: `${tr('notes.filter')} · ${notes.list.length}` }
+	]);
+
+	function openFromNote(n: Note) {
+		const card = words.cards[n.subject];
+		if (card && !card.deleted) {
+			open = card;
+			return;
+		}
+		openNote = n;
+	}
+	/** Where a note's item lives, when it has its own screen. */
+	function noteHref(n: Note): string | null {
+		if (subjectKind(n.subject) === 'unit') return `/learn/course/${n.subject.slice(5)}`;
+		return null;
+	}
 
 	const ready = $derived(packs.filter((p) => p.status === 'ready'));
 	const shown = $derived(
@@ -141,6 +173,37 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 		</section>
 	{/if}
 
+	<Segmented options={viewOptions} value={view} label={tr('nav.words')} onchange={(v) => (view = v)} />
+
+	{#if view === 'notes'}
+	<section class="stack" style:--gap="var(--space-2)">
+		<h2 class="eyebrow">{tr('notes.count', { n: notes.list.length })}</h2>
+		{#if notes.list.length > 4}
+			<TextField type="search" placeholder={tr('notes.search')} bind:value={noteQuery} aria-label={tr('notes.search')} />
+		{/if}
+		{#if !notes.ready}
+			<Skeleton variant="row" count={3} label={tr('notes.loading')} />
+		{:else}
+			<ListGroup class="cards">
+				{#each shownNotes as n (n.subject)}
+					<ListRow class="item" onclick={() => openFromNote(n)}>
+						<span class="note-row">
+							<span class="row" style:--gap="var(--space-2)">
+								<span class="jp front">{n.label}</span>
+								<span class="pill">{tr(`notes.kind.${subjectKind(n.subject)}`)}</span>
+							</span>
+							<span class="caption snippet">{n.body}</span>
+						</span>
+					</ListRow>
+				{:else}
+					<ListRow class="item">
+						<span class="caption">{noteQuery.trim() ? tr('notes.noMatch', { q: noteQuery.trim() }) : tr('notes.empty')}</span>
+					</ListRow>
+				{/each}
+			</ListGroup>
+		{/if}
+	</section>
+	{:else}
 	<section class="stack" style:--gap="var(--space-2)">
 		<div class="row">
 			<h2 class="eyebrow">{tr('words.yourCards', { n: words.list.length })}</h2>
@@ -168,11 +231,16 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 			{/each}
 		</ListGroup>
 	</section>
+	{/if}
 </main>
 
 <Sheet open={!!open} label={tr('words.card')} onclose={() => (open = null)}>
 	{#if open}
 		<WordCardView card={open} />
+		{#key open.id}
+			{@const card = open}
+			<NoteCard value={notes.text(card.id)} loading={!notes.ready} onsave={(b) => notes.save(card.id, card.front, b)} />
+		{/key}
 		{#if words.isParked(open) && !progress.cards[open.id]}
 			{@const missing = unknownKanaIn(open.front, progress.knownKana)}
 			<p class="caption parked">
@@ -193,7 +261,33 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 	{/if}
 </Sheet>
 
+<Sheet open={!!openNote} label={tr('notes.mine')} onclose={() => (openNote = null)}>
+	{#if openNote}
+		{@const n = openNote}
+		<div class="row" style:--gap="var(--space-2)">
+			<span class="jp title-2">{n.label}</span>
+			<span class="pill">{tr(`notes.kind.${subjectKind(n.subject)}`)}</span>
+		</div>
+		<NoteCard value={notes.text(n.subject)} onsave={(b) => notes.save(n.subject, n.label, b)} />
+		{#if noteHref(n)}<Button variant="ghost" block href={noteHref(n) ?? undefined}>{tr('notes.open')}</Button>{/if}
+	{/if}
+</Sheet>
+
 <style>
+	.note-row {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		min-width: 0;
+	}
+	.snippet {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		white-space: pre-wrap;
+	}
 	.hint {
 		margin: 0;
 	}
