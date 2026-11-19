@@ -15,22 +15,37 @@ concurrency:
 jobs:
   gate:
     name: check, lint, test, build, layout
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Runs on Job's self-hosted runner (docs/CI-RUNNER.md). To go back to a
+    # GitHub-hosted machine without a code change, set the repository variable
+    # CI_RUNNER to ubuntu-latest (Settings → Secrets and variables → Actions).
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    # The repo is public: never run a fork's code on the self-hosted machine.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 20
     env:
       CI: 'true'
     steps:
       - uses: actions/checkout@v4
+      # Node 22 is fetched once into the runner's tool cache. No `cache: npm`:
+      # ~/.npm already persists on a self-hosted machine, so `npm ci` stays warm.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - run: npm ci
       - run: npm run check
       - run: npm run lint:ui
       - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      # Downloads Chromium into ~/.cache/ms-playwright only when this Playwright
+      # version's build is missing. System libraries are installed once when the
+      # runner is set up; GitHub-hosted machines get them here (passwordless sudo).
+      - name: Install Chromium for Playwright
+        run: |
+          if [ "$RUNNER_ENVIRONMENT" = "github-hosted" ]; then
+            npx playwright install --with-deps chromium
+          else
+            npx playwright install chromium
+          fi
       - run: npm run check:layout
         env:
           LAYOUT_SHOTS: layout-failures
