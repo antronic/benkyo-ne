@@ -19,6 +19,7 @@
 	import { progress, haptic } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive } from '#lib/ios/overlay.svelte.ts';
+	import { Button, Card, IconButton } from '#lib/ui/index.ts';
 
 	type Phase = 'intro' | 'quiz' | 'done';
 
@@ -127,9 +128,9 @@
 {:else}
 	<main class="placement" style:--h={hue}>
 		<header class="top">
-			<button class="icon-btn" aria-label={t('placement.close')} onclick={close}>
+			<IconButton label={t('placement.close')} onclick={close}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
-			</button>
+			</IconButton>
 			<div class="bar" role="progressbar" aria-valuemin={0} aria-valuemax={total || 1} aria-valuenow={phase === 'done' ? total : asked}>
 				<span style:width="{phase === 'done' ? 100 : total ? (asked / total) * 100 : 0}%"></span>
 			</div>
@@ -153,29 +154,30 @@
 					<div class="split">
 						<div class="pane">
 							<div class="eyebrow">{t('placement.checking', { lesson: c(block.lesson.title), i: qi + 1, n: block.questions.length })}</div>
-							<div class="glass sheen big" class:shake={shaking}>
+							<Card sheen padding="none" radius="large" class="big {shaking ? 'shake' : ''}">
 								<KanaGlyph char={current.char} size={150} />
 								<Romaji text={current.char} hide={!choice} />
-							</div>
+							</Card>
 						</div>
 						<div class="pane">
 							<div class="choices">
 								{#each options as o (o.char)}
-									<button
-										class="glass choice"
-										class:right={choice && o.romaji === current.romaji}
-										class:wrong={choice === o.char && o.romaji !== current.romaji}
+									<Card
+										padding="none"
+										class="choice {choice && o.romaji === current.romaji ? 'right' : ''} {choice === o.char && o.romaji !== current.romaji ? 'wrong' : ''}"
 										onclick={() => pick(o)}
 										disabled={!!choice && choice !== o.char && o.romaji !== current.romaji}
 									>
 										{o.romaji}
-									</button>
+									</Card>
 								{/each}
 							</div>
 							{#if choice && !answers[current.char]?.correct}
-								<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
-									<p style="margin:0">{@html t('placement.itsAnswer', { romaji: `<b>${current.romaji}</b>`, lesson: c(block.lesson.title) })}</p>
-									<button class="btn block" onclick={advance}>{t('common.continue')}</button>
+								<div class="feedback-wrap" in:scale={{ start: 0.9, duration: 300 }}>
+									<Card class="feedback">
+										<p style="margin:0">{@html t('placement.itsAnswer', { romaji: `<b>${current.romaji}</b>`, lesson: c(block.lesson.title) })}</p>
+										<Button block busy={saving} onclick={advance}>{t('common.continue')}</Button>
+									</Card>
 								</div>
 							{/if}
 						</div>
@@ -192,12 +194,12 @@
 							{#each blocks as b (b.lesson.id)}
 								{@const ok = outcome.passed.includes(b.lesson.id)}
 								{@const bad = outcome.failed.includes(b.lesson.id)}
-								<li class="glass result" class:ok class:bad>
+								<Card as="li" padding="none" class="result {ok ? 'ok' : ''} {bad ? 'bad' : ''}">
 									<span class="mark">{ok ? '✓' : bad ? '✗' : '·'}</span>
 									<span class="headline">{c(b.lesson.title)}</span>
 									<span class="jp caption sub">{b.lesson.subtitle}</span>
 									<span class="caption">{ok ? t('placement.rSkipped') : bad ? t('placement.rTake') : t('placement.rNotChecked')}</span>
-								</li>
+								</Card>
 							{/each}
 						</ul>
 					</div>
@@ -208,17 +210,17 @@
 		<footer class="bottom">
 			{#if phase === 'intro'}
 				{#if todo.length}
-					<button class="btn accent block" onclick={start}>{t('placement.start')}</button>
+					<Button variant="accent" block onclick={start}>{t('placement.start')}</Button>
 				{:else}
-					<button class="btn accent block" onclick={() => goto('/learn')}>{t('unit.backToLearn')}</button>
+					<Button variant="accent" block onclick={() => goto('/learn')}>{t('unit.backToLearn')}</Button>
 				{/if}
 			{:else if phase === 'quiz'}
-				<button class="btn ghost block" onclick={finish} disabled={saving}>{t('placement.stopKeep')}</button>
+				<Button variant="ghost" block onclick={finish} busy={saving}>{t('placement.stopKeep')}</Button>
 			{:else if phase === 'done'}
 				<div class="row" style="width:100%">
-					<button class="btn ghost block" onclick={() => goto('/learn')}>{t('common.done')}</button>
+					<Button variant="ghost" block onclick={() => goto('/learn')}>{t('common.done')}</Button>
 					{#if nextLesson}
-						<button class="btn accent block" onclick={() => goto(`/learn/${nextLesson.id}`)}>{t('placement.startLesson', { lesson: c(nextLesson.title) })}</button>
+						<Button variant="accent" block onclick={() => goto(`/learn/${nextLesson.id}`)}>{t('placement.startLesson', { lesson: c(nextLesson.title) })}</Button>
 					{/if}
 				</div>
 			{/if}
@@ -279,9 +281,8 @@
 		max-width: 520px;
 		width: 100%;
 	}
-	.big {
+	.placement :global(.big) {
 		padding: var(--space-6);
-		border-radius: var(--r-l);
 	}
 	.choices {
 		display: grid;
@@ -289,35 +290,36 @@
 		gap: var(--space-3);
 		width: 100%;
 	}
-	.choice {
+	.choices :global(.choice) {
 		min-height: 64px;
+		text-align: center;
 		font-size: 1.375rem;
 		font-weight: 600;
-		cursor: pointer;
 		transition:
 			transform 380ms var(--spring),
 			background 200ms,
 			opacity 200ms;
 	}
-	.choice:active {
+	.choices :global(.choice:active) {
 		transform: scale(0.95);
 	}
-	.choice:disabled {
+	.choices :global(.choice:disabled) {
 		opacity: 0.4;
 	}
-	.choice.right {
+	.choices :global(.choice.right) {
 		background: color-mix(in srgb, var(--success) 85%, transparent);
 		color: #fff;
 		animation: pop 420ms var(--spring-bouncy);
 	}
-	.choice.wrong {
+	.choices :global(.choice.wrong) {
 		background: color-mix(in srgb, var(--danger) 85%, transparent);
 		color: #fff;
 	}
-	.feedback {
+	.feedback-wrap {
 		width: 100%;
 		margin-top: var(--space-3);
-		padding: var(--space-4);
+	}
+	.feedback-wrap :global(.feedback) {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
@@ -332,7 +334,7 @@
 		max-height: 46dvh;
 		overflow-y: auto;
 	}
-	.result {
+	.results :global(.result) {
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
@@ -344,10 +346,10 @@
 		font-weight: 700;
 		color: var(--ink-3, var(--ink-2));
 	}
-	.result.ok .mark {
+	:global(.result.ok) .mark {
 		color: var(--success);
 	}
-	.result.bad .mark {
+	:global(.result.bad) .mark {
 		color: var(--danger);
 	}
 	.sub {
@@ -357,7 +359,7 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	.result .headline {
+	:global(.result) .headline {
 		white-space: nowrap;
 	}
 	.bottom {

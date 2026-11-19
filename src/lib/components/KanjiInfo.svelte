@@ -7,6 +7,7 @@
 	import { kanjiByChar, ORIGIN_LABEL, showKun, type Kanji } from '#lib/content/kanji.ts';
 	import { PART_COLORS, strokesOf } from '#lib/content/strokes.ts';
 	import { speak } from '#lib/audio/speech.ts';
+	import { Card } from '#lib/ui/index.ts';
 
 	let { kanji, compact = false }: { kanji: Kanji; compact?: boolean } = $props();
 
@@ -58,7 +59,7 @@
 				{#each kanji.on as r}<span class="r">{r}<Romaji text={r} /></span>{/each}
 			</dd>
 		</dl>
-		<button class="glass example" onclick={() => speak(kanji.example.reading)}>
+		<Card padding="none" class="example" onclick={() => speak(kanji.example.reading)}>
 			<span class="jp word">{kanji.example.word}</span>
 			<span class="stack" style:--gap="0">
 				<span class="jp caption">{kanji.example.reading}<Romaji text={kanji.example.reading} inline /></span>
@@ -66,7 +67,7 @@
 			</span>
 			<span class="spacer"></span>
 			<span aria-hidden="true">🔊</span>
-		</button>
+		</Card>
 	{/if}
 </div>
 
@@ -159,16 +160,12 @@
 		display: inline-flex;
 		flex-direction: column;
 	}
-	.example {
+	.info :global(.example) {
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-3) var(--space-4);
-		border-radius: var(--r-m);
 		text-align: left;
-		cursor: pointer;
-		color: inherit;
-		font: inherit;
 	}
 	.word {
 		font-size: 1.5rem;

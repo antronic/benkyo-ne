@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import { Button, LargeTitle, ListGroup, ListRow, SectionHeader, Skeleton, Switch, TextField } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
@@ -79,37 +79,29 @@
 	{#if error}
 		<ErrorCard {error} onretry={load} />
 	{:else if !data}
-		<div class="glass group" aria-busy="true"><div class="item caption">Loading…</div></div>
+		<Skeleton variant="card" count={3} label="Loading packages" />
 	{:else}
 		{#each data.plans as p (p.id)}
-			<div class="glass group">
+			<ListGroup>
 				{#if edit?.id === p.id}
 					<form class="item col" onsubmit={save}>
-						<label class="caption" for="name-{p.id}">Name</label>
-						<input id="name-{p.id}" type="text" bind:value={edit.name} maxlength="30" required />
-						<label class="caption" for="blurb-{p.id}">What’s included</label>
-						<input id="blurb-{p.id}" type="text" bind:value={edit.blurb} maxlength="200" />
+						<TextField label="Name" bind:value={edit.name} maxlength={30} required />
+						<TextField label="What’s included" bind:value={edit.blurb} maxlength={200} />
 						{#if p.id !== 'free'}
 							<span class="fields">
-								<span class="stack" style:--gap="var(--space-1)">
-									<label class="caption" for="m-{p.id}">Per month ($)</label>
-									<input id="m-{p.id}" type="number" min="0" max="1000" step="0.01" bind:value={edit.month} required />
-								</span>
-								<span class="stack" style:--gap="var(--space-1)">
-									<label class="caption" for="y-{p.id}">Per year ($)</label>
-									<input id="y-{p.id}" type="number" min="0" max="1000" step="0.01" bind:value={edit.year} required />
-								</span>
-								<span class="stack" style:--gap="var(--space-1)">
-									<label class="caption" for="a-{p.id}">AI each month ($)</label>
-									<input id="a-{p.id}" type="number" min="0" max="100" step="0.1" bind:value={edit.allowance} required />
-								</span>
+								<TextField label="Per month ($)" type="number" min="0" max="1000" step="0.01" bind:value={edit.month} required />
+								<TextField label="Per year ($)" type="number" min="0" max="1000" step="0.01" bind:value={edit.year} required />
+								<TextField label="AI each month ($)" type="number" min="0" max="100" step="0.1" bind:value={edit.allowance} required />
 							</span>
-							<label class="row check"><input type="checkbox" bind:checked={edit.available} /> <span>Offered to new people</span></label>
+							<span class="row check">
+								<span>Offered to new people</span><span class="spacer"></span>
+								<Switch bind:checked={edit.available} label="Offered to new people" />
+							</span>
 						{/if}
 						<span class="row" style:gap="var(--space-2)">
 							<span class="spacer"></span>
-							<button type="button" class="btn small ghost" onclick={() => (edit = null)} disabled={busy}>Cancel</button>
-							<button class="btn small" disabled={busy}>Save</button>
+							<Button size="sm" variant="ghost" onclick={() => (edit = null)} disabled={busy}>Cancel</Button>
+							<Button size="sm" type="submit" {busy}>Save</Button>
 						</span>
 					</form>
 				{:else}
@@ -118,40 +110,38 @@
 							<b class="plan">{p.name}</b>
 							{#if !p.available}<span class="pill muted">Not offered</span>{/if}
 							<span class="spacer"></span>
-							<button class="link" onclick={() => open(p)} disabled={busy || edit !== null}>Edit</button>
+							<Button variant="link" onclick={() => open(p)} disabled={busy || edit !== null}>Edit</Button>
 						</span>
 						<span class="caption">{p.blurb}</span>
 					</div>
-					<div class="item">
-						<span class="stack" style:--gap="var(--space-px)">
-							<span>{p.priceMonthUsd ? `${usd(p.priceMonthUsd)} a month · ${usd(p.priceYearUsd)} a year` : 'No charge'}</span>
-							{#if yearlySaving(p) > 0}<span class="caption">Yearly saves {yearlySaving(p)}%</span>{/if}
-						</span>
-					</div>
+					<ListRow
+						title={p.priceMonthUsd ? `${usd(p.priceMonthUsd)} a month · ${usd(p.priceYearUsd)} a year` : 'No charge'}
+						subtitle={yearlySaving(p) > 0 ? `Yearly saves ${yearlySaving(p)}%` : undefined}
+					/>
 					{#if p.id !== 'free'}
-						<div class="item"><span>Managed AI each month</span><span class="spacer"></span><b class="num">{usd(p.aiAllowanceUsd)}</b></div>
+						<ListRow title="Managed AI each month">
+							{#snippet trailing()}<b class="num">{usd(p.aiAllowanceUsd)}</b>{/snippet}
+						</ListRow>
 					{/if}
-					<div class="item"><span>Accounts on it</span><span class="spacer"></span><b class="num">{p.accounts}</b></div>
+					<ListRow title="Accounts on it">
+						{#snippet trailing()}<b class="num">{p.accounts}</b>{/snippet}
+					</ListRow>
 				{/if}
-			</div>
+			</ListGroup>
 		{/each}
 
-		<h2 class="eyebrow section">Granted now</h2>
-		<div class="glass group">
+		<SectionHeader title="Granted now" />
+		<ListGroup>
 			{#each data.grants as g (g.id)}
-				<a class="item" href="/admin/accounts/{g.accountId}">
-					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
-						<span class="ellipsis">{g.accountName ?? `#${g.accountId}`} <span class="caption">#{g.accountId}</span></span>
-						<span class="caption">{g.kind === 'trial' ? 'Trial' : 'Complimentary'} · {g.endsAt ? `until ${shortDay(g.endsAt)}` : 'until ended'}{g.note ? ` · ${g.note}` : ''}</span>
-					</span>
-					<span class="spacer"></span>
-					<span class="pill">{PLAN_NAMES[g.plan] ?? g.plan}</span>
-					<span class="caption" aria-hidden="true">›</span>
-				</a>
+				<ListRow href="/admin/accounts/{g.accountId}">
+					<span class="ellipsis">{g.accountName ?? `#${g.accountId}`} <span class="caption">#{g.accountId}</span></span>
+					<span class="caption">{g.kind === 'trial' ? 'Trial' : 'Complimentary'} · {g.endsAt ? `until ${shortDay(g.endsAt)}` : 'until ended'}{g.note ? ` · ${g.note}` : ''}</span>
+					{#snippet trailing()}<span class="pill">{PLAN_NAMES[g.plan] ?? g.plan}</span>{/snippet}
+				</ListRow>
 			{:else}
-				<div class="item caption">Nobody has Plus or Pro yet. Grant one from an account’s page.</div>
+				<ListRow subtitle="Nobody has Plus or Pro yet. Grant one from an account’s page." />
 			{/each}
-		</div>
+		</ListGroup>
 		<p class="caption foot">
 			Packages aren’t enforced in the app yet: there’s no checkout, and managed AI comes later. Changes ask for your passkey and go in the audit log.
 		</p>
@@ -166,10 +156,6 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
 		gap: var(--space-2);
-	}
-	.fields input {
-		width: 100%;
-		box-sizing: border-box;
 	}
 	.check {
 		gap: var(--space-2);

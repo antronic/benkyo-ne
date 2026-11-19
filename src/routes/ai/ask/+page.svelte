@@ -21,7 +21,7 @@
 	} from '#lib/ai/threads.ts';
 	import { speak } from '#lib/content/kana.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
-	import Sheet from '#lib/components/Sheet.svelte';
+	import { Button, Card, Chip, FieldRow, IconButton, ListGroup, Sheet, TextArea, TextField } from '#lib/ui/index.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
@@ -144,6 +144,12 @@
 			else await saveThreads($state.snapshot(threads) as AskThread[]);
 		}
 	}
+	/** Enter sends, Shift+Enter is a new line; never while an IME is composing (Japanese input). */
+	function composerKey(e: KeyboardEvent) {
+		if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
+		e.preventDefault();
+		void send();
+	}
 	function stop() {
 		stopper?.abort();
 		haptic('selection');
@@ -255,11 +261,13 @@
 	{#if examples.length}
 		<div class="examples">
 			{#each examples as ex (ex.jp + ex.reading)}
-				<button class="ex" onclick={() => speak(ex.reading)} in:slide|global={{ duration: 220 }}>
-					<span class="jp">{ex.jp}</span>
-					<Romaji text={ex.reading} />
-					<span class="caption">{ex.en}</span>
-				</button>
+				<div in:slide|global={{ duration: 220 }}>
+					<Card class="ex" padding="sm" radius="control" onclick={() => speak(ex.reading)}>
+						<span class="jp">{ex.jp}</span>
+						<Romaji text={ex.reading} />
+						<span class="caption">{ex.en}</span>
+					</Card>
+				</div>
 			{/each}
 		</div>
 	{/if}
@@ -267,9 +275,9 @@
 
 <main class="chat">
 	<header class="top">
-		<button class="icon-btn" aria-label={t('common.back')} onclick={() => goto('/ai')}>
+		<IconButton label={t('common.back')} onclick={() => goto('/ai')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		</button>
+		</IconButton>
 		{#if progress.settings.kuri}
 			<span class="kuri-avatar" title={busy ? t('kuri.thinking') : t('kuri.name')}>
 				<Kuri pose={busy ? 'thinking' : 'idle'} label={busy ? t('kuri.thinking') : t('kuri.name')} options={{ yaw: 0.3, pitch: 0.1, distance: 3.1, target: [0, 1.62, 0.25], fps: 30 }} />
@@ -277,22 +285,22 @@
 		{/if}
 		<h1 class="title-2 head-title">{current && msgs.length ? current.title : t('ask.title')}</h1>
 		<span class="spacer"></span>
-		<button class="icon-btn" aria-label={t('ask.history')} onclick={() => ((historyOpen = true), haptic('selection'))}>
+		<IconButton label={t('ask.history')} onclick={() => ((historyOpen = true), haptic('selection'))}>
 			<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" /><path d="M3 4v4.5h4.5" /><path d="M12 7.5V12l3 2" /></svg>
 			{#if threads.length}<span class="badge">{threads.length}</span>{/if}
-		</button>
-		<button class="icon-btn" aria-label={t('ask.newChat')} onclick={newChat} disabled={!msgs.length && !busy}>
+		</IconButton>
+		<IconButton label={t('ask.newChat')} onclick={newChat} disabled={!msgs.length && !busy}>
 			<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" /><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
-		</button>
+		</IconButton>
 	</header>
 
-	<div class="msgs" bind:this={list} aria-live="polite">
+	<div class="msgs" bind:this={list} aria-live="polite" aria-busy={busy}>
 		{#if !msgs.length}
 			<div class="empty">
 				<p class="subhead">{progress.settings.secondLang ? t('ask.introSecond') : t('ask.intro')}</p>
-				{#each STARTERS as s}<button class="chip" onclick={() => send(s)}>{s}</button>{/each}
+				{#each STARTERS as s}<Chip onclick={() => send(s)}>{s}</Chip>{/each}
 				{#if threads.length}
-					<button class="chip ghost-chip" onclick={() => (historyOpen = true)}>🕘 {t('ask.past', { n: threads.length })}</button>
+					<Button variant="plain" size="sm" onclick={() => (historyOpen = true)}>🕘 {t('ask.past', { n: threads.length })}</Button>
 				{/if}
 			</div>
 		{/if}
@@ -315,16 +323,31 @@
 		{/if}
 	</div>
 
-	<form class="composer glass glass-strong" onsubmit={(e) => (e.preventDefault(), send())}>
-		<input type="text" bind:value={input} placeholder={ai.available ? t('ask.placeholder') : ai.reason} aria-label={t('ask.question')} enterkeyhint="send" autocomplete="off" disabled={!ai.available} />
-		{#if busy}
-			<button type="button" class="btn small stop" onclick={stop} aria-label={t('placement.stop')}>
-				<svg viewBox="0 0 24 24" width="14" height="14"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor" /></svg>
-			</button>
-		{:else}
-			<button class="btn accent small" disabled={!input.trim() || !ai.available} aria-label={t('ask.send')}>↑</button>
-		{/if}
-	</form>
+	<Card strong padding="none" class="composer">
+		<FieldRow as="form" size="md" onsubmit={() => send()}>
+			<TextArea
+				grow
+				autogrow
+				rows={1}
+				maxRows={5}
+				class="composer-field"
+				bind:value={input}
+				placeholder={ai.available ? t('ask.placeholder') : ai.reason}
+				aria-label={t('ask.question')}
+				enterkeyhint="send"
+				autocomplete="off"
+				onkeydown={composerKey}
+				disabled={!ai.available}
+			/>
+			{#if busy}
+				<Button class="composer-btn stop" onclick={stop} aria-label={t('placement.stop')}>
+					<svg viewBox="0 0 24 24" width="14" height="14"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor" /></svg>
+				</Button>
+			{:else}
+				<Button type="submit" variant="accent" class="composer-btn" disabled={!input.trim() || !ai.available} aria-label={t('ask.send')}>↑</Button>
+			{/if}
+		</FieldRow>
+	</Card>
 </main>
 
 <Sheet open={historyOpen} label={t('ask.history')} onclose={() => ((historyOpen = false), (openRow = null))}>
@@ -332,10 +355,10 @@
 		<div class="hist-head">
 			<h2 class="title-3">{t('ask.historyTitle')}</h2>
 			<span class="spacer"></span>
-			<button class="btn ghost small" onclick={newChat}>{t('ask.newChat')}</button>
+			<Button variant="ghost" size="sm" onclick={newChat}>{t('ask.newChat')}</Button>
 		</div>
 	{/snippet}
-	<input class="search" type="search" placeholder={t('ask.search')} bind:value={query} aria-label={t('ask.search')} />
+	<TextField type="search" placeholder={t('ask.search')} bind:value={query} aria-label={t('ask.search')} />
 	{#if !threads.length}
 		<p class="caption empty-hist">{t('ask.noChats')}</p>
 	{:else if !found.length}
@@ -344,15 +367,15 @@
 	{#each sections as sec (sec.name)}
 		<section>
 			<h3 class="eyebrow sec-name">{sec.name}</h3>
-			<div class="glass group">
+			<ListGroup class="group">
 				{#each sec.rows as { thread, snippet } (thread.id)}
 					<div class="hist-row" class:reveal={openRow === thread.id || (swipeId === thread.id && swipeX < 0)} out:slide={{ duration: 220 }}>
-						<button class="del" onclick={() => ((openRow = null), remove(thread))} aria-label={t('ask.deleteAria', { title: thread.title })} tabindex={openRow === thread.id ? 0 : -1}>{t('common.delete')}</button>
-						<button
-							class="row-main"
-							class:active={current?.id === thread.id}
-							class:dragging={swipeId === thread.id && swipeX !== 0}
-							style:transform="translateX({swipeId === thread.id ? swipeX : openRow === thread.id ? -88 : 0}px)"
+						<Button variant="danger" class="del" onclick={() => ((openRow = null), remove(thread))} aria-label={t('ask.deleteAria', { title: thread.title })} tabindex={openRow === thread.id ? 0 : -1}>{t('common.delete')}</Button>
+						<Card
+							padding="none"
+							class={['row-main', current?.id === thread.id && 'active', swipeId === thread.id && swipeX !== 0 && 'dragging'].filter(Boolean).join(' ')}
+							style="transform: translateX({swipeId === thread.id ? swipeX : openRow === thread.id ? -88 : 0}px)"
+							aria-current={current?.id === thread.id || undefined}
 							onpointerdown={(e) => rowDown(e, thread.id)}
 							onpointermove={rowMove}
 							onpointerup={() => rowUp(thread)}
@@ -361,14 +384,14 @@
 						>
 							<span class="row-top"><b class="row-title">{thread.title}</b><span class="caption">{when(thread.updatedAt)}</span></span>
 							<span class="caption row-snip">{snippet}</span>
-						</button>
+						</Card>
 					</div>
 				{/each}
-			</div>
+			</ListGroup>
 		</section>
 	{/each}
 	{#if current && msgs.length}
-		<button class="btn ghost block danger" onclick={() => ((historyOpen = false), removeCurrent())}>{t('ask.deleteCurrent')}</button>
+		<Button variant="ghost-danger" block onclick={() => ((historyOpen = false), removeCurrent())}>{t('ask.deleteCurrent')}</Button>
 	{/if}
 </Sheet>
 
@@ -397,14 +420,6 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--space-2);
-	}
-	.chip {
-		border: 0.5px solid var(--hairline);
-		background: var(--glass);
-		border-radius: 18px;
-		padding: var(--space-3) var(--space-4);
-		text-align: left;
-		cursor: pointer;
 	}
 	.bubble {
 		max-width: 88%;
@@ -438,19 +453,14 @@
 		gap: var(--space-1h);
 		margin-top: var(--space-3);
 	}
-	.ex {
+	.examples :global(.ex) {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 1px;
-		text-align: left;
 		padding: var(--space-2) var(--space-3);
-		border-radius: 12px;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass);
-		cursor: pointer;
 	}
-	.ex .jp {
+	.examples .jp {
 		font-size: 1.0625rem;
 	}
 	.typing {
@@ -483,7 +493,7 @@
 			opacity: 1;
 		}
 	}
-	.composer {
+	.chat :global(.composer) {
 		position: fixed;
 		z-index: 30;
 		left: calc(var(--safe-left) + 12px);
@@ -491,19 +501,20 @@
 		bottom: calc(var(--safe-bottom) + var(--kb) + 12px);
 		max-width: 736px;
 		margin: 0 auto;
-		display: flex;
-		gap: var(--space-2);
 		padding: var(--space-1h);
-		border-radius: 999px;
+		/* half the one-line height: a pill on one line, a rounded box when it grows */
+		border-radius: 28px;
 	}
-	.composer input {
-		flex: 1;
-		min-width: 0;
-		height: 44px;
-		min-height: 44px;
+	/* One line of text is exactly the send button's height (44px), so the two sit level. */
+	.chat :global(.composer-field textarea) {
+		padding: calc(var(--space-2) + var(--space-px)) var(--space-4);
 		border: 0;
 		background: transparent;
-		border-radius: 999px;
+		resize: none;
+		border-radius: 22px;
+	}
+	.chat :global(.composer-field textarea:focus) {
+		box-shadow: none;
 	}
 	.kuri-avatar {
 		flex: none;
@@ -521,11 +532,11 @@
 		white-space: nowrap;
 		flex: 0 1 auto;
 	}
-	.top .icon-btn {
+	.top :global(.icon-btn) {
 		position: relative;
 		flex: none;
 	}
-	.top .icon-btn:disabled {
+	.top :global(.icon-btn:disabled) {
 		opacity: 0.35;
 	}
 	.badge {
@@ -542,10 +553,6 @@
 		font-weight: 700;
 		line-height: 17px;
 		text-align: center;
-	}
-	.ghost-chip {
-		background: transparent;
-		color: var(--accent-2);
 	}
 	.caret {
 		display: inline-block;
@@ -566,7 +573,7 @@
 		margin: var(--space-1h) 0 0;
 		font-style: italic;
 	}
-	.stop {
+	.chat :global(.composer-btn.stop) {
 		background: var(--ink);
 		color: var(--bg);
 	}
@@ -579,16 +586,6 @@
 	.hist-head h2 {
 		margin: 0;
 	}
-	.search {
-		width: 100%;
-		height: 40px;
-		min-height: 40px;
-		border-radius: 12px;
-		padding: 0 var(--space-3);
-		border: 0.5px solid var(--hairline);
-		background: color-mix(in srgb, var(--ink) 6%, transparent);
-		flex: none;
-	}
 	.empty-hist {
 		text-align: center;
 		padding: var(--space-6) var(--space-3);
@@ -596,9 +593,9 @@
 	.sec-name {
 		margin: var(--space-1h) var(--space-1h) var(--space-1h);
 	}
-	.group {
+	section :global(.group) {
+		padding: 0;
 		border-radius: var(--r-m);
-		overflow: hidden;
 	}
 	.hist-row {
 		position: relative;
@@ -607,22 +604,20 @@
 	.hist-row + .hist-row {
 		border-top: 0.5px solid var(--hairline);
 	}
-	.del {
+	.hist-row :global(.del) {
 		position: absolute;
 		inset: 0 0 0 auto;
 		width: 88px;
-		border: 0;
-		background: var(--danger);
-		color: #fff;
-		font: inherit;
-		font-weight: 600;
-		cursor: pointer;
+		min-height: 0;
+		padding: 0;
+		border-radius: 0;
+		font-size: inherit;
 		visibility: hidden;
 	}
-	.hist-row.reveal .del {
+	.hist-row.reveal :global(.del) {
 		visibility: visible;
 	}
-	.row-main {
+	.hist-row :global(.row-main) {
 		position: relative;
 		display: flex;
 		flex-direction: column;
@@ -631,17 +626,15 @@
 		text-align: left;
 		padding: var(--space-3) var(--space-4);
 		border: 0;
+		border-radius: 0;
 		background: linear-gradient(var(--glass-strong), var(--glass-strong)), var(--bg);
-		color: inherit;
-		font: inherit;
-		cursor: pointer;
 		touch-action: pan-y;
 		transition: transform 380ms var(--spring);
 	}
-	.row-main.dragging {
+	.hist-row :global(.row-main.dragging) {
 		transition: none;
 	}
-	.row-main.active {
+	.hist-row :global(.row-main.active) {
 		box-shadow: inset 3px 0 0 var(--accent-2);
 	}
 	.row-top {
@@ -664,17 +657,14 @@
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 	}
-	.danger {
-		color: var(--danger);
-	}
 	@media (prefers-reduced-motion: reduce) {
 		.caret {
 			animation: none;
 		}
 	}
-	.composer .btn {
+	.chat :global(.composer-btn) {
 		width: 44px;
-		height: 44px;
+		min-height: 44px;
 		padding: 0;
 		font-size: 1.25rem;
 	}

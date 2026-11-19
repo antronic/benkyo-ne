@@ -1,3 +1,4 @@
+<!-- ui-ok-file: app shell navigation, not a kit control -->
 <!--
 	Navigation, adaptive:
 	  compact (folded iPhone Duo / regular iPhones): floating Liquid-Glass tab

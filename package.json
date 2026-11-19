@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "wrangler dev --infer-origin-from-routes=false",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "lint:ui": "node scripts/check-spacing.mjs",
+    "lint:ui": "node scripts/check-spacing.mjs && node scripts/check-ui.mjs",
     "check:layout": "node scripts/check-layout.mjs",
     "test": "vitest run",
     "build:wasm": "node scripts/build-wasm.mjs",

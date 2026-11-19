@@ -24,6 +24,7 @@
 	import TracePad from '#lib/components/TracePad.svelte';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import RecallPad from '#lib/components/RecallPad.svelte';
+	import { Button, Card, IconButton } from '#lib/ui/index.ts';
 
 	type Phase = 'intro' | 'meet' | 'trace' | 'recognize' | 'recall' | 'done';
 
@@ -42,6 +43,8 @@
 	let recallResult = $state<{ correct: boolean; guess?: string } | null>(null);
 	let animKey = $state(0);
 	let lastCorrect = true;
+	/** Saving the reviews at the end of the lesson (busy on the button that started it). */
+	let finishing = $state(false);
 
 	interface Stat {
 		wrong: number;
@@ -146,6 +149,7 @@
 	}
 
 	async function finish() {
+		finishing = true;
 		for (const k of chars) {
 			const s = stats[k.char];
 			const avg = s.ms.reduce((a, b) => a + b, 0) / Math.max(1, s.ms.length);
@@ -157,6 +161,7 @@
 			await progress.record(cardId(k), grade, avg);
 		}
 		await progress.completeLesson(lesson!.id);
+		finishing = false;
 		phase = 'done';
 		haptic('success');
 	}
@@ -185,9 +190,9 @@
 {:else}
 	<main class="lesson" style:--h={lesson.hue}>
 		<header class="top">
-			<button class="icon-btn" aria-label={t('lesson.close')} onclick={close}>
+			<IconButton label={t('lesson.close')} onclick={close}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
-			</button>
+			</IconButton>
 			<div class="bar" role="progressbar" aria-valuemin={0} aria-valuemax={steps} aria-valuenow={stepNow}><span style:width="{(stepNow / steps) * 100}%"></span></div>
 			<div class="caption phase-label">{phase === 'intro' || phase === 'done' ? '' : t(`lesson.phase.${phase}` as MessageKey)}</div>
 		</header>
@@ -215,18 +220,18 @@
 					<div class="split">
 						<div class="pane">
 							<div class="eyebrow">{t('lesson.newOf', { i: idx + 1, n: chars.length })}</div>
-							<div class="glass sheen canvas">
+							<Card sheen padding="lg" radius="large" class="canvas">
 								{#key animKey}
 									<StrokeAnimator char={current.char} size="100%" scene={m.scene ? 1 : 0} />
 								{/key}
-							</div>
+							</Card>
 						</div>
 						<div class="pane text">
 							<div class="romaji">{current.romaji}</div>
 							<p class="story">{story(current.char)}</p>
 							<div class="row" style="justify-content:center">
-								<button class="btn ghost small" onclick={() => speak(current.char)}>🔊 {t('common.listen')}</button>
-								<button class="btn ghost small" onclick={() => animKey++}>↻ {t('lesson.replay')}</button>
+								<Button variant="ghost" size="sm" onclick={() => speak(current.char)}>🔊 {t('common.listen')}</Button>
+								<Button variant="ghost" size="sm" onclick={() => animKey++}>↻ {t('lesson.replay')}</Button>
 							</div>
 						</div>
 					</div>
@@ -245,27 +250,26 @@
 					<div class="split">
 						<div class="pane">
 							<div class="eyebrow">{t('lesson.whichSound')}</div>
-							<div class="glass sheen big" class:shake={shaking}>
+							<Card sheen padding="none" radius="large" class="big {shaking ? 'shake' : ''}">
 								<KanaGlyph char={current.char} size={150} />
 								<Romaji text={current.char} hide={!choice} />
-							</div>
+							</Card>
 						</div>
 						<div class="pane">
 							<div class="choices">
 								{#each options as o (o.char)}
-									<button
-										class="glass choice"
-										class:right={choice && o.romaji === current.romaji}
-										class:wrong={choice === o.char && o.romaji !== current.romaji}
+									<Card
+										padding="none"
+										class="choice {choice && o.romaji === current.romaji ? 'right' : ''} {choice === o.char && o.romaji !== current.romaji ? 'wrong' : ''}"
 										onclick={() => pick(o)}
 										disabled={!!choice && choice !== o.char && o.romaji !== current.romaji}
 									>
 										{o.romaji}
-									</button>
+									</Card>
 								{/each}
 							</div>
 							{#if choice && options.find((o) => o.char === choice)?.romaji !== current.romaji}
-								<div class="glass feedback" in:scale={{ start: 0.9, duration: 300 }}>
+								<div class="feedback-wrap" in:scale={{ start: 0.9, duration: 300 }}><Card class="feedback">
 									<div class="row">
 										<KanaGlyph char={current.char} size={56} />
 										<div class="stack" style:--gap="var(--space-px)">
@@ -273,8 +277,8 @@
 											<span class="caption">{story(current.char)}</span>
 										</div>
 									</div>
-									<button class="btn block" onclick={advance}>{t('lesson.gotIt')}</button>
-								</div>
+									<Button block onclick={advance}>{t('lesson.gotIt')}</Button>
+								</Card></div>
 							{/if}
 						</div>
 					</div>
@@ -284,8 +288,10 @@
 							{#if !recallResult}
 								<RecallPad char={current.char} size="var(--pad)" oncomplete={onRecall} />
 							{:else}
-								<div class="glass sheen canvas" in:scale={{ start: 0.92, duration: 350 }}>
-									{#key animKey}<StrokeAnimator char={current.char} size="100%" speed={140} />{/key}
+								<div in:scale={{ start: 0.92, duration: 350 }}>
+									<Card sheen padding="lg" radius="large" class="canvas">
+										{#key animKey}<StrokeAnimator char={current.char} size="100%" speed={140} />{/key}
+									</Card>
 								</div>
 							{/if}
 						</div>
@@ -293,7 +299,7 @@
 							<div class="eyebrow">{t('lesson.recallTitle')}</div>
 							<div class="row" style="justify-content:center">
 								<div class="romaji">{current.romaji}</div>
-								<button class="icon-btn" aria-label={t('common.listen')} onclick={() => speak(current.char)}>🔊</button>
+								<IconButton label={t('common.listen')} onclick={() => speak(current.char)}>🔊</IconButton>
 							</div>
 							{#if !recallResult}
 								<MnemonicHint char={current.char} onuse={() => (stats[current.char].hinted = true)} />
@@ -302,7 +308,7 @@
 								<p class="headline" style:color={recallResult.correct ? 'var(--success)' : 'var(--danger)'}>
 									{recallResult.correct ? t('lesson.recallOk') : recallResult.guess ? t('lesson.recallLooked', { guess: recallResult.guess }) : t('lesson.recallWrong')}
 								</p>
-								<button class="btn block" onclick={advance}>{t('common.continue')}</button>
+								<Button block busy={finishing} onclick={advance}>{t('common.continue')}</Button>
 							{/if}
 						</div>
 					</div>
@@ -328,16 +334,16 @@
 
 		<footer class="bottom">
 			{#if phase === 'intro'}
-				<button class="btn accent block" onclick={start}>{t('lesson.start')}</button>
+				<Button variant="accent" block onclick={start}>{t('lesson.start')}</Button>
 			{:else if phase === 'meet'}
-				<button class="btn accent block" onclick={nextFromMeet}>{t('lesson.nowTrace')}</button>
+				<Button variant="accent" block onclick={nextFromMeet}>{t('lesson.nowTrace')}</Button>
 			{:else if phase === 'trace'}
-				<button class="btn ghost block" onclick={nextFromTrace}>{t('lesson.skipTrace')}</button>
+				<Button variant="ghost" block onclick={nextFromTrace}>{t('lesson.skipTrace')}</Button>
 			{:else if phase === 'done'}
 				<div class="row" style="width:100%">
-					<button class="btn ghost block" onclick={() => goto('/')}>{t('common.done')}</button>
+					<Button variant="ghost" block onclick={() => goto('/')}>{t('common.done')}</Button>
 					{#if nextLesson}
-						<button class="btn accent block" onclick={() => goto(`/learn/${nextLesson.id}`).then(() => (phase = 'intro'))}>{t('lesson.next')}</button>
+						<Button variant="accent" block onclick={() => goto(`/learn/${nextLesson.id}`).then(() => (phase = 'intro'))}>{t('lesson.next')}</Button>
 					{/if}
 				</div>
 			{/if}
@@ -371,7 +377,7 @@
 			margin-left: auto;
 			padding-left: var(--space-4);
 		}
-		.canvas {
+		.lesson :global(.canvas) {
 			width: var(--pad) !important;
 		}
 	}
@@ -431,11 +437,9 @@
 	.text {
 		text-align: center;
 	}
-	.canvas {
+	.lesson :global(.canvas) {
 		width: min(72vw, 300px);
 		aspect-ratio: 1;
-		padding: var(--space-5);
-		border-radius: var(--r-l);
 	}
 	.romaji {
 		font-family: var(--font-display);
@@ -453,9 +457,8 @@
 		max-width: 30ch;
 		font-size: 1.125rem;
 	}
-	.big {
+	.lesson :global(.big) {
 		padding: var(--space-6);
-		border-radius: var(--r-l);
 	}
 	.choices {
 		display: grid;
@@ -463,34 +466,35 @@
 		gap: var(--space-3);
 		width: 100%;
 	}
-	.choice {
+	.choices :global(.choice) {
 		min-height: 64px;
+		text-align: center;
 		font-size: 1.375rem;
 		font-weight: 600;
-		cursor: pointer;
 		transition:
 			transform 380ms var(--spring),
 			background 200ms,
 			opacity 200ms;
 	}
-	.choice:active {
+	.choices :global(.choice:active) {
 		transform: scale(0.95);
 	}
-	.choice:disabled {
+	.choices :global(.choice:disabled) {
 		opacity: 0.4;
 	}
-	.choice.right {
+	.choices :global(.choice.right) {
 		background: color-mix(in srgb, var(--success) 85%, transparent);
 		color: #fff;
 		animation: pop 420ms var(--spring-bouncy);
 	}
-	.choice.wrong {
+	.choices :global(.choice.wrong) {
 		background: color-mix(in srgb, var(--danger) 85%, transparent);
 		color: #fff;
 	}
-	.feedback {
+	.feedback-wrap {
 		width: 100%;
-		padding: var(--space-4);
+	}
+	.feedback-wrap :global(.feedback) {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);

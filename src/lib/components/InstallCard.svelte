@@ -9,20 +9,30 @@
 	import { install } from '#lib/pwa/install.svelte.ts';
 	import { GUIDE_NAME } from '#lib/pwa/steps.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { Button, Card, IconButton } from '#lib/ui/index.ts';
 
 	let { i = 2 }: { i?: number } = $props();
 
 	const show = $derived(!install.installed && !install.cardHidden && !install.justInstalled);
 
+	let prompting = $state(false);
 	async function go() {
 		haptic('selection');
-		if (install.canPrompt) await install.prompt();
-		else install.showGuide = true;
+		if (!install.canPrompt) {
+			install.showGuide = true;
+			return;
+		}
+		prompting = true;
+		try {
+			await install.prompt();
+		} finally {
+			prompting = false;
+		}
 	}
 </script>
 
 {#if show}
-	<section class="glass sheen card install rise" style:--i={i} aria-label={t('install.cardTitle')}>
+	<Card as="section" sheen padding="lg" radius="large" class="install-card rise" style="--i: {i}" aria-label={t('install.cardTitle')}>
 		<div class="icon" aria-hidden="true">
 			<img src="/icons/icon.svg" alt="" width="44" height="44" />
 			<span class="plus">+</span>
@@ -32,33 +42,20 @@
 			<div class="headline">{t('install.cardTitle')}</div>
 			<div class="caption">{t('install.cardBody')}</div>
 			<div class="row actions" style:--gap="var(--space-2)">
-				<button class="btn accent small" onclick={go}>{install.canPrompt ? t('install.now') : t('install.showMe')}</button>
+				<Button variant="accent" size="sm" busy={prompting} onclick={go}>{install.canPrompt ? t('install.now') : t('install.showMe')}</Button>
 				{#if install.canPrompt}
-					<button class="link" onclick={() => (install.showGuide = true)}>{t('install.howTo')}</button>
+					<Button variant="plain" size="sm" onclick={() => (install.showGuide = true)}>{t('install.howTo')}</Button>
 				{/if}
 			</div>
 		</div>
-		<button class="link close" onclick={() => install.hideCard()} aria-label={t('install.hide')}>✕</button>
-	</section>
+		<IconButton size="sm" class="install-close" onclick={() => install.hideCard()} label={t('install.hide')}>✕</IconButton>
+	</Card>
 {/if}
 
 <style>
-	.link {
-		border: 0;
-		background: none;
-		color: var(--color-accent);
-		font: inherit;
-		font-size: 0.9375rem;
-		font-weight: 600;
-		min-height: 32px;
-		padding: var(--space-1) var(--space-2);
-		cursor: pointer;
-	}
-	.install {
+	:global(.install-card) {
 		display: flex;
 		gap: var(--space-4);
-		padding: var(--space-5);
-		border-radius: var(--r-l);
 		align-items: flex-start;
 		position: relative;
 	}
@@ -87,7 +84,7 @@
 		color: var(--color-accent);
 		box-shadow: var(--shadow-raised);
 	}
-	.install > .stack {
+	:global(.install-card) > .stack {
 		padding-right: var(--space-5);
 	}
 	.caption {
@@ -97,10 +94,12 @@
 		margin-top: var(--space-2);
 		align-items: center;
 	}
-	.close {
+	:global(.install-card) > :global(.install-close) {
 		position: absolute;
-		top: 10px;
-		right: 8px;
+		top: var(--space-2);
+		right: var(--space-2);
+		border: 0;
+		background: none;
 		color: var(--color-text-3);
 	}
 </style>

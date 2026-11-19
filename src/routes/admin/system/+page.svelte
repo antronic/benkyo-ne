@@ -2,7 +2,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { version } from '$app/env';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import { Button, LargeTitle, ListGroup, SectionHeader, Skeleton } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { AdminError, getSystem } from '#lib/admin/client.ts';
@@ -42,10 +42,10 @@
 	{#if error}
 		<ErrorCard {error} onretry={load} />
 	{:else if !s}
-		<div class="glass group" aria-busy="true"><div class="item caption">Loading…</div></div>
+		<Skeleton variant="row" count={4} label="Checking the system" />
 	{:else}
-		<h2 class="eyebrow section">Deployed</h2>
-		<div class="glass group">
+		<SectionHeader title="Deployed" />
+		<ListGroup>
 			<div class="item">
 				<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 					<span>Worker</span>
@@ -67,10 +67,10 @@
 				<span class="spacer"></span>
 				<span class="pill" class:off={!s.migrations.upToDate}>{s.migrations.upToDate ? 'Up to date' : 'Behind'}</span>
 			</div>
-		</div>
+		</ListGroup>
 
-		<h2 class="eyebrow section">Health</h2>
-		<div class="glass group">
+		<SectionHeader title="Health" />
+		<ListGroup>
 			{#each s.checks as c (c.name)}
 				<div class="item">
 					<span class="dot" class:bad={!c.ok} aria-hidden="true"></span>
@@ -82,10 +82,10 @@
 					<span class="visually-hidden">{c.ok ? 'OK' : 'Problem'}</span>
 				</div>
 			{/each}
-		</div>
+		</ListGroup>
 
-		<h2 class="eyebrow section">AI</h2>
-		<div class="glass group">
+		<SectionHeader title="AI" />
+		<ListGroup>
 			<div class="item"><span>Accounts with their own AI key</span><span class="spacer"></span><b class="num">{s.ai.accountsWithKey}</b></div>
 			{#each s.ai.featureModels as m (m.feature + m.model)}
 				<div class="item">
@@ -96,18 +96,18 @@
 					<span class="spacer"></span><span class="caption">{m.accounts} {m.accounts === 1 ? 'account' : 'accounts'}</span>
 				</div>
 			{/each}
-		</div>
+		</ListGroup>
 
-		<h2 class="eyebrow section">Data</h2>
-		<div class="glass group">
+		<SectionHeader title="Data" />
+		<ListGroup>
 			{#each s.tables as t (t.name)}
 				<div class="item"><code>{t.name}</code><span class="spacer"></span><b class="num">{t.rows.toLocaleString()}</b></div>
 			{/each}
-		</div>
+		</ListGroup>
 
 		<p class="caption foot">
 			Checked {new Date(s.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} ·
-			<button class="link" onclick={load} disabled={loading}>{loading ? 'Checking…' : 'Check again'}</button>
+			<Button variant="link" onclick={load} busy={loading}>{loading ? 'Checking…' : 'Check again'}</Button>
 		</p>
 	{/if}
 </main>

@@ -14,6 +14,7 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { DEFAULTS, GOALS, type Step } from '#lib/onboarding/plan.ts';
 	import { planFor, profile, s } from '#lib/onboarding/profile.svelte.ts';
+	import { Button, Card, IconButton } from '#lib/ui/index.ts';
 
 	let { i = 1 }: { i?: number } = $props();
 
@@ -43,13 +44,13 @@
 </script>
 
 {#if show}
-	<section class="glass sheen card plan rise" style:--i={i}>
+	<Card as="section" sheen padding="lg" radius="large" class="plan-card rise" style="--i: {i}">
 		{#if p}
 			<div class="head">
 				<div class="eyebrow">{t.card.title} · {t.card.perDay(p.minutes)}</div>
 				<span class="spacer"></span>
-				<button class="link" onclick={() => (ui.showOnboarding = true)}>{t.card.adjust}</button>
-				<button class="link" onclick={() => profile.hide()} aria-label={t.card.hide}>✕</button>
+				<Button variant="plain" size="sm" onclick={() => (ui.showOnboarding = true)}>{t.card.adjust}</Button>
+				<IconButton size="sm" class="plan-close" onclick={() => profile.hide()} label={t.card.hide}>✕</IconButton>
 			</div>
 			<ol>
 				{#each steps as x, n (x.kind + n)}
@@ -71,25 +72,19 @@
 					<div class="caption">{t.card.nudgeCaption}</div>
 				</div>
 				<div class="row" style:--gap="var(--space-1h)">
-					<button class="btn accent small" onclick={() => (ui.showOnboarding = true)}>{t.card.nudgeGo}</button>
-					<button class="link" onclick={() => profile.save(DEFAULTS, true)} aria-label={t.card.hide}>✕</button>
+					<Button variant="accent" size="sm" onclick={() => (ui.showOnboarding = true)}>{t.card.nudgeGo}</Button>
+					<IconButton size="sm" class="plan-close" onclick={() => profile.save(DEFAULTS, true)} label={t.card.hide}>✕</IconButton>
 				</div>
 			</div>
 		{/if}
-	</section>
+	</Card>
 {/if}
 
 <style>
-	/* .card padding lives in the Today page's scoped styles, so set our own to match */
-	.plan {
+	:global(.plan-card) {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
-		padding: var(--space-4) var(--space-5) var(--space-3);
-		border-radius: var(--r-l);
-	}
-	.plan:has(.nudge) {
-		padding-bottom: var(--space-4);
 	}
 	.head {
 		margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)) var(--space-px) 0;
@@ -115,18 +110,13 @@
 	.nudge > .stack {
 		flex: 1 1 180px;
 	}
-	.link {
+	.head :global(.btn.plain) {
+		color: var(--accent);
+		font-size: 14px;
+	}
+	:global(.plan-card) :global(.plan-close) {
 		border: 0;
 		background: none;
-		color: var(--accent);
-		font: inherit;
-		font-size: 14px;
-		font-weight: 600;
-		min-height: 32px;
-		padding: var(--space-1) var(--space-2);
-		cursor: pointer;
-	}
-	.link[aria-label] {
 		color: var(--ink-3);
 	}
 	ol {

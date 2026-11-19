@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { t } from '#lib/i18n/index.svelte.ts';
-	import Skeleton from '#lib/components/Skeleton.svelte';
+	import { Button, Card, Chip, IconButton, Skeleton, TextField } from '#lib/ui/index.ts';
 	import { goto } from '$app/navigation';
 	import { fly } from 'svelte/transition';
 	import * as api from '#lib/ai/client.ts';
@@ -76,18 +76,18 @@
 
 <main class="maker">
 	<header class="top">
-		<button class="icon-btn" aria-label={t('common.back')} onclick={() => goto('/ai')}>
+		<IconButton label={t('common.back')} onclick={() => goto('/ai')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		</button>
+		</IconButton>
 		<h1 class="title-2">{t('aiLesson.title')}</h1>
 	</header>
 
 	<form class="stack" style:--gap="var(--space-3)" onsubmit={(e) => (e.preventDefault(), generate())}>
-		<input type="text" bind:value={topic} placeholder={t('aiLesson.placeholder')} aria-label={t('aiLesson.topic')} enterkeyhint="go" autocomplete="off" />
+		<TextField size="lg" bind:value={topic} placeholder={t('aiLesson.placeholder')} aria-label={t('aiLesson.topic')} enterkeyhint="go" autocomplete="off" />
 		<div class="ideas">
-			{#each IDEAS as idea}<button type="button" class="chip" onclick={() => (topic = idea)}>{idea}</button>{/each}
+			{#each IDEAS as idea}<Chip selected={topic === idea} onclick={() => (topic = idea)}>{idea}</Chip>{/each}
 		</div>
-		<button class="btn accent block" disabled={busy || !topic.trim() || !ai.available}>{busy ? t('aiLesson.designing') : `✨ ${t('aiLesson.make')}`}</button>
+		<Button type="submit" variant="accent" block {busy} disabled={!topic.trim() || !ai.available}>{busy ? t('aiLesson.designing') : `✨ ${t('aiLesson.make')}`}</Button>
 		{#if !ai.available}<p class="caption">{ai.reason}</p>{/if}
 	</form>
 
@@ -105,8 +105,8 @@
 				<p class="subhead">{draft.blurb.en}</p>
 			</div>
 			{#each draft.checked as i}
-				<div class="item glass">
-					<button class="say" aria-label={t('common.listen')} onclick={() => speak(i.reading)}>🔊</button>
+				<Card class="item" padding="none" radius="control">
+					<IconButton class="say" label={t('common.listen')} onclick={() => speak(i.reading)}>🔊</IconButton>
 					<div class="body">
 						<div class="row" style:--gap="var(--space-1h)">
 							<span class="jp reading">{i.reading}</span>
@@ -118,11 +118,11 @@
 						<span>{i.gloss}</span>
 						{#if i.note}<span class="caption">💬 {i.note}</span>{/if}
 					</div>
-				</div>
+				</Card>
 			{/each}
 			<div class="row">
-				<button class="btn ghost block" onclick={generate} disabled={busy}>↻ {t('common.tryAgain')}</button>
-				<button class="btn accent block" onclick={save}>{t('aiLesson.save')}</button>
+				<Button variant="ghost" block onclick={generate} {busy}>↻ {t('common.tryAgain')}</Button>
+				<Button variant="accent" block onclick={save}>{t('aiLesson.save')}</Button>
 			</div>
 		</section>
 	{/if}
@@ -148,29 +148,16 @@
 		flex-wrap: wrap;
 		gap: var(--space-2);
 	}
-	.chip {
-		border: 0.5px solid var(--hairline);
-		background: var(--glass);
-		border-radius: 999px;
-		padding: 0 var(--space-4);
-		min-height: 36px;
-		font-size: 0.875rem;
-		cursor: pointer;
-	}
-	.item {
+	.draft :global(.item) {
 		display: flex;
 		gap: var(--space-3);
 		padding: var(--space-3) var(--space-4);
 		border-radius: var(--r-m);
 	}
-	.say {
+	.draft :global(.say) {
 		flex: none;
 		width: 44px;
 		height: 44px;
-		border-radius: 50%;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		cursor: pointer;
 	}
 	.body {
 		display: flex;

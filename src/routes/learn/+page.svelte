@@ -7,7 +7,7 @@
 	import { retrievability } from '#lib/srs/fsrs.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import { Card, Chip, LargeTitle } from '#lib/ui/index.ts';
 	import JapanglishConverter from '#lib/components/JapanglishConverter.svelte';
 	import { COURSES, courseTag } from '#lib/content/courses.ts';
 	import { lessonPacks } from '#lib/state/lessonPacks.svelte.ts';
@@ -80,9 +80,9 @@
 
 <main class="page stack" style:--gap="var(--space-3)">
 	<LargeTitle title={t('nav.learn')} />
-	<div class="filters" role="tablist" aria-label={t('learn.filter')}>
+	<div class="filters" role="group" aria-label={t('learn.filter')}>
 		{#each FILTERS as f}
-			<button role="tab" aria-selected={filter === f.id} class="chip" class:on={filter === f.id} onclick={() => choose(f.id)}>{filterLabel(f)}</button>
+			<Chip selected={filter === f.id} onclick={() => choose(f.id)}>{filterLabel(f)}</Chip>
 		{/each}
 	</div>
 
@@ -93,17 +93,17 @@
 			<div class="units">
 				{#each ['hiragana', 'katakana'] as const as script}
 					{@const n = left(script)}
-					<a class="unit glass sheen" href="/learn/placement/{script}" class:done={n === 0} style:--h={script === 'hiragana' ? 8 : 220}>
+					<Card sheen class="unit {n === 0 ? 'done' : ''}" href="/learn/placement/{script}" style="--h: {script === 'hiragana' ? 8 : 220}">
 						<span class="badge">{n === 0 ? '✓' : script === 'hiragana' ? 'あ' : 'ア'}</span>
 						<span class="stack" style:--gap="1px">
 							<span class="headline">{t('learn.testOut', { script: scriptName(script) })}</span>
 							<span class="caption">{n === 0 ? t('learn.allLessonsDone') : tn('learn.placementSkip', n)}</span>
 						</span>
-					</a>
+					</Card>
 				{/each}
 				{#each anyDrill || filter === 'practice' ? DRILLS : [] as d (d.id)}
 					{@const n = counts[d.id]}
-					<a class="unit glass sheen" href="/review?practice={d.id}" class:empty={n === 0} aria-disabled={n === 0}>
+					<Card sheen class="unit {n === 0 ? 'empty' : ''}" href="/review?practice={d.id}" disabled={n === 0}>
 						<span class="badge">{d.emoji}</span>
 						<span class="stack" style:--gap="1px">
 							<span class="headline">{tc(d.title)}</span>
@@ -111,7 +111,7 @@
 						</span>
 						<span class="spacer"></span>
 						{#if n}<span class="caption">{Math.min(n, 20)}</span>{/if}
-					</a>
+					</Card>
 				{/each}
 			</div>
 		</section>
@@ -130,7 +130,7 @@
 				{@const done = progress.completed.includes(l.id)}
 				{@const s = strength(l.id)}
 				<li class="rise" style:--i={si * 8 + i + 1}>
-					<a href="/learn/{l.id}" class="glass sheen lesson" class:next={l.id === nextId} class:done style:--h={l.hue}>
+					<Card sheen href="/learn/{l.id}" class="lesson {l.id === nextId ? 'next' : ''} {done ? 'done' : ''}" style="--h: {l.hue}">
 						<span class="badge">{done ? '✓' : i + 1}</span>
 						<span class="stack" style:--gap="1px">
 							<span class="headline">{tc(l.title)}</span>
@@ -142,7 +142,7 @@
 						{:else if l.id === nextId}
 							<span class="start">{t('learn.start')}</span>
 						{/if}
-					</a>
+					</Card>
 				</li>
 			{/each}
 		</ol>
@@ -160,7 +160,7 @@
 				{@const done = progress.completed.includes(l.id)}
 				{@const s = kanjiStrength(l.id)}
 				<li class="rise" style:--i={i + 1}>
-					<a href="/learn/kanji/{l.id}" class="glass sheen lesson" class:next={l.id === nextKanjiId} class:done style:--h={l.hue}>
+					<Card sheen href="/learn/kanji/{l.id}" class="lesson {l.id === nextKanjiId ? 'next' : ''} {done ? 'done' : ''}" style="--h: {l.hue}">
 						<span class="badge">{done ? '✓' : i + 1}</span>
 						<span class="stack" style:--gap="var(--space-px)">
 							<span class="headline">{tc(l.title)}</span>
@@ -174,7 +174,7 @@
 						{:else if l.id === nextKanjiId}
 							<span class="start">{t('learn.start')}</span>
 						{/if}
-					</a>
+					</Card>
 				</li>
 			{/each}
 		</ol>
@@ -189,7 +189,7 @@
 			<div class="units">
 				{#each c.units as u, ui (u.id)}
 					{@const n = addedIn(c.id, u.id)}
-					<a class="unit glass sheen" href="/learn/course/{c.id}/{u.id}" class:done={n >= u.items.length}>
+					<Card sheen class="unit {n >= u.items.length ? 'done' : ''}" href="/learn/course/{c.id}/{u.id}">
 						<span class="badge">{n >= u.items.length ? '✓' : ui + 1}</span>
 						<span class="stack" style:--gap="1px">
 							<span class="headline">{tc(u.title)}</span>
@@ -197,7 +197,7 @@
 						</span>
 						<span class="spacer"></span>
 						<span class="caption">{n}/{u.items.length}</span>
-					</a>
+					</Card>
 				{/each}
 			</div>
 		</section>
@@ -218,32 +218,10 @@
 	.filters::-webkit-scrollbar {
 		display: none;
 	}
-	.chip {
+	.filters :global(.chip) {
 		flex: none;
 		scroll-snap-align: start;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass);
-		-webkit-backdrop-filter: blur(20px);
-		backdrop-filter: blur(20px);
-		border-radius: 999px;
-		padding: 0 var(--space-4);
-		min-height: 40px;
-		font-size: 0.9375rem;
-		font-weight: 600;
-		color: var(--ink-2);
-		cursor: pointer;
 		white-space: nowrap;
-		transition:
-			background 220ms,
-			color 220ms,
-			transform 300ms var(--spring);
-	}
-	.chip:active {
-		transform: scale(0.95);
-	}
-	.chip.on {
-		background: var(--ink);
-		color: var(--bg);
 	}
 	.course {
 		margin-top: var(--space-2);
@@ -261,28 +239,18 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
-	.unit {
+	.units :global(.unit) {
 		display: flex;
 		align-items: center;
 		gap: var(--space-4);
-		padding: var(--space-4) var(--space-4);
 		min-height: 56px;
-		text-decoration: none;
-		color: inherit;
-		transition: transform 450ms var(--spring);
 	}
-	.unit:active {
-		transform: scale(0.97);
-	}
-	.unit.empty {
+	.units :global(.unit.empty) {
 		opacity: 0.55;
 		pointer-events: none;
 	}
 	.practice {
 		margin-top: var(--space-1);
-	}
-	.unit.done .badge {
-		background: var(--success);
 	}
 	/* Unfolded: hiragana and katakana paths side by side */
 	@media (min-width: 600px) {
@@ -292,9 +260,6 @@
 			gap: var(--space-6);
 			align-items: start;
 		}
-	}
-	.lesson {
-		min-height: 56px;
 	}
 	.section {
 		margin: var(--space-5) var(--space-1) var(--space-1);
@@ -307,19 +272,13 @@
 		flex-direction: column;
 		gap: var(--space-3);
 	}
-	.lesson {
+	.path :global(.lesson) {
 		display: flex;
 		align-items: center;
 		gap: var(--space-4);
-		padding: var(--space-4) var(--space-4);
-		text-decoration: none;
-		color: inherit;
-		transition: transform 450ms var(--spring);
+		min-height: 56px;
 	}
-	.lesson:active {
-		transform: scale(0.97);
-	}
-	.lesson.next {
+	.path :global(.lesson.next) {
 		box-shadow:
 			0 0 0 2px hsl(var(--h) 80% 55%),
 			var(--glass-shadow);
@@ -335,7 +294,7 @@
 		color: #fff;
 		background: linear-gradient(150deg, hsl(var(--h) 85% 60%), hsl(calc(var(--h) + 330) 70% 45%));
 	}
-	.done .badge {
+	:global(.done) .badge {
 		background: var(--success);
 	}
 	.glyphs {

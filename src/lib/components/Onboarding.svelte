@@ -11,6 +11,7 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { DEFAULTS, GOALS, LEVELS, MINUTES, type Answers, type Goal, type Level, type Minutes, type Step } from '#lib/onboarding/plan.ts';
 	import { LANGS, lang, planFor, profile, s } from '#lib/onboarding/profile.svelte.ts';
+	import { Button, Card, IconButton, Segmented } from '#lib/ui/index.ts';
 
 	let { ondone }: { ondone: (start?: string) => void } = $props();
 
@@ -42,15 +43,27 @@
 		// let the selection show before moving on
 		setTimeout(() => ((advancing = false), go(step + 1)), 260);
 	}
+	// which action is saving the answers (a quick IndexedDB write)
+	let saving = $state<'skip' | 'finish' | null>(null);
 	async function skip() {
 		haptic('selection');
 		// skipping a fresh questionnaire keeps the defaults; skipping an edit changes nothing
-		if (!profile.value) await profile.save(DEFAULTS, true);
+		saving = 'skip';
+		try {
+			if (!profile.value) await profile.save(DEFAULTS, true);
+		} finally {
+			saving = null;
+		}
 		ondone();
 	}
 	async function finish() {
 		haptic('success');
-		await profile.save($state.snapshot(a));
+		saving = 'finish';
+		try {
+			await profile.save($state.snapshot(a));
+		} finally {
+			saving = null;
+		}
 		const first = plan.find((p) => p.kind !== 'daily') as Exclude<Step, { kind: 'daily' }> | undefined;
 		ondone(first?.href);
 	}
@@ -67,11 +80,11 @@
 	<div class="bg" aria-hidden="true"></div>
 
 	<div class="top">
-		<button class="pill" class:hidden={step === 0} onclick={() => go(step - 1)} aria-label={t.back} tabindex={step === 0 ? -1 : 0}>‹</button>
+		<IconButton class={step === 0 ? 'ob-back hidden' : 'ob-back'} onclick={() => go(step - 1)} label={t.back} tabindex={step === 0 ? -1 : 0}>‹</IconButton>
 		<div class="dots" aria-hidden="true">
 			{#each { length: QUESTIONS + 1 } as _, n}<span class:on={n === step} class:past={n < step}></span>{/each}
 		</div>
-		<button class="pill text" onclick={skip} class:hidden={step === QUESTIONS}>{t.skip}</button>
+		<Button variant="ghost" size="sm" class={step === QUESTIONS ? 'ob-skip hidden' : 'ob-skip'} busy={saving === 'skip'} disabled={saving !== null} onclick={skip}>{t.skip}</Button>
 	</div>
 
 	<div class="panel">
@@ -79,10 +92,8 @@
 			<section class="q" in:fly={{ x: 60 * dir, duration: 450, easing: cubicOut, opacity: 0 }}>
 				{#if step === 0}
 					{#if LANGS.length > 1}
-						<div class="seg" role="radiogroup" aria-label={t.langLabel}>
-							{#each LANGS as l (l.code)}
-								<button role="radio" aria-checked={lang.code === l.code} class:on={lang.code === l.code} lang={l.code} onclick={() => (lang.set(l.code), haptic('selection'))}>{l.name}</button>
-							{/each}
+						<div class="lang">
+							<Segmented label={t.langLabel} options={LANGS.map((l) => ({ value: l.code, label: l.name }))} value={lang.code} onchange={(c) => (lang.set(c), haptic('selection'))} />
 						</div>
 					{/if}
 					<header>
@@ -93,14 +104,14 @@
 					<div class="grid">
 						{#each GOALS as g, n (g.id)}
 							{@const on = a.goals.includes(g.id)}
-							<button class="tile glass" class:on aria-pressed={on} onclick={() => toggle(g.id)} style:--i={n}>
+							<Card class={on ? 'ob-tile on' : 'ob-tile'} aria-pressed={on} onclick={() => toggle(g.id)} style="--i: {n}">
 								<span class="emoji" aria-hidden="true">{g.emoji}</span>
 								<span class="label">{t.goals[g.id]}</span>
 								<span class="check" aria-hidden="true">✓</span>
-							</button>
+							</Card>
 						{/each}
 					</div>
-					<button class="btn accent block cta" onclick={() => go(1)}>{t.next}</button>
+					<Button variant="accent" block class="cta" onclick={() => go(1)}>{t.next}</Button>
 				{:else if step === 1}
 					<header>
 						<div class="eyebrow">2 / {QUESTIONS}</div>
@@ -110,14 +121,14 @@
 					<div class="list" role="radiogroup" aria-label={t.levelQ}>
 						{#each LEVELS as l, n (l.id)}
 							{@const on = a.level === l.id}
-							<button class="row-opt glass" class:on role="radio" aria-checked={on} onclick={() => pick('level', l.id as Level)} style:--i={n}>
+							<Card class={on ? 'ob-opt on' : 'ob-opt'} role="radio" aria-checked={on} onclick={() => pick('level', l.id as Level)} style="--i: {n}">
 								<span class="emoji" aria-hidden="true">{l.emoji}</span>
 								<span class="stack" style:--gap="1px">
 									<span class="headline">{t.levels[l.id].title}</span>
 									<span class="caption">{t.levels[l.id].caption}</span>
 								</span>
 								<span class="radio" aria-hidden="true"></span>
-							</button>
+							</Card>
 						{/each}
 					</div>
 				{:else if step === 2}
@@ -129,14 +140,14 @@
 					<div class="list" role="radiogroup" aria-label={t.minutesQ}>
 						{#each MINUTES as m, n (m)}
 							{@const on = a.minutes === m}
-							<button class="row-opt glass" class:on role="radio" aria-checked={on} onclick={() => pick('minutes', m as Minutes)} style:--i={n}>
+							<Card class={on ? 'ob-opt on' : 'ob-opt'} role="radio" aria-checked={on} onclick={() => pick('minutes', m as Minutes)} style="--i: {n}">
 								<span class="num" aria-hidden="true">{m}</span>
 								<span class="stack" style:--gap="1px">
 									<span class="headline">{t.minutes[m].title}{#if m === DEFAULTS.minutes}<span class="rec">{t.recommended}</span>{/if}</span>
 									<span class="caption">{t.minutes[m].caption}</span>
 								</span>
 								<span class="radio" aria-hidden="true"></span>
-							</button>
+							</Card>
 						{/each}
 					</div>
 				{:else}
@@ -144,7 +155,7 @@
 						<div class="eyebrow">{t.planEyebrow}</div>
 						<h2 class="title">{t.planTitle}</h2>
 					</header>
-					<ol class="plan glass glass-strong">
+					<Card strong padding="none" radius="sheet" class="ob-plan"><ol class="plan">
 						{#each plan as p, n (p.kind + n)}
 							<li style:--i={n}>
 								<span class="badge" class:jp={p.kind === 'lesson' || p.kind === 'placement'}>{stepIcon(p)}</span>
@@ -154,10 +165,10 @@
 								</span>
 							</li>
 						{/each}
-					</ol>
+					</ol></Card>
 					<p class="caption hint">{t.planHint}</p>
-					<button class="btn accent block cta" onclick={finish}>{t.start}</button>
-					<button class="link" onclick={() => go(0)}>{t.change}</button>
+					<Button variant="accent" block class="cta" busy={saving === 'finish'} disabled={saving !== null} onclick={finish}>{t.start}</Button>
+					<Button variant="plain" class="ob-change" onclick={() => go(0)}>{t.change}</Button>
 				{/if}
 			</section>
 		{/key}
@@ -195,30 +206,15 @@
 		margin: 0 auto;
 		min-height: 36px;
 	}
-	.pill {
-		min-width: 36px;
+	.top :global(.ob-back) {
+		width: 36px;
 		height: 36px;
-		border: 0;
-		border-radius: 999px;
-		background: var(--glass);
-		-webkit-backdrop-filter: blur(20px);
-		backdrop-filter: blur(20px);
 		color: var(--ink);
 		font: inherit;
 		font-size: 22px;
 		line-height: 1;
-		cursor: pointer;
-		transition: transform 300ms var(--spring), opacity 200ms;
 	}
-	.pill.text {
-		font-size: 15px;
-		font-weight: 600;
-		padding: 0 var(--space-4);
-	}
-	.pill:active {
-		transform: scale(0.9);
-	}
-	.pill.hidden {
+	.top :global(.hidden) {
 		opacity: 0;
 		pointer-events: none;
 	}
@@ -267,37 +263,17 @@
 	header .subhead {
 		margin: 0;
 	}
-	.seg {
-		display: flex;
+	.lang {
 		align-self: flex-start;
-		padding: var(--space-1);
-		gap: var(--space-px);
-		border-radius: 999px;
-		background: var(--glass);
-		border: 0.5px solid var(--glass-edge);
-	}
-	.seg button {
-		border: 0;
-		background: transparent;
-		color: var(--ink-2);
-		font: inherit;
-		font-size: 14px;
-		font-weight: 600;
-		padding: var(--space-1h) var(--space-4);
-		border-radius: 999px;
-		cursor: pointer;
-	}
-	.seg button.on {
-		background: var(--ink);
-		color: var(--bg);
+		min-width: 200px;
 	}
 	.grid {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: var(--space-3);
 	}
-	.tile,
-	.row-opt {
+	.q :global(.ob-tile),
+	.q :global(.ob-opt) {
 		position: relative;
 		display: flex;
 		align-items: center;
@@ -320,14 +296,13 @@
 			transform: translateY(10px) scale(0.97);
 		}
 	}
-	.tile {
+	.q :global(.ob-tile) {
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--space-2);
-		padding: var(--space-4);
 		min-height: 96px;
 	}
-	.tile .label {
+	.label {
 		font-weight: 600;
 		font-size: 15px;
 		line-height: 1.25;
@@ -336,12 +311,12 @@
 		font-size: 26px;
 		line-height: 1;
 	}
-	.tile:active,
-	.row-opt:active {
+	.q :global(.ob-tile:active),
+	.q :global(.ob-opt:active) {
 		transform: scale(0.96);
 	}
-	.tile.on,
-	.row-opt.on {
+	.q :global(.ob-tile.on),
+	.q :global(.ob-opt.on) {
 		background: color-mix(in srgb, hsl(var(--h) 80% 55%) 16%, var(--glass-strong));
 		box-shadow:
 			inset 0 0 0 2px hsl(var(--h) 80% 55%),
@@ -364,7 +339,7 @@
 		transform: scale(0.5);
 		transition: transform 300ms var(--spring-bouncy), opacity 150ms;
 	}
-	.tile.on .check {
+	.q :global(.ob-tile.on .check) {
 		opacity: 1;
 		transform: none;
 	}
@@ -373,11 +348,10 @@
 		flex-direction: column;
 		gap: var(--space-3);
 	}
-	.row-opt {
-		padding: var(--space-4) var(--space-4);
+	.q :global(.ob-opt) {
 		min-height: 68px;
 	}
-	.row-opt .stack {
+	.q :global(.ob-opt .stack) {
 		flex: 1;
 	}
 	.num {
@@ -408,10 +382,10 @@
 		box-shadow: inset 0 0 0 2px var(--ink-3);
 		transition: box-shadow 250ms var(--spring);
 	}
-	.row-opt.on .radio {
+	.q :global(.ob-opt.on .radio) {
 		box-shadow: inset 0 0 0 7px hsl(var(--h) 80% 55%);
 	}
-	.cta {
+	.q :global(.cta) {
 		margin-top: var(--space-1h);
 		min-height: 52px;
 	}
@@ -419,7 +393,6 @@
 		list-style: none;
 		margin: 0;
 		padding: var(--space-1h) var(--space-4);
-		border-radius: var(--r-l);
 	}
 	.plan li {
 		display: flex;
@@ -448,15 +421,11 @@
 		margin: 0;
 		text-align: center;
 	}
-	.link {
+	.q :global(.ob-change) {
 		align-self: center;
-		border: 0;
-		background: none;
 		color: var(--ink-2);
-		font: inherit;
 		font-size: 15px;
-		padding: var(--space-1h) var(--space-3);
-		cursor: pointer;
+		font-weight: 400;
 	}
 	@media (prefers-color-scheme: dark) {
 		.rec {

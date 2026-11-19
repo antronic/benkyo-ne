@@ -250,6 +250,11 @@ button,
 .btn.block {
 	width: 100%;
 }
+.btn.medium {
+	min-height: var(--control-md);
+	padding: 0 var(--space-5);
+	font-size: 1rem;
+}
 .btn.small {
 	min-height: 36px;
 	padding: 0 var(--space-4);
@@ -272,22 +277,6 @@ button,
 }
 .icon-btn:active {
 	transform: scale(0.9);
-}
-
-input[type='text'] {
-	font: inherit;
-	width: 100%;
-	min-height: 54px;
-	padding: 0 var(--space-5);
-	border-radius: var(--r-s);
-	border: 0.5px solid var(--hairline);
-	background: var(--glass-strong);
-	color: var(--ink);
-	outline: none;
-	transition: box-shadow 200ms;
-}
-input[type='text']:focus {
-	box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-2) 30%, transparent);
 }
 
 /* ---------------------------------------------------------- layout ---- */

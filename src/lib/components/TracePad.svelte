@@ -12,6 +12,7 @@
 	import { familyOf, strokesOf } from '#lib/content/strokes.ts';
 	import { getMatcher, type Matcher, type Pt } from '#lib/handwriting/match.ts';
 	import { haptic } from '#lib/state/progress.svelte.ts';
+	import { Spinner } from '#lib/ui/index.ts';
 
 	interface Props {
 		char: string;
@@ -161,10 +162,14 @@
 			{#if current}<polyline points={poly(current)} class="live" />{/if}
 		</g>
 	</svg>
+	{#if !matcher}
+		<div class="loading"><Spinner label={t('common.loading')} /></div>
+	{/if}
 </div>
 
 <style>
 	.pad {
+		position: relative;
 		width: var(--size);
 		max-width: 100%;
 		aspect-ratio: 1;
@@ -190,6 +195,13 @@
 			0 0 0 4px color-mix(in srgb, var(--danger) 45%, transparent),
 			var(--glass-shadow);
 		animation: shake 420ms var(--ease-out);
+	}
+	.loading {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		pointer-events: none;
 	}
 	svg {
 		width: 100%;

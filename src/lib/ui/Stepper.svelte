@@ -1,5 +1,6 @@
 <!-- − value + stepper. bind:value; clamps to min/max. -->
 <script lang="ts">
+	import { t } from '#lib/i18n/index.svelte.ts';
 	let { value = $bindable(0), min = 0, max = Infinity, step = 1, label, onchange }: { value?: number; min?: number; max?: number; step?: number; label: string; onchange?: (v: number) => void } = $props();
 	function set(v: number) {
 		value = Math.min(max, Math.max(min, v));
@@ -8,9 +9,9 @@
 </script>
 
 <div class="stepper glass" role="group" aria-label={label}>
-	<button type="button" aria-label="Decrease {label}" disabled={value <= min} onclick={() => set(value - step)}>−</button>
+	<button type="button" aria-label="{t('settings.fewer')}: {label}" disabled={value <= min} onclick={() => set(value - step)}>−</button>
 	<span class="val" aria-live="polite">{value}</span>
-	<button type="button" aria-label="Increase {label}" disabled={value >= max} onclick={() => set(value + step)}>+</button>
+	<button type="button" aria-label="{t('settings.more')}: {label}" disabled={value >= max} onclick={() => set(value + step)}>+</button>
 </div>
 
 <style>

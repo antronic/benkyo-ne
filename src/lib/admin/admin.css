@@ -1,11 +1,4 @@
 /* Shared look for the fleet console screens (src/routes/admin). */
-.fleet .section {
-	margin: var(--space-4) var(--space-1h) var(--space-px);
-}
-.fleet .group {
-	padding: var(--space-1) 0;
-	border-radius: var(--r-m);
-}
 .fleet .item {
 	display: flex;
 	align-items: center;
@@ -15,8 +8,10 @@
 	color: inherit;
 	text-decoration: none;
 }
-.fleet .item + .item {
-	border-top: 0.5px solid var(--hairline);
+.fleet .item + .item,
+.fleet .item + .ui-row,
+.fleet .ui-row + .item {
+	border-top: var(--hairline-w) solid var(--color-border);
 }
 .fleet .item.col {
 	flex-direction: column;
@@ -39,27 +34,17 @@
 .fleet .num {
 	font-variant-numeric: tabular-nums;
 }
-.fleet .link {
-	background: none;
-	border: 0;
-	padding: 0;
-	color: var(--accent);
-	font: inherit;
-	cursor: pointer;
-}
-.fleet .danger {
+.fleet .danger:not(.btn) {
 	color: var(--danger);
 }
-.fleet input[type='text'],
-.fleet input[type='search'],
-.fleet input[type='number'] {
-	font: inherit;
-	padding: var(--space-3) var(--space-3);
-	border-radius: 12px;
-	border: 0.5px solid var(--hairline);
-	background: var(--glass-strong);
-	color: inherit;
-	min-width: 0;
+/* A number field that sits inline in a row (TextField class="num-field"). */
+.fleet .field.num-field {
+	flex: none;
+	width: 88px;
+}
+.fleet .field.num-field input {
+	text-align: center;
+	padding: 0 var(--space-2);
 }
 .fleet {
 	--page-max: 820px;
@@ -69,12 +54,11 @@
 	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 	gap: var(--space-3);
 }
-.fleet .tile {
+/* Stat tiles are <Card class="tile">; the extra class beats the Card's own display. */
+.fleet .tiles > .tile {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-1);
-	padding: var(--space-4) var(--space-4);
-	border-radius: var(--r-m);
 	min-height: 88px;
 }
 .fleet .tile .num {
@@ -83,28 +67,6 @@
 }
 .fleet .tile.warn .num {
 	color: var(--danger);
-}
-.fleet .segmented {
-	display: flex;
-	gap: var(--space-1);
-	padding: var(--space-1);
-	border-radius: 999px;
-	background: var(--hairline);
-	align-self: flex-start;
-}
-.fleet .segmented button {
-	font: inherit;
-	font-size: 14px;
-	border: 0;
-	border-radius: 999px;
-	padding: var(--space-1h) var(--space-4);
-	background: none;
-	color: inherit;
-	cursor: pointer;
-}
-.fleet .segmented button[aria-pressed='true'] {
-	background: var(--glass-strong);
-	font-weight: 600;
 }
 .fleet .foot {
 	text-align: center;
@@ -118,12 +80,4 @@
 }
 .fleet .caption a {
 	color: var(--accent);
-}
-.fleet select {
-	font: inherit;
-	padding: var(--space-2) var(--space-3);
-	border-radius: 12px;
-	border: 0.5px solid var(--hairline);
-	background: var(--glass-strong);
-	color: inherit;
 }

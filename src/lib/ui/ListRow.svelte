@@ -16,8 +16,12 @@
 		leading?: Snippet;
 		trailing?: Snippet;
 		children?: Snippet;
+		/** Marks the current choice in a picker list (aria-current, accent title). */
+		selected?: boolean;
+		disabled?: boolean;
+		class?: string;
 	};
-	let { title, subtitle, href, onclick, chevron, tone = 'default', leading, trailing, children }: Props = $props();
+	let { title, subtitle, href, onclick, chevron, tone = 'default', leading, trailing, children, selected = false, disabled = false, class: cls = '' }: Props = $props();
 	const tappable = $derived(!!href || !!onclick);
 	const showChevron = $derived(chevron ?? !!href);
 </script>
@@ -34,11 +38,11 @@
 {/snippet}
 
 {#if href}
-	<a class="ui-row tap {tone}" {href}>{@render body()}</a>
+	<a class="ui-row tap {tone} {cls}" class:selected {href} aria-current={selected || undefined}>{@render body()}</a>
 {:else if tappable}
-	<button type="button" class="ui-row tap {tone}" {onclick}>{@render body()}</button>
+	<button type="button" class="ui-row tap {tone} {cls}" class:selected {onclick} {disabled} aria-pressed={selected || undefined}>{@render body()}</button>
 {:else}
-	<div class="ui-row {tone}">{@render body()}</div>
+	<div class="ui-row {tone} {cls}" class:selected>{@render body()}</div>
 {/if}
 
 <style>
@@ -86,6 +90,14 @@
 		color: var(--color-text-3);
 		font-size: var(--text-title-3);
 		line-height: 1;
+	}
+	.tap:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+	.selected .title {
+		color: var(--color-accent);
+		font-weight: var(--weight-semibold);
 	}
 	.danger .title {
 		color: var(--color-danger);

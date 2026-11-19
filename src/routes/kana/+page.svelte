@@ -18,8 +18,7 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import StrokeAnimator from '#lib/components/StrokeAnimator.svelte';
 	import TracePad from '#lib/components/TracePad.svelte';
-	import Sheet from '#lib/components/Sheet.svelte';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import { Button, Card, IconButton, LargeTitle, Segmented, Sheet } from '#lib/ui/index.ts';
 
 	ui.hue = 150;
 	let script = $state<Script>('hiragana');
@@ -41,6 +40,11 @@
 		if (progress.settings.autoplayAudio) speak(k.char);
 	}
 
+	const scriptOptions = $derived<{ value: Script; label: string }[]>([
+		{ value: 'hiragana', label: `ひらがな ${scriptName('Hiragana')}` },
+		{ value: 'katakana', label: `カタカナ ${scriptName('Katakana')}` }
+	]);
+
 	function setScript(s: Script) {
 		if (s === script) return;
 		haptic('selection');
@@ -55,9 +59,9 @@
 			<div class="caption">{scriptName(k.script)} · {t('kana.strokes', { n: strokesOf(k.char)?.d.length ?? '?' })}</div>
 		</div>
 		<span class="spacer"></span>
-		<button class="icon-btn" aria-label={t('common.listen')} onclick={() => speak(k.char)}>🔊</button>
+		<IconButton label={t('common.listen')} onclick={() => speak(k.char)}>🔊</IconButton>
 		{#if !regular.current}
-			<button class="icon-btn" aria-label={t('common.close')} onclick={() => (selected = null)}>✕</button>
+			<IconButton label={t('common.close')} onclick={() => (selected = null)}>✕</IconButton>
 		{/if}
 	</div>
 	<div class="detail-canvas">
@@ -73,8 +77,8 @@
 	</div>
 	<p class="story">{story(k.char)}</p>
 	<div class="row">
-		<button class="btn ghost block" onclick={() => { practice = false; animKey++; }}>↻ {t('kana.watch')}</button>
-		<button class="btn accent block" onclick={() => { practice = true; animKey++; }}>✍️ {t('kana.practise')}</button>
+		<Button variant="ghost" block onclick={() => { practice = false; animKey++; }}>↻ {t('kana.watch')}</Button>
+		<Button variant="accent" block onclick={() => { practice = true; animKey++; }}>✍️ {t('kana.practise')}</Button>
 	</div>
 {/snippet}
 
@@ -83,14 +87,8 @@
 		<div class="stack" style:--gap="var(--space-4)">
 			<LargeTitle title={t('nav.kana')} />
 
-			<div class="segmented glass rise" style:--i="1" style:--pos={script === 'hiragana' ? 0 : 1} role="tablist">
-				<span class="thumb"></span>
-				<button role="tab" aria-selected={script === 'hiragana'} class:on={script === 'hiragana'} onclick={() => setScript('hiragana')}>
-					<span class="jp">ひらがな</span> {scriptName('Hiragana')}
-				</button>
-				<button role="tab" aria-selected={script === 'katakana'} class:on={script === 'katakana'} onclick={() => setScript('katakana')}>
-					<span class="jp">カタカナ</span> {scriptName('Katakana')}
-				</button>
+			<div class="rise" style:--i="1">
+				<Segmented options={scriptOptions} value={script} label={t('nav.kana')} onchange={setScript} />
 			</div>
 
 			<p class="caption rise" style:--i="2">{t('kana.intro')}</p>
@@ -101,18 +99,17 @@
 						{#each r.cells as k, ci}
 							{#if k}
 								{@const p = recall(k)}
-								<button
-									class="cell glass rise"
-									style:--i={ri + ci * 0.3}
-									style:--m={p ?? 0}
-									class:learned={p !== null}
-									class:selected={regular.current && selected?.char === k.char}
+								<Card
+									padding="none"
+									class="cell rise {p !== null ? 'learned' : ''}"
+									style="--i: {ri + ci * 0.3}; --m: {p ?? 0}"
+									selected={regular.current && selected?.char === k.char}
 									aria-label="{k.char}, {k.romaji}"
 									onclick={() => open(k)}
 								>
 									<span class="jp ch">{k.char}</span>
 									<span class="ro">{k.romaji}</span>
-								</button>
+								</Card>
 							{:else}
 								<span></span>
 							{/if}
@@ -123,7 +120,7 @@
 		</div>
 
 		{#if regular.current}
-			<aside class="side glass sheen" aria-label={t('kana.detail')}>
+			<Card as="aside" sheen padding="lg" radius="large" class="side" aria-label={t('kana.detail')}>
 				{#if selected}
 					{@render detail(selected)}
 				{:else}
@@ -132,7 +129,7 @@
 						<p class="subhead">{t('kana.pick')}</p>
 					</div>
 				{/if}
-			</aside>
+			</Card>
 		{/if}
 	</div>
 </main>
@@ -161,11 +158,9 @@
 			gap: calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0));
 		}
 	}
-	.side {
+	.layout :global(.side) {
 		position: sticky;
 		top: calc(var(--safe-top) + 60px);
-		padding: var(--space-5);
-		border-radius: var(--r-l);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
@@ -182,46 +177,12 @@
 		font-size: 96px;
 		opacity: 0.15;
 	}
-	.segmented {
-		position: relative;
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		padding: var(--space-1);
-		border-radius: 14px;
-	}
-	.segmented .thumb {
-		position: absolute;
-		top: 4px;
-		bottom: 4px;
-		left: 4px;
-		width: calc(50% - 4px);
-		border-radius: 10px;
-		background: var(--glass-strong);
-		box-shadow: 0 3px 10px rgb(0 0 0 / 0.12);
-		transform: translateX(calc(var(--pos) * 100%));
-		transition: transform 500ms var(--spring-bouncy);
-	}
-	.segmented button {
-		position: relative;
-		border: 0;
-		background: none;
-		min-height: 36px;
-		padding: var(--space-2);
-		font-weight: 600;
-		font-size: 0.9375rem;
-		color: var(--ink-2);
-		cursor: pointer;
-		transition: color 200ms;
-	}
-	.segmented button.on {
-		color: var(--ink);
-	}
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
 		gap: var(--space-2);
 	}
-	.cell {
+	.grid :global(.cell) {
 		aspect-ratio: 1;
 		min-height: 44px;
 		border-radius: 16px;
@@ -229,21 +190,19 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		cursor: pointer;
-		padding: 0;
 		transition:
 			transform 380ms var(--spring),
 			box-shadow 250ms;
 	}
-	.cell.learned {
+	.grid :global(.cell.learned) {
 		background: color-mix(in srgb, var(--success) calc(var(--m) * 38%), var(--glass));
 	}
-	.cell.selected {
+	.grid :global(.cell.selected) {
 		box-shadow:
 			0 0 0 2.5px var(--accent),
 			var(--glass-shadow);
 	}
-	.cell:active {
+	.grid :global(.cell:active) {
 		transform: scale(0.9);
 	}
 	.ch {

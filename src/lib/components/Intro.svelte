@@ -9,6 +9,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { strokesOf } from '#lib/content/strokes.ts';
+	import { Button, PageDots } from '#lib/ui/index.ts';
 
 	let { ondone }: { ondone: () => void } = $props();
 
@@ -51,7 +52,7 @@
 
 <div class="intro" style:--h={slide.hue} transition:fade={{ duration: 400 }} role="dialog" aria-modal="true" aria-label={t('intro.label')}>
 	<div class="bg" aria-hidden="true"></div>
-	<button class="skip" onclick={finish}>{t('intro.skip')}</button>
+	<div class="skip"><Button variant="ghost" size="sm" onclick={finish}>{t('intro.skip')}</Button></div>
 
 	<div class="stage" onpointerdown={down} onpointerup={up} role="presentation">
 		{#key i}
@@ -97,12 +98,10 @@
 				<p class="subhead">{t(slide.text)}</p>
 			</div>
 		{/key}
-		<div class="dots" role="tablist" aria-label={t('intro.pages')}>
-			{#each SLIDES as s, n}
-				<button role="tab" aria-selected={n === i} aria-label={t('intro.page', { n: n + 1 })} class:on={n === i} onclick={() => go(n)}></button>
-			{/each}
+		<div style:--dot-on="hsl(var(--h) 80% 55%)">
+			<PageDots count={SLIDES.length} index={i} label={t('intro.pages')} pageLabel={(n) => t('intro.page', { n })} onselect={go} />
 		</div>
-		<button class="btn accent block" onclick={next}>{i < SLIDES.length - 1 ? t('intro.next') : t('intro.start')}</button>
+		<Button variant="accent" block onclick={next}>{i < SLIDES.length - 1 ? t('intro.next') : t('intro.start')}</Button>
 	</div>
 </div>
 
@@ -136,17 +135,10 @@
 	.skip {
 		position: relative;
 		align-self: flex-end;
-		border: 0;
-		background: var(--glass);
-		-webkit-backdrop-filter: blur(20px);
-		backdrop-filter: blur(20px);
-		border-radius: 999px;
-		padding: 0 var(--space-4);
-		min-height: 36px;
-		font-weight: 600;
-		color: var(--ink-2);
-		cursor: pointer;
 		z-index: 2;
+	}
+	.skip :global(.btn) {
+		color: var(--ink-2);
 	}
 	.stage {
 		position: relative;
@@ -177,28 +169,6 @@
 	.copy p {
 		margin: 0;
 	}
-	.dots {
-		display: flex;
-		justify-content: center;
-		gap: var(--space-2);
-	}
-	.dots button {
-		width: 8px;
-		height: 8px;
-		padding: 0;
-		border: 0;
-		border-radius: 4px;
-		background: var(--ink-3);
-		cursor: pointer;
-		transition:
-			width 400ms var(--spring),
-			background 300ms;
-	}
-	.dots button.on {
-		width: 24px;
-		background: hsl(var(--h) 80% 55%);
-	}
-
 	/* 1 — spinning kana cube */
 	.cube-wrap {
 		width: 150px;

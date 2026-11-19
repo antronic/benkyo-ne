@@ -6,7 +6,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import { Button, FieldRow, LargeTitle, ListGroup, ListRow, SectionHeader, Select, Skeleton, TextField } from '#lib/ui/index.ts';
 	import ErrorCard from '#lib/admin/ErrorCard.svelte';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
@@ -18,13 +18,30 @@
 	const id = $derived(Number(page.params.id));
 	let a = $state<AdminAccountDetail | null>(null);
 	let error = $state<AdminError | null>(null);
-	let busy = $state(false);
+	/** which action's request is running ('disable', 'cap', 'revoke', 'delete', 'grant', 'end:<id>'), or null */
+	let pending = $state<string | null>(null);
+	const busy = $derived(pending !== null);
 	let cap = $state('');
 	let confirmName = $state('');
 	let gPlan = $state<'plus' | 'pro'>('plus');
 	let gKind = $state<'comp' | 'trial'>('trial');
 	let gDays = $state('7');
 	let gNote = $state('');
+	const PLAN_OPTIONS = [
+		{ value: 'plus', label: 'Plus' },
+		{ value: 'pro', label: 'Pro' }
+	] as const satisfies { value: 'plus' | 'pro'; label: string }[];
+	const KIND_OPTIONS = [
+		{ value: 'trial', label: 'Trial' },
+		{ value: 'comp', label: 'Complimentary' }
+	] as const satisfies { value: 'comp' | 'trial'; label: string }[];
+	const dayOptions = $derived([
+		{ value: '7', label: '7 days' },
+		{ value: '30', label: '30 days' },
+		{ value: '90', label: '90 days' },
+		{ value: '365', label: '1 year' },
+		...(gKind === 'comp' ? [{ value: '', label: 'Until ended' }] : [])
+	]);
 
 	async function load() {
 		error = null;
@@ -37,8 +54,8 @@
 	}
 	onMount(load);
 
-	async function act(fn: () => Promise<AdminAccountDetail | void>, done: string) {
-		busy = true;
+	async function act(key: string, fn: () => Promise<AdminAccountDetail | void>, done: string) {
+		pending = key;
 		try {
 			const r = await fn();
 			if (r) {
@@ -51,7 +68,7 @@
 			// A cancelled passkey prompt isn't an error worth a card.
 			toast(err?.message ?? 'Passkey confirmation cancelled', '⚠️', 2600);
 		} finally {
-			busy = false;
+			pending = null;
 		}
 	}
 
@@ -59,22 +76,22 @@
 		if (!a) return;
 		if (!a.disabled && !(await confirmDestructive(`Disable ${a.name}?`, 'They are signed out everywhere and can’t sign in until you enable the account again.', 'Disable')))
 			return;
-		await act(() => patchAccount(id, { disabled: !a!.disabled }), a.disabled ? 'Account enabled' : 'Account disabled');
+		await act('disable', () => patchAccount(id, { disabled: !a!.disabled }), a.disabled ? 'Account enabled' : 'Account disabled');
 	}
 	async function saveCap() {
 		const n = Number(cap);
 		if (!Number.isFinite(n)) return toast('Enter a number', '⚠️');
-		await act(() => patchAccount(id, { capUsd: n }), 'Cap updated');
+		await act('cap', () => patchAccount(id, { capUsd: n }), 'Cap updated');
 	}
 	async function revoke() {
 		if (!a || !(await confirmDestructive('Sign out everywhere?', `${a.name} is signed out on every device.`, 'Sign out'))) return;
-		await act(() => revokeSessions(id), 'Signed out everywhere');
+		await act('revoke', () => revokeSessions(id), 'Signed out everywhere');
 	}
 	async function remove() {
 		if (!a || confirmName !== a.name) return;
 		if (!(await confirmDestructive(`Delete ${a.name}?`, 'The account, its passkeys, keys, usage and beta data are deleted. This can’t be undone.', 'Delete')))
 			return;
-		busy = true;
+		pending = 'delete';
 		try {
 			await deleteAccount(id, confirmName);
 			toast('Account deleted', '✓');
@@ -82,23 +99,27 @@
 		} catch (e) {
 			toast(e instanceof AdminError ? e.message : 'Passkey confirmation cancelled', '⚠️', 2600);
 		} finally {
-			busy = false;
+			pending = null;
 		}
 	}
 
-	async function give(e: SubmitEvent) {
-		e.preventDefault();
+	// "Until ended" is only offered for a complimentary package.
+	$effect(() => {
+		if (gKind === 'trial' && gDays === '') gDays = '7';
+	});
+
+	async function give() {
 		if (!a) return;
 		const days = gDays === '' ? null : Number(gDays);
 		const live = a.grants.find((g) => g.live);
 		if (live && !(await confirmDestructive(`Replace ${PLAN_NAMES[live.plan]}?`, `${a.name}'s current ${live.kind} ends now and the new one starts.`, 'Replace')))
 			return;
-		await act(() => grantPackage(id, { plan: gPlan, kind: gKind, days, note: gNote.trim() || undefined }), `${PLAN_NAMES[gPlan]} granted`);
+		await act('grant', () => grantPackage(id, { plan: gPlan, kind: gKind, days, note: gNote.trim() || undefined }), `${PLAN_NAMES[gPlan]} granted`);
 		gNote = '';
 	}
 	async function end(g: AdminGrant) {
 		if (!a || !(await confirmDestructive(`End ${PLAN_NAMES[g.plan]} now?`, `${a.name} goes back to Free.`, 'End'))) return;
-		await act(() => endGrant(id, g.id), 'Package ended');
+		await act(`end:${g.id}`, () => endGrant(id, g.id), 'Package ended');
 	}
 	const PLAN_NAMES = { free: 'Free', plus: 'Plus', pro: 'Pro' } as const;
 	const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -116,158 +137,166 @@
 	{#if error}
 		<ErrorCard {error} onretry={load} />
 	{:else if !a}
-		<div class="glass group" aria-busy="true"><div class="item caption">Loading…</div></div>
+		<Skeleton variant="row" count={5} label="Loading the account" />
 	{:else}
-		<div class="glass group">
-			<div class="item"><span>Account</span><span class="spacer"></span><span class="caption">#{a.id}</span></div>
-			<div class="item">
-				<span>Status</span><span class="spacer"></span>
-				{#if a.isAdmin}<span class="pill muted">Admin</span>{/if}
-				<span class="pill" class:off={a.disabled}>{a.disabled ? 'Disabled' : 'Active'}</span>
-			</div>
-			<div class="item"><span>Created</span><span class="spacer"></span><span class="caption">{day(a.createdAt)}</span></div>
-			<div class="item"><span>Last seen</span><span class="spacer"></span><span class="caption">{day(a.lastSeenAt)}</span></div>
-			<div class="item">
-				<span>Beta consent</span><span class="spacer"></span>
-				<span class="caption">
-					{#if !a.consent}Never agreed{:else if a.consent.withdrawnAt}Withdrawn {day(a.consent.withdrawnAt)}{:else}Version {a.consent.version}, {day(a.consent.acceptedAt)}{/if}
-				</span>
-			</div>
-			<div class="item"><span>Apple ID</span><span class="spacer"></span><span class="caption">{a.appleLinked ? 'Connected' : 'Not connected'}</span></div>
-			<div class="item"><span>Recovery code</span><span class="spacer"></span><span class="caption">{a.recoveryCode === 'unused' ? 'Ready' : a.recoveryCode === 'used' ? 'Used' : 'None'}</span></div>
-		</div>
-
-		<h2 class="eyebrow section">Package</h2>
-		<div class="glass group">
-			<div class="item">
-				<span>Now on</span><span class="spacer"></span>
-				<span class="pill" class:muted={a.plan === 'free'}>{PLAN_NAMES[a.plan]}</span>
-			</div>
-			{#each a.grants as g (g.id)}
-				<div class="item" class:gone={!g.live}>
-					<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
-						<span>{PLAN_NAMES[g.plan]} · {g.kind === 'trial' ? 'Trial' : 'Complimentary'}</span>
-						<span class="caption">
-							{g.endedAt ? `${shortDay(g.startsAt)} to ${shortDay(g.endedAt)}, ended early` : g.endsAt ? `${shortDay(g.startsAt)} to ${shortDay(g.endsAt)}` : `Since ${shortDay(g.startsAt)}, until ended`}{g.note ? ` · ${g.note}` : ''}
-						</span>
+		{@const acc = a}
+		<ListGroup>
+			<ListRow title="Account">{#snippet trailing()}<span class="caption">#{acc.id}</span>{/snippet}</ListRow>
+			<ListRow title="Status">
+				{#snippet trailing()}
+					{#if acc.isAdmin}<span class="pill muted">Admin</span>{/if}
+					<span class="pill" class:off={acc.disabled}>{acc.disabled ? 'Disabled' : 'Active'}</span>
+				{/snippet}
+			</ListRow>
+			<ListRow title="Created">{#snippet trailing()}<span class="caption">{day(acc.createdAt)}</span>{/snippet}</ListRow>
+			<ListRow title="Last seen">{#snippet trailing()}<span class="caption">{day(acc.lastSeenAt)}</span>{/snippet}</ListRow>
+			<ListRow title="Beta consent">
+				{#snippet trailing()}
+					<span class="caption">
+						{#if !acc.consent}Never agreed{:else if acc.consent.withdrawnAt}Withdrawn {day(acc.consent.withdrawnAt)}{:else}Version {acc.consent.version}, {day(acc.consent.acceptedAt)}{/if}
 					</span>
-					<span class="spacer"></span>
-					{#if g.live}<button class="link danger" onclick={() => end(g)} disabled={busy}>End</button>{/if}
-				</div>
+				{/snippet}
+			</ListRow>
+			<ListRow title="Apple ID">{#snippet trailing()}<span class="caption">{acc.appleLinked ? 'Connected' : 'Not connected'}</span>{/snippet}</ListRow>
+			<ListRow title="Recovery code">
+				{#snippet trailing()}<span class="caption">{acc.recoveryCode === 'unused' ? 'Ready' : acc.recoveryCode === 'used' ? 'Used' : 'None'}</span>{/snippet}
+			</ListRow>
+		</ListGroup>
+
+		<SectionHeader title="Package" />
+		<ListGroup>
+			<ListRow title="Now on">
+				{#snippet trailing()}<span class="pill" class:muted={acc.plan === 'free'}>{PLAN_NAMES[acc.plan]}</span>{/snippet}
+			</ListRow>
+			{#each acc.grants as g (g.id)}
+				<ListRow
+					class={g.live ? '' : 'gone'}
+					title="{PLAN_NAMES[g.plan]} · {g.kind === 'trial' ? 'Trial' : 'Complimentary'}"
+					subtitle="{g.endedAt
+						? `${shortDay(g.startsAt)} to ${shortDay(g.endedAt)}, ended early`
+						: g.endsAt
+							? `${shortDay(g.startsAt)} to ${shortDay(g.endsAt)}`
+							: `Since ${shortDay(g.startsAt)}, until ended`}{g.note ? ` · ${g.note}` : ''}"
+				>
+					{#snippet trailing()}
+						{#if g.live}<Button variant="link" class="danger" onclick={() => end(g)} busy={pending === `end:${g.id}`} disabled={busy}>End</Button>{/if}
+					{/snippet}
+				</ListRow>
 			{/each}
-			<form class="item col" onsubmit={give}>
-				<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
-					<select bind:value={gPlan} aria-label="Package">
-						<option value="plus">Plus</option>
-						<option value="pro">Pro</option>
-					</select>
-					<select bind:value={gKind} aria-label="Kind" onchange={() => gKind === 'trial' && gDays === '' && (gDays = '7')}>
-						<option value="trial">Trial</option>
-						<option value="comp">Complimentary</option>
-					</select>
-					<select bind:value={gDays} aria-label="How long">
-						<option value="7">7 days</option>
-						<option value="30">30 days</option>
-						<option value="90">90 days</option>
-						<option value="365">1 year</option>
-						{#if gKind === 'comp'}<option value="">Until ended</option>{/if}
-					</select>
-				</span>
-				<span class="row" style:gap="var(--space-2)">
-					<input type="text" bind:value={gNote} maxlength="120" placeholder="Note (optional)" aria-label="Note" style:flex="1" />
-					<button class="btn small" disabled={busy}>Grant</button>
-				</span>
+			<form class="item grant" onsubmit={(e) => (e.preventDefault(), give())}>
+				<div class="picks">
+					<Select options={PLAN_OPTIONS} bind:value={gPlan} label="Package" block />
+					<Select options={KIND_OPTIONS} bind:value={gKind} label="Kind" block />
+					<Select options={dayOptions} bind:value={gDays} label="How long" block />
+				</div>
+				<FieldRow>
+					<TextField bind:value={gNote} maxlength={120} placeholder="Note (optional)" aria-label="Note" grow />
+					<Button type="submit" busy={pending === 'grant'} disabled={busy}>Grant</Button>
+				</FieldRow>
 			</form>
-		</div>
+		</ListGroup>
 		<p class="caption" style:margin="var(--space-px) var(--space-1h)">Packages aren’t enforced in the app yet. This records who gets Plus or Pro for when managed AI ships.</p>
 
-		<h2 class="eyebrow section">AI this month</h2>
-		<div class="glass group">
-			<div class="item">
-				<span>Spend</span><span class="spacer"></span><b class="num">{usd(a.monthUsd)}</b>
+		<SectionHeader title="AI this month" />
+		<ListGroup>
+			<ListRow title="Spend">{#snippet trailing()}<b class="num">{usd(acc.monthUsd)}</b>{/snippet}</ListRow>
+			<div class="item inline-form">
+				<FieldRow as="form" onsubmit={saveCap}>
+					<label class="grow" for="cap">Monthly cap ($)</label>
+					<TextField id="cap" class="num-field" type="number" min="0" max="1000" step="0.5" bind:value={cap} />
+					<Button type="submit" busy={pending === 'cap'} disabled={busy || Number(cap) === acc.capUsd}>Save</Button>
+				</FieldRow>
 			</div>
-			<form class="item" onsubmit={(e) => (e.preventDefault(), saveCap())}>
-				<label for="cap">Monthly cap ($)</label><span class="spacer"></span>
-				<input id="cap" type="number" min="0" max="1000" step="0.5" bind:value={cap} style:width="90px" />
-				<button class="btn small" disabled={busy || Number(cap) === a.capUsd}>Save</button>
-			</form>
-			{#each a.spendByModel as m (m.feature + m.provider + m.model)}
-				<div class="item">
-					<span class="stack" style:--gap="var(--space-px)"><span>{m.model}</span><span class="caption">{m.feature} · {m.provider} · {m.calls} {m.calls === 1 ? "call" : "calls"}</span></span>
-					<span class="spacer"></span><span class="num">{usd(m.usd)}</span>
-				</div>
+			{#each acc.spendByModel as m (m.feature + m.provider + m.model)}
+				<ListRow title={m.model} subtitle="{m.feature} · {m.provider} · {m.calls} {m.calls === 1 ? 'call' : 'calls'}">
+					{#snippet trailing()}<span class="num">{usd(m.usd)}</span>{/snippet}
+				</ListRow>
 			{/each}
-		</div>
+		</ListGroup>
 
-		{#if a.recentCalls.length}
-			<h2 class="eyebrow section">Recent AI calls</h2>
-			<div class="glass group">
-				{#each a.recentCalls as c, i (i)}
-					<div class="item">
-						<span class="stack" style:--gap="var(--space-px)"><span>{c.feature} · {c.model}</span><span class="caption">{day(c.at)}</span></span>
-						<span class="spacer"></span>
-						<span class="pill" class:off={c.status === 'failed'} class:muted={c.status === 'reserved'}>{c.status}</span>
-						<span class="num caption">{usd(c.usd)}</span>
-					</div>
+		{#if acc.recentCalls.length}
+			<SectionHeader title="Recent AI calls" />
+			<ListGroup>
+				{#each acc.recentCalls as c, i (i)}
+					<ListRow title="{c.feature} · {c.model}" subtitle={day(c.at)}>
+						{#snippet trailing()}
+							<span class="pill" class:off={c.status === 'failed'} class:muted={c.status === 'reserved'}>{c.status}</span>
+							<span class="num caption">{usd(c.usd)}</span>
+						{/snippet}
+					</ListRow>
 				{/each}
-			</div>
+			</ListGroup>
 		{/if}
 
-		<h2 class="eyebrow section">Passkeys</h2>
-		<div class="glass group">
-			{#each a.passkeyList as p (p.id)}
-				<div class="item">
-					<span class="stack" style:--gap="var(--space-px)"><span>{p.name ?? 'Passkey'}</span><span class="caption">Added {day(p.createdAt)} · last used {day(p.lastUsedAt)}</span></span>
-				</div>
+		<SectionHeader title="Passkeys" />
+		<ListGroup>
+			{#each acc.passkeyList as p (p.id)}
+				<ListRow title={p.name ?? 'Passkey'} subtitle="Added {day(p.createdAt)} · last used {day(p.lastUsedAt)}" />
 			{:else}
-				<div class="item caption">No passkeys</div>
+				<ListRow subtitle="No passkeys" />
 			{/each}
-		</div>
+		</ListGroup>
 
-		<h2 class="eyebrow section">Sessions</h2>
-		<div class="glass group">
-			{#each a.sessions as s, i (i)}
-				<div class="item">
-					<span>{s.kind}</span><span class="spacer"></span><span class="caption">until {day(s.expiresAt)}</span>
-				</div>
+		<SectionHeader title="Sessions" />
+		<ListGroup>
+			{#each acc.sessions as s, i (i)}
+				<ListRow title={s.kind}>{#snippet trailing()}<span class="caption">until {day(s.expiresAt)}</span>{/snippet}</ListRow>
 			{:else}
-				<div class="item caption">Not signed in anywhere</div>
+				<ListRow subtitle="Not signed in anywhere" />
 			{/each}
-			{#if a.sessions.length && !a.isAdmin}
-				<div class="item"><button class="link" onclick={revoke} disabled={busy}>Sign out everywhere</button></div>
+			{#if acc.sessions.length && !acc.isAdmin}
+				<div class="item"><Button variant="link" class="danger" onclick={revoke} busy={pending === 'revoke'} disabled={busy}>Sign out everywhere</Button></div>
 			{/if}
-		</div>
+		</ListGroup>
 
-		{#if !a.isAdmin}
-			<h2 class="eyebrow section">Danger zone</h2>
-			<div class="glass group">
-				<div class="item">
-					<span class="stack" style:--gap="var(--space-px)">
-						<span>{a.disabled ? 'Enable account' : 'Disable account'}</span>
-						<span class="caption">{a.disabled ? 'They can sign in again.' : 'Signs them out everywhere. You can undo this.'}</span>
-					</span>
-					<span class="spacer"></span>
-					<button class="btn small" class:ghost={!a.disabled} onclick={toggleDisabled} disabled={busy}>{a.disabled ? 'Enable' : 'Disable'}</button>
-				</div>
+		{#if !acc.isAdmin}
+			<SectionHeader title="Danger zone" />
+			<ListGroup>
+				<ListRow
+					title={acc.disabled ? 'Enable account' : 'Disable account'}
+					subtitle={acc.disabled ? 'They can sign in again.' : 'Signs them out everywhere. You can undo this.'}
+				>
+					{#snippet trailing()}
+						<Button size="sm" variant={acc.disabled ? 'primary' : 'ghost'} onclick={toggleDisabled} busy={pending === 'disable'} disabled={busy}>
+							{acc.disabled ? 'Enable' : 'Disable'}
+						</Button>
+					{/snippet}
+				</ListRow>
 				<div class="item col">
 					<span>Delete account</span>
-					<span class="caption">Deletes the account and all its data for good. Type <b>{a.name}</b> to confirm.</span>
-					<span class="row" style:gap="var(--space-2)">
-						<input type="text" bind:value={confirmName} placeholder={a.name} aria-label="Type the account name" style:flex="1" />
-						<button class="btn small danger-btn" onclick={remove} disabled={busy || confirmName !== a.name}>Delete</button>
-					</span>
+					<span class="caption">Deletes the account and all its data for good. Type <b>{acc.name}</b> to confirm.</span>
+					<FieldRow as="form" onsubmit={remove}>
+						<TextField bind:value={confirmName} placeholder={acc.name} aria-label="Type the account name" grow />
+						<Button type="submit" variant="danger" busy={pending === 'delete'} disabled={busy || confirmName !== acc.name}>Delete</Button>
+					</FieldRow>
 				</div>
-			</div>
+			</ListGroup>
 			<p class="caption" style:text-align="center">Changes ask for your passkey and are written to the audit log.</p>
 		{/if}
 	{/if}
 </main>
 
 <style>
-	.gone {
+	.fleet :global(.gone) {
 		opacity: 0.55;
 	}
-	.danger-btn {
-		background: var(--danger);
+	/* Three pickers share one row, then the note and its button: every control 44px. */
+	.item.grant {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-2);
+	}
+	.picks {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: var(--space-2);
+	}
+	.inline-form :global(.field-row) {
+		align-items: center;
+	}
+	.grow {
+		flex: 1;
+		min-width: 0;
 	}
 </style>

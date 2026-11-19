@@ -4,6 +4,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { overlay } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { Button, Card } from '#lib/ui/index.ts';
 
 	const s = $derived(overlay.sheet);
 	const cancelIndex = $derived(s ? s.actions.findIndex((a) => a.role === 'cancel') : -1);
@@ -13,9 +14,9 @@
 </script>
 
 {#if s}
-	<button class="scrim" aria-hidden="true" tabindex="-1" onclick={() => s.resolve(-1)} transition:fade={{ duration: 200 }}></button>
+	<!-- ui-ok: aria-hidden scrim that only catches taps outside the sheet --><button class="scrim" aria-hidden="true" tabindex="-1" onclick={() => s.resolve(-1)} transition:fade={{ duration: 200 }}></button>
 	<div class="action-sheet" role="alertdialog" aria-modal="true" aria-label={s.title} transition:fly={{ y: 300, duration: 420, easing: cubicOut, opacity: 1 }}>
-		<div class="group glass glass-strong">
+		<Card strong padding="none" class="sheet-group">
 			{#if s.title || s.message}
 				<div class="head">
 					{#if s.title}<div class="t">{s.title}</div>{/if}
@@ -24,21 +25,25 @@
 			{/if}
 			{#each s.actions as a, i}
 				{#if a.role !== 'cancel'}
-					<button class="act" class:destructive={a.role === 'destructive'} onclick={() => s.resolve(i)}>{a.label}</button>
+					<Button variant="plain" block class={a.role === 'destructive' ? 'sheet-act destructive' : 'sheet-act'} onclick={() => s.resolve(i)}>{a.label}</Button>
 				{/if}
 			{/each}
-		</div>
+		</Card>
 		{#if cancelIndex >= 0}
-			<button class="act cancel glass glass-strong" onclick={() => s.resolve(-1)}>{s.actions[cancelIndex].label}</button>
+			<Card strong padding="none" class="sheet-group">
+				<Button variant="plain" block class="sheet-act cancel" onclick={() => s.resolve(-1)}>{s.actions[cancelIndex].label}</Button>
+			</Card>
 		{/if}
 	</div>
 {/if}
 
 {#if overlay.toast}
 	{#key overlay.toast.id}
-		<div class="toast glass glass-strong" role="status" in:scale={{ start: 0.85, duration: 380, easing: cubicOut }} out:fade={{ duration: 200 }}>
-			{#if overlay.toast.icon}<span>{overlay.toast.icon}</span>{/if}
-			{overlay.toast.text}
+		<div class="toast" role="status" in:scale={{ start: 0.85, duration: 380, easing: cubicOut }} out:fade={{ duration: 200 }}>
+			<Card strong padding="none" class="toast-pill">
+				{#if overlay.toast.icon}<span>{overlay.toast.icon}</span>{/if}
+				{overlay.toast.text}
+			</Card>
 		</div>
 	{/key}
 {/if}
@@ -63,7 +68,7 @@
 		flex-direction: column;
 		gap: var(--space-2);
 	}
-	.group {
+	.action-sheet :global(.sheet-group) {
 		border-radius: 16px;
 		overflow: hidden;
 	}
@@ -82,29 +87,27 @@
 		color: var(--ink-2);
 		margin-top: var(--space-px);
 	}
-	.act {
-		display: block;
-		width: 100%;
+	.action-sheet :global(.sheet-act) {
+		display: flex;
 		min-height: 57px;
-		border: 0;
-		background: none;
+		border-radius: 0;
 		font-size: 1.25rem;
+		font-weight: 400;
 		color: var(--accent-2);
-		cursor: pointer;
 	}
-	.group .act + .act,
-	.head + .act {
+	.action-sheet :global(.sheet-act + .sheet-act),
+	.head + :global(.sheet-act) {
 		border-top: 0.5px solid var(--hairline);
 	}
-	.act:active {
+	.action-sheet :global(.sheet-act:active) {
+		transform: none;
 		background: var(--hairline);
 	}
-	.destructive {
+	.action-sheet :global(.sheet-act.destructive) {
 		color: var(--danger);
 	}
-	.cancel {
+	.action-sheet :global(.sheet-act.cancel) {
 		font-weight: 600;
-		border-radius: 16px;
 	}
 	.toast {
 		position: fixed;
@@ -112,6 +115,8 @@
 		top: calc(var(--safe-top) + 12px);
 		left: calc(var(--safe-left) + (100% - var(--safe-left) - var(--safe-right)) / 2);
 		translate: -50% 0;
+	}
+	.toast :global(.toast-pill) {
 		padding: var(--space-3) var(--space-5);
 		border-radius: 999px;
 		font-weight: 600;

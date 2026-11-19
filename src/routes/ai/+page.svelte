@@ -1,7 +1,7 @@
 <!-- ✨ AI hub: make word-card packs, make lesson packs, ask the tutor. -->
 <script lang="ts">
 	import { t } from '#lib/i18n/index.svelte.ts';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import { Card, LargeTitle } from '#lib/ui/index.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 
@@ -16,18 +16,18 @@
 <main class="page stack" style:--gap="var(--space-4)">
 	<LargeTitle title={t('nav.ai')} />
 	{#if ai.checked && !ai.available}
-		<a class="glass warn" href="/settings#ai">✨ {ai.reason || t('ai.setup')} <b>{t('ai.openSettings')}</b></a>
+		<Card class="warn" href="/settings#ai">✨ {ai.reason || t('ai.setup')} <b>{t('ai.openSettings')}</b></Card>
 	{/if}
 	<div class="actions">
 		{#each ACTIONS as a, i}
-			<a class="action glass sheen rise" style:--i={i} href={a.href} class:disabled={!ai.available}>
+			<Card sheen padding="lg" radius="large" class="action rise{ai.available ? '' : ' disabled'}" style="--i: {i}" href={a.href}>
 				<span class="icon" aria-hidden="true">{a.icon}</span>
 				<span class="stack" style:--gap="var(--space-1)">
 					<span class="title-2">{t(a.title)}</span>
 					<span class="subhead">{t(a.desc)}</span>
 				</span>
 				<span class="go" aria-hidden="true">›</span>
-			</a>
+			</Card>
 		{/each}
 	</div>
 	{#if ai.usage}
@@ -36,12 +36,8 @@
 </main>
 
 <style>
-	.warn {
-		display: block;
-		padding: var(--space-4) var(--space-4);
+	main :global(.warn) {
 		border-radius: var(--r-m);
-		color: inherit;
-		text-decoration: none;
 		background: color-mix(in srgb, var(--warn) 18%, var(--glass));
 	}
 	.actions {
@@ -54,21 +50,13 @@
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
 	}
-	.action {
+	.actions :global(.action) {
 		display: flex;
 		align-items: center;
 		gap: var(--space-4);
-		padding: var(--space-5);
-		border-radius: var(--r-l);
-		text-decoration: none;
-		color: inherit;
 		min-height: 110px;
-		transition: transform 450ms var(--spring);
 	}
-	.action:active {
-		transform: scale(0.97);
-	}
-	.action.disabled {
+	.actions :global(.action.disabled) {
 		opacity: 0.55;
 	}
 	.icon {

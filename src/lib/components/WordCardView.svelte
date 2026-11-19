@@ -5,6 +5,7 @@
 	import Romaji from './Romaji.svelte';
 	import type { UserCard } from '#lib/ai/contract.ts';
 	import { speak } from '#lib/content/kana.ts';
+	import { Card, IconButton } from '#lib/ui/index.ts';
 
 	let { card, compact = false }: { card: Pick<UserCard, 'front' | 'kanji' | 'gloss' | 'gloss2' | 'hook' | 'usage' | 'example' | 'kind' | 'verified'>; compact?: boolean } = $props();
 </script>
@@ -12,7 +13,7 @@
 <div class="wc" class:compact>
 	<div class="row head">
 		<span class="jp front" class:long={card.front.length > 8} class:xlong={card.front.length > 14}>{card.front}</span>
-		<button class="icon-btn" aria-label={t('common.listen')} onclick={() => speak(card.front)}>🔊</button>
+		<IconButton label={t('common.listen')} onclick={() => speak(card.front)}>🔊</IconButton>
 		{#if !card.verified}<span class="badge unverified" title={t('card.unverifiedTitle')}>{t('card.unverified')}</span>{/if}
 		{#if card.kind === 'phrase'}<span class="badge">{t('card.phrase')}</span>{/if}
 	</div>
@@ -27,11 +28,11 @@
 		<div class="hook">💡 {card.hook.en}{#if card.hook.second}<br /><span class="second">{card.hook.second}</span>{/if}</div>
 	{/if}
 	{#if card.example && !compact}
-		<button class="example" onclick={() => speak(card.example!.jp.replace(/\n/g, '。'))}>
-			<span class="jp">{#each card.example.jp.split('\n') as line, li}<span class="line">{line}<Romaji text={card.example.reading.split('\n')[li] ?? ''} /></span>{/each}</span>
+		<Card padding="sm" radius="control" class="example" onclick={() => speak(card.example!.jp.replace(/\n/g, '。'))}>
+			<span class="jp ex-jp">{#each card.example.jp.split('\n') as line, li}<span class="line">{line}<Romaji text={card.example.reading.split('\n')[li] ?? ''} /></span>{/each}</span>
 			<span class="caption">{card.example.en}</span>
 			{#if card.example.second}<span class="caption second">{card.example.second}</span>{/if}
-		</button>
+		</Card>
 	{/if}
 </div>
 
@@ -90,18 +91,15 @@
 		border-radius: 12px;
 		padding: var(--space-2) var(--space-3);
 	}
-	.example {
+	.wc :global(.example) {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-px);
 		text-align: left;
 		border: 0.5px solid var(--hairline);
-		background: var(--glass);
 		border-radius: 12px;
-		padding: var(--space-3) var(--space-3);
-		cursor: pointer;
 	}
-	.example .jp {
+	.ex-jp {
 		font-size: 1.0625rem;
 		display: flex;
 		flex-direction: column;

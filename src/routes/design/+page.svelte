@@ -4,8 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
-	import { Badge, Button, Card, Chip, IconButton, ListGroup, ListRow, Notice, SectionHeader, Segmented, Select, Stepper, Switch, TextField } from '#lib/ui/index.ts';
+	import { BarChart, Badge, Button, Card, Checkbox, Chip, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, Notice, PageDots, ProgressRing, SectionHeader, Segmented, Select, Sheet, Skeleton, Slider, Spinner, Stepper, Switch, TextArea, TextField } from '#lib/ui/index.ts';
 	import { colorGroups, motionPatterns, motionTokens, radiusTokens, spaceTokens, textStyles } from '#lib/design/tokens.ts';
 
 	type Mode = 'auto' | 'light' | 'dark' | 'both';
@@ -22,6 +21,18 @@
 	let nav = $state<'auto' | 'bottom' | 'side'>('auto');
 	let word = $state('');
 	let reading = $state('たべる');
+	let agreed = $state(false);
+	let retention = $state(0.9);
+	let confirmName = $state('');
+	let picked = $state('');
+	let sheetOpen = $state(false);
+	let dotPage = $state(1);
+	let saving = $state(false);
+	const barDays = Array.from({ length: 14 }, (_, i) => ({ day: `2026-11-${String(i + 1).padStart(2, '0')}`, value: [2, 4, 3, 6, 5, 8, 7, 4, 9, 6, 5, 7, 10, 8][i] }));
+	function fakeSave() {
+		saving = true;
+		setTimeout(() => (saving = false), 1500);
+	}
 
 	const tokenNames = [...colorGroups.flatMap((g) => g.tokens.map((t) => t.name)), ...spaceTokens, ...radiusTokens];
 
@@ -268,6 +279,7 @@
 						<TextField label="English" placeholder="e.g. to eat" bind:value={word} hint="We'll suggest the Japanese." />
 						<TextField label="Reading" jp bind:value={reading} />
 						<TextField label="Kanji" value="食る" error="That kanji doesn't match the reading." />
+						<TextArea label="Note" placeholder="A sentence to remember it by" autogrow />
 					</div>
 				</Card>
 
@@ -282,6 +294,59 @@
 					<Notice tone="danger">Couldn't reach the server. Your progress is saved on this device.</Notice>
 				</div>
 
+				<SectionHeader title="Field with an action" />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-3)">
+						<p class="caption">A field and its button share one height (FieldRow, 44px by default), so neither looks heavier. The field fills the row; the button keeps its width.</p>
+						<FieldRow>
+							<TextField grow placeholder="Type the account name" aria-label="Account name" bind:value={confirmName} />
+							<Button variant="danger" disabled={confirmName !== 'test'}>Delete</Button>
+						</FieldRow>
+						<FieldRow>
+							<Select label="Package" value="plus" options={[{ value: 'plus', label: 'Plus' }, { value: 'pro', label: 'Pro' }]} />
+							<TextField grow placeholder="Note (optional)" aria-label="Note" />
+							<Button busy={saving} onclick={fakeSave}>Grant</Button>
+						</FieldRow>
+						<FieldRow size="lg">
+							<TextField grow placeholder="Your name" aria-label="Your name" />
+							<Button variant="accent">Create</Button>
+						</FieldRow>
+					</div>
+				</Card>
+
+				<SectionHeader title="Checkbox, slider and file" />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-3)">
+						<Checkbox bind:checked={agreed}>I agree to share anonymous usage data during the beta.</Checkbox>
+						<div class="row"><span>Target retention</span><span class="spacer"></span><b>{Math.round(retention * 100)}%</b></div>
+						<Slider label="Target retention" min={0.8} max={0.95} step={0.01} bind:value={retention} />
+						<FileButton accept="image/*" onpick={(f) => (picked = f.name)}>Choose a screenshot</FileButton>
+						{#if picked}<span class="caption">Picked {picked}</span>{/if}
+					</div>
+				</Card>
+
+				<SectionHeader title="Loading and progress" />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-3)">
+						<p class="caption">The person always sees what the app is doing. Content that is on its way shows a Skeleton in its shape; an action in progress shows a Spinner or a busy Button.</p>
+						<div class="row" style:--gap="var(--space-4)">
+							<Spinner label="Loading" size="sm" />
+							<Spinner label="Loading" />
+							<Spinner label="Saving your cards" showLabel />
+						</div>
+						<Button busy={saving} onclick={fakeSave}>{saving ? 'Saving' : 'Save'}</Button>
+						<Skeleton variant="row" count={2} />
+						<div class="row" style:--gap="var(--space-4)">
+							<ProgressRing value={0.65} size={88} width={9}><b>13</b></ProgressRing>
+							<div class="spacer"><BarChart label="Reviews a day" days={barDays} column="Reviews" /></div>
+						</div>
+						<PageDots count={4} bind:index={dotPage} label="Intro pages" pageLabel={(n) => `Page ${n}`} />
+					</div>
+				</Card>
+
+				<SectionHeader title="Sheet" />
+				<Button variant="ghost" onclick={() => (sheetOpen = true)}>Open a sheet</Button>
+
 				<!-- ------------------------------------------------ motion -->
 				<SectionHeader title="Motion" />
 				<Card padding="md">
@@ -295,7 +360,7 @@
 				</Card>
 				<div class="mlist">
 					{#each motionPatterns as m (m.id)}
-						<div class="glass mrow-demo">
+						<Card padding="sm" class="mrow-demo">
 							<div class="mtext">
 								<span class="headline">{m.name}</span>
 								<span class="caption">{m.when}</span>
@@ -313,14 +378,21 @@
 								{:else if m.id === 'shake'}<span class="d-field">食る</span>
 								{:else}<span class="d-orb"></span>{/if}
 							</div>
-							{#if m.id !== 'ambient'}<button type="button" class="btn ghost small replay" data-replay>Replay</button>{/if}
-						</div>
+							{#if m.id !== 'ambient'}<Button variant="ghost" size="sm" class="replay" data-replay>Replay</Button>{/if}
+						</Card>
 					{/each}
 				</div>
 			</section>
 		{/each}
 	</div>
 </main>
+
+<Sheet open={sheetOpen} label="Example sheet" onclose={() => (sheetOpen = false)}>
+	<div class="stack">
+		<p>Sheets hold a short task. Drag down or tap outside to close.</p>
+		<Button onclick={() => (sheetOpen = false)}>Done</Button>
+	</div>
+</Sheet>
 
 <style>
 	.catalog {
@@ -549,13 +621,11 @@
 		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 		gap: var(--space-2);
 	}
-	.mrow-demo {
+	.mlist :global(.mrow-demo) {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) 96px;
 		grid-template-rows: auto auto;
 		gap: var(--space-2) var(--space-3);
-		padding: var(--space-3);
-		border-radius: var(--radius-card);
 	}
 	.mtext {
 		grid-row: 1 / span 2;
@@ -568,10 +638,9 @@
 		font-size: var(--text-caption-2);
 		color: var(--color-info);
 	}
-	.replay {
+	.catalog :global(.replay) {
 		grid-column: 2;
 		justify-self: center;
-		min-height: 32px;
 	}
 	.stage {
 		position: relative;

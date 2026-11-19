@@ -3,7 +3,7 @@
 	bar with the inline title fades in, just like UINavigationBar.
 -->
 <script lang="ts">
-	import Romaji from './Romaji.svelte';
+	import Romaji from '#lib/components/Romaji.svelte';
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 

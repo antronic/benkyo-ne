@@ -15,6 +15,7 @@
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { strokesOf } from '#lib/content/strokes.ts';
 	import AppleButton from './AppleButton.svelte';
+	import { Button, Card, Segmented, TextField } from '#lib/ui/index.ts';
 
 	let { ondone }: { ondone: () => void } = $props();
 
@@ -74,12 +75,16 @@
 		toast(added ? t('welcome.recovered') : t('welcome.recoveredNoKey'), '🔑', 2800);
 		finish();
 	}
+	let copying = $state(false);
 	async function copy() {
+		copying = true;
 		try {
 			await navigator.clipboard.writeText(recoveryCode ?? '');
 			toast(t('welcome.codeCopied'), '📋');
 		} catch {
 			/* still on screen */
+		} finally {
+			copying = false;
 		}
 	}
 	function finish() {
@@ -109,42 +114,47 @@
 		</div>
 
 		{#if recoveryCode}
-			<div class="card glass glass-strong" in:fly|global={{ y: 16, duration: 450 }}>
+			<div in:fly|global={{ y: 16, duration: 450 }}><Card strong class="wl-card">
 				<b>{t('welcome.inSave')}</b>
 				<code>{recoveryCode}</code>
 				<p class="caption">{t('welcome.codeBody')}</p>
 				<div class="row">
-					<button class="btn ghost" onclick={copy}>{t('welcome.copy')}</button>
-					<button class="btn accent grow" onclick={finish}>{t('welcome.saved')}</button>
+					<Button variant="ghost" busy={copying} onclick={copy}>{t('welcome.copy')}</Button>
+					<Button variant="accent" class="grow" onclick={finish}>{t('welcome.saved')}</Button>
 				</div>
-			</div>
+			</Card></div>
 		{:else if !supported}
-			<div class="card glass glass-strong">
+			<Card strong class="wl-card">
 				{#if ai.appleEnabled}
 					<AppleButton />
 					<p class="caption">{t('welcome.noPasskeysApple')}</p>
 				{:else}
 					<p class="caption">{t('welcome.noPasskeys')}</p>
 				{/if}
-			</div>
+			</Card>
 		{:else}
-			<div class="card glass glass-strong" in:fly|global={{ y: 16, duration: 500, delay: 120 }}>
-				<div class="seg" role="tablist" aria-label={t('welcome.account')}>
-					<button role="tab" aria-selected={mode === 'create'} class:on={mode === 'create'} onclick={() => ((mode = 'create'), (error = ''))} disabled={!canCreate}>{t('welcome.create')}</button>
-					<button role="tab" aria-selected={mode !== 'create'} class:on={mode !== 'create'} onclick={() => ((mode = 'signin'), (error = ''))}>{t('welcome.signIn')}</button>
-				</div>
+			<div in:fly|global={{ y: 16, duration: 500, delay: 120 }}><Card strong class="wl-card">
+				<Segmented
+					label={t('welcome.account')}
+					options={[
+						{ value: 'create', label: t('welcome.create'), disabled: !canCreate },
+						{ value: 'signin', label: t('welcome.signIn') }
+					]}
+					value={mode === 'create' ? 'create' : 'signin'}
+					onchange={(v) => ((mode = v), (error = ''))}
+				/>
 
 				{#if mode === 'create'}
 					{#if canCreate}
 						<form class="stack" style:--gap="var(--space-3)" onsubmit={(e) => (e.preventDefault(), create())}>
 							{#if needInvite}
 								<p class="caption">{t('welcome.inviteOnly')}</p>
-								<input type="text" placeholder={t('welcome.invite')} bind:value={invite} maxlength="20" autocomplete="off" autocapitalize="characters" aria-label={t('welcome.invite')} />
+								<TextField size="lg" placeholder={t('welcome.invite')} bind:value={invite} maxlength={20} autocomplete="off" autocapitalize="characters" aria-label={t('welcome.invite')} />
 							{/if}
-							<input type="text" placeholder={t('welcome.name')} bind:value={name} maxlength="40" autocomplete="nickname" aria-label={t('welcome.name')} />
-							<button class="btn accent block" disabled={busy || !name.trim() || (needInvite && !invite.trim())}>
+							<TextField size="lg" placeholder={t('welcome.name')} bind:value={name} maxlength={40} autocomplete="nickname" aria-label={t('welcome.name')} />
+							<Button type="submit" variant="accent" block {busy} disabled={!name.trim() || (needInvite && !invite.trim())}>
 								{busy ? t('welcome.waiting') : t('welcome.createPasskey')}
-							</button>
+							</Button>
 						</form>
 						{#if ai.appleEnabled && ai.signupOpen}
 							<div class="or" aria-hidden="true"><span>{t('welcome.or')}</span></div>
@@ -155,23 +165,23 @@
 						<p class="caption">{t('welcome.full')}</p>
 					{/if}
 				{:else if mode === 'signin'}
-					<button class="btn accent block" onclick={signIn} disabled={busy}>{busy ? t('welcome.waiting') : t('welcome.signInPasskey')}</button>
+					<Button variant="accent" block {busy} onclick={signIn}>{busy ? t('welcome.waiting') : t('welcome.signInPasskey')}</Button>
 					{#if ai.appleEnabled}<AppleButton label={t('welcome.signInApple')} disabled={busy} />{/if}
-					<button class="link" onclick={() => ((mode = 'recover'), (error = ''))}>{t('welcome.lost')}</button>
+					<Button variant="plain" class="wl-link" onclick={() => ((mode = 'recover'), (error = ''))}>{t('welcome.lost')}</Button>
 				{:else}
 					<form class="stack" style:--gap="var(--space-3)" onsubmit={(e) => (e.preventDefault(), recover())}>
-						<input type="text" placeholder={t('welcome.code')} bind:value={code} autocomplete="off" autocapitalize="characters" aria-label={t('welcome.code')} />
-						<button class="btn accent block" disabled={busy || !code.trim()}>{t('welcome.recover')}</button>
+						<TextField size="lg" placeholder={t('welcome.code')} bind:value={code} autocomplete="off" autocapitalize="characters" aria-label={t('welcome.code')} />
+						<Button type="submit" variant="accent" block {busy} disabled={!code.trim()}>{t('welcome.recover')}</Button>
 					</form>
-					<button class="link" onclick={() => ((mode = 'signin'), (error = ''))}>{t('welcome.backToSignIn')}</button>
+					<Button variant="plain" class="wl-link" onclick={() => ((mode = 'signin'), (error = ''))}>{t('welcome.backToSignIn')}</Button>
 				{/if}
 
 				{#if error}<p class="error" role="alert" in:fade>{error}</p>{/if}
-			</div>
+			</Card></div>
 		{/if}
 
 		{#if !recoveryCode}
-			<button class="later" onclick={later}>{t('welcome.later')}</button>
+			<Button variant="plain" class="wl-later" onclick={later}>{t('welcome.later')}</Button>
 		{/if}
 	</div>
 </div>
@@ -274,64 +284,20 @@
 		color: #fff;
 		background: linear-gradient(90deg, #e8432e, #8a5cf6);
 	}
-	.card {
+	.panel :global(.wl-card) {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
-		padding: var(--space-4);
 		border-radius: 24px;
 	}
-	.card p {
+	.panel p {
 		margin: 0;
-	}
-	.seg {
-		display: flex;
-		padding: var(--space-px);
-		border-radius: 10px;
-		background: color-mix(in srgb, var(--ink) 8%, transparent);
-	}
-	.seg button {
-		flex: 1;
-		height: 34px;
-		border: 0;
-		border-radius: 8px;
-		background: none;
-		color: inherit;
-		font: inherit;
-		font-weight: 600;
-		font-size: 0.9375rem;
-		cursor: pointer;
-		transition: background 200ms, box-shadow 200ms;
-	}
-	.seg button.on {
-		background: color-mix(in srgb, var(--ink) 14%, var(--glass-strong));
-		box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
-	}
-	.seg button:disabled {
-		opacity: 0.4;
-	}
-	input {
-		font: inherit;
-		font-size: 1.0625rem;
-		height: 50px;
-		min-height: 50px;
-		padding: 0 var(--space-4);
-		border-radius: 14px;
-		border: 0.5px solid var(--hairline);
-		background: var(--glass-strong);
-		color: var(--ink);
-		box-sizing: border-box;
-		width: 100%;
-	}
-	.btn.block,
-	.row .btn {
-		min-height: 50px;
 	}
 	.row {
 		display: flex;
 		gap: var(--space-3);
 	}
-	.grow {
+	.row :global(.grow) {
 		flex: 1;
 	}
 	code {
@@ -344,22 +310,17 @@
 		background: color-mix(in srgb, var(--warn) 16%, transparent);
 		word-break: break-all;
 	}
-	.link,
-	.later {
-		border: 0;
-		background: none;
-		font: inherit;
-		cursor: pointer;
-		padding: var(--space-1h);
-	}
-	.link {
-		color: var(--accent-2);
+	.panel :global(.wl-link),
+	.panel :global(.wl-later) {
 		align-self: center;
+		font-weight: 400;
 	}
-	.later {
+	.panel :global(.wl-link) {
+		color: var(--accent-2);
+	}
+	.panel :global(.wl-later) {
 		color: var(--ink-2);
 		font-size: 0.9375rem;
-		align-self: center;
 	}
 	.or {
 		display: flex;

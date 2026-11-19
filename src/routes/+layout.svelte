@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { t } from '#lib/i18n/index.svelte.ts';
-	import Skeleton from '#lib/components/Skeleton.svelte';
+	import { Button, Skeleton } from '#lib/ui/index.ts';
 	import '../app.css';
 	import { onMount, untrack } from 'svelte';
 	import { goto, onNavigate } from '$app/navigation';
@@ -169,8 +169,8 @@
 					<div class="crash-icon" aria-hidden="true">😵‍💫</div>
 					<h1>{t('boot.crashTitle')}</h1>
 					<p>{t('boot.crashBody')}</p>
-					<button class="btn" type="button" onclick={reset}>{t('boot.retry')}</button>
-					<button class="btn ghost" type="button" onclick={() => location.reload()}>{t('boot.reload')}</button>
+					<Button onclick={reset}>{t('boot.retry')}</Button>
+					<Button variant="ghost" onclick={() => location.reload()}>{t('boot.reload')}</Button>
 				</main>
 			{/snippet}
 		</svelte:boundary>

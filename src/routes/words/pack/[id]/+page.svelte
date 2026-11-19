@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { t, tn } from '#lib/i18n/index.svelte.ts';
-	import Skeleton from '#lib/components/Skeleton.svelte';
+	import { Button, Card, IconButton, Skeleton } from '#lib/ui/index.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -24,6 +24,8 @@
 	let i = $state(0);
 	let revealed = $state(false);
 	let missing = $state(false);
+	/** which save is running: skipping a word or finishing the pack */
+	let saving = $state<'skip' | 'finish' | null>(null);
 
 	onMount(async () => {
 		pack = (await listPacks()).find((p) => p.id === page.params.id) ?? null;
@@ -38,8 +40,9 @@
 		haptic('selection');
 	}
 	async function skip() {
-		if (!pack || !item) return;
-		const updated = await skipPackWord(pack.id, item.key);
+		if (!pack || !item || saving) return;
+		saving = 'skip';
+		const updated = await skipPackWord(pack.id, item.key).finally(() => (saving = null));
 		haptic('selection');
 		toast(t('pack.skipped'), '↷');
 		if (!updated || !updated.items.length) return goto('/words');
@@ -61,7 +64,9 @@
 			if (progress.settings.autoplayAudio) speak(pack.items[i].reading);
 			return;
 		}
-		const n = await finishPack(pack.id);
+		if (saving) return;
+		saving = 'finish';
+		const n = await finishPack(pack.id).finally(() => (saving = null));
 		haptic('success');
 		toast(n ? tn('pack.added', n) : t('pack.finished'), '✓', 2400);
 		goto('/words');
@@ -70,9 +75,9 @@
 
 <main class="reader">
 	<header class="top">
-		<button class="icon-btn" aria-label={t('common.close')} onclick={() => goto('/words')}>
+		<IconButton label={t('common.close')} onclick={() => goto('/words')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
-		</button>
+		</IconButton>
 		<div class="bar"><span style:width="{pack ? ((i + (revealed ? 1 : 0.5)) / pack.items.length) * 100 : 0}%"></span></div>
 		<span class="caption">{pack ? `${i + 1}/${pack.items.length}` : ''}</span>
 	</header>
@@ -93,33 +98,35 @@
 			<section class="stage" in:fly={{ x: 40, duration: 380, easing: cubicOut, opacity: 0 }}>
 				<div class="split">
 					<div class="pane">
-						<button class="word glass sheen" onclick={() => speak(item.reading)} aria-label={t('a11y.listenTo', { text: item.reading })}>
+						<Card sheen padding="none" radius="large" class="word" onclick={() => speak(item.reading)} aria-label={t('a11y.listenTo', { text: item.reading })}>
 							<span class="jp">{item.reading}<Romaji text={item.reading} /></span>
-						</button>
+						</Card>
 						<p class="caption">{t('pack.readFirst')}</p>
 					</div>
 					<div class="pane">
 						{#if revealed}
-							<div class="glass back" in:fly={{ y: 12, duration: 300 }}>
-								<WordCardView
-									card={{
-										front: item.reading,
-										kanji: item.written.find((w) => w !== item.reading) ?? null,
-										gloss: item.gloss,
-										gloss2: item.gloss2,
-										hook: item.hook,
-										usage: null,
-										example: item.example,
-										kind: item.kind,
-										verified: true
-									}}
-								/>
+							<div class="back" in:fly={{ y: 12, duration: 300 }}>
+								<Card radius="large">
+									<WordCardView
+										card={{
+											front: item.reading,
+											kanji: item.written.find((w) => w !== item.reading) ?? null,
+											gloss: item.gloss,
+											gloss2: item.gloss2,
+											hook: item.hook,
+											usage: null,
+											example: item.example,
+											kind: item.kind,
+											verified: true
+										}}
+									/>
+								</Card>
 							</div>
-							<button class="btn accent block" onclick={next}>{i < pack.items.length - 1 ? t('pack.next') : t('pack.finish')}</button>
+							<Button variant="accent" block onclick={next} busy={saving === 'finish'} disabled={saving === 'skip'}>{i < pack.items.length - 1 ? t('pack.next') : t('pack.finish')}</Button>
 						{:else}
-							<button class="btn block" onclick={reveal}>{t('pack.reveal')}</button>
+							<Button block onclick={reveal}>{t('pack.reveal')}</Button>
 						{/if}
-						<button class="btn ghost small" onclick={skip}>↷ {t('pack.skip')}</button>
+						<Button variant="ghost" size="sm" onclick={skip} busy={saving === 'skip'} disabled={saving === 'finish'}>↷ {t('pack.skip')}</Button>
 					</div>
 				</div>
 			</section>
@@ -166,20 +173,16 @@
 		display: flex;
 		align-items: center;
 	}
-	.word {
+	.stage :global(.word) {
 		width: min(78vw, 340px);
 		aspect-ratio: 1.3;
-		border-radius: var(--r-l);
 		display: grid;
 		place-items: center;
-		cursor: pointer;
 		font-size: clamp(2.5rem, 12vw, 4rem);
 		font-weight: 600;
 	}
 	.back {
 		width: 100%;
 		max-width: 440px;
-		padding: var(--space-4);
-		border-radius: var(--r-l);
 	}
 </style>

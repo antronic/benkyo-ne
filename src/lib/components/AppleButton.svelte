@@ -8,6 +8,7 @@
 	import * as api from '#lib/ai/client.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
+	import { Button } from '#lib/ui/index.ts';
 
 	let {
 		label,
@@ -29,60 +30,40 @@
 	}
 </script>
 
-<button class="apple" class:small onclick={go} disabled={disabled || leaving} type="button">
-	<svg viewBox="0 0 17 20" aria-hidden="true">
-		<path
-			d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.6 4.8 1.9 5.8 1 7.5c-1.9 3.3-.5 8.1 1.3 10.8.9 1.3 2 2.7 3.4 2.7 1.3-.1 1.9-.9 3.5-.9s2.1.9 3.5.8c1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.8-1.1-2.8-4.2zM11.5 3c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"
-		/>
-	</svg>
-	<span>{leaving ? t('apple.opening') : (label ?? t('apple.continue'))}</span>
-</button>
+<Button class="apple-btn" size={small ? 'sm' : 'lg'} block={!small} busy={leaving} {disabled} onclick={go}>
+	{#snippet icon()}
+		<svg viewBox="0 0 17 20" aria-hidden="true">
+			<path
+				d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.6 4.8 1.9 5.8 1 7.5c-1.9 3.3-.5 8.1 1.3 10.8.9 1.3 2 2.7 3.4 2.7 1.3-.1 1.9-.9 3.5-.9s2.1.9 3.5.8c1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.8-1.1-2.8-4.2zM11.5 3c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"
+			/>
+		</svg>
+	{/snippet}
+	{leaving ? t('apple.opening') : (label ?? t('apple.continue'))}
+</Button>
 
 <style>
-	.apple {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: var(--space-2);
-		width: 100%;
-		min-height: 50px;
-		padding: 0 var(--space-5);
-		border: 0;
-		border-radius: 14px;
+	/* Apple's Sign in with Apple style (HIG): pure black, white in dark mode,
+	   a rounded rectangle rather than the kit's pill. */
+	:global(.btn.apple-btn) {
 		background: #000;
 		color: #fff;
-		font: inherit;
-		font-size: 1.0625rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: opacity 150ms, transform 150ms;
+		border-radius: 14px;
 	}
-	.apple.small {
-		width: auto;
-		min-height: 36px;
-		padding: 0 var(--space-4);
+	:global(.btn.small.apple-btn) {
 		border-radius: 10px;
-		font-size: 0.9375rem;
 	}
-	.apple:active {
-		transform: scale(0.98);
-	}
-	.apple:disabled {
-		opacity: 0.5;
-		cursor: default;
-	}
-	svg {
+	:global(.btn.apple-btn) svg {
 		width: 15px;
 		height: 18px;
 		fill: currentColor;
 		margin-top: calc(-1 * var(--space-px));
 	}
-	.small svg {
+	:global(.btn.small.apple-btn) svg {
 		width: 13px;
 		height: 15px;
 	}
 	@media (prefers-color-scheme: dark) {
-		.apple {
+		:global(.btn.apple-btn) {
 			background: #fff;
 			color: #000;
 		}

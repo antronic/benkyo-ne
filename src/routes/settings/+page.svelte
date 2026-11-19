@@ -8,9 +8,9 @@
 	import { getMatcher } from '#lib/handwriting/match.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
-	import LargeTitle from '#lib/components/LargeTitle.svelte';
+	import LargeTitle from '#lib/ui/LargeTitle.svelte';
 	import AiSettings from '#lib/components/AiSettings.svelte';
-	import { Select } from '#lib/ui/index.ts';
+	import { Button, ListGroup, ListRow, Select, Slider, Spinner, Stepper, Switch } from '#lib/ui/index.ts';
 	import { version } from '$app/env';
 	import { updater } from '#lib/pwa/update.svelte.ts';
 	import { install } from '#lib/pwa/install.svelte.ts';
@@ -86,153 +86,138 @@
 	<KuriSettings />
 
 	<h2 class="eyebrow section">{t('settings.learning')}</h2>
-	<div class="glass group rise" style:--i="1">
-		<div class="item">
-			<span class="stack" style:--gap="0">
-				<span>{t('settings.retention')}</span>
-				<span class="caption">{t('settings.retentionBody')}</span>
-			</span>
-			<span class="spacer"></span>
-			<b>{Math.round(progress.settings.retention * 100)}%</b>
-		</div>
-		<div class="item slider">
-			<input
-				type="range"
-				min="0.8"
-				max="0.95"
-				step="0.01"
+	<ListGroup class="rise">
+		<ListRow title={t('settings.retention')} subtitle={t('settings.retentionBody')}>
+			{#snippet trailing()}<b class="value">{Math.round(progress.settings.retention * 100)}%</b>{/snippet}
+		</ListRow>
+		<div class="slider">
+			<Slider
+				min={0.8}
+				max={0.95}
+				step={0.01}
 				value={progress.settings.retention}
-				oninput={(e) => progress.saveSettings({ retention: +e.currentTarget.value })}
-				aria-label={t('settings.retention')}
+				oninput={(v) => progress.saveSettings({ retention: v })}
+				label={t('settings.retention')}
 			/>
 		</div>
-		<div class="item">
-			<span class="stack" style:--gap="0">
-				<span>{t('settings.newPerDay')}</span>
-				<span class="caption">{t('settings.newPerDayBody')}</span>
-			</span>
-			<span class="spacer"></span>
-			<div class="stepper glass">
-				<button onclick={() => progress.saveSettings({ newPerDay: Math.max(5, progress.settings.newPerDay - 5) })} aria-label={t('settings.fewer')}>−</button>
-				<b>{progress.settings.newPerDay}</b>
-				<button onclick={() => progress.saveSettings({ newPerDay: Math.min(40, progress.settings.newPerDay + 5) })} aria-label={t('settings.more')}>+</button>
-			</div>
-		</div>
-		<label class="item">
-			<span>{t('settings.haptics')}</span><span class="spacer"></span>
-			<input type="checkbox" class="switch" checked={progress.settings.haptics} onchange={(e) => progress.saveSettings({ haptics: e.currentTarget.checked })} />
-		</label>
-		<label class="item">
-			<span class="stack" style:--gap="0">
-				<span>{t('settings.romaji')}</span>
-				<span class="caption">{t('settings.romajiBody')}</span>
-			</span>
-			<span class="spacer"></span>
-			<input type="checkbox" class="switch" checked={progress.settings.showRomaji} onchange={(e) => progress.saveSettings({ showRomaji: e.currentTarget.checked })} />
-		</label>
-		<div class="item">
-			<span class="stack" style:--gap="0">
-				<span>{t('settings.tabbar')}</span>
-				<span class="caption">{t('settings.tabbarBody')}</span>
-			</span>
-			<span class="spacer"></span>
-			<Select
-				label={t('settings.tabbar')}
-				value={progress.settings.navPosition}
-				options={[
-					{ value: 'auto', label: t('settings.tabAuto') },
-					{ value: 'bottom', label: t('settings.tabBottom') },
-					{ value: 'side', label: t('settings.tabSide') }
-				]}
-				onchange={(v) => progress.saveSettings({ navPosition: v })}
-			/>
-		</div>
-		<label class="item">
-			<span>{t('settings.autoplay')}</span><span class="spacer"></span>
-			<input type="checkbox" class="switch" checked={progress.settings.autoplayAudio} onchange={(e) => progress.saveSettings({ autoplayAudio: e.currentTarget.checked })} />
-		</label>
-	</div>
+		<ListRow title={t('settings.newPerDay')} subtitle={t('settings.newPerDayBody')}>
+			{#snippet trailing()}
+				<Stepper
+					label={t('settings.newPerDay')}
+					min={5}
+					max={40}
+					step={5}
+					value={progress.settings.newPerDay}
+					onchange={(v) => progress.saveSettings({ newPerDay: v })}
+				/>
+			{/snippet}
+		</ListRow>
+		<ListRow title={t('settings.haptics')}>
+			{#snippet trailing()}
+				<Switch label={t('settings.haptics')} checked={progress.settings.haptics} onchange={(v) => progress.saveSettings({ haptics: v })} />
+			{/snippet}
+		</ListRow>
+		<ListRow title={t('settings.romaji')} subtitle={t('settings.romajiBody')}>
+			{#snippet trailing()}
+				<Switch label={t('settings.romaji')} checked={progress.settings.showRomaji} onchange={(v) => progress.saveSettings({ showRomaji: v })} />
+			{/snippet}
+		</ListRow>
+		<ListRow title={t('settings.tabbar')} subtitle={t('settings.tabbarBody')}>
+			{#snippet trailing()}
+				<Select
+					label={t('settings.tabbar')}
+					value={progress.settings.navPosition}
+					options={[
+						{ value: 'auto', label: t('settings.tabAuto') },
+						{ value: 'bottom', label: t('settings.tabBottom') },
+						{ value: 'side', label: t('settings.tabSide') }
+					]}
+					onchange={(v) => progress.saveSettings({ navPosition: v })}
+				/>
+			{/snippet}
+		</ListRow>
+		<ListRow title={t('settings.autoplay')}>
+			{#snippet trailing()}
+				<Switch label={t('settings.autoplay')} checked={progress.settings.autoplayAudio} onchange={(v) => progress.saveSettings({ autoplayAudio: v })} />
+			{/snippet}
+		</ListRow>
+	</ListGroup>
 
 	<h2 class="eyebrow section">{t('sync.section')}</h2>
-	<div class="glass group rise" style:--i="2">
+	<ListGroup class="rise">
 		{#if ai.signedIn && ai.account}
-			<div class="item">
-				<span class="stack" style:--gap="var(--space-px)">
-					<span>{t('sync.syncedTo', { name: ai.account.name })}</span>
-					<span class="caption">{t('sync.accountBody')}</span>
-				</span>
-				<span class="spacer"></span>
-				<button class="btn small nowrap" onclick={syncNow} disabled={syncing}>{syncing ? t('sync.syncing') : t('sync.now')}</button>
-			</div>
+			<ListRow title={t('sync.syncedTo', { name: ai.account.name })} subtitle={t('sync.accountBody')}>
+				{#snippet trailing()}
+					<Button size="sm" onclick={syncNow} busy={syncing}>{syncing ? t('sync.syncing') : t('sync.now')}</Button>
+				{/snippet}
+			</ListRow>
 		{:else if oldKey}
-			<div class="item">
-				<span class="stack" style:--gap="var(--space-px)">
-					<span>{t('sync.keyTitle')}</span>
-					<span class="caption">{t('sync.keyBody')}</span>
-				</span>
-				<span class="spacer"></span>
-				<button class="btn ghost small nowrap" onclick={syncNow} disabled={syncing}>{syncing ? t('sync.syncing') : t('sync.now')}</button>
-			</div>
+			<ListRow title={t('sync.keyTitle')} subtitle={t('sync.keyBody')}>
+				{#snippet trailing()}
+					<Button variant="ghost" size="sm" onclick={syncNow} busy={syncing}>{syncing ? t('sync.syncing') : t('sync.now')}</Button>
+				{/snippet}
+			</ListRow>
 		{:else if claimed}
-			<div class="item">
-				<span class="stack" style:--gap="var(--space-px)">
-					<span>{t('sync.claimedTitle')}</span>
-					<span class="caption">{t('sync.claimedBody')}</span>
-				</span>
-			</div>
+			<ListRow title={t('sync.claimedTitle')} subtitle={t('sync.claimedBody')} />
 		{:else}
-			<div class="item">
-				<span class="caption">{t('sync.localBody')}</span>
-			</div>
+			<ListRow subtitle={t('sync.localBody')} />
 		{/if}
-		{#if status}<div class="item caption">{status}</div>{/if}
-	</div>
+		{#if status}<ListRow subtitle={status} />{/if}
+	</ListGroup>
 
 	<AiSettings />
 
 	<h2 class="eyebrow section">{t('install.section')}</h2>
-	<div class="glass group rise" style:--i="3">
+	<ListGroup class="rise">
 		{#if install.installed}
-			<div class="item">
-				<span class="stack" style:--gap="0">
-					<span>{t('install.installedTitle')}</span>
-					<span class="caption">{t('install.installedBody')}</span>
-				</span>
-				<span class="spacer"></span>
-				<span class="ok" aria-hidden="true">✓</span>
-			</div>
+			<ListRow title={t('install.installedTitle')} subtitle={t('install.installedBody')}>
+				{#snippet trailing()}<span class="ok" aria-hidden="true">✓</span>{/snippet}
+			</ListRow>
 		{:else}
-			<div class="item">
-				<span class="stack" style:--gap="0">
-					<span>{t('install.settingsTitle')}</span>
-					<span class="caption">{install.justInstalled ? t('install.doneBody') : t('install.settingsBody')}</span>
-				</span>
-				<span class="spacer"></span>
-				{#if install.canPrompt}
-					<button class="btn accent small nowrap" onclick={() => install.prompt()}>{t('install.now')}</button>
-				{:else}
-					<button class="btn ghost small nowrap" onclick={() => (install.showGuide = true)}>{t('install.showMe')}</button>
-				{/if}
-			</div>
+			<ListRow title={t('install.settingsTitle')} subtitle={install.justInstalled ? t('install.doneBody') : t('install.settingsBody')}>
+				{#snippet trailing()}
+					{#if install.canPrompt}
+						<Button variant="accent" size="sm" onclick={() => install.prompt()}>{t('install.now')}</Button>
+					{:else}
+						<Button variant="ghost" size="sm" onclick={() => (install.showGuide = true)}>{t('install.showMe')}</Button>
+					{/if}
+				{/snippet}
+			</ListRow>
 			{#if install.canPrompt}
-				<div class="item"><button class="link" onclick={() => (install.showGuide = true)}>{t('install.howTo')}</button></div>
+				<ListRow>
+					<span><Button variant="link" onclick={() => (install.showGuide = true)}>{t('install.howTo')}</Button></span>
+				</ListRow>
 			{/if}
 		{/if}
-	</div>
+	</ListGroup>
 
 	<h2 class="eyebrow section">{t('settings.about')}</h2>
-	<div class="glass group rise" style:--i="3">
-		<div class="item"><span>{t('settings.engine')}</span><span class="spacer"></span><span class="caption">{engine}</span></div>
-		<div class="item"><span>{t('settings.version')}</span><span class="spacer"></span><span class="caption">{fmtDateTime(Number(version) || Date.now())}{#if updater.ready} · <button class="link" onclick={() => updater.restart()}>{t('settings.updateReady')}</button>{/if}</span></div>
-		<div class="item"><span>{t('settings.intro')}</span><span class="spacer"></span><button class="btn ghost small" onclick={() => (ui.showIntro = true)}>▶ {t('settings.replayIntro')}</button></div>
-		<div class="item"><span>{t('settings.scheduler')}</span><span class="spacer"></span><span class="caption">FSRS-5</span></div>
-		<div class="item caption">
-			<span>{t('settings.strokeData')} <a href="https://kanjivg.tagaini.net" target="_blank" rel="noreferrer">KanjiVG</a>
+	<ListGroup class="rise">
+		<ListRow title={t('settings.engine')}>
+			{#snippet trailing()}
+				{#if engine === '…'}<Spinner size="sm" label={t('common.loading')} />{:else}<span class="caption">{engine}</span>{/if}
+			{/snippet}
+		</ListRow>
+		<ListRow title={t('settings.version')}>
+			{#snippet trailing()}
+				<span class="caption">{fmtDateTime(Number(version) || Date.now())}{#if updater.ready} · <Button variant="link" onclick={() => updater.restart()}>{t('settings.updateReady')}</Button>{/if}</span>
+			{/snippet}
+		</ListRow>
+		<ListRow title={t('settings.intro')}>
+			{#snippet trailing()}<Button variant="ghost" size="sm" onclick={() => (ui.showIntro = true)}>▶ {t('settings.replayIntro')}</Button>{/snippet}
+		</ListRow>
+		<ListRow title={t('settings.scheduler')}>
+			{#snippet trailing()}<span class="caption">FSRS-5</span>{/snippet}
+		</ListRow>
+		<ListRow>
+			<span class="caption">{t('settings.strokeData')} <a href="https://kanjivg.tagaini.net" target="_blank" rel="noreferrer">KanjiVG</a>
 			{t('settings.strokeDataBy')}</span>
-		</div>
-		<div class="item caption">{DICT_ATTRIBUTION}</div>
-		<div class="item"><button class="btn ghost block danger" onclick={reset}>{t('settings.erase')}</button></div>
-	</div>
+		</ListRow>
+		<ListRow subtitle={DICT_ATTRIBUTION} />
+		<ListRow>
+			<Button variant="ghost-danger" block onclick={reset}>{t('settings.erase')}</Button>
+		</ListRow>
+	</ListGroup>
 </main>
 
 <style>
@@ -246,89 +231,17 @@
 		color: var(--color-success);
 		font-weight: 700;
 	}
-	.group {
-		padding: var(--space-1) 0;
-		border-radius: var(--r-m);
-	}
-	.item {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4);
-		min-height: 48px;
-	}
-	.item + .item {
-		border-top: 0.5px solid var(--hairline);
+	.value {
+		color: var(--color-text);
 	}
 	.slider {
-		padding-top: 0;
-		border-top: 0 !important;
-	}
-	input[type='range'] {
-		width: 100%;
-		accent-color: var(--accent);
-	}
-	.stepper {
 		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		border-radius: 10px;
-		padding: var(--space-px);
+		padding: 0 var(--space-4) var(--space-3);
 	}
-	.stepper button {
-		border: 0;
-		background: none;
-		width: 36px;
-		height: 32px;
-		font-size: 20px;
-		cursor: pointer;
-	}
-	.switch {
-		appearance: none;
-		width: 51px;
-		height: 31px;
-		border-radius: 16px;
-		background: var(--hairline);
-		position: relative;
-		cursor: pointer;
-		transition: background 250ms;
-		flex: none;
-		margin: 0;
-	}
-	.switch::after {
-		content: '';
-		position: absolute;
-		top: 2px;
-		left: 2px;
-		width: 27px;
-		height: 27px;
-		border-radius: 50%;
-		background: #fff;
-		box-shadow: 0 3px 8px rgb(0 0 0 / 0.15);
-		transition: transform 450ms var(--spring-bouncy);
-	}
-	.switch:checked {
-		background: var(--success);
-	}
-	.switch:checked::after {
-		transform: translateX(20px);
+	.slider + :global(.ui-row) {
+		border-top: var(--hairline-w) solid var(--color-border);
 	}
 	a {
 		color: var(--accent-2);
-	}
-	.link {
-		border: 0;
-		background: none;
-		color: var(--accent-2);
-		font: inherit;
-		cursor: pointer;
-		padding: 0;
-	}
-	.danger {
-		color: var(--danger);
-	}
-	.nowrap {
-		white-space: nowrap;
-		flex: none;
 	}
 </style>

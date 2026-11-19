@@ -6,9 +6,9 @@
 -->
 <script lang="ts">
 	import { t } from '#lib/i18n/index.svelte.ts';
-	import Sheet from './Sheet.svelte';
+	import Sheet from '#lib/ui/Sheet.svelte';
 	import InstallArt from './InstallArt.svelte';
-	import { Button, Chip, Notice } from '#lib/ui/index.ts';
+	import { Button, Card, Chip, Notice } from '#lib/ui/index.ts';
 	import { install } from '#lib/pwa/install.svelte.ts';
 	import { orderedGuides, type GuideId } from '#lib/pwa/platform.ts';
 	import { GUIDE_NAME, stepsFor } from '#lib/pwa/steps.ts';
@@ -24,9 +24,15 @@
 		if (install.showGuide) picked = install.guide;
 	});
 
+	let prompting = $state(false);
 	async function installNow() {
 		haptic('selection');
-		if (await install.prompt()) install.showGuide = false;
+		prompting = true;
+		try {
+			if (await install.prompt()) install.showGuide = false;
+		} finally {
+			prompting = false;
+		}
 	}
 </script>
 
@@ -37,7 +43,7 @@
 				<div class="title-2">{t('install.title')}</div>
 				<div class="caption">{t('install.lead')}</div>
 			</div>
-			<button class="link" onclick={() => (install.showGuide = false)}>{t('common.done')}</button>
+			<Button variant="plain" size="sm" onclick={() => (install.showGuide = false)}>{t('common.done')}</Button>
 		</div>
 	{/snippet}
 
@@ -47,13 +53,13 @@
 	{:else if install.justInstalled}
 		<Notice tone="success" title={t('install.doneTitle')}>{t('install.doneBody')}</Notice>
 	{:else if install.canPrompt}
-		<div class="quick glass">
+		<Card padding="md" class="install-quick">
 			<div class="stack" style:--gap="var(--space-px)">
 				<div class="headline">{t('install.quickTitle')}</div>
 				<div class="caption">{t('install.quickBody')}</div>
 			</div>
-			<Button variant="accent" onclick={installNow}>{t('install.now')}</Button>
-		</div>
+			<Button variant="accent" busy={prompting} onclick={installNow}>{t('install.now')}</Button>
+		</Card>
 	{/if}
 
 	{#if install.note && picked === install.guide}
@@ -75,7 +81,7 @@
 
 	<ol class="steps">
 		{#each steps as s, n (picked + n)}
-			<li class="step glass">
+			<Card as="li" padding="sm" class="install-step">
 				<InstallArt kind={s.art} label={s.artLabel ? t(s.artLabel) : ''} />
 				<div class="text">
 					<span class="num" aria-hidden="true">{n + 1}</span>
@@ -84,7 +90,7 @@
 						{#if s.body}<div class="caption body">{t(s.body)}</div>{/if}
 					</div>
 				</div>
-			</li>
+			</Card>
 		{/each}
 	</ol>
 
@@ -93,17 +99,6 @@
 </Sheet>
 
 <style>
-	.link {
-		border: 0;
-		background: none;
-		color: var(--color-accent);
-		font: inherit;
-		font-size: 0.9375rem;
-		font-weight: 600;
-		min-height: 32px;
-		padding: var(--space-1) var(--space-2);
-		cursor: pointer;
-	}
 	.content {
 		flex: none;
 		display: flex;
@@ -116,18 +111,16 @@
 		gap: var(--space-3);
 		padding: var(--space-1) var(--space-1) var(--space-3);
 	}
-	.head .link {
+	.head :global(.btn) {
 		margin-left: auto;
-		font-weight: 600;
+		flex: none;
 	}
-	.quick {
+	.content :global(.install-quick) {
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
-		padding: var(--space-4) var(--space-4);
-		border-radius: var(--radius-card);
 	}
-	.quick :global(.btn) {
+	.content :global(.install-quick .btn) {
 		margin-left: auto;
 		flex: none;
 	}
@@ -161,9 +154,7 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
-	.step {
-		padding: var(--space-3);
-		border-radius: var(--radius-card);
+	.steps :global(.install-step) {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
