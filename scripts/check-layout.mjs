@@ -45,7 +45,7 @@ const PORT = 4179;
 const BASE = process.env.LAYOUT_URL ?? `http://localhost:${PORT}`;
 const SHOTS = process.env.LAYOUT_SHOTS; // optional folder for failure screenshots
 
-export const SCREENS = ['/', '/learn', '/kana', '/words', '/ai', '/settings', '/design', '/admin', '/admin/accounts', '/admin/promos'];
+export const SCREENS = ['/', '/learn', '/learn/level/n5-01', '/kana', '/words', '/ai', '/settings', '/design', '/admin', '/admin/accounts', '/admin/promos'];
 const WIDTHS = [
 	['phone', 390, 844],
 	['ipad', 768, 1024],

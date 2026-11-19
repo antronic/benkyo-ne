@@ -30,6 +30,8 @@ export interface Settings {
 	kuriSound: boolean;
 	/** set once the learner flips the Sound switch, so their choice wins over the default */
 	kuriSoundChosen?: boolean;
+	/** show level units a reviewer has not checked yet (lib/content/levels), with a Draft badge */
+	showDraftUnits: boolean;
 }
 
 interface Today {
@@ -46,7 +48,7 @@ class Progress {
 	ready = $state(false);
 	cards = $state<Record<string, Card>>({});
 	completed = $state<string[]>([]);
-	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true, navPosition: 'auto', kuri: true, kuriStyle: 'bandana', kuriWalk: true, kuriReact: true, kuriLowPoly: true, kuriSound: true });
+	settings = $state<Settings>({ retention: 0.9, newPerDay: 10, haptics: true, autoplayAudio: true, secondLang: null, showRomaji: true, navPosition: 'auto', kuri: true, kuriStyle: 'bandana', kuriWalk: true, kuriReact: true, kuriLowPoly: true, kuriSound: true, showDraftUnits: false });
 	streak = $state({ days: 0, last: '' });
 	today = $state<Today>({ date: dayKey(), reviews: 0, learned: 0 });
 	now = $state(Date.now());

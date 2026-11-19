@@ -31,6 +31,7 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | Review and scheduling | learner | none (local) | none | none | `src/lib/srs/fsrs.ts`, `src/routes/review/`, `src/lib/state/progress.svelte.ts` |
 | Handwriting check | learner | none | none | none | `src/lib/handwriting/`, `wasm/stroke/`, `static/wasm/stroke.wasm`, `TracePad`, `RecallPad` |
 | Placement and drills | learner | none | none | none | `src/lib/practice/`, `src/routes/learn/placement/` |
+| Level courses N5–N1 ([LEVELS.md](LEVELS.md)), Test out | learner | none (built into the app) | none | none | `src/lib/content/levels/` (units, `levels.test.ts` checks), `src/lib/state/levels.svelte.ts`, `src/lib/practice/testOut.ts`, `src/lib/words/levelCards.ts`, `src/routes/learn/level/[unit]/` (+ `test/`), Learn (📗 N5 section), Settings (Show draft units, `showDraftUnits`) |
 | Onboarding | new learner | none | none | none | `src/lib/onboarding/`, `Onboarding.svelte` |
 | Words and packs | learner | `/api/sync` | `user_cards` | `worker/cards.ts`, `worker/sync.ts` | `src/lib/words/`, `src/lib/state/{words,lessonPacks}.svelte.ts`, `src/routes/words/` |
 | Personal notes ([NOTES.md](NOTES.md)) | learner | `/api/sync` (`notes`, `notesCursor`) | `user_notes` | `worker/notes.ts`, `worker/sync.ts` | `src/lib/notes/`, `src/lib/state/notes.svelte.ts`, `NoteCard.svelte`, Words → Notes |

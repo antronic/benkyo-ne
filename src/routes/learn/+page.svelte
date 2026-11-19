@@ -17,14 +17,23 @@
 	import { DRILLS, drillCounts } from '#lib/practice/drills.ts';
 	import { KANJI_LESSONS, kanjiCardId } from '#lib/content/kanji.ts';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
+	import { LEVELS, isDraft, thaiUnchecked, visibleUnits, type LevelInfo } from '#lib/content/levels/index.ts';
+	import { levels } from '#lib/state/levels.svelte.ts';
+	import { et } from '#lib/i18n/content.ts';
+	import { i18n } from '#lib/i18n/index.svelte.ts';
+	import { Badge, Button, Notice, Skeleton } from '#lib/ui/index.ts';
 
 	type Filter = string;
-	onMount(() => lessonPacks.load());
+	onMount(() => {
+		void lessonPacks.load();
+		for (const l of LEVELS) void levels.load(l.id);
+	});
 	const FILTERS = $derived<{ id: Filter; label: string }[]>([
 		{ id: 'all', label: 'All' },
 		{ id: 'fundamentals', label: '🔤 Fundamentals' },
 		{ id: 'practice', label: '🎯 Practice' },
 		{ id: 'kanji', label: '⛰️ Kanji' },
+		...LEVELS.map((l) => ({ id: l.id.toLowerCase() as Filter, label: `📗 ${l.id}` })),
 		...lessonPacks.courses.map((c) => ({ id: c.id as Filter, label: `${c.emoji} ${c.title}` }))
 	]);
 	const saved = (() => {
@@ -48,6 +57,7 @@
 		if (f.id === 'fundamentals') return `🔤 ${t('learn.fundamentals')}`;
 		if (f.id === 'practice') return `🎯 ${t('learn.practice')}`;
 		if (f.id === 'kanji') return `⛰️ ${t('learn.kanjiFilter')}`;
+		if (LEVELS.some((l) => l.id.toLowerCase() === f.id)) return f.label;
 		const course = lessonPacks.courses.find((c) => c.id === f.id);
 		return course ? `${course.emoji} ${tc(course.title)}` : f.label;
 	}
@@ -75,6 +85,8 @@
 		return cs.reduce((a, c) => a + (c.lastReview ? retrievability((now - c.lastReview) / 864e5, Math.max(c.stability, 0.01)) : 0), 0) / ids.length;
 	}
 	const strength = (id: string) => recall(LESSONS.find((x) => x.id === id)!.chars.map(cardId));
+	/** Level units the learner sees (drafts only when Settings asks for them). */
+	const shownUnits = (l: LevelInfo) => visibleUnits(levels.units[l.id] ?? [], progress.settings.showDraftUnits);
 	const kanjiStrength = (id: string) => recall(KANJI_LESSONS.find((x) => x.id === id)!.chars.map(kanjiCardId));
 </script>
 
@@ -180,6 +192,44 @@
 		</ol>
 	</section>
 	{/if}
+
+	{#each LEVELS.filter((l) => filter === 'all' || filter === l.id.toLowerCase()) as l (l.id)}
+		{@const all = levels.units[l.id]}
+		{@const units = shownUnits(l)}
+		<section class="course level rise" style:--h={l.hue}>
+			<h2 class="eyebrow section">📗 JLPT {l.id}</h2>
+			<p class="caption blurb">{t('levels.blurb')}</p>
+			{#if levels.failed[l.id]}
+				<Notice tone="warning">{t('levels.loadFailed', { level: l.id })}</Notice>
+			{:else if !all}
+				<Skeleton variant="row" count={3} label={t('levels.loading', { level: l.id })} />
+			{:else if !units.length}
+				<Notice title={t('levels.comingTitle', { level: l.id })}>
+					{t('levels.comingBody', { n: all.length, planned: l.planned })}
+					{#snippet action()}<Button size="sm" href="/settings">{t('levels.openSettings')}</Button>{/snippet}
+				</Notice>
+			{:else}
+				<div class="units">
+					{#each units as u, i (u.id)}
+						{@const done = progress.completed.includes(u.id)}
+						<Card sheen class="unit {done ? 'done' : ''}" href="/learn/level/{u.id}">
+							<span class="badge">{done ? '✓' : i + 1}</span>
+							<span class="stack" style:--gap="1px">
+								<span class="headline">{et(u.title)}</span>
+								<span class="jp kana">{u.kanji.join('')}</span>
+								{#if isDraft(u) || (i18n.locale === 'th' && thaiUnchecked(u))}
+									<span class="row" style:--gap="var(--space-1)">
+										{#if isDraft(u)}<Badge tone="warning">{t('levels.draft')}</Badge>{/if}
+										{#if i18n.locale === 'th' && thaiUnchecked(u)}<Badge>{t('levels.aiThai')}</Badge>{/if}
+									</span>
+								{/if}
+							</span>
+						</Card>
+					{/each}
+				</div>
+			{/if}
+		</section>
+	{/each}
 
 	{#each shownCourses as c, ci (c.id)}
 		<section class="course rise" style:--i={ci + 1} style:--h={c.hue}>
