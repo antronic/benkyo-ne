@@ -142,6 +142,7 @@ Spacing is checked, not just recommended.
 - **Page column**: on wide screens (≥ 600px) `.page` draws one column of `--page-max` (default
   1040px) centred in the space right of the rail. A screen narrows it by setting `--page-max`
   (Settings 680px, Fleet 820px); never left-align a column by giving children a `max-width`.
+- **Never put `.rise` (or any transform/filter) on an ancestor of `LargeTitle`**: it traps the fixed title bar inside that box.
 - **Controls** are at least 32px tall (`.btn.small`, steppers); primary touch targets 44px.
 
 The checks:
@@ -150,7 +151,7 @@ The checks:
 | --- | --- | --- |
 | `npm run lint:ui` (`scripts/check-spacing.mjs`) | the gate and CI | hard-coded px in padding, margin, gap; `--fix` snaps them to the nearest token (ties round up) |
 | Claude Code hook (`.claude/settings.json`, PostToolUse on Edit/Write) | after every agent edit of a `.svelte` or `.css` file | the same lint, reported back to the agent at once |
-| `npm run check:layout` (`scripts/check-layout.mjs`) | the gate and CI, after `npm run build` | horizontal scroll, an off-centre desktop column, text hugging a card edge, controls under 32px; at 390, 768 and 1280px |
+| `npm run check:layout` (`scripts/check-layout.mjs`) | the gate and CI, after `npm run build` | horizontal scroll, an off-centre column (≥ 600px), text hugging a card edge, controls under 32px, and a compact title bar that does not span rail to edge or whose title is off the column centre; at 390, 768, 1024 (side rail) and 1280px |
 | `src/lib/design/spacing.test.ts` | `npm test` | the lint's scale drifting from `tokens.css` |
 
 `LAYOUT_SHOTS=<dir> npm run check:layout` saves a screenshot of each failing screen; CI uploads

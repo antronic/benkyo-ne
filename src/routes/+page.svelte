@@ -31,12 +31,13 @@
 </script>
 
 <main class="page stack dash" style:--gap="var(--space-5)">
-	<header class="rise">
-		<div class="eyebrow">
+	<!-- No .rise on the header itself: an animated transform would trap LargeTitle's fixed title bar inside it. -->
+	<header>
+		<div class="eyebrow rise">
 			{fmtDate(new Date(), { weekday: 'long', month: 'long', day: 'numeric' })}
 		</div>
 		<LargeTitle title={greeting.jp} jp />
-		<p class="subhead" style="margin:var(--space-1) 0 0">
+		<p class="subhead rise" style="margin:var(--space-1) 0 0">
 			{t('home.greetingLine', { greeting: t(greeting.en), tagline: t('home.tagline') })}
 		</p>
 	</header>

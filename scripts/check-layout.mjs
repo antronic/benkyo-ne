@@ -5,9 +5,12 @@
  *
  *   npm run build && npm run check:layout
  *
- * For each screen at phone (390), iPad (768) and desktop (1280) widths:
+ * For each screen at phone (390), iPad portrait (768), iPad with the side
+ * rail (1024) and desktop (1280) widths:
  *   - no horizontal scroll;
- *   - desktop: the page column is centred in the space right of the rail;
+ *   - ≥ 600px: the page column is centred in the space right of the rail;
+ *   - scrolled down: the compact title bar spans from the rail to the right
+ *     edge and its title sits over the centre of the page column;
  *   - text inside a glass card keeps at least 12px from the card's sides and
  *     8px from its top and bottom (nothing hugs an edge);
  *   - buttons, links styled as buttons and form controls are at least 32px
@@ -30,6 +33,7 @@ export const SCREENS = ['/', '/learn', '/kana', '/words', '/ai', '/settings', '/
 const WIDTHS = [
 	['phone', 390, 844],
 	['ipad', 768, 1024],
+	['ipad-rail', 1024, 1366],
 	['desktop', 1280, 800]
 ];
 const EDGE_X = 12;
@@ -103,6 +107,28 @@ function inspect({ EDGE_X, EDGE_Y, MIN_CONTROL, desktop }) {
 	return [...new Set(out)];
 }
 
+/** Runs in the page, scrolled down. Problems with the compact title bar (LargeTitle's .navbar). */
+function inspectNavbar() {
+	const out = [];
+	const bar = document.querySelector('.navbar.shown');
+	const page = document.querySelector('main.page');
+	if (!bar || !page) return out;
+	const doc = document.scrollingElement;
+	const b = bar.getBoundingClientRect();
+	const p = page.getBoundingClientRect();
+	if (Math.abs(b.left - p.left) > 1 || Math.abs(b.right - doc.clientWidth) > 1)
+		out.push(`title bar spans ${Math.round(b.left)}–${Math.round(b.right)}px, expected ${Math.round(p.left)}–${doc.clientWidth}px (rail to right edge)`);
+	const title = bar.querySelector('.inline-title')?.getBoundingClientRect();
+	const kids = [...page.children].filter((el) => el !== bar && el.getBoundingClientRect().width > 0 && getComputedStyle(el).position !== 'fixed');
+	if (title && kids.length) {
+		const left = Math.min(...kids.map((el) => el.getBoundingClientRect().left));
+		const right = Math.max(...kids.map((el) => el.getBoundingClientRect().right));
+		const off = (title.left + title.right) / 2 - (left + right) / 2;
+		if (Math.abs(off) > 2) out.push(`title bar title is ${Math.round(off)}px off the centre of the page column`);
+	}
+	return out;
+}
+
 async function waitFor(url, ms = 20000) {
 	const end = Date.now() + ms;
 	while (Date.now() < end) {
@@ -153,7 +179,11 @@ async function main() {
 			for (const path of SCREENS) {
 				await page.goto(BASE + path, { waitUntil: 'networkidle' });
 				await page.waitForTimeout(400);
-				const found = await page.evaluate(inspect, { EDGE_X, EDGE_Y, MIN_CONTROL, desktop: label === 'desktop' });
+				const found = await page.evaluate(inspect, { EDGE_X, EDGE_Y, MIN_CONTROL, desktop: width >= 600 });
+				// Scroll so the large title collapses into the compact title bar, then check that bar.
+				await page.evaluate(() => scrollTo(0, document.scrollingElement.scrollHeight));
+				await page.waitForTimeout(500);
+				found.push(...(await page.evaluate(inspectNavbar)));
 				for (const f of found) problems.push(`${path} @ ${label} ${width}px: ${f}`);
 				if (found.length && SHOTS) {
 					mkdirSync(SHOTS, { recursive: true });
