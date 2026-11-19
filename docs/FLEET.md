@@ -171,6 +171,12 @@ record. The list shows each code's uses against its limit (`12 / 50`, or
 `12 / ∞` with no limit); tapping a code lists who redeemed it, linked to
 their account, with the date and whether that grant is still live.
 
+**Links.** Each code has a shareable link, `https://benkyo.jirachai.me/?ref=CODE` ("Copy link"
+on the code's page). Opening it takes the code off the address and keeps it on that device
+(localStorage `benkyo.promoLink`, 30 days) through the intro, sign-up, onboarding and consent;
+once the person is signed in the app redeems it once and says how it went (a toast), then
+forgets it. Offline, it waits for the next try. `src/lib/promo/link.ts`, used by the root layout.
+
 **Editing** (`PATCH /api/admin/promos/:code`) changes the package, kind,
 days, use limit (not below the uses so far), expiry (days from today, or
 never) and note. Changes apply to redemptions from then on; packages a code

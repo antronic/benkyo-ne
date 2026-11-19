@@ -15,6 +15,7 @@
 	import { AdminError } from '#lib/admin/client.ts';
 	import { createPromo, getPromo, listPromos, setPromoDisabled, updatePromo } from '#lib/admin/promos.ts';
 	import type { AdminPromo, AdminPromoDetail, AdminPromoInput, AdminPromoList, AdminPromoPatch } from '#lib/promo/contract.ts';
+	import { promoLink } from '#lib/promo/link.ts';
 	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
@@ -203,10 +204,10 @@
 		}
 	}
 
-	async function copy(code: string) {
+	async function copy(code: string, what: 'code' | 'link' = 'code') {
 		try {
-			await navigator.clipboard.writeText(code);
-			toast('Code copied', '📋');
+			await navigator.clipboard.writeText(what === 'link' ? promoLink(code, location.origin) : code);
+			toast(what === 'link' ? 'Link copied' : 'Code copied', '📋');
 		} catch {
 			toast('Couldn’t copy. Select the code instead.', '⚠️');
 		}
@@ -396,9 +397,11 @@
 										{#snippet trailing()}<Switch label="Accept this code" checked={detail!.disabledAt === null} disabled={switching} onchange={toggle} />{/snippet}
 									</ListRow>
 								</ListGroup>
+								<span class="caption">Link: {promoLink(detail.code, location.origin)}. Opening it keeps the code through sign-up and uses it once the person is signed in.</span>
 								<span class="caption">Switching a code off stops new redemptions. Packages it already gave keep running; end one on the account’s page.</span>
 								<div class="actions">
 									<Button variant="ghost" size="sm" onclick={() => copy(detail!.code)}>Copy code</Button>
+									<Button variant="ghost" size="sm" onclick={() => copy(detail!.code, 'link')}>Copy link</Button>
 									<Button size="sm" onclick={() => startEdit(detail!)}>Edit code</Button>
 								</div>
 							</div>

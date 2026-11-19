@@ -33,6 +33,10 @@
 	import KuriIntro from '#lib/companion/KuriIntro.svelte';
 	import KuriReaction from '#lib/companion/KuriReaction.svelte';
 	import { fleetParent } from '#lib/admin/nav.ts';
+	import { plan } from '#lib/state/plan.svelte.ts';
+	import { PromoRequestError, redeemPromo } from '#lib/promo/client.ts';
+	import { clearPendingPromo, markPendingTold, pendingPromo, savePendingPromo, takeRef } from '#lib/promo/link.ts';
+	import type { MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { attempt, bootDone, reloadOnStaleChunk, safeMode, withTimeout } from '#lib/boot.ts';
 
 	let { children } = $props();
@@ -41,6 +45,48 @@
 	$effect(() => {
 		if (ai.signedIn && ai.account?.id) untrack(() => void sync());
 	});
+
+	// A promo link (?ref=CODE, src/lib/promo/link.ts): kept on this device until someone is
+	// signed in and past the welcome and consent screens, then redeemed once.
+	let redeeming = false;
+	$effect(() => {
+		const ready = progress.ready && words.ready && ai.checked && !ui.showIntro && !ui.showOnboarding && !ui.showWelcome && !ai.needsConsent;
+		const signedIn = ai.signedIn && !!ai.account?.id;
+		if (ready) untrack(() => void usePromoLink(signedIn));
+	});
+	const LINK_ERR = new Set(['invalid', 'disabled', 'expired', 'used_up', 'already_redeemed', 'already_on_plan', 'rate_limited']);
+	async function usePromoLink(signedIn: boolean) {
+		if (redeeming || !pendingPromo()) return;
+		redeeming = true;
+		// let the splash finish (Splash.svelte: at least 900 ms, then a 520 ms fade) so the toast is seen
+		await new Promise((r) => setTimeout(r, 1500));
+		redeeming = false;
+		const saved = pendingPromo();
+		if (!saved || redeeming) return;
+		if (!signedIn) {
+			if (!saved.told) {
+				markPendingTold();
+				toast(t('promo.linkSaved', { code: saved.code }), '🎟️', 3600);
+			}
+			return;
+		}
+		redeeming = true;
+		try {
+			const r = await redeemPromo(saved.code);
+			clearPendingPromo();
+			plan.set(r);
+			void ai.refresh(); // a package can bring managed AI
+			toast(t('promo.linkRedeemed', { plan: r.planName }), '🎉', 3200);
+		} catch (e) {
+			const p = e instanceof PromoRequestError ? e.problem : 'other';
+			if (p === 'offline' || p === 'network' || p === 'signed_out') return; // try again on the next change
+			clearPendingPromo();
+			const reason = t(`promo.err.${LINK_ERR.has(p) ? p : 'other'}` as MessageKey);
+			toast(t('promo.linkFailed', { code: saved.code, reason }), '⚠️', 4200);
+		} finally {
+			redeeming = false;
+		}
+	}
 
 	// Immersive screens hide the navigation and can be swiped back from.
 	const immersive = $derived(/^\/(learn\/.+|review|words\/.+|ai\/.+|admin)/.test(page.url.pathname));
@@ -101,6 +147,16 @@
 		// the app is running: hide the static startup screen in app.html (Splash takes over, same look)
 		document.documentElement.classList.add('booted');
 		reloadOnStaleChunk();
+		attempt(
+			'promo_link',
+			() => {
+				const ref = takeRef(new URL(location.href));
+				if (!ref) return;
+				if (ref.code) savePendingPromo(ref.code);
+				history.replaceState(history.state, '', ref.rest); // a reload doesn't redeem it again
+			},
+			report
+		);
 		const apple = attempt('apple', takeAppleResult, report) ?? null;
 		void boot(apple);
 		attempt('account', () => ai.watch(), report);
