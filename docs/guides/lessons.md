@@ -1,0 +1,41 @@
+# Lessons: mistakes this project already made
+
+Each lesson is a real mistake or gotcha with the rule it teaches, its evidence and when it can be
+retired. Read them once. When a task feels like one of these, stop and apply the rule.
+
+The process they belong to is in [working-carefully.md](working-carefully.md).
+
+**Adding a lesson.** One line each, between the markers below (keep the list under 6 KB):
+`(slug) rule. [evidence: PR or commit; since date; retire when <check exists>]`. Remove a lesson
+when its retire condition is met.
+
+## Lessons from Coreva
+
+These came from Job's other projects and apply here unchanged:
+
+- (guessed-name) A command or input name was written from memory and was wrong. Take every name
+  from the file that defines it ([where names are defined](working-carefully.md#never-guess-a-name)).
+- (half-run) A run that failed partway was reported as succeeded. Read the run to the end; report
+  "Failed at step N" and what exists now.
+- (wrong-status) A 403 was shown as a made-up 500. Never invent data to fill a gap, and never turn
+  one error into another.
+- (stale-server) A dev server left running kept serving an old build. Stop what you start; check
+  which build a page is before you trust it.
+- (half-fix) A fix made viewing work but writes still failed. A fix is done when the whole journey
+  works, reads and writes.
+- (one-endpoint-two-pages) An endpoint was changed for one page and broke another. Find every caller first.
+- (review-independence) A reviewer must not share the author's model.
+
+## Benkyo lessons
+
+<!-- LESSONS:BEGIN -->
+
+- (migration-number) Two PRs each took the next migration number, so `0005_account_sync.sql` and `0005_beta.sql` both exist. Take the number from the default branch and open PRs at merge time, never from your branch start. [evidence: worker/migrations/; since 2026-11-15; retire when a test fails on duplicate migration prefixes]
+- (stale-readme-deploy) The README says Workers Builds deploys `main`; the real default branch is `claude/japanese-learning-pwa-hrznwf` and deploys run by hand with `npm run cf:deploy`. Trust `package.json` and the deploy notes over the README until it is fixed. [evidence: README "Deploy to Cloudflare"; since 2026-11-19; retire when the README matches]
+- (safari-boot) Regular Safari on iPhone got stuck on the splash after `Importing a module script failed`, which Chromium never showed. Startup code must survive a failed import or a slow IndexedDB (timeouts in `src/lib/boot.ts`), and missing `/_app/*` files must 404, not return HTML. [evidence: PR #20, PR #21; since 2026-11-15; retire when a WebKit startup test runs in the gate]
+- (webkit-in-cloud) The cloud container cannot download Playwright WebKit and cannot reach benkyo.jirachai.me. Reproduce Safari bugs on Job's Mac (cached WebKit, iOS simulator) and check the live site with a fetch tool. [evidence: PR #20 thread; since 2026-11-15; retire when the environment allows them]
+- (relayed-deploy) A deploy was blocked when the go came only through a relay. Name the exact action and target in the request, and if a safety check still blocks it, ask Job in the thread. [evidence: PR #12 and #19 deploys; since 2026-11-15; retire when relayed approval is never blocked]
+- (vite-preview-rebuild) `vite preview` crashes when you rebuild under it. Stop it by PID, rebuild, start it again. [evidence: PR #4 screenshots; since 2026-11-15; retire when screenshots use a script that restarts it]
+- (thai-content) New built-in lesson, course, kanji or drill text without a Thai entry fails `i18n.test.ts`. Add `content.th.ts` entries in the same PR; ask for a Thai speaker's review on consent or legal text. [evidence: PR #17; since 2026-11-15; retire never (it is the check)]
+- (consent-version) Changing consent text without bumping `CONSENT_VERSION` would keep old consents valid for new terms. Change `consentText.ts` and `consentText.th.ts` together and bump the version. [evidence: PR #6; since 2026-11-15; retire never (it is the check)]
+<!-- LESSONS:END -->
