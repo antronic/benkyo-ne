@@ -161,7 +161,7 @@ async function syncOnce(): Promise<Round | { error: SyncError }> {
 	// e.g. the first sync after signing in, pull that store from the start.
 	const scope = body.scope ?? 'key';
 	const lastScope = (await get<string>('meta', 'syncScope')) ?? (key ? 'key' : undefined);
-	const moved = lastScope !== scope && (cursor > 0 || cardsCursor > 0);
+	const moved = lastScope !== scope && (cursor > 0 || cardsCursor > 0 || notesCursor > 0);
 	if (moved) await resetCursors();
 	else {
 		await put('meta', body.cursor, 'syncCursor');

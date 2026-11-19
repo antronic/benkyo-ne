@@ -79,15 +79,21 @@ export async function pullNotes(db: D1Database, store: number, cursor: number) {
 }
 
 /** Move a sync key store's notes into an account store (see claimKeyStore). */
-export function claimNotesStatement(db: D1Database, store: number, from: number, revBase: number): D1PreparedStatement {
+/**
+ * Move one store's notes into another. New revs go above the target's highest rev, read inside
+ * the same statement so a write from another device can't take the same rev in between.
+ */
+export function claimNotesStatement(db: D1Database, store: number, from: number): D1PreparedStatement {
 	return db
 		.prepare(
 			`INSERT INTO user_notes (user_id, subject, label, body, created_at, updated_at, deleted, rev)
-			 SELECT ?1, subject, label, body, created_at, updated_at, deleted, ?3 + rev FROM user_notes WHERE user_id = ?2
+			 SELECT ?1, subject, label, body, created_at, updated_at, deleted,
+			        (SELECT COALESCE(MAX(rev), 0) FROM user_notes WHERE user_id = ?1) + rev
+			   FROM user_notes WHERE user_id = ?2
 			 ON CONFLICT (user_id, subject) DO UPDATE SET
 			   label = excluded.label, body = excluded.body, created_at = excluded.created_at,
 			   updated_at = excluded.updated_at, deleted = excluded.deleted, rev = excluded.rev
 			 WHERE excluded.updated_at > user_notes.updated_at`
 		)
-		.bind(store, from, revBase);
+		.bind(store, from);
 }

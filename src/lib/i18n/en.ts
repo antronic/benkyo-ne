@@ -753,6 +753,7 @@ export const en = {
 	'notes.placeholder': 'A hook, a mistake you keep making, where you heard it…',
 	'notes.saving': 'Saving…',
 	'notes.saved': 'Saved',
+	'notes.saveFailed': 'Couldn’t save on this device. Keep this screen open and try Done again.',
 	'notes.left': '{n} characters left',
 	'notes.loading': 'Loading your note',
 	'notes.filter': 'Notes',

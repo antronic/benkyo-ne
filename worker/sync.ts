@@ -81,9 +81,6 @@ export async function claimKeyStore(env: Env, keyHash: string, store: number, ac
 	const top = await env.DB.prepare(`SELECT COALESCE(MAX(rev), 0) AS rev FROM user_cards WHERE user_id = ?1`)
 		.bind(store)
 		.first<{ rev: number }>();
-	const topNote = await env.DB.prepare(`SELECT COALESCE(MAX(rev), 0) AS rev FROM user_notes WHERE user_id = ?1`)
-		.bind(store)
-		.first<{ rev: number }>();
 	await env.DB.batch([
 		env.DB.prepare(
 			`INSERT OR IGNORE INTO review_log (user_id, id, card_id, grade, reviewed_at, elapsed_days, duration_ms)
@@ -103,7 +100,7 @@ export async function claimKeyStore(env: Env, keyHash: string, store: number, ac
 			   deleted = excluded.deleted, rev = excluded.rev
 			 WHERE excluded.updated_at > user_cards.updated_at`
 		).bind(store, old.id, top?.rev ?? 0),
-		claimNotesStatement(env.DB, store, old.id, topNote?.rev ?? 0),
+		claimNotesStatement(env.DB, store, old.id),
 		env.DB.prepare(`DELETE FROM review_log WHERE user_id = ?1`).bind(old.id),
 		env.DB.prepare(`DELETE FROM user_cards WHERE user_id = ?1`).bind(old.id),
 		env.DB.prepare(`DELETE FROM user_notes WHERE user_id = ?1`).bind(old.id),

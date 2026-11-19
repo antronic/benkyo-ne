@@ -766,6 +766,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'notes.placeholder': 'วิธีจำ จุดที่มักพลาด หรือได้ยินคำนี้ที่ไหน…',
 	'notes.saving': 'กำลังบันทึก…',
 	'notes.saved': 'บันทึกแล้ว',
+	'notes.saveFailed': 'บันทึกในเครื่องนี้ไม่ได้ เปิดหน้านี้ไว้แล้วลองกด เสร็จ อีกครั้ง',
 	'notes.left': 'เหลืออีก {n} ตัวอักษร',
 	'notes.loading': 'กำลังโหลดโน้ต',
 	'notes.filter': 'โน้ต',

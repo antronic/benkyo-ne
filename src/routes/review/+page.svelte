@@ -132,6 +132,10 @@
 		if (wasNew && words.cards[entry.id]?.source === 'pack') await words.notePackIntroduced();
 	}
 
+	// a quick right answer moves on by itself, unless there is a note to read
+	const noteSubject = $derived(kana ? `kana:${kana.char}` : kanji ? `kanji:${kanji.char}` : '');
+	const autoNext = (correct: boolean) => correct && mode === 'choose' && !(noteSubject && notes.text(noteSubject).trim());
+
 	async function submit(correct: boolean, guess?: string) {
 		if (!card || !(kana || kanji) || result) return;
 		const ms = performance.now() - t0;
@@ -149,7 +153,7 @@
 		// drawing takes longer than tapping, so scale the time before grading
 		const scaled = mode === 'draw' ? ms / 3 : mode === 'type' ? ms / 1.5 : ms;
 		await record(correct, ms, scaled, usedHint);
-		if (correct && mode === 'choose') setTimeout(next, 700);
+		if (autoNext(correct)) setTimeout(next, 700);
 	}
 
 	async function onWordAnswer(r: { correct: boolean; ms: number; hint: boolean }) {
@@ -272,7 +276,7 @@
 								</Card></div>
 							{/if}
 							<NoteCard peek value={notes.text(`kanji:${kanji.char}`)} onsave={(b) => notes.save(`kanji:${kanji.char}`, kanji.char, b)} />
-							{#if !(result.correct && mode === 'choose')}
+							{#if !autoNext(result.correct)}
 								<Button variant={result.correct ? 'primary' : 'accent'} block onclick={next}>{t('common.continue')}</Button>
 							{/if}
 						{/if}
@@ -367,7 +371,7 @@
 							</Card></div>
 						{/if}
 						<NoteCard peek value={notes.text(`kana:${kana.char}`)} onsave={(b) => notes.save(`kana:${kana.char}`, kana.char, b)} />
-						{#if !(result.correct && mode === 'choose')}
+						{#if !autoNext(result.correct)}
 							<Button variant={result.correct ? 'primary' : 'accent'} block onclick={next}>{t('common.continue')}</Button>
 						{/if}
 					{/if}

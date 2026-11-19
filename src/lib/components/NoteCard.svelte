@@ -26,15 +26,26 @@
 	let draft = $state('');
 	let saving = $state(false);
 	let saved = $state(false);
+	let failed = $state(false);
+	/** the learner typed since the last save; until then the editor follows sync */
+	let dirty = false;
 	let open = $state(false);
 	let ref = $state<HTMLTextAreaElement>();
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	const left = $derived(NOTE_MAX - draft.length);
 
+	// an untouched editor shows a newer version that sync brings in, instead of saving the old one over it
+	$effect(() => {
+		const v = value;
+		if (editing && !dirty && !saving) draft = v;
+	});
+
 	function edit() {
 		draft = value;
+		dirty = false;
 		saved = false;
+		failed = false;
 		editing = true;
 		queueMicrotask(() => ref?.focus());
 	}
@@ -42,25 +53,34 @@
 	async function flush() {
 		clearTimeout(timer);
 		timer = undefined;
-		if (draft === value) return;
+		if (!dirty || draft === value) return true;
 		saving = true;
 		try {
 			await onsave(draft);
+			dirty = false;
 			saved = true;
+			failed = false;
+			return true;
+		} catch (e) {
+			console.error('[notes] save failed', e);
+			failed = true;
+			return false;
 		} finally {
 			saving = false;
 		}
 	}
 
 	function typed() {
+		dirty = true;
 		saved = false;
+		failed = false;
 		clearTimeout(timer);
 		timer = setTimeout(() => void flush(), 700);
 	}
 
 	async function done() {
-		await flush();
-		editing = false;
+		// keep the editor open on a failed save, so the text isn't lost
+		if (await flush()) editing = false;
 	}
 
 	onDestroy(() => {
@@ -131,6 +151,9 @@
 	}
 	.end {
 		margin-left: auto;
+	}
+	.error {
+		color: var(--danger);
 	}
 	.body {
 		margin: 0;

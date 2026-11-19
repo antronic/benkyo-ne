@@ -79,6 +79,7 @@
 			console.error('[boot] saved progress could not be opened', e);
 			progress.ready = true;
 			words.ready = true;
+			notes.ready = true;
 			toast(t('boot.storageFailed'), '⚠️', 4200);
 			return; // no intros or sync without storage; they run on the next good launch
 		}
