@@ -23,12 +23,25 @@ export const REDEEM_TRIES_PER_HOUR = 10;
 const ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 export const RANDOM_CODE_LENGTH = 10;
 
-/** " songkran-2027 " → "SONGKRAN2027"; null when it can't be a code. */
+/**
+ * " songkran-2027 " → "SONGKRAN2027", "songkran_27" → "SONGKRAN_27"; null when
+ * it can't be a code. Spaces, dashes and dots are dropped; underscores stay
+ * (Job, 2026-11-19), but not at either end.
+ */
 export function normalizePromo(raw: unknown): string | null {
 	if (typeof raw !== 'string' || raw.length > 64) return null;
-	const s = raw.toUpperCase().replace(/[\s\-_.]/g, '');
-	return /^[0-9A-Z]{4,24}$/.test(s) ? s : null;
+	const s = raw.toUpperCase().replace(/[\s\-.]/g, '');
+	return /^[0-9A-Z](?:[0-9A-Z_]{2,22})[0-9A-Z]$/.test(s) ? s : null;
 }
+
+/**
+ * A code's key for matching: underscores ignored, so SONGKRAN_27 and
+ * SONGKRAN27 are the same code. New codes must be unique by this key
+ * (worker/admin/promos.ts), so a match is never ambiguous.
+ */
+export const promoKey = (code: string) => code.replace(/_/g, '');
+/** SQL: the key of column `col`. */
+export const promoKeySql = (col: string) => `REPLACE(${col}, '_', '')`;
 
 export function generatePromoCode(): string {
 	const bytes = crypto.getRandomValues(new Uint8Array(RANDOM_CODE_LENGTH));
@@ -81,18 +94,19 @@ interface PromoRow {
 }
 
 export async function redeem(env: Env, accountId: number, raw: unknown, now = Date.now()): Promise<PromoRedeemed> {
-	const code = normalizePromo(raw);
-	if (!code) throw promoError('invalid');
+	const typed = normalizePromo(raw);
+	if (!typed) throw promoError('invalid');
 	const p = await env.DB.prepare(
 		`SELECT p.code, p.plan_id AS plan, p.kind, p.days, pl.rank,
 		        p.disabled_at IS NOT NULL AS disabled,
 		        (p.expires_at IS NOT NULL AND p.expires_at <= ?2) AS expired,
 		        (p.max_uses IS NOT NULL AND p.uses >= p.max_uses) AS usedUp
-		   FROM promo_codes p JOIN plans pl ON pl.id = p.plan_id WHERE p.code = ?1`
+		   FROM promo_codes p JOIN plans pl ON pl.id = p.plan_id WHERE ${promoKeySql('p.code')} = ?1`
 	)
-		.bind(code, now)
+		.bind(promoKey(typed), now)
 		.first<PromoRow>();
 	if (!p) throw promoError('invalid');
+	const code = p.code; // as stored, with its underscores
 	if (p.disabled) throw promoError('disabled');
 	if (p.expired) throw promoError('expired');
 	const mine = await env.DB.prepare(`SELECT 1 AS x FROM promo_redemptions WHERE code = ?1 AND account_id = ?2`).bind(code, accountId).first();

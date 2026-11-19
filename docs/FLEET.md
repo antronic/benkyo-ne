@@ -154,15 +154,28 @@ come with Phase B of `docs/AI-PLAN.md`, which will add `subscription` grants.
 
 `/admin/promos` makes codes that give a package for a while (`promo_codes`,
 migration 0011). A code is **random** (10 letters and digits without
-look-alikes such as 0/O and 1/I) or **typed in** (6 to 24 letters and
-digits; case, spaces and dashes are ignored, so `songkran-27` is saved and
-redeemed as `SONGKRAN27`). Each code sets the package (any paid one), trial
-or complimentary, how many days the package lasts from redeeming (or until
-ended, complimentary only), an optional use limit, an optional expiry, and
-a note only the admin sees. Making a code and switching it off or on need a
-passkey tap and are audited (`promo.create`, `promo.disable`,
+look-alikes such as 0/O and 1/I) or **typed in** (6 to 24 letters, digits
+and underscores, starting and ending with a letter or digit; case, spaces,
+dashes and dots are ignored, so `songkran-27` is saved as `SONGKRAN27` and
+`songkran_27` as `SONGKRAN_27`). Underscores don't count when matching:
+`SONGKRAN_27` and `SONGKRAN27` are the same code, so a new code must differ
+from every existing one with underscores removed. Each code sets the
+package (any paid one), trial or complimentary, how many days the package
+lasts from redeeming (or until ended, complimentary only), an optional use
+limit, an optional expiry, and a note only the admin sees. Making, editing
+and switching a code off or on need a passkey tap and are audited
+(`promo.create`, `promo.update` with the changed fields, `promo.disable`,
 `promo.enable`). Codes are never deleted, so their redemptions stay on
-record; tapping a code lists who redeemed it.
+record. The list shows each code's uses against its limit (`12 / 50`, or
+`12 / ∞` with no limit); tapping a code lists who redeemed it, linked to
+their account, with the date and whether that grant is still live.
+
+**Editing** (`PATCH /api/admin/promos/:code`) changes the package, kind,
+days, use limit (not below the uses so far), expiry (days from today, or
+never) and note. Changes apply to redemptions from then on; packages a code
+already gave keep their terms. The code text itself can change only while
+nobody has redeemed it. A package can't be deleted while any code, live or
+switched off, gives it: move those codes to another package first.
 
 Learners redeem a code in Settings, under Account (`POST /api/promo/redeem`,
 signed in, 10 tries an hour per account). A redemption is a normal
