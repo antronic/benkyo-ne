@@ -13,10 +13,30 @@ export interface StrokeData {
 }
 
 const KANA_STROKES = kana as unknown as Record<string, StrokeData>;
-const KANJI_STROKES = kanji as unknown as Record<string, StrokeData>;
+/** Kanji lessons' strokes, plus the level-course kanji once loadLevelStrokes() ran. */
+const KANJI_STROKES: Record<string, StrokeData> = { ...(kanji as unknown as Record<string, StrokeData>) };
 
 export const STROKES: Record<string, StrokeData> = { ...KANA_STROKES, ...KANJI_STROKES };
 export const strokesOf = (char: string): StrokeData | undefined => STROKES[char];
+
+let levelLoad: Promise<void> | null = null;
+/**
+ * Stroke data for the level-course kanji (level-kanji-strokes.json, about
+ * 150 KB) is a separate chunk: screens that draw those kanji await this first.
+ */
+export function loadLevelStrokes(): Promise<void> {
+	levelLoad ??= import('./level-kanji-strokes.json')
+		.then((m) => {
+			const more = m.default as unknown as Record<string, StrokeData>;
+			Object.assign(KANJI_STROKES, more);
+			Object.assign(STROKES, more);
+		})
+		.catch((e) => {
+			levelLoad = null;
+			throw e;
+		});
+	return levelLoad;
+}
 
 /** Characters the handwriting matcher should compare a drawing of `char` against. */
 export const familyOf = (char: string): string[] =>

@@ -236,7 +236,7 @@
 	// The link can also open sign-up with an invite filled in (/invite/INVITE?coupon=CODE).
 	let invites = $state<AdminInvite[] | null>(null);
 	let linkInvite = $state('');
-	const liveInvite = (i: AdminInvite) => !i.revokedAt && i.uses < i.maxUses && (i.expiresAt === null || i.expiresAt > Date.now());
+	const liveInvite = (i: AdminInvite) => !i.revokedAt && !i.usedUp && (i.expiresAt === null || i.expiresAt > Date.now());
 	async function loadInvites() {
 		if (invites) return;
 		try {
