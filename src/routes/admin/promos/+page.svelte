@@ -1,7 +1,7 @@
 <!--
 	Fleet console: promo codes. Make a code (random, or one you type in) that
 	gives a package for a while; learners redeem it in Settings. Tap a code to
-	see who redeemed it, or to switch it off. Making or switching a code asks
+	see who redeemed it, to edit it or to switch it off. Making, editing or switching a code asks
 	for a passkey tap and goes in the audit log.
 -->
 <script lang="ts">
@@ -13,8 +13,8 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { AdminError } from '#lib/admin/client.ts';
-	import { createPromo, getPromo, listPromos, setPromoDisabled } from '#lib/admin/promos.ts';
-	import type { AdminPromo, AdminPromoDetail, AdminPromoInput, AdminPromoList } from '#lib/promo/contract.ts';
+	import { createPromo, getPromo, listPromos, setPromoDisabled, updatePromo } from '#lib/admin/promos.ts';
+	import type { AdminPromo, AdminPromoDetail, AdminPromoInput, AdminPromoList, AdminPromoPatch } from '#lib/promo/contract.ts';
 	import FleetTrail from '#lib/admin/FleetTrail.svelte';
 	import '#lib/admin/admin.css';
 
@@ -55,9 +55,12 @@
 	}
 	onMount(load);
 
-	const CODE_RE = /^[0-9A-Z]{6,24}$/;
-	const customClean = $derived(custom.toUpperCase().replace(/[\s\-_.]/g, ''));
-	const customProblem = $derived(source === 'custom' && custom && !CODE_RE.test(customClean) ? '6 to 24 letters and digits' : undefined);
+	// same rule as normalizePromo/parseCode in the Worker: letters, digits and _, not _ at either end
+	const CODE_RE = /^[0-9A-Z][0-9A-Z_]{2,22}[0-9A-Z]$/;
+	const cleanCode = (s: string) => s.toUpperCase().replace(/[\s\-.]/g, '');
+	const codeProblem = (c: string) => (c && (!CODE_RE.test(c) || c.replace(/_/g, '').length < 6) ? '6 to 24 letters, digits and _, starting and ending with a letter or digit' : undefined);
+	const customClean = $derived(cleanCode(custom));
+	const customProblem = $derived(source === 'custom' ? codeProblem(customClean) : undefined);
 	const num = (s: string | number | null | undefined) => {
 		const v = String(s ?? '').trim();
 		return /^\d+$/.test(v) ? Number(v) : NaN;
@@ -101,10 +104,82 @@
 		open = code;
 		detail = null;
 		detailError = null;
+		edit = null;
 		try {
 			detail = await getPromo(code);
 		} catch (e) {
 			detailError = e instanceof AdminError ? e : new AdminError(0, 'server', String(e));
+		}
+	}
+
+	// editing the open code, as form strings like the new-code form
+	type EditForm = { code: string; label: string; plan: string; kind: 'trial' | 'comp'; days: string; openEnded: boolean; limitUses: boolean; maxUses: string; expires: boolean; expiresIn: string };
+	let edit = $state<EditForm | null>(null);
+	let editStart: EditForm | null = null;
+	let saving = $state(false);
+	let editError = $state<string | null>(null);
+	const daysLeft = (t: number) => Math.max(1, Math.ceil((t - Date.now()) / 86_400_000));
+
+	function startEdit(d: AdminPromoDetail) {
+		edit = {
+			code: d.code,
+			label: d.label ?? '',
+			plan: d.plan,
+			kind: d.kind,
+			days: d.days === null ? '30' : String(d.days),
+			openEnded: d.days === null,
+			limitUses: d.maxUses !== null,
+			maxUses: String(d.maxUses ?? Math.max(100, d.uses)),
+			expires: d.expiresAt !== null,
+			expiresIn: d.expiresAt === null ? '30' : String(daysLeft(d.expiresAt))
+		};
+		editStart = { ...edit };
+		editError = null;
+	}
+	const editCode = $derived(edit ? cleanCode(edit.code) : '');
+	const editCodeProblem = $derived(edit ? codeProblem(editCode) : undefined);
+
+	/** Only what changed, so an untouched expiry keeps its exact date. */
+	function patchOf(f: EditForm, was: EditForm): AdminPromoPatch {
+		const p: AdminPromoPatch = {};
+		if (cleanCode(f.code) !== cleanCode(was.code)) p.code = cleanCode(f.code);
+		if (f.label.trim() !== was.label.trim()) p.label = f.label.trim() || null;
+		if (f.plan !== was.plan) p.plan = f.plan;
+		if (f.kind !== was.kind) p.kind = f.kind;
+		const days = f.kind === 'comp' && f.openEnded ? null : num(f.days);
+		const daysWas = was.kind === 'comp' && was.openEnded ? null : num(was.days);
+		if (days !== daysWas) p.days = days;
+		const uses = f.limitUses ? num(f.maxUses) : null;
+		if (uses !== (was.limitUses ? num(was.maxUses) : null)) p.maxUses = uses;
+		const exp = f.expires ? num(f.expiresIn) : null;
+		if (exp !== (was.expires ? num(was.expiresIn) : null)) p.expiresInDays = exp;
+		return p;
+	}
+
+	async function saveEdit(e: SubmitEvent) {
+		e.preventDefault();
+		if (!edit || !editStart || !detail) return;
+		editError = null;
+		const patch = patchOf(edit, editStart);
+		if ([patch.days, patch.maxUses, patch.expiresInDays].some((v) => v !== undefined && v !== null && !Number.isFinite(v))) {
+			editError = 'Days, uses and expiry are whole numbers.';
+			return;
+		}
+		if (!Object.keys(patch).length) {
+			edit = null;
+			return;
+		}
+		saving = true;
+		try {
+			detail = await updatePromo(detail.code, patch);
+			open = detail.code;
+			edit = null;
+			toast('Code saved', '✓');
+			await load();
+		} catch (err) {
+			editError = err instanceof AdminError ? err.message : 'Passkey confirmation cancelled';
+		} finally {
+			saving = false;
 		}
 	}
 
@@ -146,8 +221,10 @@
 		used_up: { label: 'Used up', tone: 'warning' }
 	} as const;
 	const gives = (p: AdminPromo) => `${planName(p.plan)} ${p.kind === 'trial' ? 'trial' : 'comp'}, ${p.days === null ? 'until ended' : `${p.days} days`}`;
+	/** used / allowed: "12 / 50", "12 / ∞" for no limit */
+	const usage = (p: AdminPromo) => `${p.uses} / ${p.maxUses ?? '∞'}`;
 	const limits = (p: AdminPromo) =>
-		`${p.uses}${p.maxUses === null ? '' : ` of ${p.maxUses}`} used · ${p.expiresAt ? `${p.state === 'expired' ? 'expired' : 'until'} ${shortDay(p.expiresAt)}` : 'no expiry'}`;
+		`${usage(p)} redeemed · ${p.expiresAt ? `${p.state === 'expired' ? 'expired' : 'until'} ${shortDay(p.expiresAt)}` : 'no expiry'}`;
 </script>
 
 <svelte:head><title>Promo codes · Fleet</title></svelte:head>
@@ -177,13 +254,13 @@
 					<TextField
 						label="Code"
 						bind:value={custom}
-						placeholder="SONGKRAN27"
+						placeholder="SONGKRAN_27"
 						maxlength={30}
 						autocomplete="off"
 						autocapitalize="characters"
 						spellcheck={false}
 						error={customProblem}
-						hint={customClean && !customProblem ? `Saved as ${customClean}. Case, spaces and dashes don’t matter when redeeming.` : 'Letters and digits, 6 to 24.'}
+						hint={customClean && !customProblem ? `Saved as ${customClean}. Case, spaces, dashes and _ don’t matter when redeeming.` : 'Letters, digits and _, 6 to 24.'}
 					/>
 				{/if}
 				<Segmented
@@ -235,7 +312,7 @@
 		<ListGroup>
 			{#each data.promos as p (p.code)}
 				<ListRow title={p.code} subtitle="{gives(p)} · {limits(p)}{p.label ? ` · ${p.label}` : ''}" onclick={() => show(p.code)} chevron>
-					{#snippet trailing()}<Badge tone={STATE[p.state].tone}>{STATE[p.state].label}</Badge>{/snippet}
+					{#snippet trailing()}<span class="uses">{usage(p)}</span><Badge tone={STATE[p.state].tone}>{STATE[p.state].label}</Badge>{/snippet}
 				</ListRow>
 			{:else}
 				<ListRow title="No codes yet" subtitle="Make one above. People redeem it in Settings, under Account." />
@@ -249,6 +326,65 @@
 			{:else if !detail}
 				<Skeleton variant="row" count={2} label="Loading code" />
 			{:else}
+				{#if edit}
+					<Card padding="md">
+						<form class="form" onsubmit={saveEdit}>
+							<TextField
+								label="Code"
+								bind:value={edit.code}
+								maxlength={30}
+								autocomplete="off"
+								autocapitalize="characters"
+								spellcheck={false}
+								disabled={detail.uses > 0 || detail.redemptions.length > 0}
+								error={editCodeProblem}
+								hint={detail.uses > 0 || detail.redemptions.length > 0
+									? 'Can’t change after someone has redeemed it: they and their grant already name it. Make a new code instead.'
+									: editCode && !editCodeProblem && editCode !== detail.code
+										? `Saved as ${editCode}.`
+										: 'Nobody has used it yet, so you can still change it.'}
+							/>
+							<Segmented
+								label="Kind"
+								bind:value={edit.kind}
+								options={[
+									{ value: 'trial', label: 'Trial' },
+									{ value: 'comp', label: 'Complimentary' }
+								]}
+							/>
+							<ListGroup>
+								<ListRow title="Package" subtitle="What the code gives">
+									{#snippet trailing()}<Select label="Package" bind:value={edit!.plan} options={data!.plans.map((p) => ({ value: p.id, label: p.name }))} />{/snippet}
+								</ListRow>
+								{#if edit.kind === 'comp'}
+									<ListRow title="No end date" subtitle="Lasts until you end it">
+										{#snippet trailing()}<Switch label="No end date" bind:checked={edit!.openEnded} />{/snippet}
+									</ListRow>
+								{/if}
+								<ListRow title="Limit uses" subtitle={`Used ${detail.uses} time${detail.uses === 1 ? '' : 's'} so far`}>
+									{#snippet trailing()}<Switch label="Limit uses" bind:checked={edit!.limitUses} />{/snippet}
+								</ListRow>
+								<ListRow title="Expires" subtitle={detail.expiresAt ? `Now ${detail.state === 'expired' ? 'expired' : 'until'} ${shortDay(detail.expiresAt)}` : 'Now accepted until you switch it off'}>
+									{#snippet trailing()}<Switch label="Expires" bind:checked={edit!.expires} />{/snippet}
+								</ListRow>
+							</ListGroup>
+							<div class="grid">
+								{#if edit.kind === 'trial' || !edit.openEnded}
+									<TextField label="Days of the package" type="number" inputmode="numeric" min={1} max={730} bind:value={edit.days} hint="From redeeming, 1 to 730" />
+								{/if}
+								{#if edit.limitUses}<TextField label="Uses" type="number" inputmode="numeric" min={Math.max(1, detail.uses)} max={10000} bind:value={edit.maxUses} hint="{Math.max(1, detail.uses)} to 10,000" />{/if}
+								{#if edit.expires}<TextField label="Redeemable for (days from today)" type="number" inputmode="numeric" min={1} max={365} bind:value={edit.expiresIn} hint="1 to 365" />{/if}
+							</div>
+							<TextField label="Note (only you see it)" bind:value={edit.label} maxlength={60} />
+							<Notice tone="info">Changes apply to people who redeem it from now on. Packages it already gave keep their terms.</Notice>
+							{#if editError}<Notice tone="danger" title="Not saved">{editError}</Notice>{/if}
+							<div class="actions">
+								<Button variant="ghost" onclick={() => (edit = null)} disabled={saving}>Cancel</Button>
+								<Button type="submit" busy={saving} disabled={!!editCodeProblem}>Save changes</Button>
+							</div>
+						</form>
+					</Card>
+				{:else}
 				<Card padding="md">
 					<div class="form">
 						<span class="caption">{gives(detail)}. {limits(detail)}. Made {shortDay(detail.createdAt)}.</span>
@@ -258,9 +394,13 @@
 							</ListRow>
 						</ListGroup>
 						<span class="caption">Switching a code off stops new redemptions. Packages it already gave keep running; end one on the account’s page.</span>
-						<Button variant="ghost" size="sm" onclick={() => copy(detail!.code)}>Copy code</Button>
+						<div class="actions">
+							<Button variant="ghost" size="sm" onclick={() => copy(detail!.code)}>Copy code</Button>
+							<Button size="sm" onclick={() => startEdit(detail!)}>Edit code</Button>
+						</div>
 					</div>
 				</Card>
+				{/if}
 				<SectionHeader title="Redeemed by" level={3} trailing={redeemedCount} />
 				<ListGroup>
 					{#each detail.redemptions as r (r.accountId)}
@@ -281,13 +421,25 @@
 	{/if}
 </main>
 
-{#snippet redeemedCount()}{detail?.redemptions.length ?? 0}{/snippet}
+{#snippet redeemedCount()}{detail ? usage(detail) : ''}{/snippet}
 
 <style>
+	.uses {
+		font-variant-numeric: tabular-nums;
+		color: var(--color-text-2);
+		font-size: var(--text-subhead);
+		margin-inline-end: var(--space-2);
+	}
 	.form {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
+	}
+	.actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: var(--space-2);
+		flex-wrap: wrap;
 	}
 	.grid {
 		display: grid;

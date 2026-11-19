@@ -744,7 +744,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'promo.retry': 'ลองอีกครั้ง',
 	'promo.label': 'มีโค้ดไหม',
 	'promo.placeholder': 'ใส่โค้ด',
-	'promo.hint': 'ตัวอักษรและตัวเลข เว้นวรรคหรือขีดกลางก็ได้',
+	'promo.hint': 'ตัวอักษร ตัวเลข และ _ ตัวพิมพ์เล็กหรือใหญ่ เว้นวรรค หรือขีดกลางก็ได้',
 	'promo.redeem': 'ใช้โค้ด',
 	'promo.redeemed': 'เปิดใช้ {plan} แล้ว',
 	'promo.redeemedBody': 'โค้ด {code} ให้คุณใช้ {plan} ถึง {date}',
