@@ -295,6 +295,7 @@ export const en = {
 	'ai.setup': 'Set up AI in Settings.',
 	'ai.openSettings': 'Open Settings ›',
 	'ai.usage': 'This month: {spent} of {cap} · {n} calls',
+	'ai.usagePackage': '✨ {name} package · this month: {spent} of {cap} · {n} calls',
 
 	// Kuri, the Shiba companion
 	'kuri.name': 'Kuri',
