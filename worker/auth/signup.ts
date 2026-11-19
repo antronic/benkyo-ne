@@ -87,7 +87,7 @@ export function normalizeInvite(raw: unknown): string | null {
 /** A name that would be read as a random code (8 letters and digits, or BK + 8). */
 export const isRandomShape = (code: string) => /^BK-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(code);
 
-const VALID = `revoked_at IS NULL AND uses < max_uses AND (expires_at IS NULL OR expires_at > ?2)`;
+const VALID = `deleted_at IS NULL AND revoked_at IS NULL AND uses < max_uses AND (expires_at IS NULL OR expires_at > ?2)`;
 
 /** Throws 403 unless the code exists and still has a use left. */
 export async function checkInvite(env: Env, code: string | null) {

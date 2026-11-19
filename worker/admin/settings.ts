@@ -7,6 +7,7 @@
  *   GET    /api/admin/invites                      → {invites}
  *   POST   /api/admin/invites {code?, label?, maxUses?, expiresInDays?, card?, coupon?}  → AdminInvite (a VIP has a name and a card)
  *   PATCH  /api/admin/invites/:code {card?, coupon?}  a VIP's card and promo code (step-up)
+ *   POST   /api/admin/invites/:code/delete         hide it for good (step-up; the row stays)
  *   DELETE /api/admin/invites/:code                revoke
  *
  * Every change is written to admin_audit.
@@ -43,7 +44,7 @@ async function settings(env: Env): Promise<AdminSettings> {
 		sessionTtlMs(env),
 		env.DB.prepare(`SELECT value FROM ai_settings WHERE key = 'session_ttl_days'`).first<{ value: string }>(),
 		env.DB.prepare(
-			`SELECT ${INVITE_COLS} FROM invite_codes ORDER BY created_at DESC LIMIT 200`
+			`SELECT ${INVITE_COLS} FROM invite_codes WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 200`
 		).all<InviteRow>(),
 		env.DB.prepare(
 			`SELECT strftime('%Y-%m-%d', created_at / 1000, 'unixepoch') AS day, COUNT(*) AS count
@@ -68,7 +69,7 @@ async function settings(env: Env): Promise<AdminSettings> {
 const INVITE_COLS = `code, label, max_uses AS maxUses, uses, expires_at AS expiresAt, created_at AS createdAt, revoked_at AS revokedAt,
 	card_note AS cardNote, card_from AS cardFrom, card_ink AS cardInk, coupon`;
 async function listInvites(env: Env): Promise<AdminInvite[]> {
-	const r = await env.DB.prepare(`SELECT ${INVITE_COLS} FROM invite_codes ORDER BY created_at DESC LIMIT 200`).all<InviteRow>();
+	const r = await env.DB.prepare(`SELECT ${INVITE_COLS} FROM invite_codes WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 200`).all<InviteRow>();
 	return r.results.map(toAdminInvite);
 }
 async function oneInvite(env: Env, code: string): Promise<AdminInvite> {
@@ -80,7 +81,7 @@ async function oneInvite(env: Env, code: string): Promise<AdminInvite> {
 async function resolveCoupon(env: Env, raw: unknown): Promise<string | null> {
 	if (raw === null || raw === undefined || raw === '') return null;
 	const c = normalizePromo(raw);
-	const row = c && (await env.DB.prepare(`SELECT code FROM promo_codes WHERE ${promoKeySql('code')} = ?1`).bind(promoKey(c)).first<{ code: string }>());
+	const row = c && (await env.DB.prepare(`SELECT code FROM promo_codes WHERE ${promoKeySql('code')} = ?1 AND deleted_at IS NULL`).bind(promoKey(c)).first<{ code: string }>());
 	if (!row) throw httpError(400, 'bad_request', 'No promo code with that name. Make it in Promo codes first');
 	return row.code;
 }
@@ -157,7 +158,7 @@ export async function handleSettings(req: Request, env: Env, url: URL, ctx: Admi
 		const now = Date.now();
 		const code = input.code ?? generateInviteCode();
 		if (input.code && (await env.DB.prepare(`SELECT 1 AS x FROM invite_codes WHERE code = ?1`).bind(code).first()))
-			throw httpError(409, 'bad_request', 'An invite with that name already exists');
+			throw httpError(409, 'bad_request', 'An invite with that name exists or was deleted. Names can’t be reused');
 		const expiresAt = input.expiresInDays ? now + input.expiresInDays * DAY : null;
 		const card = input.card;
 		await audited(
@@ -176,12 +177,29 @@ export async function handleSettings(req: Request, env: Env, url: URL, ctx: Admi
 		return json(await oneInvite(env, code));
 	}
 
+	// Delete hides an invite: it can't be used and isn't listed; its row stays (accounts.invite_code, the audit log)
+	const del = /^\/api\/admin\/invites\/([A-Za-z0-9_-]{3,20})\/delete$/.exec(p);
+	if (del && m === 'POST') {
+		const code = normalizeInvite(decodeURIComponent(del[1]));
+		const row =
+			code &&
+			(await env.DB.prepare(`SELECT code, uses, card_note IS NOT NULL OR card_ink IS NOT NULL AS vip FROM invite_codes WHERE code = ?1 AND deleted_at IS NULL`)
+				.bind(code)
+				.first<{ code: string; uses: number; vip: number }>());
+		if (!row) throw httpError(404, 'bad_request', 'No such invite');
+		await requireFresh(env, ctx);
+		await audited(env, ctx, 'invite.delete', null, { code: row.code, vip: !!row.vip, uses: row.uses }, [
+			env.DB.prepare(`UPDATE invite_codes SET deleted_at = ?1 WHERE code = ?2`).bind(Date.now(), row.code)
+		]);
+		return json({ ok: true });
+	}
+
 	const inv = /^\/api\/admin\/invites\/([A-Za-z0-9_-]{3,20})$/.exec(p);
 	if (inv && m === 'PATCH') {
 		const code = normalizeInvite(decodeURIComponent(inv[1]));
 		const before =
 			code &&
-			(await env.DB.prepare(`SELECT card_note AS note, card_from AS fromName, card_ink IS NOT NULL AS hasInk, coupon FROM invite_codes WHERE code = ?1`)
+			(await env.DB.prepare(`SELECT card_note AS note, card_from AS fromName, card_ink IS NOT NULL AS hasInk, coupon FROM invite_codes WHERE code = ?1 AND deleted_at IS NULL`)
 				.bind(code)
 				.first<{ note: string | null; fromName: string | null; hasInk: number; coupon: string | null }>());
 		if (!code || !before) throw httpError(404, 'bad_request', 'No such invite');
@@ -213,7 +231,7 @@ export async function handleSettings(req: Request, env: Env, url: URL, ctx: Admi
 	}
 	if (inv && m === 'DELETE') {
 		const code = normalizeInvite(decodeURIComponent(inv[1]));
-		const row = code && (await env.DB.prepare(`SELECT 1 AS x FROM invite_codes WHERE code = ?1 AND revoked_at IS NULL`).bind(code).first());
+		const row = code && (await env.DB.prepare(`SELECT 1 AS x FROM invite_codes WHERE code = ?1 AND revoked_at IS NULL AND deleted_at IS NULL`).bind(code).first());
 		if (!row) throw httpError(404, 'bad_request', 'No such invite, or it is already revoked');
 		await audited(env, ctx, 'invite.revoke', null, { code }, [
 			env.DB.prepare(`UPDATE invite_codes SET revoked_at = ?1 WHERE code = ?2`).bind(Date.now(), code)

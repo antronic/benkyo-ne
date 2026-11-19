@@ -149,6 +149,21 @@ describe('invite cards (VIP)', () => {
 		expect(audit().at(-1)?.action).toBe('invite.coupon');
 	});
 
+	it('deletes an invite: hidden, unusable, the row and its name kept', async () => {
+		await call('POST', '/api/admin/invites', { code: 'vip', maxUses: 5, card: { note: 'Hi', from: 'Job' } });
+		db.exec(`UPDATE sessions SET stepup_at = NULL`);
+		expect((await call('POST', '/api/admin/invites/vip/delete')).status).toBe(428);
+		stepUp();
+		expect((await call('POST', '/api/admin/invites/vip/delete')).body).toEqual({ ok: true });
+		expect(audit().at(-1)?.action).toBe('invite.delete');
+		expect((await call('GET', '/api/admin/invites')).body.invites).toEqual([]);
+		expect((await call('GET', '/api/admin/settings')).body.invites).toEqual([]);
+		expect((await call('POST', '/api/admin/invites/vip/delete')).status).toBe(404);
+		expect((await call('PATCH', '/api/admin/invites/vip', { coupon: null })).status).toBe(404);
+		expect((await call('POST', '/api/admin/invites', { code: 'vip' })).status).toBe(409);
+		expect(db.prepare(`SELECT deleted_at IS NOT NULL AS gone FROM invite_codes WHERE code = 'VIP'`).get()).toEqual({ gone: 1 });
+	});
+
 	it('refuses a VIP without a name, an unknown promo code, and a code on a plain invite', async () => {
 		const card = { note: 'Hi', from: 'Job' };
 		expect((await call('POST', '/api/admin/invites', { card })).status).toBe(400);

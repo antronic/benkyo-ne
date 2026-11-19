@@ -49,7 +49,7 @@ export function generatePromoCode(): string {
 }
 
 /** SQL condition: promo code `p` can still be redeemed at `now`. */
-export const redeemable = (now: string) => `p.disabled_at IS NULL AND (p.expires_at IS NULL OR p.expires_at > ${now}) AND (p.max_uses IS NULL OR p.uses < p.max_uses)`;
+export const redeemable = (now: string) => `p.deleted_at IS NULL AND p.disabled_at IS NULL AND (p.expires_at IS NULL OR p.expires_at > ${now}) AND (p.max_uses IS NULL OR p.uses < p.max_uses)`;
 
 const PROBLEMS: Record<PromoProblem, [number, string]> = {
 	invalid: [404, 'That code isn’t valid'],
@@ -101,7 +101,7 @@ export async function redeem(env: Env, accountId: number, raw: unknown, now = Da
 		        p.disabled_at IS NOT NULL AS disabled,
 		        (p.expires_at IS NOT NULL AND p.expires_at <= ?2) AS expired,
 		        (p.max_uses IS NOT NULL AND p.uses >= p.max_uses) AS usedUp
-		   FROM promo_codes p JOIN plans pl ON pl.id = p.plan_id WHERE ${promoKeySql('p.code')} = ?1`
+		   FROM promo_codes p JOIN plans pl ON pl.id = p.plan_id WHERE ${promoKeySql('p.code')} = ?1 AND p.deleted_at IS NULL`
 	)
 		.bind(promoKey(typed), now)
 		.first<PromoRow>();

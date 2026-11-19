@@ -154,6 +154,31 @@ describe('redeeming a code', () => {
 		expect((await admin('GET', '/api/admin/packages')).body.grants[0]).toMatchObject({ accountId: 2, plan: 'plus', note: 'Promo TRYPLUS' });
 	});
 
+	it('deletes a code: hidden and no longer redeemable, while given packages and VIPs stay', async () => {
+		await make({ code: 'GONE01', plan: 'plus', kind: 'trial', days: 30 });
+		expect((await asLearner(2, 'POST', '/api/promo/redeem', { code: 'GONE01' })).status).toBe(200);
+		db.exec(`INSERT INTO invite_codes (code, max_uses, uses, created_at, card_note, coupon) VALUES ('VIP', 5, 0, ${Date.now()}, 'Hi', 'GONE01')`);
+		session = ADMIN;
+		db.exec(`UPDATE sessions SET stepup_at = NULL`);
+		expect((await admin('DELETE', '/api/admin/promos/GONE01')).status).toBe(428);
+		stepUp();
+		expect((await admin('DELETE', '/api/admin/promos/GONE01')).body).toEqual({ ok: true });
+		expect(audit().at(-1)).toMatchObject({ action: 'promo.delete' });
+		expect(JSON.parse(audit().at(-1)!.d)).toMatchObject({ code: 'GONE01', uses: 1, unboundVips: ['VIP'] });
+		expect((await admin('GET', '/api/admin/promos')).body.promos.map((p: { code: string }) => p.code)).not.toContain('GONE01');
+		expect((await admin('GET', '/api/admin/promos/GONE01')).status).toBe(404);
+		expect((await admin('DELETE', '/api/admin/promos/GONE01')).status).toBe(404);
+		// the row, the redemption and the package it gave stay; the VIP drops it
+		expect(db.prepare(`SELECT COUNT(*) AS n FROM promo_redemptions WHERE code = 'GONE01'`).get()).toEqual({ n: 1 });
+		expect(await planOf(env as never, 2)).toBe('plus');
+		expect(db.prepare(`SELECT coupon FROM invite_codes WHERE code = 'VIP'`).get()).toEqual({ coupon: null });
+		const r = await asLearner(3, 'POST', '/api/promo/redeem', { code: 'GONE01' });
+		expect([r.status, r.body.problem]).toEqual([404, 'invalid']);
+		// the name stays taken
+		session = ADMIN;
+		expect((await make({ code: 'GONE_01', plan: 'plus', kind: 'trial', days: 7 })).status).toBe(409);
+	});
+
 	it('works once per account', async () => {
 		await make({ code: 'ONCE01', plan: 'plus', kind: 'trial', days: 7 });
 		await asLearner(2, 'POST', '/api/promo/redeem', { code: 'ONCE01' });

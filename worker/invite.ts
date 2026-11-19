@@ -60,7 +60,7 @@ export function parseCard(raw: unknown): InviteCardData | null {
 	return { note, from, ink };
 }
 
-const VALID = `revoked_at IS NULL AND uses < max_uses AND (expires_at IS NULL OR expires_at > ?2)`;
+const VALID = `deleted_at IS NULL AND revoked_at IS NULL AND uses < max_uses AND (expires_at IS NULL OR expires_at > ?2)`;
 
 export async function inviteCard(env: Env, rawCode: string, rawCoupon: string | null, now = Date.now()): Promise<InviteCardResponse | null> {
 	const code = normalizeInvite(rawCode);
@@ -99,7 +99,16 @@ export async function handleInviteCard(req: Request, env: Env, url: URL): Promis
 	const m = /^\/api\/auth\/invite\/([A-Za-z0-9_-]{3,24})$/.exec(url.pathname);
 	if (!m || req.method !== 'GET') return null;
 	if (!(await rateLimit(env, `invitecard:${clientIp(req)}`, 30))) throw httpError(429, 'rate_limited', 'Too many tries. Wait a minute');
-	const r = await inviteCard(env, decodeURIComponent(m[1]), url.searchParams.get('coupon'));
-	if (!r) throw httpError(404, 'bad_request', 'No card for that invite');
+	const raw = decodeURIComponent(m[1]);
+	const r = await inviteCard(env, raw, url.searchParams.get('coupon'));
+	if (!r) {
+		// deleted, revoked, used up or expired: the link has ended, so the app doesn't fill it in
+		const code = normalizeInvite(raw);
+		const ended =
+			code &&
+			(await env.DB.prepare(`SELECT 1 AS x FROM invite_codes WHERE code = ?1 AND NOT (${VALID})`).bind(code, Date.now()).first());
+		if (ended) throw httpError(410, 'bad_request', 'That invite has ended');
+		throw httpError(404, 'bad_request', 'No card for that invite');
+	}
 	return json(r);
 }
