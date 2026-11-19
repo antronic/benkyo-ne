@@ -21,7 +21,8 @@
 	} from '#lib/ai/threads.ts';
 	import { speak } from '#lib/content/kana.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
-	import { Button, Card, Chip, FieldRow, IconButton, ListGroup, Sheet, TextArea, TextField } from '#lib/ui/index.ts';
+	import { Avatar, Button, Card, Chip, FieldRow, IconButton, ListGroup, Sheet, TextArea, TextField } from '#lib/ui/index.ts';
+	import { avatar } from '#lib/state/avatar.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
@@ -305,14 +306,17 @@
 			</div>
 		{/if}
 		{#each msgs as m, i (current?.id + ':' + i)}
-			<div class="bubble {m.role}" in:fly={{ y: 12, duration: 250 }}>
-				{#if m.role === 'assistant'}
+			{#if m.role === 'assistant'}
+				<div class="bubble assistant" in:fly={{ y: 12, duration: 250 }}>
 					{@render answerBody(m.text, m.reply?.answer2, m.reply?.examples ?? [])}
 					{#if m.partial}<p class="caption note">{t('ask.partial')}</p>{/if}
-				{:else}
-					<p class="text">{m.text}</p>
-				{/if}
-			</div>
+				</div>
+			{:else}
+				<div class="me" in:fly={{ y: 12, duration: 250 }}>
+					<div class="bubble user"><p class="text">{m.text}</p></div>
+					{#if ai.signedIn}<Avatar person={avatar.person} name={ai.account?.name ?? ''} size={28} label="" />{/if}
+				</div>
+			{/if}
 		{/each}
 		{#if busy && liveParts}
 			{#if liveParts.answer}
@@ -425,6 +429,17 @@
 		max-width: 88%;
 		padding: var(--space-3) var(--space-4);
 		border-radius: 20px;
+	}
+	.me {
+		align-self: flex-end;
+		display: flex;
+		align-items: flex-end;
+		justify-content: flex-end;
+		gap: var(--space-2);
+		max-width: 88%;
+	}
+	.me .bubble {
+		max-width: none;
 	}
 	.bubble.user {
 		align-self: flex-end;

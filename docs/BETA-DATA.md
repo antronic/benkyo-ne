@@ -18,9 +18,11 @@ the version together**: every account is then asked to agree again.
 | AI requests and replies | the parsed request (words, questions, Ask AI turns, lesson topics), the full system + user prompt, the raw model reply, the validated result, provider, model, tokens, cost, latency, status/error. Images are replaced by `{mediaType, bytes}` | Worker → `beta_ai_calls` |
 | Device and app | user agent, UA client hints (brands, platform, model, platform version when offered), screen/viewport/pixel ratio/orientation, colour scheme, reduced motion, language(s), time zone, display mode (installed vs browser tab), service worker, CPU cores, device memory, network type, storage used, app version; Cloudflare's country guess per batch (never the IP) | app → `beta_events` (`kind = device`) |
 | Errors and events | `window` errors and unhandled rejections (message, stack), failed API calls (path, status, server message), screens opened, app open/hidden/visible, settings changed, progress reset | app → `beta_events` (`kind = error` / `event`) |
+| Avatar | `avatar_saved`: the saved parts (only the changes from the defaults), whether they came from a selfie or were picked by hand, which suggestions the learner was asked to confirm. Never the photo or face measurements (consent version 3, Job 2026-11-19; docs/AVATAR.md) | app → `beta_events` (`kind = event`) |
 
 **Never collected:** AI API keys (they are only decrypted to call the
-provider and never touch usage data), passkeys, recovery codes, request
+provider and never touch usage data), passkeys, recovery codes, the avatar
+selfie (read on the device, never uploaded), request
 bodies of failed calls, anything outside Benkyo. As a safety net,
 `src/lib/beta/scrub.ts` drops secret-looking fields (`apiKey`, `token`,
 `password`, `cookie`, …) and replaces key-like text (`sk-…`, `Bearer …`,

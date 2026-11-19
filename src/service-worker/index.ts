@@ -37,9 +37,21 @@ const DICT_PIECES = new Set(
 		.map(([, chunk]) => `/${chunk.file}`)
 );
 
+/**
+ * The avatar's big run-time files are not precached either: static/avatar/ (three.js for the
+ * live 3D avatar, the selfie reader's WebAssembly and face models, ~25 MB) and the
+ * @mediapipe/tasks-vision chunk. They load only when someone opens the live avatar or the
+ * selfie reader, and the runtime cache keeps each one after its first use.
+ */
+const AVATAR_CHUNKS = new Set(
+	Object.entries(viteManifest)
+		.filter(([src]) => src.includes('@mediapipe/tasks-vision'))
+		.map(([, chunk]) => `/${chunk.file}`)
+);
+
 const PRECACHE = ['/', ...immutable.map((f) => f.path), ...assets.map((f) => f.path)]
 	.map((p) => (p.startsWith('/') ? p : `/${p}`))
-	.filter((p) => !DICT_PIECES.has(p));
+	.filter((p) => !DICT_PIECES.has(p) && !AVATAR_CHUNKS.has(p) && !p.startsWith('/avatar/'));
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(

@@ -12,6 +12,8 @@
 	import Intro from '#lib/components/Intro.svelte';
 	import Welcome from '#lib/components/Welcome.svelte';
 	import BetaConsent from '#lib/components/BetaConsent.svelte';
+	import AvatarSetup from '#lib/components/AvatarSetup.svelte';
+	import { avatar } from '#lib/state/avatar.svelte.ts';
 	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 	import { get as idbGet, put as idbPut } from '#lib/db/idb.ts';
 	import { page } from '$app/state';
@@ -194,7 +196,7 @@
 			return;
 		}
 		if (r.result === 'linked') toast(t('apple.connected'), '✓');
-		else if (r.result === 'created') toast(t('welcome.toBeta', { name: ai.account?.name ?? '' }).trim(), '🎉', 2800);
+		else if (r.result === 'created') (avatar.afterSignup = true), toast(t('welcome.toBeta', { name: ai.account?.name ?? '' }).trim(), '🎉', 2800);
 		else toast(t('welcome.back', { name: ai.account?.name ?? '' }).trim(), '👋');
 	}
 
@@ -214,9 +216,22 @@
 	let kuriPending = $state(false);
 	$effect(() => {
 		if (!kuriPending || !progress.settings.kuri || page.url.pathname !== '/') return;
-		if (ui.showIntro || ui.showOnboarding || ui.showWelcome || ai.needsConsent) return;
+		if (ui.showIntro || ui.showOnboarding || ui.showWelcome || ai.needsConsent || avatar.setup || avatar.afterSignup) return;
 		kuriPending = false;
 		ui.showKuriIntro = true;
+	});
+	// The avatar step of sign-up (docs/AVATAR.md): after the welcome (and its recovery code) and the beta consent.
+	$effect(() => {
+		if (!avatar.afterSignup || avatar.setup || ui.showIntro || ui.showOnboarding || ui.showWelcome) return;
+		if (!ai.signedIn || ai.needsConsent) return;
+		avatar.setup = 'signup';
+	});
+	// keep the offline copy of the avatar in step with the account
+	$effect(() => {
+		void ai.account;
+		void ai.reached;
+		void ai.signedIn;
+		untrack(() => avatar.sync());
 	});
 	/** the beta sign-up / sign-in (passkey only), unless already signed in */
 	async function offerWelcome() { // ui-ok: only when the account check has not run yet; the sheet opens right after
@@ -295,6 +310,9 @@
 {#if ai.needsConsent && !ui.showIntro && !ui.showWelcome}
 	<!-- required after sign-in until the account agrees to the current beta terms -->
 	<BetaConsent />
+{/if}
+{#if avatar.setup && !ai.needsConsent}
+	<AvatarSetup from={avatar.setup} />
 {/if}
 <Splash ready={progress.ready && words.ready} />
 <UpdateBanner />

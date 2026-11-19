@@ -13,7 +13,8 @@
 	import PlanCard from '#lib/components/PlanCard.svelte';
 	import InstallCard from '#lib/components/InstallCard.svelte';
 	import KuriWalker from '#lib/companion/KuriWalker.svelte';
-	import { Card, PlanBadge } from '#lib/ui/index.ts';
+	import { Avatar, Button, Card, PlanBadge } from '#lib/ui/index.ts';
+	import { avatar } from '#lib/state/avatar.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { plan } from '#lib/state/plan.svelte.ts';
 	import { greetingFor, greetName } from '#lib/greeting.ts';
@@ -36,6 +37,24 @@
 		});
 	});
 
+	// three made-up avatars on the one-time prompt card
+	const PROMPT_TRIO = [
+		{ hair: 'bob', hairColor: 'black', skin: 's2' },
+		{ head: 'hijab', headColor: 'matcha', skin: 's5', cloth: 'sand' },
+		{ hair: 'afro', hairColor: 'black', skin: 's9', cloth: 'sumire' }
+	] as const;
+	let notNow = $state(false);
+	async function laterPrompt() {
+		notNow = true;
+		try {
+			await avatar.later();
+		} catch {
+			// offline: the card comes back next time, nothing is lost
+		} finally {
+			notNow = false;
+		}
+	}
+
 	const next = $derived(LESSONS.find((l) => !progress.completed.includes(l.id)));
 	const goal = $derived(progress.settings.newPerDay + Math.max(10, progress.due.length));
 	const doneToday = $derived(progress.today.reviews + progress.today.learned);
@@ -53,6 +72,7 @@
 		</div>
 		<LargeTitle title={greeting.jp} jp />
 		<div class="hello row rise">
+			{#if ai.signedIn || avatar.person}<Avatar person={avatar.person} name={name || '?'} size={40} label={t('avatar.yours')} />{/if}
 			<span class="title-3">{name ? t('home.greetName', { greeting: t(greeting.key), name }) : t(greeting.key)}</span>
 			{#if plan.loading}
 				<PlanBadge plan="free" name="" loading loadingLabel={t('home.planLoading')} />
@@ -62,6 +82,23 @@
 		</div>
 		<p class="subhead rise" style="margin:var(--space-1) 0 0">{t('home.tagline')}</p>
 	</header>
+
+	{#if avatar.prompt}
+		<!-- one-time prompt for accounts made before avatars (docs/AVATAR.md) -->
+		<Card as="section" padding="lg" class="avatar-prompt rise">
+			<div class="trio" aria-hidden="true">
+				{#each PROMPT_TRIO as p, i (i)}<Avatar person={p} size={56} />{/each}
+			</div>
+			<div class="stack" style:--gap="var(--space-1)">
+				<b class="headline">{t('avatar.promptTitle')}</b>
+				<span class="subhead">{t('avatar.promptBody')}</span>
+			</div>
+			<div class="row prompt-actions">
+				<Button variant="ghost" size="md" busy={notNow} onclick={laterPrompt}>{t('avatar.notNow')}</Button>
+				<Button variant="accent" size="md" class="grow" onclick={() => (avatar.setup = 'prompt')}>{t('avatar.makeIt')}</Button>
+			</div>
+		</Card>
+	{/if}
 
 	<Card as="section" sheen padding="lg" radius="large" class="hero rise" style="--i: 1">
 		<ProgressRing value={doneToday / goal} size={112} width={11}>
@@ -169,6 +206,21 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-5);
+	}
+	:global(.avatar-prompt) {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+	.trio {
+		display: flex;
+		gap: var(--space-2);
+	}
+	.prompt-actions {
+		gap: var(--space-2);
+	}
+	.prompt-actions :global(.grow) {
+		flex: 1;
 	}
 	.hello {
 		flex-wrap: wrap;

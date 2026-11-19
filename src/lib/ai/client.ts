@@ -28,6 +28,7 @@ import type {
 	TranslateResponse,
 	Usage
 } from './contract.ts';
+import type { Person } from '../avatar/person.ts';
 import type { BetaStatus } from '../beta/contract.ts';
 import { telemetry } from '../beta/telemetry.svelte.ts';
 
@@ -123,6 +124,9 @@ export const listPasskeys = () => call<PasskeyInfo[]>('/api/auth/passkeys');
 export const deletePasskey = (id: string) => call(`/api/auth/passkeys/${encodeURIComponent(id)}`, { method: 'DELETE' });
 export const newRecoveryCode = () => call<{ recoveryCode: string }>('/api/auth/recovery-code', { method: 'POST', json: {} });
 export const renameAccount = (name: string) => call<Me>('/api/auth/account', { method: 'PATCH', json: { name } });
+/** Save the avatar's parts (null removes it), or answer the one-time prompt with "Not now" (docs/AVATAR.md). */
+export const putAvatar = (avatar: Partial<Person> | null) => call<Me>('/api/auth/avatar', { method: 'PUT', json: { avatar } });
+export const avatarLater = () => call<Me>('/api/auth/avatar', { method: 'PUT', json: { later: true } });
 export const deleteAccount = () => call<Me>('/api/auth/account', { method: 'DELETE', json: { confirm: 'DELETE' } });
 
 /**

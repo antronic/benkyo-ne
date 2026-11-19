@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
+    "dev": "node scripts/copy-avatar-vendor.mjs && vite dev",
+    "build": "node scripts/copy-avatar-vendor.mjs && vite build",
     "preview": "wrangler dev --infer-origin-from-routes=false",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "lint:ui": "node scripts/check-spacing.mjs && node scripts/check-ui.mjs",
@@ -39,8 +39,11 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",
+    "@antronic/coreva-render": "0.6.1",
     "@johnmorrisdotca/jisho": "2.11.0",
+    "@mediapipe/tasks-vision": "1.2.3",
     "@simplewebauthn/browser": "14.0.0",
-    "@simplewebauthn/server": "14.1.0"
+    "@simplewebauthn/server": "14.1.0",
+    "three": "0.170.0"
   }
 }

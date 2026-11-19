@@ -19,7 +19,8 @@
 	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
 	import { RETENTION_DAYS } from '#lib/beta/contract.ts';
 	import { OPERATOR } from '#lib/beta/consentText.ts';
-	import { Badge, Button, FieldRow, ListGroup, ListRow, Segmented, TextField } from '#lib/ui/index.ts';
+	import { Avatar, Badge, Button, FieldRow, ListGroup, ListRow, Segmented, TextField } from '#lib/ui/index.ts';
+	import { avatar } from '#lib/state/avatar.svelte.ts';
 	import { plan } from '#lib/state/plan.svelte.ts';
 
 	let { onchange }: { onchange: () => void | Promise<void> } = $props();
@@ -187,7 +188,6 @@
 	}
 
 	const day = (ms: number) => fmtDate(ms, { day: 'numeric', month: 'short', year: 'numeric' });
-	const initial = $derived((ai.account?.name ?? '?').trim().charAt(0).toUpperCase() || '?');
 </script>
 
 <h2 class="eyebrow section" id="account">{t('account.section')}</h2>
@@ -199,7 +199,7 @@
 			<ListRow subtitle={t('account.noPasskeys')} />
 		{:else if ai.signedIn && ai.account}
 			<ListRow>
-				{#snippet leading()}<span class="avatar" aria-hidden="true">{initial}</span>{/snippet}
+				{#snippet leading()}<Avatar person={avatar.person} name={ai.account?.name ?? ''} size={40} label={t('avatar.yours')} />{/snippet}
 				<b>{ai.account.name}</b>
 				<span class="caption">
 					{#if ai.account.recovery}{t('account.viaRecovery')}{:else if ai.account.via === 'apple'}{t('account.viaApple')}{:else}{t('account.viaPasskey')}{/if}{ai.account.isAdmin ? ` · ${t('account.admin')}` : ''}
@@ -209,6 +209,7 @@
 					<Button variant="ghost" size="sm" onclick={signOut} disabled={busy} busy={pending === 'signout'}>{t('account.signOut')}</Button>
 				{/snippet}
 			</ListRow>
+			<ListRow title={t('avatar.settingsRow')} subtitle={avatar.person ? t('avatar.settingsChange') : t('avatar.settingsNone')} chevron onclick={() => (avatar.setup = 'settings')} />
 			{#if ai.account.isAdmin && !ai.account.recovery}
 				<ListRow title={t('account.fleet')} href="/admin" />
 			{/if}
@@ -389,18 +390,6 @@
 	.acct :global(.acct-recovery),
 	.acct :global(.acct-warn) {
 		background: color-mix(in srgb, var(--warn) 14%, transparent);
-	}
-	.avatar {
-		display: grid;
-		width: 40px;
-		height: 40px;
-		border-radius: 50%;
-		place-items: center;
-		font-weight: 700;
-		font-size: 1.125rem;
-		color: #fff;
-		background: linear-gradient(135deg, #ff7a5c, #e8432e 55%, #b8264f);
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4);
 	}
 	.key-ico {
 		display: block;

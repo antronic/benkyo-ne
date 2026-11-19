@@ -41,3 +41,6 @@ export { default as InkPad } from './InkPad.svelte';
 export { default as InkReplay } from './InkReplay.svelte';
 export { default as InviteCard } from './InviteCard.svelte';
 export { emptyInk, inkDuration, sampleInk, type Ink, type InkPoint } from './ink.ts';
+export { default as Avatar } from './Avatar.svelte';
+export { default as TilePicker } from './TilePicker.svelte';
+export { default as SwatchPicker } from './SwatchPicker.svelte';
