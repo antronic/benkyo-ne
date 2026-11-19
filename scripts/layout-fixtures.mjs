@@ -83,6 +83,24 @@ const account = {
 	grants: [{ ...packages.grants[0] }]
 };
 
+const community = {
+	stats: { posts7d: 14, replies7d: 31, openReports: 2, hidden: 1, profiles: 22 },
+	queue: [
+		{
+			kind: 'post', id: 7, postId: 7, subject: 'kanji:日', label: '日', body: 'Buy cheap followers at example dot com, best prices every day', status: 'hidden', createdAt: now - D,
+			author: { accountId: 4, handle: 'sample_seller', status: 'active', posts: 3, removed: 1, disabled: false },
+			reports: [{ reason: 'spam', detail: '', at: now - D }, { reason: 'spam', detail: 'Same ad on three words', at: now - D / 2 }, { reason: 'other', detail: '', at: now - D / 4 }],
+			openReports: 3, firstReportAt: now - D
+		},
+		{
+			kind: 'reply', id: 12, postId: 3, subject: 'word:1358280', label: '食べる', body: 'That is not how this verb works at all.', status: 'published', createdAt: now - 2 * D,
+			author: { accountId: 5, handle: 'example_learner', status: 'muted', posts: 9, removed: 0, disabled: false },
+			reports: [{ reason: 'wrong', detail: 'It is right, the reply is wrong', at: now - D }],
+			openReports: 1, firstReportAt: now - D
+		}
+	]
+};
+
 /** API path → JSON body for the signed-in Fleet pass. */
 export const FLEET_FIXTURES = {
 	'/api/admin/ai/providers': providers,
@@ -92,6 +110,7 @@ export const FLEET_FIXTURES = {
 	'/api/admin/promos': promos,
 	'/api/admin/accounts': { accounts: [{ ...account, passkeyList: undefined }], next: null },
 	'/api/admin/accounts/3': account,
+	'/api/admin/community': community,
 	'/api/admin/promos/WELCOME30': { ...promos.promos[0], redemptions: [{ accountId: 3, accountName: 'Example Learner', redeemedAt: now - D, grantId: 1, live: true }] }
 };
 
@@ -108,6 +127,7 @@ export const FLEET_SCREENS = [
 	{ path: '/admin/packages', open: ['＋ New package'], label: 'new package form' },
 	{ path: '/admin/packages', open: ['Change'], label: 'model picker' },
 	{ path: '/admin/promos', open: [] },
+	{ path: '/admin/community', open: [] },
 	{ path: '/admin/accounts/3', open: [] }
 ];
 

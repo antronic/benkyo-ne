@@ -7,6 +7,7 @@ import { deriveKey, open, seal } from '../crypto.ts';
 import type { Env } from '../env.ts';
 import { httpError, isLocalhost } from '../http.ts';
 import { deleteSyncStatements } from '../sync.ts';
+import { communityDataStatements } from '../communityData.ts';
 
 export interface CredRow {
 	id: number;
@@ -140,6 +141,8 @@ export function accountDataStatements(env: Env, userId: number): D1PreparedState
 	return [
 		// synced learning progress (worker/sync.ts); the copy on each device stays
 		...deleteSyncStatements(env.DB, userId),
+		// community profile, posts, replies, likes, reports, blocks (worker/community.ts)
+		...communityDataStatements(env.DB, userId),
 		env.DB.prepare(`DELETE FROM ai_credentials WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM ai_feature_models WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM ai_model_prices WHERE user_id = ?1`).bind(userId),

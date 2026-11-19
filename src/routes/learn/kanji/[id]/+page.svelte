@@ -26,6 +26,7 @@
 	import KanjiOrigin from '#lib/components/KanjiOrigin.svelte';
 	import KanjiInfo from '#lib/components/KanjiInfo.svelte';
 	import NoteCard from '#lib/components/NoteCard.svelte';
+	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
 	import { Button, Card, IconButton } from '#lib/ui/index.ts';
 
@@ -226,6 +227,7 @@
 									loading={!notes.ready}
 									onsave={(b) => notes.save(`kanji:${current.char}`, current.char, b)}
 								/>
+								<CommunityNotes subject={`kanji:${current.char}`} label={current.char} note={notes.text(`kanji:${current.char}`)} />
 							{/key}
 						</div>
 					</div>
