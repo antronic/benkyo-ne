@@ -63,7 +63,7 @@ beta data.
 | `outbox` | Changes waiting to sync | `progress.svelte.ts` |
 
 localStorage keys: `benkyo.locale` (interface language), `benkyo.boot` (startup safe mode),
-`benkyo.installCard` (install card dismissed), `benkyo.plan` (last known package per account, for the Today badge;
+`benkyo.installCard` (install card dismissed), `benkyo.plan` (last known package, grant end and name of the signed-in account, for the Today badge offline;
 `src/lib/state/plan.svelte.ts`).
 
 ## Shared things

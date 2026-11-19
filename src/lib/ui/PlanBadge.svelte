@@ -125,22 +125,9 @@
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.skeleton {
-		width: 4.5em;
-		height: 1.4em;
-		box-sizing: content-box;
-		background: linear-gradient(100deg, var(--color-fill) 30%, var(--color-fill-strong) 50%, var(--color-fill) 70%);
-		background-size: 300% 100%;
-		animation: plan-sk 1.4s ease-in-out infinite;
-	}
-	@keyframes plan-sk {
-		0% {
-			background-position: 100% 0;
+			animation: none;
 		}
-		100% {
-			background-position: -100% 0;
-		}
-	}
-	.shine::after {
+		.shine::after {
 			animation: none;
 			opacity: 0;
 		}

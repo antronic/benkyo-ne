@@ -17,20 +17,32 @@ export interface PlanInfo {
 
 interface Cached extends PlanInfo {
 	accountId: number;
+	/** account name, so the greeting works offline */
+	name: string;
+	/** when a trial or time-limited grant ends (ms); null: no end */
+	endsAt: number | null;
 }
 
-function readCache(accountId: number): PlanInfo | null {
+const FREE: PlanInfo = { plan: 'free', planName: 'Free' };
+
+/** The cached package, or Free once its grant has ended. */
+export function fromCache(c: Pick<Cached, 'plan' | 'planName' | 'endsAt'>, now = Date.now()): PlanInfo {
+	return c.endsAt !== null && c.endsAt <= now ? FREE : { plan: c.plan, planName: c.planName };
+}
+
+function readCache(): Cached | null {
 	try {
 		const c = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Cached | null;
-		return c && c.accountId === accountId && typeof c.plan === 'string' ? { plan: c.plan, planName: c.planName } : null;
+		return c && typeof c.accountId === 'number' && typeof c.plan === 'string' ? { ...c, endsAt: c.endsAt ?? null, name: c.name ?? '' } : null;
 	} catch {
 		return null;
 	}
 }
 
-function writeCache(accountId: number, p: PlanInfo) {
+function writeCache(c: Cached | null) {
 	try {
-		localStorage.setItem(KEY, JSON.stringify({ accountId, plan: p.plan, planName: p.planName } satisfies Cached));
+		if (c) localStorage.setItem(KEY, JSON.stringify(c));
+		else localStorage.removeItem(KEY);
 	} catch {
 		// storage full or blocked: the badge just loads again next time
 	}
@@ -39,21 +51,41 @@ function writeCache(accountId: number, p: PlanInfo) {
 class Plan {
 	/** the package, or null while unknown (signed out, or not loaded yet) */
 	value = $state<PlanInfo | null>(null);
+	/** the account name from the last time we were signed in (for offline launches) */
+	name = $state('');
 	/** a request is out and nothing is known yet: show a skeleton */
 	loading = $state(false);
 	#account: number | null = null;
+	#name = '';
 
-	/** Load for this account (null: signed out). Safe to call on every change. */
-	async load(accountId: number | null, fetcher: () => Promise<PromoStatus> = promoStatus) {
+	/**
+	 * Not known yet whether anyone is signed in (offline launch, or /api/auth/me
+	 * still out): show the last known package and name on this device.
+	 */
+	restore() {
+		if (this.#account !== null || this.value) return;
+		const c = readCache();
+		if (!c) return;
+		this.value = fromCache(c);
+		this.name = c.name;
+	}
+
+	/** Load for this account (null: signed out, which forgets the cache). Safe to call on every change. */
+	async load(accountId: number | null, name = '', fetcher: () => Promise<PromoStatus> = promoStatus) {
 		if (accountId === null) {
 			this.#account = null;
 			this.value = null;
+			this.name = '';
 			this.loading = false;
+			writeCache(null);
 			return;
 		}
+		this.#name = name;
+		this.name = name;
 		if (this.#account !== accountId) {
 			this.#account = accountId;
-			this.value = readCache(accountId);
+			const c = readCache();
+			this.value = c && c.accountId === accountId ? fromCache(c) : null;
 		}
 		this.loading = this.value === null;
 		try {
@@ -68,11 +100,12 @@ class Plan {
 	}
 
 	/** A fresh answer, e.g. right after a promo code is redeemed. */
-	set(s: PlanInfo) {
+	set(s: PromoStatus) {
 		this.value = { plan: s.plan, planName: s.planName };
-		if (this.#account !== null) writeCache(this.#account, this.value);
+		if (this.#account !== null) {
+			writeCache({ accountId: this.#account, name: this.#name, plan: s.plan, planName: s.planName, endsAt: s.grant?.endsAt ?? null });
+		}
 	}
 }
 
 export const plan = new Plan();
-

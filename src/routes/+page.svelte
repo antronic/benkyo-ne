@@ -18,11 +18,15 @@
 	import { greetingFor, greetName } from '#lib/greeting.ts';
 
 	const greeting = greetingFor(new Date().getHours());
-	const name = $derived(ai.signedIn ? greetName(ai.account?.name) : '');
+	const name = $derived(greetName(ai.signedIn ? ai.account?.name : plan.name));
 
 	// the package badge follows the signed-in account (Fleet grant or promo code)
 	$effect(() => {
-		if (ai.checked) void plan.load(ai.signedIn ? (ai.account?.id ?? null) : null);
+		if (ai.signedIn && ai.account) void plan.load(ai.account.id, ai.account.name);
+		// the server says nobody is signed in: forget the cached package
+		else if (ai.reached) void plan.load(null);
+		// offline launch, server unreachable or not asked yet: last known package on this device
+		else plan.restore();
 	});
 
 	const next = $derived(LESSONS.find((l) => !progress.completed.includes(l.id)));
