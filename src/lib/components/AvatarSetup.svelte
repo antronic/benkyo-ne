@@ -280,7 +280,7 @@
 		{#if step === 'start'}
 			<div class="head">
 				{#if from === 'signup'}<span class="caption step-of">{t('avatar.signupStep')}</span>{/if}
-				<Button variant="plain" size="sm" onclick={later}>{from === 'settings' ? t('common.close') : t('avatar.later')}</Button>
+				<Button variant="plain" size="sm" class="end" onclick={later}>{from === 'settings' ? t('common.close') : t('avatar.later')}</Button>
 			</div>
 			<div class="hero">
 				<Avatar {person} {name} size={200} live wave label={t('avatar.previewLabel')} />
@@ -291,7 +291,7 @@
 				<Button variant="accent" block onclick={() => (step = 'consent')}>{t('avatar.useSelfie')}</Button>
 				<div class="row-actions">
 					<Button variant="ghost" class="grow" onclick={manual}>{t('avatar.buildMyself')}</Button>
-					<IconButton label={t('avatar.random')} onclick={roll}>🎲</IconButton>
+					<IconButton label={t('avatar.random')} size="lg" onclick={roll}>🎲</IconButton>
 				</div>
 				{#if from === 'settings' && avatar.person}
 					<Button variant="ghost-danger" block busy={saving} onclick={remove}>{t('avatar.remove')}</Button>
@@ -362,7 +362,7 @@
 		{:else if step === 'result'}
 			<div class="head">
 				<span class="caption">🗑️ {t('avatar.photoDeleted')}</span>
-				<Button variant="plain" size="sm" onclick={() => openCamera()}>{t('avatar.retake')}</Button>
+				<Button variant="plain" size="sm" class="end" onclick={() => openCamera()}>{t('avatar.retake')}</Button>
 			</div>
 			<div class="hero">
 				<h2 class="large-title">{t('avatar.hereYouAre')}</h2>
@@ -426,7 +426,9 @@
 		z-index: 160;
 		display: flex;
 		justify-content: center;
-		padding: calc(var(--safe-top) + var(--space-3)) max(var(--space-5), var(--safe-right)) calc(var(--safe-bottom) + var(--space-5)) max(var(--space-5), var(--safe-left));
+		/* the top keeps at least the side gutter: with no safe area at the top (a computer, a phone on its
+		   side) the bar with "Later" sat 12px from the edge */
+		padding: max(var(--space-5), calc(var(--safe-top) + var(--space-3))) max(var(--space-5), var(--safe-right)) calc(var(--safe-bottom) + var(--space-5)) max(var(--space-5), var(--safe-left));
 		background: var(--color-bg);
 		overflow-y: auto;
 	}
@@ -448,7 +450,8 @@
 		color: var(--color-text-2);
 		font-weight: var(--weight-semibold);
 	}
-	.head :global(:last-child) {
+	/* Back stays on the left; Later, Close and Retake sit on the right */
+	.head :global(.end) {
 		margin-left: auto;
 	}
 	.hero {

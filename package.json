@@ -10,6 +10,7 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "lint:ui": "node scripts/check-spacing.mjs && node scripts/check-ui.mjs",
     "check:layout": "node scripts/check-layout.mjs",
+    "check:render": "node scripts/check-render.mjs",
     "test": "vitest run",
     "build:wasm": "node scripts/build-wasm.mjs",
     "build:strokes": "node scripts/build-strokes.mjs",

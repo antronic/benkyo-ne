@@ -22,9 +22,11 @@ GPU engine down and builds a new one (and bakes a new wave strip) on every chang
 and iPad heated the device and showed torn, striped frames. The preview and the tabs stick to the
 top while the options scroll, and the preview shrinks from 150 to 96 px.
 
-A dice button (kit `IconButton`, 🎲) shares a row with "Build it myself" on the start screen. Each
-press puts a random look (`randomPerson()` in `person.ts`) in the preview; extras such as a hat,
-beard or glasses stay off most of the time. Nothing is saved until "Build it myself" → Save.
+A dice button (kit `IconButton size="lg"`, 50px like the button beside it, 🎲) shares a row with
+"Build it myself" on the start screen. Each press puts a random look (`randomPerson()` in
+`person.ts`) in the preview; extras such as a hat, beard or glasses stay off most of the time.
+Nothing is saved until "Build it myself" → Save. The start screen's live avatar lets its engine go
+at the first roll and shows the SVG still from then on (see Drawing).
 
 The camera step opens the front camera and shows a spinner until the picture is live. When the
 device has two or more cameras, a switch button (kit `IconButton`, top right of the viewfinder)
@@ -94,6 +96,13 @@ with head coverings, hats and 16 hairstyles). `render.ts` wraps it:
 - `mountLive(el, person, …)`: the live 3D avatar (three.js WebGPU build at
   `/avatar/vendor/three.webgpu.min.js`), at most two at once, off when reduced motion is on.
   Use it only where the person does not change while it shows (result screen, Today), not in editors.
+  The kit `Avatar` enforces it: when `person` changes after the live avatar mounted, it destroys the
+  engine and shows the SVG still; it never calls `update()`, which builds a new GPU engine. On
+  iPhone and iPad (`appleMobile()`) the live avatar never bakes a wave strip (`warmCache: false`):
+  strips read back from the engine there came out torn and blue-tinted (red and blue swapped) and
+  the strip cache replayed them; strips cached by older builds are cleared once
+  (`localStorage` `benkyo.avatarStrips`). `npm run check:render` fails if a change builds a new
+  GPU context.
 
 `scripts/copy-avatar-vendor.mjs` copies three.js and the MediaPipe wasm into
 `static/avatar/vendor/` (gitignored) before `dev` and `build`. The two model files are committed in
