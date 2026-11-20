@@ -196,6 +196,7 @@
 	const rateText = (r: Pick<AdminCreditRate, 'rate'> | undefined) => (r?.rate ? rateLabel(r.rate) : defaultRate());
 
 	function openRate(r: AdminCreditRate) {
+		rateError = null;
 		const per = data?.creditsPerUsd ?? 1000;
 		// a new rate starts at what the model costs now, per 1M tokens
 		ratingUnit = r.rate ? String(r.rate.unit) : '1000000';
@@ -233,12 +234,22 @@
 		if (!rating) return;
 		const { providerId, model, unit, input, output } = rating;
 		const rate = clear ? null : { unit: Number(unit) as CreditUnit, inputCredits: Number(input), outputCredits: Number(output) };
-		const r = await run(() => setCreditRate({ providerId, model, rate }), clear ? 'Rate cleared' : 'Rate saved');
-		if (r) {
-			data = r;
+		rateError = null;
+		busy = true;
+		try {
+			data = await setCreditRate({ providerId, model, rate });
 			rating = null;
+			toast(clear ? 'Rate cleared' : 'Rate saved', '✓');
+		} catch (err) {
+			// shown in the form, so the numbers typed stay and Try again resends them
+			rateError = err instanceof AdminError ? err : new AdminError(0, 'stepup', 'Passkey confirmation cancelled');
+			lastClear = clear;
+		} finally {
+			busy = false;
 		}
 	}
+	let rateError = $state<AdminError | null>(null);
+	let lastClear = false;
 
 	const usd = (n: number) => (n === 0 ? '$0' : `$${n % 1 ? n.toFixed(2) : n}`);
 	const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -383,10 +394,11 @@
 								<TextField id="rate-out" label="Output credits per {unitLabel(Number(rt.unit) as CreditUnit)}" type="number" min="0" max="1000000" step="any" bind:value={rt.output} />
 							</span>
 							<span class="caption">{ratingHint} Changing the token unit keeps the price. Cached input counts as input.</span>
+							{#if rateError}<ErrorCard error={rateError} onretry={() => saveRate(lastClear)} />{/if}
 							<span class="row" style:gap="var(--space-2)" style:flex-wrap="wrap">
 								{#if r.rate}<Button variant="plain" class="danger" size="sm" onclick={() => saveRate(true)} disabled={busy}>Clear rate</Button>{/if}
 								<span class="spacer"></span>
-								<Button variant="ghost" size="sm" onclick={() => (rating = null)} disabled={busy}>Cancel</Button>
+								<Button variant="ghost" size="sm" onclick={() => ((rating = null), (rateError = null))} disabled={busy}>Cancel</Button>
 								<Button size="sm" onclick={() => saveRate()} {busy} disabled={!ratingValid}>Save rate</Button>
 							</span>
 						</div>
