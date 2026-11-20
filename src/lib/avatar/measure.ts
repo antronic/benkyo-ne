@@ -16,6 +16,10 @@ export interface Measurements {
 	jawRatio: number;
 	/** skin colour on the side of the face that faces the light, CIE L*a*b* */
 	skinLab: [number, number, number];
+	/** the brightest the face gets (99th percentile L* inside the face, hair left out): how well exposed the photo is */
+	faceBright: number;
+	/** lightness of the teeth (L*) when a smile shows them, else null: a white reference for dim photos */
+	teethL: number | null;
 	/** hair pixels / (face width × face length) */
 	hairArea: number;
 	/** how far hair reaches below the chin, in face lengths (0: not below) */
@@ -103,6 +107,10 @@ const L = {
 	noseBottom: 2,
 	upperLip: 0,
 	lowerLip: 17,
+	innerTop: 13,
+	innerBottom: 14,
+	mouthL: 78,
+	mouthR: 308,
 	eyeLT: 159,
 	eyeLB: 145,
 	eyeLO: 33,
@@ -167,6 +175,42 @@ export function measure(s: SelfieInput): Measurements {
 	// the skin next to a point: the cheek on its side (one side of the face is often in shadow)
 	const sideL = P(L.cheekPatchL).x < cx;
 	const skinAt = (x: number) => ((x < cx) === sideL ? skinL : skinR).lab;
+
+	// exposure: the brightest the face gets. A dim photo has no bright spots at all.
+	const faceLs: number[] = [];
+	{
+		const fcy = (top.y + chin.y) / 2,
+			rx = (fw / 2) * 0.9,
+			ry = (fl / 2) * 0.9,
+			st = Math.max(1, Math.round(fw / 100));
+		for (let y = fcy - ry; y < fcy + ry; y += st)
+			for (let x = cx - rx; x < cx + rx; x += st)
+				if (inside(x, y) && ((x - cx) / rx) ** 2 + ((y - fcy) / ry) ** 2 <= 1 && !isHair(x, y)) faceLs.push(lab(x, y)[0]);
+	}
+	faceLs.sort((a, b) => a - b);
+	const faceBright = faceLs.length ? faceLs[Math.floor(faceLs.length * 0.99)] : 0;
+
+	// teeth: when the lips are apart, the pale pixels between them. Teeth are near-white in any
+	// skin tone, so skin / teeth says how light the skin is even when the whole photo is dark.
+	const it = P(L.innerTop),
+		ib = P(L.innerBottom),
+		ml = P(L.mouthL),
+		mr = P(L.mouthR);
+	let teethL: number | null = null;
+	if (ib.y - it.y > fw * 0.04) {
+		const tl: number[] = [];
+		const x0 = Math.min(ml.x, mr.x),
+			x1 = Math.max(ml.x, mr.x);
+		for (let y = it.y + 1; y < ib.y - 1; y++)
+			for (let x = x0 + (x1 - x0) * 0.2; x < x1 - (x1 - x0) * 0.2; x++) {
+				if (!inside(x, y)) continue;
+				const c = lab(x, y);
+				if (Math.hypot(c[1], c[2]) < 30) tl.push(c[0]);
+			}
+		tl.sort((a, b) => a - b);
+		// enough pale pixels to be teeth, not the dark inside of the mouth
+		if (tl.length >= 20) teethL = tl[Math.floor(tl.length * 0.9)];
+	}
 
 	// hair mask, in face units
 	let hairN = 0,
@@ -337,5 +381,5 @@ export function measure(s: SelfieInput): Measurements {
 		jy1 = (Math.max(jl.y, jr.y) + chin.y) / 2;
 	const beardJaw = (dark(jl.x + fw * 0.06, jy0, jl.x + fw * 0.2, jy1) + dark(jr.x - fw * 0.2, jy0, jr.x - fw * 0.06, jy1)) / 2;
 
-	return { faceRatio, jawRatio, skinLab, hairArea, hairBelowChin, hairFringe, hairTop, hairRough, hairLab, hairCovered, eyeOpen, smile, jawOpen, browArch, glasses, beardJaw, beardLip, beardChin };
+	return { faceRatio, jawRatio, skinLab, faceBright, teethL, hairArea, hairBelowChin, hairFringe, hairTop, hairRough, hairLab, hairCovered, eyeOpen, smile, jawOpen, browArch, glasses, beardJaw, beardLip, beardChin };
 }
