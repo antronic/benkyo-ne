@@ -385,8 +385,19 @@ async function main() {
 			// Every top-level app screen is in the tab bar.
 			await page.goto(BASE + '/', { waitUntil: 'networkidle' });
 			const tabs = (await page.evaluate(navLinks, 'nav.tabbar')).map((l) => l.href);
+			// screens that are not in the bar are one tap away, in the More sheet (src/lib/nav.ts)
+			const more = page.locator('nav.tabbar button.more');
+			if (await more.count()) {
+				await more.click();
+				await page.waitForTimeout(600);
+				const sheet = (await page.evaluate(navLinks, DIALOG)).map((l) => l.href);
+				if (!sheet.length) problems.push(`/ @ ${label} ${width}px: the More tab opened no sheet of screens`);
+				tabs.push(...sheet);
+				await page.keyboard.press('Escape');
+				await page.waitForTimeout(400);
+			}
 			for (const r of routesUnder('src/routes').filter((r) => r.split('/').length === 2 && !(r in OFF_TAB_BAR))) {
-				if (!tabs.includes(r)) problems.push(`${r} @ ${label} ${width}px: not reachable, it is not in the tab bar (src/lib/components/TabBar.svelte)`);
+				if (!tabs.includes(r)) problems.push(`${r} @ ${label} ${width}px: not reachable, it is not in the tab bar or its More sheet (src/lib/nav.ts)`);
 			}
 			await ctx.close();
 

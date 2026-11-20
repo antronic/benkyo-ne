@@ -8,6 +8,10 @@
 	import { avatarSvg } from '#lib/avatar/render.ts';
 	import { DEFAULTS as AV_DEFAULTS, SKIN, type Person } from '#lib/avatar/person.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
+	import NavMore from '#lib/components/NavMore.svelte';
+	import NavIcon from '#lib/components/NavIcon.svelte';
+	import { cleanPins, MORE_ICON, splitBar } from '#lib/nav.ts';
+	import { t } from '#lib/i18n/index.svelte.ts';
 	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
 	import ContentFeedback from '#lib/components/ContentFeedback.svelte';
 	import { fakeFeedback } from '#lib/feedback/fake.ts';
@@ -36,6 +40,11 @@
 	let confirmName = $state('');
 	let picked = $state('');
 	let sheetOpen = $state(false);
+	// navigation draft (src/lib/nav.ts): the phone bar's More sheet, with its own pins
+	let navMoreOpen = $state(false);
+	let navEditing = $state(false);
+	let navPins = $state<string[]>(cleanPins(undefined));
+	const navSplit = $derived(splitBar(5, navPins));
 	// error pages draft: one ErrorState per kind, fake id and build, no network
 	let errKind = $state<ErrorKind>('server');
 	const ERR_KINDS: { value: ErrorKind; label: string }[] = [
@@ -753,6 +762,25 @@
 					</div>
 				</Card>
 
+				<SectionHeader title="Draft · Navigation for many items" />
+				<p class="caption">Eight screens (with Community) do not fit a phone tab bar. Recommended: your tabs + More. A phone bar holds 4 tabs and More, a bar from 600 px (unfolded Duo portrait, iPad portrait) 6 and More. More lists the rest with one line each and "Edit tab bar" to pick your tabs. On a screen from More, the More tab takes its icon and name. The side rail (iPad and Duo landscape) shows every screen in groups, Settings last; the desktop sidebar adds labels and group headings.</p>
+				<Card>
+					<div class="stack" style:--gap="var(--space-3)">
+						<SectionHeader title="Phone bar with these pins" level={3} />
+						<div class="nav-demo" aria-hidden="true">
+							{#each navSplit.tabs as item (item.href)}
+								<span class="nav-demo-tab"><NavIcon path={item.icon} size={20} />{t(item.label)}</span>
+							{/each}
+							<span class="nav-demo-tab"><NavIcon path={MORE_ICON} size={20} />{t('nav.more')}</span>
+						</div>
+						<div class="row" style:--gap="var(--space-2)">
+							<Button variant="ghost" onclick={() => ((navEditing = false), (navMoreOpen = true))}>Open More</Button>
+							<Button variant="ghost" onclick={() => ((navEditing = true), (navMoreOpen = true))}>Edit tab bar</Button>
+						</div>
+					</div>
+				</Card>
+				<p class="caption">Also considered: fewer tabs (Kana inside Learn, Settings behind your avatar on Today; no More, but things move) and a bar that scrolls sideways (hides tabs with no sign they are there; not iOS).</p>
+
 				<SectionHeader title="Sheet" />
 				<Button variant="ghost" onclick={() => (sheetOpen = true)}>Open a sheet</Button>
 
@@ -831,6 +859,7 @@
 	</div>
 </main>
 
+<NavMore open={navMoreOpen} onclose={() => (navMoreOpen = false)} more={navSplit.more} current={null} room={4} pins={navPins} due={12} bind:editing={navEditing} onpins={(p) => (navPins = p)} />
 <Sheet open={sheetOpen} label="Example sheet" onclose={() => (sheetOpen = false)}>
 	<div class="stack">
 		<p>Sheets hold a short task. Drag down or tap outside to close.</p>
@@ -839,6 +868,23 @@
 </Sheet>
 
 <style>
+	.nav-demo {
+		display: grid;
+		grid-template-columns: repeat(5, 1fr);
+		padding: var(--space-1h);
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--ink) 6%, transparent);
+	}
+	.nav-demo-tab {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-px);
+		padding: var(--space-1) 0;
+		font-size: 10.5px;
+		font-weight: 600;
+		color: var(--ink-2);
+	}
 	.wrap {
 		flex-wrap: wrap;
 	}

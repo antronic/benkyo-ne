@@ -16,6 +16,8 @@ export interface Settings {
 	showRomaji: boolean;
 	/** Tab bar placement: auto = beside a side status bar when the screen has one. */
 	navPosition: 'auto' | 'bottom' | 'side';
+	/** tabs pinned to the bottom bar (src/lib/nav.ts), the rest are in More; unset = DEFAULT_PINS */
+	navPins?: string[];
 	/** Kuri, the Shiba companion: shown at all (when off, its script isn't even loaded) */
 	kuri: boolean;
 	/** Kuri's outfit */

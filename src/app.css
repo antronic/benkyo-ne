@@ -44,6 +44,12 @@ html.nav-side {
 		--rail: calc(var(--rail-w) + 20px + env(safe-area-inset-left, 0px));
 	}
 }
+/* The rail grows into a labelled sidebar (SIDEBAR_QUERY in lib/ios/device.svelte.ts). */
+@media (min-width: 1200px) {
+	:root {
+		--rail-w: 232px;
+	}
+}
 
 *,
 *::before,

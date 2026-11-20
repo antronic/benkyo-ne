@@ -164,6 +164,28 @@ composer, Fleet menu pill). It sits under the tab bar and sheets (z-index 45). A
 scrolls itself (the beta consent) puts its own `ScrollMore` inside, with `target` set to the scrolling
 element.
 
+## Navigation for many items
+
+The main navigation (`src/lib/components/TabBar.svelte`) reads one list, `NAV_ITEMS` in
+`src/lib/nav.ts`: href, label, one-line description, icon and group (Study, Your words, People, You).
+A new top-level screen gets an entry there and nothing else.
+
+| Where | What it shows |
+| --- | --- |
+| Phone bottom bar (< 600 px) | 4 tabs + More |
+| Bottom bar ≥ 600 px (unfolded Duo portrait, iPad portrait) | 6 tabs + More |
+| Folded Duo / iOS 27 side status column | 4 icons + More, in a column |
+| Side rail (`RAIL_QUERY`) | every screen, in groups split by a hairline, Settings last; under 600 px tall, 4 tabs + More |
+| Sidebar (`SIDEBAR_QUERY`, ≥ 1200 px) | every screen with its label, group headings, Settings at the bottom |
+
+- The tabs are the learner's pins (`settings.navPins`, default `DEFAULT_PINS`), shown in list order;
+  if fewer are pinned than fit, the next screens in the list fill in. More holds the rest.
+- More opens `NavMore.svelte` (kit `Sheet` + `ListGroup`): each screen with its description, the
+  Review due count, and "Edit tab bar" (a `Checkbox` per screen, up to the room on that screen).
+- On a screen that lives in More, the More tab takes that screen's icon and name and is marked
+  active, so the bar always says where you are. If Review is in More, its due count shows on More.
+- `check:layout` opens More when it checks that every top-level screen is reachable.
+
 ## Motion and transitions
 
 The live versions of these, with replay buttons, are in the Motion section of `/design`.
