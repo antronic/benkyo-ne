@@ -231,7 +231,7 @@
 								<span class="gloss">{i18n.locale === 'th' ? c.word.gloss.th : gloss(c.gloss)}</span>
 							</div>
 							{#if have}<span class="check" aria-label={t('unit.addedOne')}>✓</span>{/if}
-							<ContentFeedback compact subject={c.key} label={c.written[0] ?? c.reading} />
+							<ContentFeedback compact class="say" subject={c.key} label={c.written[0] ?? c.reading} />
 						</Card>
 					{/each}
 				</ul>

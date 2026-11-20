@@ -130,7 +130,7 @@
 						{#if c.note}<span class="caption">💬 {tc(c.note)}</span>{/if}
 					</div>
 					{#if have}<span class="check" aria-label={t('unit.addedOne')}>✓</span>{/if}
-					<ContentFeedback compact subject={c.key} label={c.written[0] ?? c.reading} />
+					<ContentFeedback compact class="say" subject={c.key} label={c.written[0] ?? c.reading} />
 				</Card>
 			{/each}
 		</ul>

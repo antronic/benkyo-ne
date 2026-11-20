@@ -140,7 +140,7 @@
 {/snippet}
 
 {#if compact}
-	<IconButton size="sm" label={t('feedback.menu', { label })} class={cls} onclick={openMenu}>•••</IconButton>
+	<IconButton label={t('feedback.menu', { label })} class={cls} onclick={openMenu}>•••</IconButton>
 	<div class="fb-portal" use:portal>
 	<Sheet {open} label={t('feedback.title')} onclose={close}>
 		{#snippet header()}
