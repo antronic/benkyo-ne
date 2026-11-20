@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",
-    "@antronic/coreva-render": "0.6.2",
+    "@antronic/coreva-render": "0.7.0",
     "@johnmorrisdotca/jisho": "2.11.0",
     "@mediapipe/tasks-vision": "1.2.3",
     "@simplewebauthn/browser": "14.0.0",
