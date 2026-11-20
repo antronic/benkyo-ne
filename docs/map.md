@@ -52,10 +52,11 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | Promo codes | Job, signed-in learner | `/api/promo`, `/api/promo/redeem`, `/api/admin/promos[/:code]` (GET, POST, PATCH edit, DELETE soft delete) | `promo_codes` (+ `deleted_at`), `promo_redemptions` (+ `plan_grants`) | `worker/promo.ts`, `worker/admin/promos.ts` | `src/lib/promo/` (`link.ts`: `?ref=CODE` links, redeemed by the root layout), `PromoCode.svelte` (Settings), `src/routes/admin/promos/` |
 | Today greeting and package badge | signed-in learner | `/api/auth/me` (name), `/api/promo` (package) | `accounts`, `plan_grants` (read) | `worker/promo.ts` | `src/lib/greeting.ts`, `src/lib/state/plan.svelte.ts`, `PlanBadge` (kit), `src/routes/+page.svelte` |
 | Beta consent and usage data | signed-in learner | `/api/beta/{status,consent,events,data,export}` | `beta_consents`, `beta_events`, `beta_ai_calls` | `worker/beta/` | `src/lib/beta/`, `BetaConsent.svelte` |
-| Fleet console | Job (Cloudflare Access + step-up) | `/api/admin/{overview,usage (by source and package),audit,system,stepup/*,accounts,invites,settings,packages,promos,ai/*}` | `admin_audit`, `ai_providers`, `plan_models` (+ reads most tables) | `worker/admin/` | `src/routes/admin/` (shell: `+layout.svelte`), `src/lib/admin/` (nav: `nav.ts`, `FleetNav.svelte`, `FleetTrail.svelte`) |
+| Fleet console | Job (Cloudflare Access + step-up) | `/api/admin/{overview,usage (by source and package),audit,errors,system,stepup/*,accounts,invites,settings,packages,promos,ai/*}` | `admin_audit`, `ai_providers`, `plan_models` (+ reads most tables) | `worker/admin/` | `src/routes/admin/` (shell: `+layout.svelte`), `src/lib/admin/` (nav: `nav.ts`, `FleetNav.svelte`, `FleetTrail.svelte`) |
 | Session length | Job | `/api/admin/settings/session` | `ai_settings` (`session_ttl_days`) | `worker/auth/session.ts` | `src/routes/admin/settings/` |
 | Account deletion | learner, Job | `/api/auth/account`, `/api/admin/accounts/:id` | every table with a user id | `closeAccountStatements` (learner: disable, keep data) / `accountDataStatements` (Fleet: erase) in `worker/ai/credentials.ts` | `AccountSettings.svelte` |
 | Health | anyone | `/api/health` | none | `worker/index.ts` | none |
+| Error reports and debugging ([DEBUGGING.md](DEBUGGING.md)) | everyone (sent only with beta consent), Job | `/api/beta/events` (`error`, `error_note`), `/api/admin/errors[/:id]`, `x-request-id` on every `/api/*` answer | `beta_events` | `worker/index.ts` (`requestIdOf`, structured logs), `worker/admin/errors.ts` | `src/lib/debug/errors.svelte.ts`, `src/hooks.client.ts`, `DebugSettings.svelte` (Settings → Debugging), `src/routes/admin/errors/` |
 
 A new table with a user id must be added to `accountDataStatements` (used by both deletes), and to the beta export if it holds
 beta data.
@@ -72,7 +73,7 @@ beta data.
 | `outbox` | Changes waiting to sync | `progress.svelte.ts` |
 | `notes` | Personal notes, key `subject` (VERSION 3) | `notes.svelte.ts`, sync |
 
-localStorage keys: `benkyo.locale` (interface language), `benkyo.avatar` (the signed-in account's avatar parts, for offline), `benkyo.boot` (startup safe mode), `benkyo.avatarStrips` (iPhone/iPad: old avatar wave strips cleared once),
+localStorage keys: `benkyo.locale` (interface language), `benkyo.errors` (last 20 errors caught on this device), `benkyo.debug` (debug mode), `benkyo.avatar` (the signed-in account's avatar parts, for offline), `benkyo.boot` (startup safe mode), `benkyo.avatarStrips` (iPhone/iPad: old avatar wave strips cleared once),
 `benkyo.installCard` (install card dismissed), `benkyo.levelUp` (Next level suggestion hidden, `N5>N4`), `benkyo.plan` (last known package, grant end and name of the signed-in account, for the Today badge offline;
 `src/lib/state/plan.svelte.ts`).
 

@@ -79,16 +79,6 @@ class Telemetry {
 		this.track('event', 'screen', { path });
 	}
 
-	error(name: string, e: unknown, extra?: Record<string, unknown>) {
-		const err = e instanceof Error ? e : null;
-		this.track('error', name, {
-			message: (err?.message ?? String(e)).slice(0, 500),
-			type: err?.name ?? typeof e,
-			stack: err?.stack?.slice(0, 2000) ?? null,
-			...extra
-		});
-	}
-
 	/** Send queued events. `beacon` for the last send before the page is hidden. */
 	async flush(beacon = false) {
 		if (!this.enabled || this.sending || !this.queue.length) return;
@@ -155,14 +145,11 @@ class Telemetry {
 		void put('meta', { account: null, events: [] } satisfies SavedQueue, QUEUE_KEY).catch(() => {});
 	}
 
-	/** Global error hooks and page-hide flush; added once per launch. */
+	/** Page-hide flush and app open/hide events; added once per launch. */
 	private listen() {
 		if (this.started || typeof window === 'undefined') return;
 		this.started = true;
-		addEventListener('error', (e) => {
-			if (e.error || e.message) this.error('window_error', e.error ?? e.message, { source: e.filename?.slice(0, 200), line: e.lineno, col: e.colno });
-		});
-		addEventListener('unhandledrejection', (e) => this.error('unhandled_rejection', e.reason));
+		// window errors and rejections are caught by lib/debug/errors.svelte.ts, which gives them an id
 		document.addEventListener('visibilitychange', () => {
 			if (document.visibilityState === 'hidden') {
 				this.track('event', 'app_hidden');

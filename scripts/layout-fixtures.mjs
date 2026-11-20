@@ -130,6 +130,36 @@ const invites = {
 	]
 };
 
+const BUILD = '1795157326824';
+const errorEvents = [
+	{ id: 7, at: now - D / 24, accountId: 3, accountName: 'Example Learner', name: 'kit', route: '/admin/packages', build: BUILD, country: 'TH', errorId: 'E-7F3K2Q', message: "Cannot read properties of undefined (reading 'creditsPerUsd')", status: 500, requestId: null, hasNote: true },
+	{ id: 6, at: now - D / 12, accountId: 3, accountName: 'Example Learner', name: 'api_error', route: '/admin/packages', build: BUILD, country: 'TH', errorId: 'E-R2D2C3', message: 'PUT /api/admin/credit-rates answered 500', status: 500, requestId: '8f1a2b3c4d5e6f70', hasNote: false },
+	{ id: 5, at: now - D, accountId: 5, accountName: 'Another Learner', name: 'unhandled_rejection', route: '/learn/level/n5-01', build: '1795070926824', country: 'JP', errorId: 'E-0Q9W8E', message: 'The operation was aborted because it took too long to open saved progress on this very slow device', status: null, requestId: null, hasNote: false }
+];
+const errors = {
+	days: 7, total: 3, next: null, builds: [BUILD, '1795070926824'],
+	groups: [
+		{ name: 'kit', message: errorEvents[0].message, count: 4, accounts: 2, firstAt: now - 2 * D, lastAt: errorEvents[0].at, lastBuild: BUILD },
+		{ name: 'api_error', message: errorEvents[1].message, count: 1, accounts: 1, firstAt: errorEvents[1].at, lastAt: errorEvents[1].at, lastBuild: BUILD },
+		{ name: 'unhandled_rejection', message: errorEvents[2].message, count: 1, accounts: 1, firstAt: errorEvents[2].at, lastAt: errorEvents[2].at, lastBuild: '1795070926824' }
+	],
+	events: errorEvents
+};
+const errorDetail = {
+	event: errorEvents[0],
+	type: 'TypeError',
+	stack: "TypeError: Cannot read properties of undefined (reading 'creditsPerUsd')\n    at rateFor (https://benkyo.jirachai.me/_app/immutable/nodes/23.BxQk1.js:1:2405)\n    at Array.map (<anonymous>)",
+	breadcrumbs: [
+		{ at: now - D / 24 - 9000, kind: 'nav', text: '/admin' },
+		{ at: now - D / 24 - 6000, kind: 'nav', text: '/admin/packages' },
+		{ at: now - D / 24 - 5800, kind: 'api', text: 'GET /api/admin/packages → 200 in 182 ms (8f1a2b3c4d5e6f6f)' },
+		{ at: now - D / 24 - 900, kind: 'console', text: 'warn: rate field changed before models loaded' }
+	],
+	extra: { online: true, viewport: '1180x820', debug: false, routeId: '/admin/packages', kind: 'unknown' },
+	device: { userAgent: 'Mozilla/5.0 (iPad; CPU OS 27_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.3 Mobile/15E148 Safari/604.1', platform: 'iPad', displayMode: 'standalone', viewport: { width: 1180, height: 820 }, pixelRatio: 2, languages: ['th-TH', 'en'], timeZone: 'Asia/Bangkok', online: true, serviceWorker: true, colorScheme: 'dark' },
+	notes: [{ at: now - D / 24 + 60_000, note: 'I typed 0.5 in the rate and the whole page went white.' }]
+};
+
 /** API path → JSON body for the signed-in Fleet pass. */
 export const FLEET_FIXTURES = {
 	'/api/admin/ai/providers': providers,
@@ -142,6 +172,8 @@ export const FLEET_FIXTURES = {
 	'/api/admin/accounts/3': account,
 	'/api/admin/community': community,
 	'/api/admin/feedback': feedback,
+	'/api/admin/errors': errors,
+	'/api/admin/errors/7': errorDetail,
 	'/api/admin/promos/WELCOME30': { ...promos.promos[0], redemptions: [{ accountId: 3, accountName: 'Example Learner', redeemedAt: now - D, grantId: 1, live: true }] }
 };
 
@@ -166,6 +198,8 @@ export const FLEET_SCREENS = [
 	{ path: '/admin/invitations', open: ['Edit'], label: 'edit VIP' },
 	{ path: '/admin/community', open: [] },
 	{ path: '/admin/feedback', open: [] },
+	{ path: '/admin/errors', open: [] },
+	{ path: '/admin/errors/7', open: [] },
 	{ path: '/admin/accounts/3', open: [] }
 ];
 
@@ -175,7 +209,8 @@ export const FLEET_SCREENS = [
  */
 export const FLEET_SAMPLES = {
 	'/admin/accounts/[id]': '/admin/accounts/3',
-	'/admin/ai/[id]': '/admin/ai/1'
+	'/admin/ai/[id]': '/admin/ai/1',
+	'/admin/errors/[id]': '/admin/errors/7'
 };
 
 /**

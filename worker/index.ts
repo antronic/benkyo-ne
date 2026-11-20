@@ -43,8 +43,36 @@ async function handleContent(req: Request, env: Env, ctx: ExecutionContext): Pro
 	return res;
 }
 
-/** Handle /api/* requests. Shared by both deploy modes. */
+/**
+ * Id of one API request: Cloudflare's ray id (the same one Workers Logs shows), or a random one
+ * locally. Sent back as `x-request-id`; the app puts it in error reports (docs/DEBUGGING.md).
+ */
+export function requestIdOf(req: Request): string {
+	const ray = req.headers.get('cf-ray')?.split('-')[0];
+	if (ray && /^[0-9a-f]{8,32}$/i.test(ray)) return ray.toLowerCase();
+	return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+}
+
+/** Handle /api/* requests. Shared by both deploy modes. Every answer carries `x-request-id`. */
 export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+	const requestId = requestIdOf(req);
+	const started = Date.now();
+	const res = await routeApi(req, env, ctx, requestId);
+	if (res.status >= 500)
+		// one structured line per failed request; Workers Logs (observability in wrangler.jsonc) indexes the fields
+		console.warn({ level: 'warn', event: 'api_5xx', requestId, method: req.method, path: new URL(req.url).pathname, status: res.status, ms: Date.now() - started });
+	// a streamed or redirected response may have immutable headers: copy it then
+	try {
+		res.headers.set('x-request-id', requestId);
+		return res;
+	} catch {
+		const out = new Response(res.body, res);
+		out.headers.set('x-request-id', requestId);
+		return out;
+	}
+}
+
+async function routeApi(req: Request, env: Env, ctx: ExecutionContext, requestId: string): Promise<Response> {
 	const url = new URL(req.url);
 	try {
 		const p = url.pathname;
@@ -91,8 +119,9 @@ export async function handleApi(req: Request, env: Env, ctx: ExecutionContext): 
 		return json({ error: 'not found' }, { status: 404 });
 	} catch (e) {
 		if (e instanceof HttpError) return json(e.body, { status: e.status });
-		console.error(e);
-		return json({ error: 'server' }, { status: 500 });
+		const err = e instanceof Error ? e : new Error(String(e));
+		console.error({ level: 'error', event: 'api_exception', requestId, method: req.method, path: url.pathname, error: err.message, type: err.name, stack: err.stack?.slice(0, 2000) ?? null });
+		return json({ error: 'server', message: `Something went wrong on our side. Request ${requestId}.`, requestId }, { status: 500 });
 	}
 }
 

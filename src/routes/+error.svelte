@@ -9,10 +9,11 @@
 	import { ErrorState, type ErrorKind } from '#lib/ui/index.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import { errorKind } from '#lib/errorKind.ts';
+	import { errorDetails, sendErrorNote } from '#lib/debug/errors.svelte.ts';
 
 	const fleet = $derived(page.url.pathname.startsWith('/admin'));
 	let online = $state(typeof navigator === 'undefined' ? true : navigator.onLine);
-	const err = $derived(page.error as (App.Error & { errorId?: string }) | null);
+	const err = $derived(page.error);
 	const kind = $derived<ErrorKind>(errorKind(page.status, err?.message, online, fleet));
 </script>
 
@@ -26,6 +27,8 @@
 		errorId={err?.errorId}
 		build={version}
 		message={err?.message}
+		details={err?.errorId ? errorDetails(err.errorId) : undefined}
+		sendNote={err?.errorId ? (n: string) => sendErrorNote(err.errorId!, n) : undefined}
 		home={fleet ? { href: '/admin', label: t('error.goFleet') } : undefined}
 	/>
 </div>

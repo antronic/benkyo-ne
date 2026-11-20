@@ -31,7 +31,10 @@ import {
 	type AdminOverview,
 	type AdminSettings,
 	type AdminSystem,
-	type AdminUsage
+	type AdminUsage,
+	type AdminErrors,
+	type AdminErrorDetail,
+	type ErrorWindow
 } from './contract.ts';
 import type { AdminCommunity, AdminContentAction, CommunityStatus, TargetKind } from '#lib/community/contract.ts';
 import type { AdminFeedback, FeedbackReportStatus } from '#lib/feedback/contract.ts';
@@ -42,7 +45,9 @@ export class AdminError extends Error {
 	constructor(
 		public status: number,
 		public code: AdminErrorCode,
-		message: string
+		message: string,
+		/** the Worker's request id (x-request-id), to find the failure in Fleet → Errors and Workers Logs */
+		public requestId: string | null = null
 	) {
 		super(message);
 	}
@@ -80,7 +85,7 @@ export async function call<T>(path: string, init: RequestInit & { json?: unknown
 							: res.status === 400 || res.status === 404
 								? 'bad'
 								: 'server';
-		throw new AdminError(res.status, code, message);
+		throw new AdminError(res.status, code, message, res.headers.get('x-request-id'));
 	}
 	return body as T;
 }
@@ -177,3 +182,10 @@ export const setCommunityStatus = (accountId: number, status: CommunityStatus) =
 export const getFeedback = () => call<AdminFeedback>('/api/admin/feedback');
 export const setFeedbackReport = (id: number, status: FeedbackReportStatus) =>
 	call<{ ok: true }>('/api/admin/feedback/report', { method: 'POST', json: { id, status } });
+
+// errors the app caught (worker/admin/errors.ts)
+export const getErrors = (days: ErrorWindow, q = '', build = '', offset = 0) =>
+	call<AdminErrors>(
+		`/api/admin/errors?days=${days}&offset=${offset}${q ? `&q=${encodeURIComponent(q)}` : ''}${build ? `&build=${encodeURIComponent(build)}` : ''}`
+	);
+export const getErrorDetail = (id: number) => call<AdminErrorDetail>(`/api/admin/errors/${id}`);
