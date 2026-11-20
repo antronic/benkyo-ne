@@ -12,7 +12,7 @@
 	import { fly, scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { KANJI_LESSONS, kanjiLessonById, kanjiCardId, meaningChoices, type Kanji } from '#lib/content/kanji.ts';
-	import { partColors } from '#lib/content/strokes.ts';
+	import { partColors, strokesOf } from '#lib/content/strokes.ts';
 	import { speak } from '#lib/audio/speech.ts';
 	import { inferGrade, Again, Good, type Grade } from '#lib/srs/fsrs.ts';
 	import { shuffle } from '#lib/quiz.ts';
@@ -58,6 +58,11 @@
 
 	const chars = $derived(lesson?.chars ?? []);
 	const current = $derived(phase === 'meet' || phase === 'trace' ? chars[idx] : queue[0]);
+	/**
+	 * "Skip tracing" shows only once this lesson has been finished before: the first time,
+	 * every character is traced. A character with no stroke data can't be traced, so it can be skipped.
+	 */
+	const canSkipTrace = $derived(!!lesson && (progress.completed.includes(lesson.id) || !strokesOf(current?.char ?? '')));
 	const steps = $derived(chars.length * 2 + 2);
 	const stepNow = $derived(
 		phase === 'intro' ? 0 : phase === 'meet' ? idx * 2 + 1 : phase === 'trace' ? idx * 2 + 2 : phase === 'recognize' ? steps - 1 : steps
@@ -329,7 +334,7 @@
 				<Button variant="accent" block onclick={start}>{t('lesson.start')}</Button>
 			{:else if phase === 'meet'}
 				<Button variant="accent" block onclick={() => (phase = 'trace')}>{t('lesson.nowTrace')}</Button>
-			{:else if phase === 'trace'}
+			{:else if phase === 'trace' && canSkipTrace}
 				<Button variant="ghost" block onclick={nextFromTrace}>{t('lesson.skipTrace')}</Button>
 			{:else if phase === 'done'}
 				<div class="row" style="width:100%">

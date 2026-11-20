@@ -1,6 +1,6 @@
 <!--
-	First-run questionnaire, right after the introduction and before the beta
-	sign-up, so it works signed out too. Three tappable questions (why, how much
+	First-run questionnaire, after the beta sign-up and consent (or "Not now"),
+	before the avatar step (docs/ONBOARDING.md). Three tappable questions (why, how much
 	you know, how much a day), then the plan they produce. Single-choice
 	questions advance on tap; Skip keeps the defaults. Reopened from the Today
 	plan card with the previous answers filled in.

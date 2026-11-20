@@ -296,6 +296,8 @@ export const en = {
 	'welcome.recover': 'Recover and add a passkey',
 	'welcome.backToSignIn': 'Back to sign in',
 	'welcome.later': 'Not now, learn offline without AI',
+	'welcome.handoffSignin': 'Bringing in your progress…',
+	'welcome.handoffSignup': 'Setting up your account…',
 	'pack.skipped': 'Skipped · it won’t come back',
 	'pack.added_one': '{n} word added · it’ll appear in reviews',
 	'pack.added_other': '{n} words added · they’ll appear in reviews',

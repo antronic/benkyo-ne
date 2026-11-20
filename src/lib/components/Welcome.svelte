@@ -1,5 +1,6 @@
 <!--
-	Beta access, shown right after the introduction when you're signed out.
+	Beta access, shown right after the introduction when you're signed out (the
+	first-run questions follow it, docs/ONBOARDING.md).
 	Create an account (name + Face ID / Touch ID) or sign in with an existing
 	passkey; a recovery code is shown once after a passkey sign-up. When the
 	server has it set up, "Continue with Apple" is offered beside the passkey.
@@ -19,7 +20,8 @@
 	import { Button, Card, Segmented, TextField } from '#lib/ui/index.ts';
 	import { clearPendingInvite, pendingInvite } from '#lib/promo/link.ts';
 
-	let { ondone }: { ondone: () => void } = $props();
+	/** created: a new account · signedIn: an existing one (sign-in or recovery) · later: "Not now" */
+	let { ondone }: { ondone: (how: 'created' | 'signedIn' | 'later') => void } = $props();
 
 	const supported = typeof window !== 'undefined' && 'PublicKeyCredential' in window;
 	const strokes = strokesOf('あ')?.d ?? [];
@@ -57,11 +59,11 @@
 		if (!r) return;
 		clearPendingInvite();
 		haptic('success');
-		// the avatar step follows the recovery code and the beta consent (docs/AVATAR.md)
+		// the questions, then the avatar step, follow the recovery code and the beta consent (docs/ONBOARDING.md)
 		avatar.afterSignup = true;
 		await ai.refresh();
 		if (r.recoveryCode) recoveryCode = r.recoveryCode;
-		else finish();
+		else finish('created');
 	}
 	async function signIn() {
 		const r = await run(() => api.signIn());
@@ -69,7 +71,7 @@
 		haptic('success');
 		await ai.refresh();
 		toast(t('welcome.back', { name: r.account?.name ?? '' }).trim(), '👋');
-		finish();
+		finish('signedIn');
 	}
 	async function recover() {
 		const r = await run(() => api.recover(code.trim()));
@@ -79,7 +81,7 @@
 		const added = await run(() => api.registerPasskey());
 		await ai.refresh();
 		toast(added ? t('welcome.recovered') : t('welcome.recoveredNoKey'), '🔑', 2800);
-		finish();
+		finish('signedIn');
 	}
 	let copying = $state(false);
 	async function copy() {
@@ -93,12 +95,12 @@
 			copying = false;
 		}
 	}
-	function finish() {
-		ondone();
+	function finish(how: 'created' | 'signedIn') {
+		ondone(how);
 	}
 	function later() {
 		haptic('selection');
-		ondone();
+		ondone('later');
 	}
 </script>
 
@@ -126,7 +128,7 @@
 				<p class="caption">{t('welcome.codeBody')}</p>
 				<div class="row">
 					<Button variant="ghost" busy={copying} onclick={copy}>{t('welcome.copy')}</Button>
-					<Button variant="accent" class="grow" onclick={finish}>{t('welcome.saved')}</Button>
+					<Button variant="accent" class="grow" onclick={() => finish('created')}>{t('welcome.saved')}</Button>
 				</div>
 			</Card></div>
 		{:else if !supported}

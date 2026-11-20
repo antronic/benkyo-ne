@@ -8,8 +8,12 @@ export const ui = $state({
 	backGuard: null as null | (() => Promise<boolean>),
 	/** first-launch introduction overlay (replayable from Settings) */
 	showIntro: false,
-	/** first-run questions that set up the plan (after the intro, before sign-up) */
+	/** first-run questions that set up the plan (after sign-up and the beta consent, before the avatar) */
 	showOnboarding: false,
+	/** the questions are waiting for sign-up (and its consent) to finish (docs/ONBOARDING.md) */
+	onboardingNext: false,
+	/** just signed in or up: a loading screen covers the way to the next screen (Handoff.svelte) */
+	handoff: null as null | 'signin' | 'signup',
 	/** beta sign-up / sign-in after the introduction (passkey only) */
 	showWelcome: false,
 	/** Kuri's first meeting: once, after onboarding (and once for existing users on Today) */

@@ -315,6 +315,8 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'welcome.recover': 'กู้คืนและเพิ่มพาสคีย์',
 	'welcome.backToSignIn': 'กลับไปเข้าสู่ระบบ',
 	'welcome.later': 'ไว้ทีหลัง เรียนออฟไลน์โดยไม่ใช้ AI',
+	'welcome.handoffSignin': 'กำลังโหลดความคืบหน้าของคุณ…',
+	'welcome.handoffSignup': 'กำลังตั้งค่าบัญชีของคุณ…',
 
 	'pack.skipped': 'ข้ามแล้ว · คำนี้จะไม่กลับมาอีก',
 	'pack.added_other': 'เพิ่ม {n} คำแล้ว · จะปรากฏในการทบทวน',

@@ -142,6 +142,9 @@ recall needed a bit harder than the last. This is **desirable difficulty**.
 | Recall | **Immediate corrective feedback** | wrong answers fixed within seconds |
 | Schedule | **Spaced repetition (FSRS)** | reviews just before you'd forget |
 
+The first time through a lesson every character is traced: **Skip tracing** shows only once that
+lesson (kana or kanji) has been completed, or for a character with no stroke data.
+
 Other teaching rules used throughout:
 
 - **i + 1**: each sentence has at most one unknown element.
