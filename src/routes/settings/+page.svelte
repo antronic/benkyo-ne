@@ -18,6 +18,7 @@
 	import { DICT_ATTRIBUTION } from '#lib/dict/attribution.ts';
 	import LanguageSettings from '#lib/components/LanguageSettings.svelte';
 	import KuriSettings from '#lib/companion/KuriSettings.svelte';
+	import DebugSettings from '#lib/components/DebugSettings.svelte';
 
 	ui.hue = 260;
 	let oldKey = $state<string | undefined>();
@@ -198,6 +199,8 @@
 			{/if}
 		{/if}
 	</ListGroup>
+
+	<DebugSettings />
 
 	<h2 class="eyebrow section">{t('settings.about')}</h2>
 	<ListGroup class="rise">

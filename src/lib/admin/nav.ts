@@ -24,6 +24,7 @@ export const FLEET_NAV: SideNavItem[] = [
 	{ href: '/admin/ai', label: 'AI providers', group: 'Plans', icon: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18.5 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z' },
 	{ href: '/admin/usage', label: 'Usage', group: 'Plans', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
 	{ href: '/admin/system', label: 'System', group: 'Platform', icon: 'M3 12h4l2-6 4 12 2-6h6' },
+	{ href: '/admin/errors', label: 'Errors', group: 'Platform', icon: 'M12 3l9.5 17h-19zM12 10v4M12 17.5v.01' },
 	{ href: '/admin/audit', label: 'Audit log', group: 'Platform', icon: 'M7 4h10a2 2 0 0 1 2 2v14l-3-2-2 2-2-2-2 2-2-2-3 2V6a2 2 0 0 1 2-2zM9 9h6M9 13h4' }
 ];
 

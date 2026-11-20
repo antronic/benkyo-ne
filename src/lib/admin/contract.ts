@@ -379,3 +379,70 @@ export interface AdminGrantInput {
 	days: number | null;
 	note?: string;
 }
+
+// ---------------------------------------------------------------- errors ----
+// Fleet → Errors (worker/admin/errors.ts, docs/DEBUGGING.md): beta `error` events from the app.
+
+export const ERROR_WINDOWS = [1, 7, 30] as const;
+export type ErrorWindow = (typeof ERROR_WINDOWS)[number];
+
+/** The same failure (name and message) seen one or more times. */
+export interface AdminErrorGroup {
+	name: string;
+	message: string;
+	count: number;
+	/** accounts that hit it */
+	accounts: number;
+	firstAt: number;
+	lastAt: number;
+	lastBuild: string | null;
+}
+
+export interface AdminErrorEvent {
+	id: number;
+	/** device clock */
+	at: number;
+	accountId: number;
+	accountName: string | null;
+	name: string;
+	route: string | null;
+	build: string | null;
+	country: string | null;
+	/** "E-7F3K2Q", null for errors from builds before ids */
+	errorId: string | null;
+	message: string;
+	status: number | null;
+	requestId: string | null;
+	/** the learner wrote a note about it */
+	hasNote: boolean;
+}
+
+/** GET /api/admin/errors?days=&q=&build=&offset= */
+export interface AdminErrors {
+	days: ErrorWindow;
+	total: number;
+	groups: AdminErrorGroup[];
+	events: AdminErrorEvent[];
+	next: number | null;
+	/** builds that reported errors in the window, newest first, for the filter */
+	builds: string[];
+}
+
+export interface AdminErrorCrumb {
+	at: number;
+	kind: string;
+	text: string;
+}
+
+/** GET /api/admin/errors/:id */
+export interface AdminErrorDetail {
+	event: AdminErrorEvent;
+	type: string | null;
+	stack: string | null;
+	breadcrumbs: AdminErrorCrumb[];
+	/** every other field the app sent (online, viewport, method, path, …) */
+	extra: Record<string, unknown>;
+	/** the device snapshot of the same app launch, if the app sent one */
+	device: Record<string, unknown> | null;
+	notes: { at: number; note: string }[];
+}

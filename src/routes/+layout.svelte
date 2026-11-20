@@ -15,6 +15,7 @@
 	import AvatarSetup from '#lib/components/AvatarSetup.svelte';
 	import { avatar } from '#lib/state/avatar.svelte.ts';
 	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
+	import { reportError, setRoute } from '#lib/debug/errors.svelte.ts';
 	import { get as idbGet, put as idbPut } from '#lib/db/idb.ts';
 	import { page } from '$app/state';
 	import Backdrop from '#lib/components/Backdrop.svelte';
@@ -105,8 +106,10 @@
 		page.url.pathname.startsWith('/learn/') ? '/learn' : page.url.pathname.startsWith('/words/') ? '/words' : page.url.pathname.startsWith('/ai/') ? '/ai' : page.url.pathname.startsWith('/admin') ? fleetParent(page.url.pathname) : '/'
 	);
 
-	// Beta usage data (only once the account has agreed): screens and a daily progress summary.
+	// Breadcrumbs for error reports (every launch), and beta usage data (only once the account
+	// has agreed): screens and a daily progress summary.
 	$effect(() => {
+		setRoute(page.url.pathname);
 		if (telemetry.enabled) telemetry.screen(page.url.pathname);
 	});
 	$effect(() => {
@@ -121,7 +124,7 @@
 
 	/** how long saved progress may take to open before the app starts without it */
 	const LOAD_TIMEOUT_MS = 8000;
-	const report = (name: string, e: unknown) => telemetry.error(name, e);
+	const report = (name: string, e: unknown) => void reportError(e, { name });
 
 	/** Open saved progress. If storage fails or hangs, start anyway so the splash never sticks. */
 	async function boot(apple: ReturnType<typeof takeAppleResult>) {
