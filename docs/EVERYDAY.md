@@ -80,7 +80,10 @@ Everything else in the drafts is built from existing kit components (`ListRow` w
   Writing helper**, then minutes a day. `Answers.jlpt` is stored with the profile.
 - The Today plan card ticks the level step when a unit of that level is done, and the phrasebook
   step when any word has come up (a sighting).
-- Not yet: Today suggesting the next level at 80%.
+- **Moving up.** Once 80% of the units you can see in the hardest level you've started are done
+  (`levelUp` in `src/lib/practice/levelUp.ts`), Today shows **Next level**: *Go to N4* opens
+  Learn at that level, or, while its units are still being written, it says so. **Not now** hides
+  that suggestion on the device (localStorage `benkyo.levelUp`).
 
 ## Built: kanji you keep forgetting (E2)
 

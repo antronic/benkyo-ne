@@ -73,7 +73,7 @@ beta data.
 | `notes` | Personal notes, key `subject` (VERSION 3) | `notes.svelte.ts`, sync |
 
 localStorage keys: `benkyo.locale` (interface language), `benkyo.avatar` (the signed-in account's avatar parts, for offline), `benkyo.boot` (startup safe mode), `benkyo.avatarStrips` (iPhone/iPad: old avatar wave strips cleared once),
-`benkyo.installCard` (install card dismissed), `benkyo.plan` (last known package, grant end and name of the signed-in account, for the Today badge offline;
+`benkyo.installCard` (install card dismissed), `benkyo.levelUp` (Next level suggestion hidden, `N5>N4`), `benkyo.plan` (last known package, grant end and name of the signed-in account, for the Today badge offline;
 `src/lib/state/plan.svelte.ts`).
 
 ## Shared things
