@@ -646,7 +646,7 @@
 					<Notice tone="danger">Couldn't reach the server. Your progress is saved on this device.</Notice>
 				</div>
 
-				<SectionHeader title="Error pages (draft)" />
+				<SectionHeader title="Error pages" />
 				<p class="caption">What went wrong in plain words, what still works, and the next step. The error ID and build are on screen so a screenshot is a full report. Pick a case:</p>
 				<div class="row wrap" style:--gap="var(--space-2)" role="group" aria-label="Error case">
 					{#each ERR_KINDS as k (k.value)}<Chip selected={errKind === k.value} onclick={() => (errKind = k.value)}>{k.label}</Chip>{/each}

@@ -1283,6 +1283,8 @@ export const en = {
 	'browse.grammarCount_other': '{n} grammar points',
 	'browse.grammarDrafts': 'The grammar units are drafts waiting for a teacher’s check. Turn on “Show draft units” in Settings to see them now.',
 	// error pages (ErrorState)
+	'error.tabTitle': 'Something went wrong',
+	'error.goFleet': 'Fleet overview',
 	'error.code': 'Error {code}',
 	'error.offline.title': 'You’re offline',
 	'error.offline.body': 'This needs the internet. Lessons, kana and reviews you already have still work without it.',

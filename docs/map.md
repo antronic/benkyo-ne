@@ -95,4 +95,5 @@ Announce a change to any of these to the other threads ([teamwork.md](guides/tea
 | HTTP helpers | `worker/http.ts` | `json`, `aiError`, `httpError`, `readJson` |
 | Worker config | `worker/env.ts`, `wrangler.jsonc`, `wrangler.embedded.jsonc` | Keep both wrangler files in step |
 | Device and layout | `src/lib/ios/device.svelte.ts` (`RAIL_QUERY`, also in `app.css` and `TabBar.svelte`) | Change all three together |
+| Error pages | `src/routes/+error.svelte`, `src/lib/errorKind.ts`, kit `ErrorState` | Every route error (learner and Fleet) goes through `ErrorState`; a panel that fails inside a screen uses `layout="inline"` instead of throwing. The error ID comes from `page.error.errorId` |
 | Startup | `src/app.html`, `src/lib/boot.ts`, `src/service-worker/` | Must survive failed imports and slow storage on Safari |

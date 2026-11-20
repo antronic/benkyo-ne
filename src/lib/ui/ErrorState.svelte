@@ -336,8 +336,14 @@
 		flex-wrap: wrap;
 		justify-content: center;
 		align-items: center;
-		gap: var(--space-2);
+		column-gap: var(--space-2);
 		font-size: var(--text-footnote);
+	}
+	/* text links still get a full touch target */
+	.links :global(.ui-link) {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
 	}
 	.details {
 		margin: 0;

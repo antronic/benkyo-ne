@@ -1291,6 +1291,8 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'browse.grammarCount_other': 'ไวยากรณ์ {n} ข้อ',
 	'browse.grammarDrafts': 'บทเรียนไวยากรณ์ยังเป็นฉบับร่างที่รอครูตรวจ เปิด “แสดงบทเรียนฉบับร่าง” ในการตั้งค่าเพื่อดูตอนนี้',
 	// error pages (ErrorState)
+	'error.tabTitle': 'เกิดข้อผิดพลาด',
+	'error.goFleet': 'ภาพรวม Fleet',
 	'error.code': 'ข้อผิดพลาด {code}',
 	'error.offline.title': 'ไม่ได้เชื่อมต่ออินเทอร์เน็ต',
 	'error.offline.body': 'ส่วนนี้ต้องใช้อินเทอร์เน็ต แต่บทเรียน คานะ และการทบทวนที่มีอยู่แล้วยังใช้ได้ตามปกติ',
