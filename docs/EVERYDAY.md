@@ -81,3 +81,17 @@ Everything else in the drafts is built from existing kit components (`ListRow` w
 - The Today plan card ticks the level step when a unit of that level is done, and the phrasebook
   step when any word has come up (a sighting).
 - Not yet: Today suggesting the next level at 80%.
+
+## Built: kanji you keep forgetting (E2)
+
+- **The set.** `forgottenKanji` in `src/lib/practice/forgetting.ts` reads the last 7 days: a
+  kanji card or a word with kanji graded Again is a **misread** (each kanji in the word counts),
+  and a kanji drawn wrong from memory is **couldn't write**. An Again within 5 seconds of a write
+  slip for the same kanji counts once, as the write slip. At most 12, most slips first.
+- **Data.** Misreads come from the review log (`logs`). Write slips are recorded by the review
+  screen and kept on the device only, in `meta` key `kanjiWriteSlips` (last 60 days, no sync and
+  no migration). `src/lib/state/forgetting.svelte.ts` loads both.
+- **Screen.** Learn › Practice shows the week's set as `KanjiTile`s (red dots for misreads, blue
+  for couldn't write) and a 🧠 drill, `/review?practice=forgetting`: each kanji card in the set,
+  always written from memory with `RecallPad`, plus the word cards written with those kanji.
+  As with the other drills, cards that aren't due keep their schedule.

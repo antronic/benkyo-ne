@@ -104,4 +104,13 @@ describe('practice drills', () => {
 	it('caps the drill size', () => {
 		expect(pickDrill('mixed', cards, isWord, t0, 2)).toHaveLength(2);
 	});
+
+	it('kanji you keep forgetting takes the kanji cards and the words written with them', () => {
+		const more: Record<string, Card> = { ...cards, ...Object.fromEntries([met('kanji:日', 3), met('kanji:月', 3), met('word:hon', 5)].map((c) => [c.id, c])) };
+		const words = new Set(['word:123', 'word:hon']);
+		const textOf = (id: string) => ({ 'word:123': '毎日', 'word:hon': '本' })[id] ?? null;
+		const ids = pickDrill('forgetting', more, (id) => words.has(id), t0, 20, seeded(), { forgotten: ['日'], textOf });
+		expect(ids.sort()).toEqual(['kanji:日', 'word:123']);
+		expect(pickDrill('forgetting', more, (id) => words.has(id), t0, 20, seeded())).toEqual([]);
+	});
 });

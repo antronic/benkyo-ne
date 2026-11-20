@@ -408,6 +408,8 @@ export const CONTENT_TH: Record<string, string> = {
 	'さ/ち, シ/ツ, ソ/ン… tell similar shapes apart.': 'さ/ち, シ/ツ, ソ/ン… แยกรูปร่างที่คล้ายกันให้ออก',
 	'Weakest first': 'ตัวที่อ่อนที่สุดก่อน',
 	'The cards you are most likely to forget next.': 'การ์ดที่คุณมีแนวโน้มจะลืมเร็วที่สุด',
+	'Kanji you keep forgetting': 'คันจิที่ลืมบ่อย',
+	'This week’s misreads and the ones you couldn’t write.': 'ตัวที่อ่านผิดและเขียนไม่ได้ในสัปดาห์นี้',
 	'Words & phrases': 'คำศัพท์และวลี',
 	'Every word card you have started, mixed.': 'การ์ดคำศัพท์ทุกใบที่คุณเริ่มเรียนแล้ว คละกัน'
 };

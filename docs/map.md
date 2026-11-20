@@ -30,7 +30,7 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | Kana, lessons, kanji, courses | learner | `/api/content` (KV manifest) | none | `worker/index.ts` | `src/lib/content/`, `src/routes/{learn,kana}/` |
 | Review and scheduling | learner | none (local) | none | none | `src/lib/srs/fsrs.ts`, `src/routes/review/`, `src/lib/state/progress.svelte.ts` |
 | Handwriting check | learner | none | none | none | `src/lib/handwriting/`, `wasm/stroke/`, `static/wasm/stroke.wasm`, `TracePad`, `RecallPad` |
-| Placement and drills | learner | none | none | none | `src/lib/practice/`, `src/routes/learn/placement/` |
+| Placement and drills, kanji you keep forgetting ([EVERYDAY.md](EVERYDAY.md)) | learner | none | none | none | `src/lib/practice/`, `src/lib/state/forgetting.svelte.ts`, `src/routes/learn/placement/`, Learn › Practice, `/review?practice=<id>` |
 | Level courses N5–N1 ([LEVELS.md](LEVELS.md)), Test out | learner | none (built into the app) | none | none | `src/lib/content/levels/` (units, `levels.test.ts` checks), `src/lib/state/levels.svelte.ts`, `src/lib/practice/testOut.ts`, `src/lib/words/levelCards.ts`, `src/routes/learn/level/[unit]/` (+ `test/`), Learn (📗 N5 section), Settings (Show draft units, `showDraftUnits`) |
 | Browse: kanji gallery, grammar index ([LEVELS.md](LEVELS.md#browse)) | learner | none | none | none | `src/lib/content/kanjiIndex.ts`, `src/lib/state/kanjiIndex.svelte.ts`, `src/routes/learn/browse/{kanji,kanji/[char],grammar}/`, Learn (Browse row), level-kanji strokes `src/lib/content/level-kanji-strokes.json` (`npm run build:strokes`, loaded by `loadLevelStrokes()`) |
 | Onboarding | new learner | none | none | none | `src/lib/onboarding/`, `Onboarding.svelte` |
@@ -64,7 +64,7 @@ beta data.
 | --- | --- | --- |
 | `cards` | FSRS card state | `progress.svelte.ts`, review |
 | `logs` | Review log (index `synced`) | `progress.svelte.ts`, sync |
-| `meta` | Flags such as `introSeen`, `kuriIntroSeen` | layout, intro, onboarding |
+| `meta` | Flags such as `introSeen`, `kuriIntroSeen`; `kanjiWriteSlips` (kanji drawn wrong, device only) | layout, intro, onboarding, `forgetting.svelte.ts` |
 | `userCards` | Learner-made word cards | `words.svelte.ts` |
 | `packs` | Lesson packs | `lessonPacks.svelte.ts` |
 | `outbox` | Changes waiting to sync | `progress.svelte.ts` |
