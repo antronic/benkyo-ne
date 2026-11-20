@@ -13,6 +13,8 @@ import { get, put } from '#lib/db/idb.ts';
 import { progress } from '#lib/state/progress.svelte.ts';
 import { COURSES } from '#lib/content/courses.ts';
 import { LESSONS } from '#lib/content/lessons.ts';
+import { LEVELS, visibleUnits, type JlptLevel } from '#lib/content/levels/index.ts';
+import { levels } from '#lib/state/levels.svelte.ts';
 import { buildPlan, NEW_PER_DAY, sanitize, type Answers, type Profile, type Step } from './plan.ts';
 import { STRINGS, type Lang } from './strings.ts';
 
@@ -40,11 +42,29 @@ export const lang = {
 /** Onboarding copy in the current interface language (reactive). */
 export const s = () => STRINGS[lang.code];
 
+/** Units of this level the learner can open now (all of N5 is still a draft, shown only when Settings asks). */
+function levelReady(jlpt: JlptLevel): boolean {
+	if (!LEVELS.some((l) => l.id === jlpt)) return false;
+	const units = levels.units[jlpt];
+	return units ? visibleUnits(units, progress.settings.showDraftUnits).length > 0 : progress.settings.showDraftUnits;
+}
+
+/** Learn remembers its filter on the device; an everyday learner's opens at their level when it has units. */
+function openLearnAt(jlpt: JlptLevel) {
+	if (!LEVELS.some((l) => l.id === jlpt)) return;
+	try {
+		localStorage.setItem('learn.filter', jlpt.toLowerCase());
+	} catch {
+		/* only a convenience */
+	}
+}
+
 export const planFor = (a: Answers): Step[] =>
 	buildPlan(a, {
 		firstLesson: LESSONS[0].id,
 		firstUnit: (c) => COURSES.find((x) => x.id === c)?.units[0]?.id,
-		hasPlacement
+		hasPlacement,
+		levelReady
 	});
 
 class ProfileStore {
@@ -64,6 +84,7 @@ class ProfileStore {
 		const p: Profile = { ...sanitize(a), at: Date.now(), skipped };
 		this.value = p;
 		this.loaded = true;
+		if (!skipped && p.level === 'daily') openLearnAt(p.jlpt);
 		await Promise.all([put('meta', p, 'profile'), skipped ? null : progress.saveSettings({ newPerDay: NEW_PER_DAY[p.minutes] })]);
 	}
 

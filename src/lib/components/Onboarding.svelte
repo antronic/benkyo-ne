@@ -9,7 +9,7 @@
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { haptic } from '#lib/ios/haptics.ts';
-	import { DEFAULTS, GOALS, LEVELS, MINUTES, type Answers, type Goal, type Level, type Minutes, type Step } from '#lib/onboarding/plan.ts';
+	import { DEFAULTS, GOALS, JLPT_PICKS, LEVELS, MINUTES, type Answers, type Goal, type Level, type Minutes, type Step } from '#lib/onboarding/plan.ts';
 	import { LANGS, lang, planFor, profile, s } from '#lib/onboarding/profile.svelte.ts';
 	import { Button, Card, IconButton, Segmented } from '#lib/ui/index.ts';
 
@@ -17,14 +17,18 @@
 
 	const prev = profile.value;
 	const editing = !!prev && !prev.skipped;
-	let a = $state<Answers>(editing ? { goals: [...prev.goals], level: prev.level, minutes: prev.minutes } : { ...DEFAULTS, goals: [] });
+	let a = $state<Answers>(editing ? { goals: [...prev.goals], level: prev.level, jlpt: prev.jlpt, minutes: prev.minutes } : { ...DEFAULTS, goals: [] });
 
-	const QUESTIONS = 3;
+	/** Everyday users get one more question: Pick your level. */
+	type Page = 'goals' | 'level' | 'jlpt' | 'minutes' | 'plan';
+	const pages = $derived<Page[]>(a.level === 'daily' ? ['goals', 'level', 'jlpt', 'minutes', 'plan'] : ['goals', 'level', 'minutes', 'plan']);
+	const QUESTIONS = $derived(pages.length - 1);
 	let step = $state(0);
+	const page = $derived(pages[step]);
 	let dir = $state(1);
 	const t = $derived(s());
 	const plan = $derived(planFor(a));
-	const HUES = [8, 200, 140, 265];
+	const HUES: Record<Page, number> = { goals: 8, level: 200, jlpt: 30, minutes: 140, plan: 265 };
 
 	function go(n: number) {
 		dir = n > step ? 1 : -1;
@@ -35,7 +39,7 @@
 		haptic('selection');
 	}
 	let advancing = false;
-	function pick<K extends 'level' | 'minutes'>(k: K, v: Answers[K]) {
+	function pick<K extends 'level' | 'jlpt' | 'minutes'>(k: K, v: Answers[K]) {
 		a[k] = v;
 		haptic('selection');
 		if (advancing) return;
@@ -67,15 +71,33 @@
 		ondone();
 	}
 
-	const stepIcon = (p: Step) =>
-		p.kind === 'lesson' ? 'あ' : p.kind === 'placement' ? (p.script === 'hiragana' ? 'あ' : 'ア') : p.kind === 'course' ? (GOALS.find((g) => g.id === a.goals[0])?.emoji ?? '✨') : '⏱';
-	const stepTitle = (p: Step) =>
-		p.kind === 'lesson' ? t.steps.lesson : p.kind === 'placement' ? t.steps.placement[p.script] : p.kind === 'course' ? t.steps.course(p.course) : t.steps.daily(p.minutes);
-	const stepCaption = (p: Step) =>
-		p.kind === 'lesson' ? t.steps.lessonCaption : p.kind === 'placement' ? t.steps.placementCaption : p.kind === 'course' ? t.steps.courseCaption : t.steps.dailyCaption(p.newPerDay);
+	function stepIcon(p: Step) {
+		if (p.kind === 'lesson') return 'あ';
+		if (p.kind === 'placement') return p.script === 'hiragana' ? 'あ' : 'ア';
+		if (p.kind === 'course') return GOALS.find((g) => g.id === a.goals[0])?.emoji ?? '✨';
+		if (p.kind === 'level') return '📗';
+		if (p.kind === 'everyday') return '📖';
+		return '⏱';
+	}
+	function stepTitle(p: Step) {
+		if (p.kind === 'lesson') return t.steps.lesson;
+		if (p.kind === 'placement') return t.steps.placement[p.script];
+		if (p.kind === 'course') return t.steps.course(p.course);
+		if (p.kind === 'level') return t.steps.level(p.jlpt);
+		if (p.kind === 'everyday') return t.steps.everyday;
+		return t.steps.daily(p.minutes);
+	}
+	function stepCaption(p: Step) {
+		if (p.kind === 'lesson') return t.steps.lessonCaption;
+		if (p.kind === 'placement') return t.steps.placementCaption;
+		if (p.kind === 'course') return t.steps.courseCaption;
+		if (p.kind === 'level') return p.ready ? t.steps.levelCaption : t.steps.levelSoon(p.jlpt);
+		if (p.kind === 'everyday') return t.steps.everydayCaption;
+		return a.level === 'daily' ? t.steps.dailyCaptionEveryday : t.steps.dailyCaption(p.newPerDay);
+	}
 </script>
 
-<div class="onboard" style:--h={HUES[step]} transition:fade={{ duration: 350 }} role="dialog" aria-modal="true" aria-label={t.planEyebrow}>
+<div class="onboard" style:--h={HUES[page]} transition:fade={{ duration: 350 }} role="dialog" aria-modal="true" aria-label={t.planEyebrow}>
 	<div class="bg" aria-hidden="true"></div>
 
 	<div class="top">
@@ -83,13 +105,13 @@
 		<div class="dots" aria-hidden="true">
 			{#each { length: QUESTIONS + 1 } as _, n}<span class:on={n === step} class:past={n < step}></span>{/each}
 		</div>
-		<Button variant="ghost" size="sm" class={step === QUESTIONS ? 'ob-skip hidden' : 'ob-skip'} busy={saving === 'skip'} disabled={saving !== null} onclick={skip}>{t.skip}</Button>
+		<Button variant="ghost" size="sm" class={page === 'plan' ? 'ob-skip hidden' : 'ob-skip'} busy={saving === 'skip'} disabled={saving !== null} onclick={skip}>{t.skip}</Button>
 	</div>
 
 	<div class="panel">
 		{#key step}
 			<section class="q" in:fly={{ x: 60 * dir, duration: 450, easing: cubicOut, opacity: 0 }}>
-				{#if step === 0}
+				{#if page === 'goals'}
 					{#if LANGS.length > 1}
 						<div class="lang">
 							<Segmented label={t.langLabel} options={LANGS.map((l) => ({ value: l.code, label: l.name }))} value={lang.code} onchange={(c) => (lang.set(c), haptic('selection'))} />
@@ -111,7 +133,7 @@
 						{/each}
 					</div>
 					<Button variant="accent" block class="cta" onclick={() => go(1)}>{t.next}</Button>
-				{:else if step === 1}
+				{:else if page === 'level'}
 					<header>
 						<div class="eyebrow">2 / {QUESTIONS}</div>
 						<h2 class="title">{t.levelQ}</h2>
@@ -130,9 +152,28 @@
 							</Card>
 						{/each}
 					</div>
-				{:else if step === 2}
+				{:else if page === 'jlpt'}
 					<header>
 						<div class="eyebrow">3 / {QUESTIONS}</div>
+						<h2 class="title">{t.jlptQ}</h2>
+						<p class="subhead">{t.jlptHint}</p>
+					</header>
+					<div class="list" role="radiogroup" aria-label={t.jlptQ}>
+						{#each JLPT_PICKS as j, n (j.id)}
+							{@const on = a.jlpt === j.id}
+							<Card class={on ? 'ob-opt on' : 'ob-opt'} role="radio" aria-checked={on} onclick={() => pick('jlpt', j.id)} style="--i: {n}">
+								<span class="stack" style:--gap="1px">
+									<span class="caption">{t.jlpt[j.id].name}</span>
+									<span class="headline jp" lang="ja">{j.sample}</span>
+									<span class="caption">{t.jlpt[j.id].meaning}</span>
+								</span>
+								<span class="radio" aria-hidden="true"></span>
+							</Card>
+						{/each}
+					</div>
+				{:else if page === 'minutes'}
+					<header>
+						<div class="eyebrow">{QUESTIONS} / {QUESTIONS}</div>
 						<h2 class="title">{t.minutesQ}</h2>
 						<p class="subhead">{t.minutesHint}</p>
 					</header>

@@ -6,6 +6,7 @@
  * can move into en.ts / th.ts.
  */
 import type { Goal, Level, Minutes } from './plan.ts';
+import type { JlptLevel } from '#lib/content/levels/types.ts';
 import type { Course } from '#lib/content/courses.ts';
 
 export type Lang = 'en' | 'th';
@@ -22,6 +23,9 @@ interface Strings {
 	levelQ: string;
 	levelHint: string;
 	levels: Record<Level, { title: string; caption: string }>;
+	jlptQ: string;
+	jlptHint: string;
+	jlpt: Record<JlptLevel, { name: string; meaning: string }>;
 	minutesQ: string;
 	minutesHint: string;
 	minutes: Record<Minutes, { title: string; caption: string }>;
@@ -40,6 +44,12 @@ interface Strings {
 		courseCaption: string;
 		daily: (min: number) => string;
 		dailyCaption: (n: number) => string;
+		level: (jlpt: JlptLevel) => string;
+		levelCaption: string;
+		levelSoon: (jlpt: JlptLevel) => string;
+		everyday: string;
+		everydayCaption: string;
+		dailyCaptionEveryday: string;
 	};
 	card: {
 		title: string;
@@ -78,7 +88,17 @@ export const STRINGS: Record<Lang, Strings> = {
 		levels: {
 			new: { title: 'I’m brand new', caption: 'Start from the first five letters' },
 			some: { title: 'I know some kana', caption: 'A quick check skips what you know' },
-			kana: { title: 'I can read hiragana & katakana', caption: 'Test out of the lessons, then practise' }
+			kana: { title: 'I can read hiragana & katakana', caption: 'Test out of the lessons, then practise' },
+			daily: { title: 'I use Japanese every day', caption: 'Pick your level from a real sentence' }
+		},
+		jlptQ: 'Pick your level',
+		jlptHint: 'Tap the hardest sentence you can read. No test: you can change it any time.',
+		jlpt: {
+			N5: { name: 'N5 · Beginner', meaning: 'This is my book.' },
+			N4: { name: 'N4 · Basic', meaning: 'If it rains, I watch a film at home.' },
+			N3: { name: 'N3 · Everyday and work', meaning: 'Could you share the meeting documents beforehand?' },
+			N2: { name: 'N2 · Business', meaning: 'Sorry to trouble you when you’re busy, but please check it.' },
+			N1: { name: 'N1 · Advanced', meaning: 'Regarding this matter, we regret that we must decline.' }
 		},
 		minutesQ: 'How much time a day?',
 		minutesHint: 'You can change this any time in Settings.',
@@ -101,7 +121,13 @@ export const STRINGS: Record<Lang, Strings> = {
 			course: (c) => `${COURSE_EN[c]} words and phrases`,
 			courseCaption: 'Picked from your answers',
 			daily: (m) => `${m} minutes a day`,
-			dailyCaption: (n) => `Up to ${n} new kana a day, plus reviews`
+			dailyCaption: (n) => `Up to ${n} new kana a day, plus reviews`,
+			level: (j) => `Your level: ${j}`,
+			levelCaption: 'Learn opens at your level with nothing locked. Test out of any unit you already know.',
+			levelSoon: (j) => `${j} units are being written. Until then, everything in Learn is open.`,
+			everyday: 'Your phrasebook and Writing helper',
+			everydayCaption: 'Save words from photos, check messages before you send them',
+			dailyCaptionEveryday: 'Short reviews of the words you meet'
 		},
 		card: {
 			title: 'Your plan',
@@ -135,7 +161,17 @@ export const STRINGS: Record<Lang, Strings> = {
 		levels: {
 			new: { title: 'เพิ่งเริ่มเลย', caption: 'เริ่มจากตัวอักษรห้าตัวแรก' },
 			some: { title: 'รู้คานะบ้างแล้ว', caption: 'ทดสอบสั้น ๆ เพื่อข้ามสิ่งที่รู้แล้ว' },
-			kana: { title: 'อ่านฮิรางานะและคาตากานะได้', caption: 'ทดสอบข้ามบทเรียน แล้วไปฝึกต่อ' }
+			kana: { title: 'อ่านฮิรางานะและคาตากานะได้', caption: 'ทดสอบข้ามบทเรียน แล้วไปฝึกต่อ' },
+			daily: { title: 'ใช้ภาษาญี่ปุ่นทุกวัน', caption: 'เลือกระดับจากประโยคจริง' }
+		},
+		jlptQ: 'เลือกระดับของคุณ',
+		jlptHint: 'แตะประโยคที่ยากที่สุดที่อ่านออก ไม่ต้องสอบ เปลี่ยนได้ทุกเมื่อ',
+		jlpt: {
+			N5: { name: 'N5 · เริ่มต้น', meaning: 'นี่คือหนังสือของฉัน' },
+			N4: { name: 'N4 · พื้นฐาน', meaning: 'ถ้าฝนตก จะดูหนังที่บ้าน' },
+			N3: { name: 'N3 · ชีวิตประจำวันและงาน', meaning: 'ช่วยแชร์เอกสารประชุมล่วงหน้าได้ไหม' },
+			N2: { name: 'N2 · ธุรกิจ', meaning: 'ขอโทษที่รบกวนขณะที่ยุ่ง แต่รบกวนช่วยตรวจด้วย' },
+			N1: { name: 'N1 · ขั้นสูง', meaning: 'เรื่องนี้ เราเสียใจที่ต้องขอปฏิเสธ' }
 		},
 		minutesQ: 'อยากเรียนวันละกี่นาที',
 		minutesHint: 'เปลี่ยนได้ทุกเมื่อในการตั้งค่า',
@@ -158,7 +194,13 @@ export const STRINGS: Record<Lang, Strings> = {
 			course: (c) => `คำศัพท์และวลี: ${COURSE_TH[c]}`,
 			courseCaption: 'เลือกจากคำตอบของคุณ',
 			daily: (m) => `วันละ ${m} นาที`,
-			dailyCaption: (n) => `คานะใหม่ไม่เกินวันละ ${n} ตัว พร้อมทบทวน`
+			dailyCaption: (n) => `คานะใหม่ไม่เกินวันละ ${n} ตัว พร้อมทบทวน`,
+			level: (j) => `ระดับของคุณ: ${j}`,
+			levelCaption: 'หน้าเรียนเปิดที่ระดับของคุณ ไม่มีอะไรล็อก ทดสอบข้ามหน่วยที่รู้แล้วได้เลย',
+			levelSoon: (j) => `บทเรียนระดับ ${j} กำลังเขียนอยู่ ระหว่างนี้ทุกอย่างในหน้าเรียนเปิดให้แล้ว`,
+			everyday: 'สมุดวลีและผู้ช่วยเขียน',
+			everydayCaption: 'เก็บคำจากรูป ตรวจข้อความก่อนส่ง',
+			dailyCaptionEveryday: 'ทบทวนสั้น ๆ คำที่คุณเจอ'
 		},
 		card: {
 			title: 'แผนของคุณ',
