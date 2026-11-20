@@ -5,7 +5,7 @@ import { cleanPerson, compactPerson, DEFAULTS } from './person.ts';
 
 // synthetic measurements, not real people
 const base: Measurements = {
-	faceRatio: 0.8, jawRatio: 0.8, skinLab: [74, 16, 22], faceBright: 80, teethL: null, hairArea: 0.25, hairBelowChin: 0, hairFringe: 0.1, hairTop: false, hairRough: 0.05,
+	faceRatio: 0.8, jawRatio: 0.8, skinLab: [74, 16, 22], faceBright: 92, eyeLab: null, hairArea: 0.25, hairBelowChin: 0, hairFringe: 0.1, hairTop: false, hairRough: 0.05,
 	hairLab: [15, 1, 0], hairCovered: false, eyeOpen: 0.26, smile: 0.2, jawOpen: 0.05, browArch: 0.4, glasses: 0, beardJaw: 0.05, beardLip: 0.03, beardChin: 0.04
 };
 const map = (m: Partial<Measurements>) => mapToPerson({ ...base, ...m });
@@ -23,9 +23,7 @@ describe('selfie → avatar parts', () => {
 		expect(map({ hairRough: 0.8, hairArea: 1.2 }).person.hair).toBe('afro');
 	});
 
-	it('picks the skin tone by lightness on the photo scale, and the nearest hair colour', () => {
-		expect(map({ skinLab: [69, 16, 21] }).person.skin).toBe('s3');
-		expect(map({ skinLab: [48, 12, 18] }).person.skin).toBe('s7');
+	it('picks the skin tone against the face shine, and the nearest hair colour', () => {
 		expect(map({ skinLab: rgbToLab(0xfb, 0xe7, 0xd6) }).person.skin).toBe('s1');
 		expect(map({ skinLab: rgbToLab(0x5a, 0x36, 0x22) }).person.skin).toBe('s10');
 		expect(map({ hairLab: rgbToLab(0xd8, 0xb2, 0x6a) }).person.hairColor).toBe('blonde');
@@ -61,16 +59,17 @@ describe('selfie → avatar parts', () => {
 /**
  * A drawn 200 × 200 face for measure(): a face disc with a black hair cap above it on white.
  * `shade` darkens the right half (light from the left), `glasses` draws thin round rims and a
- * bridge, `stray` adds a dark patch the segmenter calls hair, low in a corner (a chair or shirt).
+ * bridge, `shine` puts a highlight on the nose (as real skin has), `stray` adds a dark patch the segmenter calls hair, low in a corner (a chair or shirt).
  */
-function drawnFace(o: { face?: number[]; shade?: number[]; glasses?: boolean; stray?: boolean } = {}) {
+function drawnFace(o: { face?: number[]; shade?: number[]; glasses?: boolean; stray?: boolean; shine?: boolean } = {}) {
 	const W = 200, H = 200, rgba = new Uint8ClampedArray(W * H * 4).fill(255), hair = new Uint8Array(W * H);
 	for (let y = 0; y < H; y++)
 		for (let x = 0; x < W; x++) {
 			const i = y * W + x, face = (x - 100) ** 2 / 50 ** 2 + (y - 110) ** 2 / 65 ** 2 <= 1, cap = y < 70 && y > 30 && Math.abs(x - 100) < 55;
 			const stray = o.stray && y > 185 && x < 40;
 			const rim = o.glasses && (Math.abs(Math.hypot(x - 80, y - 101) - 14) < 0.6 || Math.abs(Math.hypot(x - 120, y - 101) - 14) < 0.6 || (y === 97 && x > 93 && x < 107));
-			const c = cap || stray ? [29, 26, 25] : rim ? [60, 50, 45] : face ? (o.shade && x >= 100 ? o.shade : (o.face ?? [227, 174, 133])) : [255, 255, 255];
+			const shine = o.shine && Math.hypot(x - 100, y - 118) <= 6;
+			const c = cap || stray ? [29, 26, 25] : rim ? [60, 50, 45] : shine ? [232, 208, 190] : face ? (o.shade && x >= 100 ? o.shade : (o.face ?? [227, 174, 133])) : [255, 255, 255];
 			rgba.set([...c, 255], i * 4);
 			if (cap || stray) hair[i] = 1;
 		}
@@ -85,7 +84,7 @@ function drawnFace(o: { face?: number[]; shade?: number[]; glasses?: boolean; st
 
 describe('measure()', () => {
 	it('reads a drawn face: skin, hair and the hair colour', () => {
-		const m = drawnFace({ face: [196, 154, 124] });
+		const m = drawnFace({ face: [196, 154, 124], shine: true });
 		expect(m.faceRatio).toBeCloseTo(0.8, 1);
 		expect(mapToPerson(m).person.skin).toBe('s4');
 		expect(mapToPerson(m).person.glasses).toBe('none');
@@ -97,7 +96,7 @@ describe('measure()', () => {
 
 	it('reads skin on the side facing the light, and judges a beard against each side', () => {
 		// a lamp on the left: the right half is in deep shadow
-		const m = drawnFace({ face: [196, 154, 124], shade: [120, 88, 66] });
+		const m = drawnFace({ face: [196, 154, 124], shade: [120, 88, 66], shine: true });
 		expect(mapToPerson(m).person.skin).toBe('s4');
 		expect(m.beardJaw).toBe(0);
 		expect(mapToPerson(m).person.beard).toBe('none');
@@ -115,15 +114,26 @@ describe('measure()', () => {
 		expect(mapToPerson(m).person.hair).not.toBe('long');
 	});
 
-	it('reads skin in a dim photo against the teeth, or asks', () => {
-		// light skin in a dark bathroom: skin and teeth both come out near L* 44
-		expect(map({ skinLab: [44, 11, 11], faceBright: 47, teethL: 44 }).person.skin).toBe('s2');
-		// dark skin, dim light, smiling: teeth twice as bright as the skin
-		expect(map({ skinLab: [30, 12, 16], faceBright: 55, teethL: 62 }).person.skin).toBe('s9');
-		// dim, lips closed: no reference, so the learner picks
-		const closed = map({ skinLab: [44, 11, 11], faceBright: 47, teethL: null });
-		expect(closed.ask).toContain('skin');
-		// a well-exposed photo needs no question
-		expect(map({ skinLab: [44, 11, 11], faceBright: 75 }).ask).not.toContain('skin');
+	it('reads skin against the shine on the same face, in any exposure', () => {
+		// one light-skinned face: by a window, in a dark bathroom, in warm curtain light
+		expect(map({ skinLab: [69, 16, 21], faceBright: 75 }).person.skin).toBe('s2');
+		expect(map({ skinLab: [44, 11, 11], faceBright: 47 }).person.skin).toBe('s2');
+		expect(map({ skinLab: [58, 12, 13], faceBright: 65 }).person.skin).toBe('s3');
+		// darker skin sits well below its own shine
+		expect(map({ skinLab: [35, 14, 18], faceBright: 60 }).person.skin).toBe('s7');
+		expect(map({ skinLab: [30, 12, 16], faceBright: 62 }).person.skin).toBe('s8');
+		// no shine at all: too dark to tell, so the learner picks
+		const dark = map({ skinLab: [20, 8, 8], faceBright: 24 });
+		expect(dark.ask).toContain('skin');
+		expect(map({ skinLab: [44, 11, 11], faceBright: 47 }).ask).not.toContain('skin');
+	});
+
+	it('reads eye colour only from a clearly light iris', () => {
+		expect(map({ eyeLab: [12, 2, 4] }).person.eyeColor).toBe('dark');
+		expect(map({ eyeLab: [45, -2, -12] }).person.eyeColor).toBe('blue');
+		expect(map({ eyeLab: [42, -8, 10] }).person.eyeColor).toBe('green');
+		expect(map({ eyeLab: [38, 12, 20] }).person.eyeColor).toBe('brown');
+		expect(map({ eyeLab: [50, 4, 26] }).person.eyeColor).toBe('hazel');
+		expect(map({ eyeLab: [52, 1, 2] }).person.eyeColor).toBe('grey');
 	});
 });

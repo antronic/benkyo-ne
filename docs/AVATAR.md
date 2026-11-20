@@ -53,13 +53,20 @@ as Tone 8, long hair and no glasses:
   lightness scale. Hue is ignored because indoor light tints it. The result screen always shows
   the skin swatches, so a wrong tone takes one tap to fix. The beard is judged against the cheek
   on the same side, so a shaded jaw isn't read as a beard.
-- **Dim photos** (second sample, 2026-11-20: a dark bathroom, so the face's brightest spot was L* 47
-  and skin, teeth and eye whites all read about 44). A dark photo can't tell light skin in dim
-  light from dark skin in good light. `measure()` now also returns `faceBright` (99th percentile
-  L* inside the face) and `teethL` (pale pixels between parted lips). When `faceBright` is below
-  `DIM_FACE` (60), skin is read against the teeth, which are near-white in any skin tone
-  (skin / teeth × 78 on the photo scale). With no teeth showing, the result screen asks
-  ("too dark to tell") with no tone picked.
+- **Exposure** (photos 2 and 3, 2026-11-20: a dark bathroom where skin read L* 44, and warm curtain
+  light where it read 58; same skin as the L* 69 window photo). Phones set the exposure for the
+  face, so plain lightness can't give a tone. `measure()` returns `faceBright`, the 99th
+  percentile L* inside the face: the shine on the nose and forehead. Shine is a surface
+  reflection, about as bright on any skin, so light skin sits close to it and dark skin well
+  below it in any exposure. The tone is `skin / faceBright × 82` on the `SKIN_PHOTO_L` scale. All
+  three photos give s2 to s3. A face with no shine at all (`faceBright` < 30) asks with no tone picked.
+  An earlier try used the teeth as a white reference. It worked only when smiling, and was
+  dropped once the shine ratio covered all three photos.
+- **Glasses** (photo 3): the inner-rim and bridge test scored 0.38. The lower rim under both eyes
+  is now a cue too: a thin dark line across the cheek in most columns under each eye.
+- **Eye colour**: the style had one fixed blue-grey. `eyeColor` (`EYEC` in `person.ts`, style id
+  `benkyo-v2`) is read from MediaPipe's iris points (468 to 477): the ring between pupil and
+  glints. Only an iris lighter than L* 30 picks a colour, otherwise 'dark'.
 - **Hair length.** Side hair is followed down from the eyes and stops at the first gap. Before,
   any dark patch the segmenter called hair (a shirt or a chair) counted as long hair.
   Roughness (curls) uses the median row jump near the head and skips the round top of the head.
@@ -70,7 +77,7 @@ as Tone 8, long hair and no glasses:
 
 The engine is `@antronic/coreva-render` (Job's Coreva Render, from GitHub Packages; `.npmrc`
 reads `GITHUB_PACKAGES_TOKEN` from the environment; CI maps the repository secret `PACKAGES_TOKEN` to it). Benkyo ships its own style pack,
-`src/lib/avatar/pack/benkyo-style.js` (id `benkyo-v1`, the Coreva flat style in Benkyo colours,
+`src/lib/avatar/pack/benkyo-style.js` (id `benkyo-v2` since eye colours; was `benkyo-v1`, the Coreva flat style in Benkyo colours,
 with head coverings, hats and 16 hairstyles). `render.ts` wraps it:
 
 - `avatarSvg(person, size)`: a memoised still SVG, used for every small avatar and tile.

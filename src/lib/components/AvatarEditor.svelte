@@ -16,7 +16,7 @@
 	type PartKey = keyof typeof OPTIONS;
 	type ColourKey = keyof typeof COLOURS;
 	const TABS: Record<Tab, (PartKey | ColourKey)[]> = {
-		face: ['headShape', 'eyes', 'brows', 'mouth', 'beard', 'blush'],
+		face: ['headShape', 'eyes', 'eyeColor', 'brows', 'mouth', 'beard', 'blush'],
 		hair: ['hair', 'hairColor'],
 		head: ['head', 'headColor', 'glasses'],
 		colours: ['skin', 'cloth', 'frameColor'],

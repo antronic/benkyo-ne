@@ -18,8 +18,8 @@ export interface Measurements {
 	skinLab: [number, number, number];
 	/** the brightest the face gets (99th percentile L* inside the face, hair left out): how well exposed the photo is */
 	faceBright: number;
-	/** lightness of the teeth (L*) when a smile shows them, else null: a white reference for dim photos */
-	teethL: number | null;
+	/** iris colour, CIE L*a*b*, or null when the iris points are missing */
+	eyeLab: [number, number, number] | null;
 	/** hair pixels / (face width × face length) */
 	hairArea: number;
 	/** how far hair reaches below the chin, in face lengths (0: not below) */
@@ -107,10 +107,6 @@ const L = {
 	noseBottom: 2,
 	upperLip: 0,
 	lowerLip: 17,
-	innerTop: 13,
-	innerBottom: 14,
-	mouthL: 78,
-	mouthR: 308,
 	eyeLT: 159,
 	eyeLB: 145,
 	eyeLO: 33,
@@ -190,27 +186,21 @@ export function measure(s: SelfieInput): Measurements {
 	faceLs.sort((a, b) => a - b);
 	const faceBright = faceLs.length ? faceLs[Math.floor(faceLs.length * 0.99)] : 0;
 
-	// teeth: when the lips are apart, the pale pixels between them. Teeth are near-white in any
-	// skin tone, so skin / teeth says how light the skin is even when the whole photo is dark.
-	const it = P(L.innerTop),
-		ib = P(L.innerBottom),
-		ml = P(L.mouthL),
-		mr = P(L.mouthR);
-	let teethL: number | null = null;
-	if (ib.y - it.y > fw * 0.04) {
-		const tl: number[] = [];
-		const x0 = Math.min(ml.x, mr.x),
-			x1 = Math.max(ml.x, mr.x);
-		for (let y = it.y + 1; y < ib.y - 1; y++)
-			for (let x = x0 + (x1 - x0) * 0.2; x < x1 - (x1 - x0) * 0.2; x++) {
-				if (!inside(x, y)) continue;
-				const c = lab(x, y);
-				if (Math.hypot(c[1], c[2]) < 30) tl.push(c[0]);
-			}
-		tl.sort((a, b) => a - b);
-		// enough pale pixels to be teeth, not the dark inside of the mouth
-		if (tl.length >= 20) teethL = tl[Math.floor(tl.length * 0.9)];
-	}
+	// iris colour: the ring between the dark pupil and the bright glints (MediaPipe's iris points)
+	const irisLab = (c: number, ring: number[]) => {
+		if (s.landmarks.length < 478) return null;
+		const o = P(c),
+			rad = ring.reduce((t, i) => t + dist(o, P(i)), 0) / ring.length;
+		const px: [number, number, number][] = [];
+		for (let y = o.y - rad; y <= o.y + rad; y++)
+			for (let x = o.x - rad; x <= o.x + rad; x++) if (inside(x, y) && Math.hypot(x - o.x, y - o.y) <= rad * 0.8) px.push(lab(x, y));
+		if (px.length < 12) return null;
+		px.sort((a, b) => a[0] - b[0]);
+		const mid = px.slice(Math.floor(px.length * 0.3), Math.floor(px.length * 0.75));
+		return [0, 1, 2].map((i) => median(mid.map((q) => q[i]))) as [number, number, number];
+	};
+	const irises = [irisLab(468, [469, 470, 471, 472]), irisLab(473, [474, 475, 476, 477])].filter((q): q is [number, number, number] => !!q);
+	const eyeLab: [number, number, number] | null = irises.length ? ([0, 1, 2].map((i) => median(irises.map((q) => q[i]))) as [number, number, number]) : null;
 
 	// hair mask, in face units
 	let hairN = 0,
@@ -353,7 +343,24 @@ export function measure(s: SelfieInput): Measurements {
 	}
 	const rims = rimRows ? rimHits / rimRows : 0,
 		bridgeLine = brCols ? brHits / brCols : 0;
-	const thin = (clamp01((rims - 0.15) / 0.35) + clamp01((bridgeLine - 0.2) / 0.5)) / 2;
+	// the lower rim: a thin dark line across the cheek just under each eye, in most columns
+	const under = (o: number, i: number, b: number) => {
+		const x0 = Math.min(P(o).x, P(i).x),
+			x1 = Math.max(P(o).x, P(i).x),
+			yb = P(b).y;
+		let n = 0,
+			c = 0;
+		for (let x = x0; x < x1; x++) {
+			n++;
+			let hit = false;
+			for (let y = yb + fw * 0.03; y < yb + fw * 0.2 && !hit; y++) hit = ridgeV(x, y);
+			if (hit) c++;
+		}
+		return n ? c / n : 0;
+	};
+	const lowerRims = Math.min(under(L.eyeLO, L.eyeLI, L.eyeLB), under(L.eyeRO, L.eyeRI, L.eyeRB));
+	// both lower rims, and something joining the lenses (the inner rims or the bridge)
+	const thin = (clamp01((lowerRims - 0.3) / 0.4) + clamp01((Math.max(rims, bridgeLine) - 0.15) / 0.35)) / 2;
 	const glasses = Math.max(thick, thin);
 
 	// beard: hair-dark pixels in the jaw band, above the lip and on the chin, against the cheeks
@@ -381,5 +388,5 @@ export function measure(s: SelfieInput): Measurements {
 		jy1 = (Math.max(jl.y, jr.y) + chin.y) / 2;
 	const beardJaw = (dark(jl.x + fw * 0.06, jy0, jl.x + fw * 0.2, jy1) + dark(jr.x - fw * 0.2, jy0, jr.x - fw * 0.06, jy1)) / 2;
 
-	return { faceRatio, jawRatio, skinLab, faceBright, teethL, hairArea, hairBelowChin, hairFringe, hairTop, hairRough, hairLab, hairCovered, eyeOpen, smile, jawOpen, browArch, glasses, beardJaw, beardLip, beardChin };
+	return { faceRatio, jawRatio, skinLab, faceBright, eyeLab, hairArea, hairBelowChin, hairFringe, hairTop, hairRough, hairLab, hairCovered, eyeOpen, smile, jawOpen, browArch, glasses, beardJaw, beardLip, beardChin };
 }

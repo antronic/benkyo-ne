@@ -1,7 +1,7 @@
 // @ts-nocheck: hand-drawn SVG art ported from the Coreva Friendly style (loose numbers and paths).
 // The typed surface is ../person.ts and ../render.ts; pack.test.ts draws every part.
 /**
- * Benkyo's avatar style pack for @antronic/coreva-render 0.6 (style id 'benkyo-v1').
+ * Benkyo's avatar style pack for @antronic/coreva-render 0.6 (style id 'benkyo-v2').
  *
  * Coreva's 96 x 96 Friendly layout, with Benkyo's palette (shu, ai, sumire, matcha), ten skin
  * tones, blonde and red hair, sixteen hairstyles, beards, three head shapes, and hats and head
@@ -12,7 +12,7 @@
  * Bump the id when the art changes: it is part of every cached wave's key. docs/AVATAR.md.
  */
 import { defineStyle } from '@antronic/coreva-render/style';
-import { SKIN, HAIRC, CLOTH, COLLAR, HEADC, FRAMEC, HATS, OPTIONS, DEFAULTS as PERSON_DEFAULTS, FIXED } from '../person.ts';
+import { SKIN, EYEC, HAIRC, CLOTH, COLLAR, HEADC, FRAMEC, HATS, OPTIONS, DEFAULTS as PERSON_DEFAULTS, FIXED } from '../person.ts';
 
 export const DEFAULTS = { ...PERSON_DEFAULTS, ...FIXED };
 
@@ -126,7 +126,7 @@ function render(st0, size) {
 	p += '<g class="fc">';
 	if (st.face === 'on') {
 		if (st.blush === 'on') p += '<ellipse cx="36" cy="' + (ey + 6) + '" rx="3.4" ry="2.2" fill="#f08aa0" fill-opacity=".45"/><ellipse cx="60" cy="' + (ey + 6) + '" rx="3.4" ry="2.2" fill="#f08aa0" fill-opacity=".45"/>';
-		var E = '#4f5266';
+		var E = pick(EYEC, st.eyeColor, 'dark');
 		if (st.eyes === 'oval') p += '<ellipse cx="41" cy="' + ey + '" rx="2.3" ry="3.1" fill="' + E + '"/><ellipse cx="55" cy="' + ey + '" rx="2.3" ry="3.1" fill="' + E + '"/>';
 		if (st.eyes === 'dot') p += '<circle cx="41" cy="' + ey + '" r="2" fill="' + E + '"/><circle cx="55" cy="' + ey + '" r="2" fill="' + E + '"/>';
 		if (st.eyes === 'happy') p += '<path d="M38.5 ' + (ey + 1) + 'q2.5-3.2 5 0M52.5 ' + (ey + 1) + 'q2.5-3.2 5 0" fill="none" stroke="' + E + '" stroke-width="2.2" stroke-linecap="round"/>';
@@ -252,7 +252,7 @@ function lerpE(e, f) { return { u: e.u, l: e.u.map(function (p, i) { return [p[0
 function midE(e) { var m = e.u.map(function (p, i) { return [(p[0] + e.l[i][0]) / 2, (p[1] + e.l[i][1]) / 2]; }); return { u: m, l: m }; }
 function buildFace(rig, st, o) {
 	if (st.face !== 'on') return;
-	var ey = 45.5, mY = ey + 5.5, E = '#4f5266', lip = '#6b3530', z = o.z || 0, P = function () { return z; };
+	var ey = 45.5, mY = ey + 5.5, E = pick(EYEC, st.eyeColor, 'dark'), lip = '#6b3530', z = o.z || 0, P = function () { return z; };
 	function part(name, bone, base, targets, color, ord, opt) {
 		opt = opt || {};
 		return rig.shape({ name: name, bone: bone, base: base, targets: targets, rows: 1, lift: ord * .01, dome: 0, project: P, material: o.mat(color, opt), renderOrder: o.order + ord, opacityChannel: opt.ch, opacity: opt.op });
@@ -318,7 +318,7 @@ function rig(ctx) {
 
 /* ---------- the style ---------- */
 export const BENKYO_STYLE = defineStyle({
-	id: 'benkyo-v1',
+	id: 'benkyo-v2',
 	defaults: DEFAULTS,
 	svg: function (p, size) { return render(p, size); },
 	layers: function (p) { return layers(p); },
