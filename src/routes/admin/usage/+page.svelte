@@ -7,6 +7,7 @@
 	import { AdminError, getUsage } from '#lib/admin/client.ts';
 	import type { AdminUsage } from '#lib/admin/contract.ts';
 	import FleetTrail from '#lib/admin/FleetTrail.svelte';
+	import { formatCredits } from '#lib/ai/credits.ts';
 	import '#lib/admin/admin.css';
 
 	ui.hue = 200;
@@ -93,7 +94,7 @@
 				<SectionHeader title="Managed AI by package" />
 				<ListGroup>
 					{#each u.byPackage as p (p.planId)}
-						<ListRow href="/admin/packages" title={p.name} subtitle="{plural(p.accounts, 'account')} · {plural(p.calls, 'call')} · allowance {usd(p.allowanceUsd)} a month each">
+						<ListRow href="/admin/packages" title={p.name} subtitle="{plural(p.accounts, 'account')} · {plural(p.calls, 'call')} · {formatCredits(p.credits ?? 0)} credits used · {formatCredits(p.allowanceCredits)} a month each">
 							{#snippet trailing()}<b class="num">{usd(p.usd)}</b>{/snippet}
 						</ListRow>
 					{:else}

@@ -130,7 +130,12 @@ export interface ManagedAi {
 	/** which AI each feature runs on now (with "My own key", a feature their key can't do still uses the package) */
 	byFeature: { feature: Feature; source: AiSource | null }[];
 	month: string; // YYYY-MM (UTC)
+	/** the package's AI credits this month (src/lib/ai/credits.ts) */
+	allowanceCredits: number;
+	spentCredits: number;
+	/** @deprecated credits at the default exchange, for app versions from before credits */
 	allowanceUsd: number;
+	/** @deprecated see allowanceUsd */
 	spentUsd: number;
 	calls: number;
 	/** first moment of next month (UTC): when the allowance starts again */

@@ -28,7 +28,7 @@ import type { Env } from '../env.ts';
 import { aiError, json, readJson } from '../http.ts';
 import type { Session } from '../auth/passkey.ts';
 import { callAnthropic } from './anthropic.ts';
-import { sumUsage, usageCost, worstCaseForCall } from './cost.ts';
+import { sumUsage, usageCharge, worstForCall } from './cost.ts';
 import { GLOBAL_PER_MIN, rateLimit, settle } from './ledger.ts';
 import { reserveFor, startCall } from './managed.ts';
 import { callOpenAi, type OpenAiFormat } from './openai.ts';
@@ -86,11 +86,10 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 	const feature: Feature = parts.image ? 'vision' : kind === 'fill' ? 'fill' : kind === 'translate' ? 'translate' : 'propose';
 
 	// the package's AI or the learner's own key (worker/ai/managed.ts), worst case reserved
-	const started = await startCall(env, ctx, session.userId, feature, (t) => worstCaseForCall(parts, t.provider, t.model, t.price));
+	const started = await startCall(env, ctx, session.userId, feature, (t) => worstForCall(parts, t));
 	if (!started.ok) return started.res;
 	const { target, worst } = started;
 	const { model } = target;
-	const priced = { price: target.price };
 	let apiKey: string;
 	try {
 		apiKey = await target.key();
@@ -106,9 +105,9 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 	const startedAt = Date.now();
 	const finish = async (status: 'done' | 'failed') => {
 		// Outcome unknown (dropped connection/timeout): keep every reserved worst case.
-		const cost = billedUnknown ? null : usageCost(usage, model, priced.price);
-		await settle(env, reservations, { status, usage: sumUsage(usage), cost });
-		return cost;
+		const charge = billedUnknown ? null : usageCharge(usage, target);
+		await settle(env, reservations, { status, usage: sumUsage(usage), cost: charge?.usd ?? null, credits: charge?.credits ?? null });
+		return charge?.usd ?? null;
 	};
 	// Beta usage data: the request, the prompt and the reply (only with consent; never the key).
 	const record = (status: 'done' | 'failed' | 'invalid', cost: number | null, error: string | null, outputText: string | null, result?: unknown) => {

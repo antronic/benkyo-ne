@@ -186,7 +186,7 @@ describe('packages built from provider models', () => {
 
 	it('makes a new package, grants it, and only deletes it while nobody has had it', async () => {
 		await addProvider();
-		const r = await call('POST', '/api/admin/packages', { name: 'Exam Sprint', priceMonthUsd: 7.5, priceYearUsd: 60, aiAllowanceUsd: 2.5, blurb: 'JLPT drills' });
+		const r = await call('POST', '/api/admin/packages', { name: 'Exam Sprint', priceMonthUsd: 7.5, priceYearUsd: 60, aiCredits: 2500, blurb: 'JLPT drills' });
 		expect(r.status).toBe(201);
 		const id = r.body.created as string;
 		expect(id).toMatch(/^exam-sprint-[a-z0-9]{1,5}$/);
@@ -201,7 +201,7 @@ describe('packages built from provider models', () => {
 		expect((await call('DELETE', '/api/admin/packages/plus')).status).toBe(400);
 		expect((await call('POST', '/api/admin/accounts/2/grants', { plan: 'gold', kind: 'comp', days: 3 })).body.message).toBe('No such package');
 
-		const r2 = await call('POST', '/api/admin/packages', { name: 'Trial pack', priceMonthUsd: 1, priceYearUsd: 10, aiAllowanceUsd: 0.5 });
+		const r2 = await call('POST', '/api/admin/packages', { name: 'Trial pack', priceMonthUsd: 1, priceYearUsd: 10, aiCredits: 500 });
 		const id2 = r2.body.created;
 		const del = await call('DELETE', `/api/admin/packages/${id2}`);
 		expect(del.status).toBe(200);

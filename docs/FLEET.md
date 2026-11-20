@@ -112,7 +112,7 @@ everyone, and `SIGNUP_MODE=closed` on the Worker.
 `/admin/packages` holds the three packages (`plans`, migration 0009),
 seeded from the pricing proposal in `docs/AI-PLAN.md`: Free, Plus ($4.99 a
 month or $39 a year, $1.50 of managed AI) and Pro ($9.99 or $79, $3.50).
-Name, description, prices, the monthly AI allowance and whether it's
+Name, description, prices, the monthly AI credits and whether it's
 offered can be edited; Free always stays free.
 
 An account gets Plus or Pro through a grant on its page (`plan_grants`):
@@ -145,9 +145,22 @@ packages include it.
 On `/admin/packages`, **Choose models** picks models from every turned-on
 provider into a package (`plan_models`, up to 20). Each is checked against
 its provider's list when saved, and its name and price are copied so the
-page can show what a package keeps after its AI allowance. Each app feature
+page can show it without asking the provider. Each app feature
 (fill a card, suggest cards and Ask AI, read a photo) is given to one model
 in the package. Free has no models: learners there use their own key.
+
+### AI credits
+
+A package's managed AI is counted in credits (migration 0022). Each package
+gives **AI credits a month** (`plans.ai_credits`), and **Credits per model**
+on `/admin/packages` sets what each model in any package costs: input and
+output credits per 1 token, per 1K or per 1M tokens (`model_credit_rates`,
+`PUT /api/admin/credit-rates`, passkey tap, audited as `credits.rate`). A
+rate is per model, so it applies in every package that has the model. A
+model without a rate costs its USD price at 1000 credits per $1; the form
+starts from that, and shows about how much provider cost one credit is
+worth at the rate being typed. Fleet's Usage page shows credits used per
+package next to the provider cost.
 
 Not built yet: nothing in the app checks the package, there's no checkout
 or payment webhook, and the app doesn't call the package's models yet. Those

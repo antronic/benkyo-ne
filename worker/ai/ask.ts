@@ -17,7 +17,7 @@ import type { Env } from '../env.ts';
 import { aiError, readJson } from '../http.ts';
 import type { Session } from '../auth/passkey.ts';
 import { streamAnthropic } from './anthropic.ts';
-import { sumUsage, usageCost, worstCaseForCall } from './cost.ts';
+import { sumUsage, usageCharge, worstForCall } from './cost.ts';
 import { GLOBAL_PER_MIN, rateLimit, settle } from './ledger.ts';
 import { startCall } from './managed.ts';
 import { streamOpenAi } from './openai.ts';
@@ -38,11 +38,10 @@ export async function handleAskStream(req: Request, env: Env, ctx: ExecutionCont
 	const parts = buildAskStreamPrompt(ask);
 	const feature = 'propose' as const; // Ask AI uses the "Suggestions" model
 	// the package's AI or the learner's own key (worker/ai/managed.ts), worst case reserved
-	const started = await startCall(env, ctx, session.userId, feature, (t) => worstCaseForCall(parts, t.provider, t.model, t.price));
+	const started = await startCall(env, ctx, session.userId, feature, (t) => worstForCall(parts, t));
 	if (!started.ok) return started.res;
 	const { target, reservation } = started;
 	const { model } = target;
-	const priced = { price: target.price };
 	let apiKey: string;
 	try {
 		apiKey = await target.key();
@@ -93,9 +92,10 @@ export async function handleAskStream(req: Request, env: Env, ctx: ExecutionCont
 			unknown = false;
 		}
 		const reply: AskResponse | null = result.ok ? finishAskText(result.text, ask) : null;
-		const cost = unknown ? null : usageCost(usage, model, priced.price);
+		const charge = unknown ? null : usageCharge(usage, target);
+		const cost = charge?.usd ?? null;
 		const total = sumUsage(usage);
-		await settle(env, [reservation], { status: reply ? 'done' : 'failed', usage: total, cost }).catch(() => {});
+		await settle(env, [reservation], { status: reply ? 'done' : 'failed', usage: total, cost, credits: charge?.credits ?? null }).catch(() => {});
 		// Beta usage data: the question, the prompt and the streamed answer (only with consent).
 		await recordAiCall(env, session.userId, {
 			kind: 'ask_stream',

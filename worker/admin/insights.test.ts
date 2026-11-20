@@ -65,7 +65,7 @@ describe('usage', () => {
 			{ source: 'own', calls: 2, usd: 1.5 },
 			{ source: 'package', calls: 1, usd: 0.25 }
 		]);
-		expect(r.body.byPackage).toEqual([{ planId: 'plus', name: 'Plus', calls: 1, usd: 0.25, accounts: 1, allowanceUsd: 1.5 }]);
+		expect(r.body.byPackage).toEqual([{ planId: 'plus', name: 'Plus', calls: 1, usd: 0.25, credits: 0, accounts: 1, allowanceCredits: 1500 }]);
 	});
 
 	it('takes 90 days and refuses other windows', async () => {

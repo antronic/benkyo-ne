@@ -3,9 +3,10 @@
  *
  *   GET    /api/admin/packages                         every package, how many accounts each, its models, live grants
  *   POST   /api/admin/packages {AdminPlanCreate}       make a new package (after Free, Plus, Pro)        step-up
- *   PUT    /api/admin/packages/:id {AdminPlanPatch}    edit name, prices, AI allowance, blurb, offered   step-up
+ *   PUT    /api/admin/packages/:id {AdminPlanPatch}    edit name, prices, AI credits, blurb, offered     step-up
  *   PUT    /api/admin/packages/:id/models {AdminPlanModelsInput}  the AI models it includes          step-up
  *   DELETE /api/admin/packages/:id                     delete a made package nobody was ever granted    step-up
+ *   PUT    /api/admin/credit-rates {AdminCreditRateInput}  a model's credits per 1, 1K or 1M tokens     step-up
  *   POST   /api/admin/accounts/:id/grants {AdminGrantInput}  give an account Plus or Pro (replaces its live grant)  step-up
  *   DELETE /api/admin/accounts/:id/grants/:grantId     end a grant now                                   step-up
  *
@@ -14,7 +15,10 @@
  * Models come from the platform AI providers (worker/admin/providers.ts) and
  * are checked against the provider's own model list when they're added.
  */
+import { CREDITS_PER_USD, isCreditUnit, MAX_PACKAGE_CREDITS, MAX_RATE_CREDITS, type CreditRate } from '../../src/lib/ai/credits.ts';
 import type {
+	AdminCreditRate,
+	AdminCreditRateInput,
 	AdminFeature,
 	AdminGrantInput,
 	AdminPackages,
@@ -33,7 +37,6 @@ import { audited, requireFresh, type AdminContext } from './routes.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
 export const MAX_PRICE_USD = 1000;
-export const MAX_ALLOWANCE_USD = 100;
 export const MAX_GRANT_DAYS = 730;
 export const MAX_PACKAGES = 12;
 export const MAX_PLAN_MODELS = 20;
@@ -42,11 +45,11 @@ export const FEATURES: AdminFeature[] = ['fill', 'propose', 'vision', 'translate
 type PlanRow = Omit<AdminPlan, 'available' | 'accounts' | 'builtin' | 'models'> & { available: number };
 type PlanModelRow = Omit<AdminPlanModel, 'features'> & { planId: string; features: string };
 const PLAN_COLS = `id, name, price_month_usd AS priceMonthUsd, price_year_usd AS priceYearUsd,
-	ai_allowance_usd AS aiAllowanceUsd, blurb, available, updated_at AS updatedAt`;
+	ai_credits AS aiCredits, blurb, available, updated_at AS updatedAt`;
 
 async function packages(env: Env): Promise<AdminPackages> {
 	const now = Date.now();
-	const [plans, counts, grants, models] = await env.DB.batch<Record<string, never>>([
+	const [plans, counts, grants, models, rates] = await env.DB.batch<Record<string, never>>([
 		env.DB.prepare(`SELECT ${PLAN_COLS} FROM plans ORDER BY rank`),
 		env.DB.prepare(`SELECT ${planOfSql('a.id')} AS plan, COUNT(*) AS n FROM accounts a GROUP BY plan`),
 		env.DB.prepare(`${GRANT_SELECT} WHERE ${liveGrant('?1')} ORDER BY g.ends_at IS NULL, g.ends_at, g.id DESC LIMIT 200`).bind(now),
@@ -54,6 +57,18 @@ async function packages(env: Env): Promise<AdminPackages> {
 			`SELECT m.plan_id AS planId, m.provider_id AS providerId, pr.label AS providerLabel, m.model, m.label, m.features,
 			        m.input_per_m AS inputPerM, m.output_per_m AS outputPerM
 			   FROM plan_models m LEFT JOIN ai_providers pr ON pr.id = m.provider_id ORDER BY m.plan_id, m.position`
+		),
+		// every model in a package once, with the packages that include it and its rate
+		env.DB.prepare(
+			`SELECT m.provider_id AS providerId, pr.label AS providerLabel, m.model, MAX(m.label) AS label,
+			        MAX(m.input_per_m) AS inputPerM, MAX(m.output_per_m) AS outputPerM,
+			        json_group_array(pl.name) AS packages,
+			        r.unit, r.input_credits AS inputCredits, r.output_credits AS outputCredits, r.updated_at AS updatedAt
+			   FROM plan_models m
+			   JOIN plans pl ON pl.id = m.plan_id
+			   LEFT JOIN ai_providers pr ON pr.id = m.provider_id
+			   LEFT JOIN model_credit_rates r ON r.provider_id = m.provider_id AND r.model = m.model
+			  GROUP BY m.provider_id, m.model ORDER BY MIN(pl.rank), MIN(m.position), m.model`
 		)
 	]);
 	const byPlan = new Map((counts.results as unknown as { plan: string; n: number }[]).map((c) => [c.plan, c.n]));
@@ -68,13 +83,31 @@ async function packages(env: Env): Promise<AdminPackages> {
 			builtin: (BUILTIN_PLANS as readonly string[]).includes(p.id),
 			models: modelsByPlan.get(p.id) ?? []
 		})),
-		grants: (grants.results as never as Parameters<typeof toGrant>[0][]).map(toGrant)
+		grants: (grants.results as never as Parameters<typeof toGrant>[0][]).map(toGrant),
+		rates: (rates.results as unknown as RateRow[]).map(toRate),
+		creditsPerUsd: CREDITS_PER_USD
 	};
 }
+
+type RateRow = Omit<AdminCreditRate, 'packages' | 'rate'> & {
+	packages: string | null;
+	unit: number | null;
+	inputCredits: number | null;
+	outputCredits: number | null;
+};
+const toRate = ({ packages, unit, inputCredits, outputCredits, ...m }: RateRow): AdminCreditRate => ({
+	...m,
+	packages: packages ? (JSON.parse(packages) as string[]) : [],
+	rate: isCreditUnit(unit) && inputCredits !== null && outputCredits !== null ? { unit, inputCredits, outputCredits } : null
+});
 
 const money = (v: unknown, max: number, what: string) => {
 	if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > max) throw httpError(400, 'bad_request', `${what} must be $0 to $${max}`);
 	return Math.round(v * 100) / 100;
+};
+const credits = (v: unknown, max: number, what: string) => {
+	if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > max) throw httpError(400, 'bad_request', `${what} must be 0 to ${max.toLocaleString('en-US')} credits`);
+	return v;
 };
 const text = (v: unknown, max: number, what: string, allowEmpty = false) => {
 	if (typeof v !== 'string') throw httpError(400, 'bad_request', `${what} must be text`);
@@ -90,13 +123,13 @@ export function parsePlanPatch(id: string, body: unknown): AdminPlanPatch {
 	if (b.blurb !== undefined) out.blurb = text(b.blurb, 200, 'The description', true);
 	if (b.priceMonthUsd !== undefined) out.priceMonthUsd = money(b.priceMonthUsd, MAX_PRICE_USD, 'The monthly price');
 	if (b.priceYearUsd !== undefined) out.priceYearUsd = money(b.priceYearUsd, MAX_PRICE_USD, 'The yearly price');
-	if (b.aiAllowanceUsd !== undefined) out.aiAllowanceUsd = money(b.aiAllowanceUsd, MAX_ALLOWANCE_USD, 'The AI allowance');
+	if (b.aiCredits !== undefined) out.aiCredits = Math.round(credits(b.aiCredits, MAX_PACKAGE_CREDITS, 'The AI credits'));
 	if (b.available !== undefined) {
 		if (typeof b.available !== 'boolean') throw httpError(400, 'bad_request', '`available` must be true or false');
 		out.available = b.available;
 	}
 	if (!Object.keys(out).length) throw httpError(400, 'bad_request', 'Nothing to change');
-	if (id === 'free' && (out.priceMonthUsd || out.priceYearUsd || out.aiAllowanceUsd || out.available === false))
+	if (id === 'free' && (out.priceMonthUsd || out.priceYearUsd || out.aiCredits || out.available === false))
 		throw httpError(400, 'bad_request', 'Free stays free, with no managed AI, and is always offered');
 	return out;
 }
@@ -108,8 +141,24 @@ export function parsePlanCreate(body: unknown): AdminPlanCreate {
 		blurb: b.blurb === undefined ? '' : text(b.blurb, 200, 'The description', true),
 		priceMonthUsd: money(b.priceMonthUsd, MAX_PRICE_USD, 'The monthly price'),
 		priceYearUsd: money(b.priceYearUsd, MAX_PRICE_USD, 'The yearly price'),
-		aiAllowanceUsd: money(b.aiAllowanceUsd, MAX_ALLOWANCE_USD, 'The AI allowance')
+		aiCredits: Math.round(credits(b.aiCredits, MAX_PACKAGE_CREDITS, 'The AI credits'))
 	};
+}
+
+/** A model's credit rate, or null to clear it. */
+export function parseRateInput(body: unknown): AdminCreditRateInput {
+	const b = (body ?? {}) as Record<string, unknown>;
+	if (!Number.isInteger(b.providerId) || (b.providerId as number) < 1) throw httpError(400, 'bad_request', 'Which provider?');
+	if (typeof b.model !== 'string' || !b.model.trim() || b.model.length > 200) throw httpError(400, 'bad_request', 'Which model?');
+	if (b.rate === null) return { providerId: b.providerId as number, model: b.model.trim(), rate: null };
+	const r = (b.rate ?? {}) as Record<string, unknown>;
+	if (!isCreditUnit(r.unit)) throw httpError(400, 'bad_request', 'Price per 1, 1K or 1M tokens');
+	const rate: CreditRate = {
+		unit: r.unit,
+		inputCredits: credits(r.inputCredits, MAX_RATE_CREDITS, 'Input'),
+		outputCredits: credits(r.outputCredits, MAX_RATE_CREDITS, 'Output')
+	};
+	return { providerId: b.providerId as number, model: b.model.trim(), rate };
 }
 
 /** A readable id from the name, with a random tail so two packages never clash. */
@@ -174,7 +223,7 @@ async function updatePlan(req: Request, env: Env, ctx: AdminContext, id: string)
 		blurb: 'blurb',
 		priceMonthUsd: 'price_month_usd',
 		priceYearUsd: 'price_year_usd',
-		aiAllowanceUsd: 'ai_allowance_usd',
+		aiCredits: 'ai_credits',
 		available: 'available'
 	};
 	const keys = (Object.keys(patch) as (keyof AdminPlanPatch)[]).filter((k) => {
@@ -240,9 +289,9 @@ async function createPlan(req: Request, env: Env, ctx: AdminContext) {
 	const id = newPlanId(input.name);
 	await audited(env, ctx, 'package.create', null, { plan: id, ...input }, [
 		env.DB.prepare(
-			`INSERT INTO plans (id, rank, name, price_month_usd, price_year_usd, ai_allowance_usd, blurb, available, updated_at, updated_by)
-			 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, ?8, ?9)`
-		).bind(id, (stats?.top ?? 0) + 1, input.name, input.priceMonthUsd, input.priceYearUsd, input.aiAllowanceUsd, input.blurb ?? '', Date.now(), ctx.session.userId)
+			`INSERT INTO plans (id, rank, name, price_month_usd, price_year_usd, ai_allowance_usd, ai_credits, blurb, available, updated_at, updated_by)
+			 VALUES (?1, ?2, ?3, ?4, ?5, ?6 / ${CREDITS_PER_USD}.0, ?6, ?7, 0, ?8, ?9)`
+		).bind(id, (stats?.top ?? 0) + 1, input.name, input.priceMonthUsd, input.priceYearUsd, input.aiCredits, input.blurb ?? '', Date.now(), ctx.session.userId)
 	]);
 	return json({ ...(await packages(env)), created: id }, { status: 201 });
 }
@@ -319,11 +368,36 @@ async function setModels(req: Request, env: Env, ctx: AdminContext, id: string) 
 	return json(await packages(env));
 }
 
+async function setRate(req: Request, env: Env, ctx: AdminContext) {
+	const input = parseRateInput(await readJson(req, 4096));
+	await requireFresh(env, ctx);
+	const inPackage = await env.DB.prepare(`SELECT 1 FROM plan_models WHERE provider_id = ?1 AND model = ?2 LIMIT 1`)
+		.bind(input.providerId, input.model)
+		.first();
+	if (!inPackage) throw httpError(400, 'bad_request', 'Add the model to a package first');
+	const before = await env.DB.prepare(
+		`SELECT unit, input_credits AS inputCredits, output_credits AS outputCredits FROM model_credit_rates WHERE provider_id = ?1 AND model = ?2`
+	)
+		.bind(input.providerId, input.model)
+		.first<CreditRate>();
+	await audited(env, ctx, 'credits.rate', null, { provider: input.providerId, model: input.model, from: before ?? null, to: input.rate }, [
+		input.rate
+			? env.DB.prepare(
+					`INSERT INTO model_credit_rates (provider_id, model, unit, input_credits, output_credits, updated_at, updated_by)
+					 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+					 ON CONFLICT (provider_id, model) DO UPDATE SET unit = ?3, input_credits = ?4, output_credits = ?5, updated_at = ?6, updated_by = ?7`
+				).bind(input.providerId, input.model, input.rate.unit, input.rate.inputCredits, input.rate.outputCredits, Date.now(), ctx.session.userId)
+			: env.DB.prepare(`DELETE FROM model_credit_rates WHERE provider_id = ?1 AND model = ?2`).bind(input.providerId, input.model)
+	]);
+	return json(await packages(env));
+}
+
 export async function handlePackages(req: Request, env: Env, url: URL, ctx: AdminContext): Promise<Response | null> {
 	const p = url.pathname;
 	const m = req.method;
 	if (p === '/api/admin/packages' && m === 'GET') return json(await packages(env));
 	if (p === '/api/admin/packages' && m === 'POST') return createPlan(req, env, ctx);
+	if (p === '/api/admin/credit-rates' && m === 'PUT') return setRate(req, env, ctx);
 	const plan = /^\/api\/admin\/packages\/([a-z0-9-]{1,32})(\/models)?$/.exec(p);
 	if (plan && !plan[2] && m === 'PUT') return updatePlan(req, env, ctx, plan[1]);
 	if (plan && !plan[2] && m === 'DELETE') return deletePlan(env, ctx, plan[1]);

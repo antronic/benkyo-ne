@@ -11,7 +11,7 @@ const plan = (id, name, month, year, allowance, accounts, extra = {}) => ({
 	name,
 	priceMonthUsd: month,
 	priceYearUsd: year,
-	aiAllowanceUsd: allowance,
+	aiCredits: allowance * 1000,
 	blurb: `${name}: example package for the layout check.`,
 	available: true,
 	accounts,
@@ -51,7 +51,12 @@ const packages = {
 		plan('plus', 'Plus', 3.99, 39, 2, 2, { models: [pm(1, 'example-small-1', 'Example Small', ['fill', 'propose', 'vision'], 0.8, 4)] }),
 		plan('pro', 'Pro', 8.99, 89, 6, 1, { available: false, models: [pm(1, 'example-large-1', 'Example Large', ['fill', 'propose'], 3, 15), pm(1, 'example-small-1', 'Example Small', ['vision'], 0.8, 4)] })
 	],
-	grants: [{ id: 1, accountId: 3, accountName: 'Example Learner', plan: 'plus', kind: 'trial', note: 'Beta tester', startsAt: now - 6 * D, endsAt: now + 9 * D, createdAt: now - 6 * D, endedAt: null, live: true }]
+	grants: [{ id: 1, accountId: 3, accountName: 'Example Learner', plan: 'plus', kind: 'trial', note: 'Beta tester', startsAt: now - 6 * D, endsAt: now + 9 * D, createdAt: now - 6 * D, endedAt: null, live: true }],
+	rates: [
+		{ providerId: 1, providerLabel: 'Anthropic (main)', model: 'example-small-1', label: 'Example Small', inputPerM: 0.8, outputPerM: 4, packages: ['Plus', 'Pro'], rate: { unit: 1000, inputCredits: 1, outputCredits: 5 }, updatedAt: now - D },
+		{ providerId: 1, providerLabel: 'Anthropic (main)', model: 'example-large-1', label: 'Example Large', inputPerM: 3, outputPerM: 15, packages: ['Pro'], rate: null, updatedAt: null }
+	],
+	creditsPerUsd: 1000
 };
 const promo = (code, state, extra = {}) => ({ code, label: 'Example batch', plan: 'plus', kind: 'trial', days: 30, maxUses: 50, uses: 12, expiresAt: now + 20 * D, disabledAt: null, createdAt: now - 4 * D, state, ...extra });
 const promos = {
@@ -138,6 +143,7 @@ export const FLEET_SCREENS = [
 	{ path: '/admin/packages', open: ['Edit'], label: 'edit form' },
 	{ path: '/admin/packages', open: ['＋ New package'], label: 'new package form' },
 	{ path: '/admin/packages', open: ['Change'], label: 'model picker' },
+	{ path: '/admin/packages', open: ['Set rate'], label: 'credit rate form' },
 	{ path: '/admin/promos', open: [] },
 	{ path: '/admin/invitations', open: [] },
 	{ path: '/admin/invitations', open: ['＋ New VIP'], label: 'new VIP' },

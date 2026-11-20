@@ -20,7 +20,7 @@ export const AUDIT_PAGE = 50;
  * system screen compares it with d1_migrations to spot a deploy whose
  * migrations didn't run. insights.test.ts fails if this falls behind.
  */
-export const LATEST_MIGRATION = '0021_card_sightings.sql';
+export const LATEST_MIGRATION = '0022_ai_credits.sql';
 
 /** Tables whose sizes the system screen shows. */
 const TABLES = [
@@ -95,8 +95,8 @@ async function usage(env: Env, days: number): Promise<AdminUsage> {
 			   FROM ai_ledger WHERE at >= ?1 AND status = 'done' GROUP BY source ORDER BY source`
 		),
 		q(
-			`SELECT l.plan_id AS planId, COALESCE(p.name, l.plan_id) AS name, COUNT(*) AS calls, SUM(l.cost_usd) AS usd,
-			        COUNT(DISTINCT l.user_id) AS accounts, COALESCE(p.ai_allowance_usd, 0) AS allowanceUsd
+			`SELECT l.plan_id AS planId, COALESCE(p.name, l.plan_id) AS name, COUNT(*) AS calls, SUM(l.cost_usd) AS usd, SUM(l.credits) AS credits,
+			        COUNT(DISTINCT l.user_id) AS accounts, COALESCE(p.ai_credits, 0) AS allowanceCredits
 			   FROM ai_ledger l LEFT JOIN plans p ON p.id = l.plan_id
 			  WHERE l.at >= ?1 AND l.status = 'done' AND l.source = 'package' GROUP BY l.plan_id ORDER BY usd DESC`
 		)
