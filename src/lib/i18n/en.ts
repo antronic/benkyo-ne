@@ -980,6 +980,7 @@ export const en = {
 	'avatar.consent.choicesBody': 'Like “bob, round glasses”. Change or remove them any time in Settings.',
 	'avatar.openCamera': 'Open camera',
 	'avatar.choosePhoto': 'Choose a photo',
+	'avatar.random': 'Random look',
 	'avatar.loading': 'Getting the face reader ready',
 	'avatar.loadingBody': 'One time only, about 19 MB. After this it works offline.',
 	'avatar.loadingPct': '{n}% downloaded',

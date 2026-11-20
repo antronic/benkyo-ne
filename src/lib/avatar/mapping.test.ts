@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mapToPerson } from './mapping.ts';
 import { measure, rgbToLab, type Measurements } from './measure.ts';
-import { cleanPerson, compactPerson, DEFAULTS } from './person.ts';
+import { cleanPerson, compactPerson, DEFAULTS, randomPerson } from './person.ts';
 
 // synthetic measurements, not real people
 const base: Measurements = {
@@ -135,5 +135,29 @@ describe('measure()', () => {
 		expect(map({ eyeLab: [38, 12, 20] }).person.eyeColor).toBe('brown');
 		expect(map({ eyeLab: [50, 4, 26] }).person.eyeColor).toBe('hazel');
 		expect(map({ eyeLab: [52, 1, 2] }).person.eyeColor).toBe('grey');
+	});
+});
+
+describe('random avatar (dice)', () => {
+	// small seeded generator so the test is the same every run
+	const seeded = (seed: number) => () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+	it('always makes a complete, valid person', () => {
+		const rand = seeded(7);
+		for (let i = 0; i < 200; i++) {
+			const p = randomPerson(rand);
+			expect(cleanPerson(p)).toEqual(p);
+		}
+	});
+	it('varies between rolls and keeps extras rare', () => {
+		const rand = seeded(42);
+		const rolls = Array.from({ length: 400 }, () => randomPerson(rand));
+		expect(new Set(rolls.map((p) => p.hair)).size).toBeGreaterThan(8);
+		const hats = rolls.filter((p) => p.head !== 'none').length / rolls.length;
+		expect(hats).toBeGreaterThan(0.1);
+		expect(hats).toBeLessThan(0.3);
+	});
+	it('reaches the ends of each list', () => {
+		expect(randomPerson(() => 0.999999).hair).toBe('locs');
+		expect(randomPerson(() => 0).skin).toBe('s1');
 	});
 });
