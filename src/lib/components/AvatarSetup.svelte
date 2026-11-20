@@ -20,7 +20,7 @@
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { avatar } from '#lib/state/avatar.svelte.ts';
 	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
-	import { cleanPerson, DEFAULTS, SKIN, type Person } from '#lib/avatar/person.ts';
+	import { cleanPerson, DEFAULTS, randomPerson, SKIN, type Person } from '#lib/avatar/person.ts';
 	import { mapToPerson, type Ask } from '#lib/avatar/mapping.ts';
 	import { loadReader, toCanvas, wipe } from '#lib/avatar/selfie.ts';
 	import AvatarEditor from './AvatarEditor.svelte';
@@ -253,6 +253,14 @@
 			saving = false;
 		}
 	}
+	// the dice: a new random look in the preview; "Build it myself" then opens it to tweak and save
+	function roll() {
+		haptic('selection');
+		person = randomPerson();
+		source = 'manual';
+		asks = [];
+		answered = {};
+	}
 	function manual() {
 		step = 'edit';
 		telemetry.track('event', 'avatar_editor', { from });
@@ -281,7 +289,10 @@
 			</div>
 			<div class="actions">
 				<Button variant="accent" block onclick={() => (step = 'consent')}>{t('avatar.useSelfie')}</Button>
-				<Button variant="ghost" block onclick={manual}>{t('avatar.buildMyself')}</Button>
+				<div class="row-actions">
+					<Button variant="ghost" class="grow" onclick={manual}>{t('avatar.buildMyself')}</Button>
+					<IconButton label={t('avatar.random')} onclick={roll}>🎲</IconButton>
+				</div>
 				{#if from === 'settings' && avatar.person}
 					<Button variant="ghost-danger" block busy={saving} onclick={remove}>{t('avatar.remove')}</Button>
 				{/if}
@@ -336,6 +347,7 @@
 				<Button variant="ghost" onclick={() => (stopCamera(), (step = 'consent'))}>{t('common.cancel')}</Button>
 				<Button variant="accent" class="grow" disabled={camBusy} onclick={shoot}>{t('avatar.shutter')}</Button>
 			</div>
+			<FileButton accept="image/*" block disabled={camBusy} onpick={picked}>{t('avatar.choosePhoto')}</FileButton>
 		{:else if step === 'reading'}
 			<div class="center" role="status" aria-live="polite">
 				<Spinner size="lg" label={t('avatar.reading')} />
@@ -463,6 +475,12 @@
 	.actions.row {
 		flex-direction: row;
 	}
+	.row-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+	.row-actions :global(.grow),
 	.actions.row :global(.grow) {
 		flex: 1;
 	}

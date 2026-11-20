@@ -990,6 +990,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'avatar.consent.choicesBody': 'เช่น “ผมบ๊อบ แว่นกลม” เปลี่ยนหรือลบได้ทุกเมื่อในการตั้งค่า',
 	'avatar.openCamera': 'เปิดกล้อง',
 	'avatar.choosePhoto': 'เลือกรูป',
+	'avatar.random': 'สุ่มหน้าตา',
 	'avatar.loading': 'กำลังเตรียมตัวอ่านใบหน้า',
 	'avatar.loadingBody': 'ครั้งเดียวเท่านั้น ประมาณ 19 MB หลังจากนี้ใช้งานออฟไลน์ได้',
 	'avatar.loadingPct': 'ดาวน์โหลดแล้ว {n}%',

@@ -146,3 +146,36 @@ export function compactPerson(p: Person): Partial<Person> {
 	for (const k of PERSON_KEYS) if (p[k] !== DEFAULTS[k]) (out as Record<string, string>)[k] = p[k];
 	return out;
 }
+
+/**
+ * A random, valid person (the dice on the avatar start screen). Every part is picked evenly,
+ * except the extras most people don't wear, which stay off most of the time so a roll looks
+ * like someone rather than a costume: a hat or scarf 1 in 5, a beard 1 in 4, glasses 1 in 3,
+ * earrings 1 in 4, a hearing aid 1 in 10. `rand` returns [0, 1) like Math.random (tests pass a seeded one).
+ */
+export function randomPerson(rand: () => number = Math.random): Person {
+	const pick = <T>(list: readonly T[]): T => list[Math.min(list.length - 1, Math.floor(rand() * list.length))];
+	const keys = <O extends object>(o: O) => Object.keys(o) as (keyof O)[];
+	const extra = <T>(chance: number, off: T, list: readonly T[]): T => (rand() < chance ? pick(list.filter((v) => v !== off)) : off);
+	return {
+		skin: pick(keys(SKIN)),
+		hair: pick(OPTIONS.hair),
+		hairColor: pick(keys(HAIRC)),
+		headShape: pick(OPTIONS.headShape),
+		beard: extra(0.25, 'none', OPTIONS.beard),
+		eyes: pick(OPTIONS.eyes),
+		eyeColor: pick(keys(EYEC)),
+		brows: pick(OPTIONS.brows),
+		mouth: pick(OPTIONS.mouth),
+		blush: pick(OPTIONS.blush),
+		head: extra(0.2, 'none', OPTIONS.head),
+		headColor: pick(keys(HEADC)),
+		glasses: extra(1 / 3, 'none', OPTIONS.glasses),
+		aid: extra(0.1, 'off', OPTIONS.aid),
+		earrings: extra(0.25, 'off', OPTIONS.earrings),
+		outfit: pick(OPTIONS.outfit),
+		cloth: pick(keys(CLOTH)),
+		collar: pick(keys(COLLAR)),
+		frameColor: pick(keys(FRAMEC))
+	};
+}

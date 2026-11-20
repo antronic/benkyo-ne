@@ -22,12 +22,18 @@ GPU engine down and builds a new one (and bakes a new wave strip) on every chang
 and iPad heated the device and showed torn, striped frames. The preview and the tabs stick to the
 top while the options scroll, and the preview shrinks from 150 to 96 px.
 
+A dice button (kit `IconButton`, 🎲) shares a row with "Build it myself" on the start screen. Each
+press puts a random look (`randomPerson()` in `person.ts`) in the preview; extras such as a hat,
+beard or glasses stay off most of the time. Nothing is saved until "Build it myself" → Save.
+
 The camera step opens the front camera and shows a spinner until the picture is live. When the
 device has two or more cameras, a switch button (kit `IconButton`, top right of the viewfinder)
 flips between front and back by `facingMode`; on a computer, where cameras report no facing mode,
 it steps to the next camera in `enumerateDevices()`. Only a camera that reports
 `facingMode: 'environment'` is shown and shot unmirrored. If switching fails, the old camera comes
-back with a warning; if that fails too, the "Camera is off" problem step shows.
+back with a warning; if that fails too, the "Camera is off" problem step shows. Under Cancel and
+Take photo, "Choose a photo" (kit `FileButton`) stops the camera and reads a picture from the
+device instead, through the same getting-ready, reading and problem steps.
 
 ## Reading a selfie (on the device)
 
