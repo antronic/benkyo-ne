@@ -2,7 +2,7 @@
  * Kuri's sounds. Everything is synthesized with Web Audio, so there are no
  * audio files to download (the module is under 2 KB gzipped).
  *
- *   play('yip' | 'bark' | 'tap' | 'happy' | 'wave' | 'held' | 'thinking' | 'encourage' | 'sleep' | 'intro')
+ *   play('yip' | 'bark' | 'tap' | 'happy' | 'wave' | 'held' | 'thinking' | 'encourage' | 'sleep' | 'intro' | 'dizzy')
  *   hello()   // Kuri's synthesized "はじめまして！" for the first meeting
  *
  * The voice is built from scratch (a buzzing tone through vowel filters, one
@@ -13,7 +13,7 @@
  * by default; nothing plays until the first tap unlocks audio.
  */
 
-export type KuriSoundName = 'yip' | 'bark' | 'tap' | 'happy' | 'wave' | 'held' | 'thinking' | 'encourage' | 'sleep' | 'intro';
+export type KuriSoundName = 'yip' | 'bark' | 'tap' | 'happy' | 'wave' | 'held' | 'thinking' | 'encourage' | 'sleep' | 'intro' | 'dizzy';
 
 type Pt = [number, number];
 type Formant = [number | Pt[], number];
@@ -186,6 +186,13 @@ const SOUNDS: Record<KuriSoundName, (c: AudioContext, t: number) => void> = {
 		g.connect(master);
 		o.start(t);
 		o.stop(t + 1.1);
+	},
+	dizzy: (c, t) => {
+		// a woozy "awawawa" that wobbles and sinks, then little stars twinkling round the head
+		const pts: Pt[] = [];
+		for (let k = 0; k <= 10; k++) pts.push([k * 0.062, 640 * (1 - k * 0.04) * (k % 2 ? 1.13 : 0.9)]);
+		voiced(c, t, pts, 0.66, [[[[0, 820], [0.66, 520]], 1], [1350, 0.4]], 0.26);
+		[2093, 2637, 2349, 2794, 2489].forEach((f, i) => tone(c, t + 0.2 + i * 0.11, f, 0.13, 0.045, 'triangle'));
 	},
 	intro: (c, t) => {
 		// the AI orb: a rising shimmer, then a soft pop as Kuri appears

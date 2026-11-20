@@ -8,7 +8,7 @@ Kuri (栗, after the chestnut coat) is a low-poly Shiba who studies with you.
 
 | Where | What Kuri does | Setting |
 | --- | --- | --- |
-| Today | Walks around the bottom of the screen, sits, dozes after 30s. Drag to move, tap for a hop and a line. | Walk around on Today |
+| Today | Walks around the bottom of the screen, sits, dozes after 30s. Drag to move, tap for a hop and a line. Shake while holding (four quick back-and-forth swings) and Kuri gets dizzy: x x eyes, a wobbling head and stars circling, then a line when set down. | Walk around on Today |
 | Ask AI | Avatar in the header; thinks while a reply streams. | Show Kuri |
 | Lessons and reviews | Pops up in the corner for ~1.5s on a right (happy) or wrong (encourage) answer. | React to answers |
 | First meeting | ~4s intro once: after onboarding, or the first time an existing user opens Today. Skippable; still with reduced motion. Replay from Settings. | Show Kuri |
@@ -17,7 +17,7 @@ All settings live in `progress.settings` (`kuri`, `kuriStyle`, `kuriWalk`, `kuri
 
 ## Sound
 
-With **Sound** on (the default), Kuri yips on a tap, squeaks when picked up, sighs falling asleep, hums while Ask AI thinks, chirps or "awoo"s for right and wrong answers, and says "はじめまして！" in the first meeting.
+With **Sound** on (the default), Kuri yips on a tap, squeaks when picked up, sighs falling asleep, hums while Ask AI thinks, goes "awawawa" with twinkling stars when shaken dizzy, chirps or "awoo"s for right and wrong answers, and says "はじめまして！" in the first meeting.
 
 - Everything is synthesized with Web Audio in `src/lib/companion/sound.ts` (under 2 KB gzipped). There are no audio files.
 - The voice is built from scratch: a buzzing tone through vowel filters, one syllable at a time. It copies no recording or real voice.
@@ -44,4 +44,4 @@ Call `kuriReact('happy' | 'encourage')` from a study screen to make Kuri react.
 - Full model ~1,500 triangles (~90 KB GPU); low poly ~950 (~57 KB). Small Kuris use low poly at 30 fps by default.
 - One interleaved vertex buffer (20 bytes a vertex), no per-frame matrix allocations, hidden parts skipped.
 - Drawing stops when the tab is hidden, when the canvas is off screen, and after one still frame with reduced motion. `destroy()` frees the buffer, shader and WebGL context when a screen unmounts.
-- When the browser drops the WebGL context (Safari does after the app sat in the background, a sleep or memory pressure), `Kuri.svelte` replaces the canvas and builds Kuri again once the page is visible, at most 3 times a minute. `npm run check:render` checks it on Settings.
+- When the browser drops the WebGL context (Safari does after the app sat in the background, a sleep or memory pressure), `Kuri.svelte` replaces the canvas and builds Kuri again once the page is visible, at most 3 times a minute. `npm run check:render` checks it on Settings, and that shaking the Today Kuri makes it dizzy while a plain drag does not.

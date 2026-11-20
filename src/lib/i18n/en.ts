@@ -386,6 +386,7 @@ export const en = {
 	'kuri.sayCheer': 'You’ve got this!',
 	'kuri.sayAsk': 'Ask me anything in Ask AI',
 	'kuri.sayRest': 'All caught up. Nice!',
+	'kuri.sayDizzy': 'Whoa… everything’s spinning!',
 	'kuri.thinking': 'Kuri is thinking',
 	'settings.jsFallback': 'JavaScript fallback',
 	'sync.err.offline': 'You’re offline. Progress syncs when you reconnect.',
