@@ -27,11 +27,12 @@
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import StrokeAnimator from '#lib/components/StrokeAnimator.svelte';
 	import RecallPad from '#lib/components/RecallPad.svelte';
-	import { Button, Card, IconButton, ProgressRing, TextField } from '#lib/ui/index.ts';
+	import { Button, Card, IconButton, ProgressRing, Skeleton, TextField } from '#lib/ui/index.ts';
 	import WordQuiz from '#lib/components/WordQuiz.svelte';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
-	import { DRILLS, isDrillId, pickDrill } from '#lib/practice/drills.ts';
+	import { DRILL_SIZE, DRILLS, isDrillId, pickDrill } from '#lib/practice/drills.ts';
+	import { forgetting } from '#lib/state/forgetting.svelte.ts';
 	import KanjiInfo from '#lib/components/KanjiInfo.svelte';
 	import { kanjiByChar, meaningChoices, type Kanji } from '#lib/content/kanji.ts';
 	import { partColors } from '#lib/content/strokes.ts';
@@ -60,7 +61,8 @@
 	function buildQueue(): Entry[] {
 		if (practice) {
 			const isWord = (id: string) => !!words.cards[id] && !words.cards[id].deleted;
-			return pickDrill(practice.id, progress.cards, isWord, now).map((id) => {
+			const extra = { forgotten: forgetting.set.map((k) => k.char), textOf: (id: string) => words.cards[id]?.kanji ?? null };
+			return pickDrill(practice.id, progress.cards, isWord, now, DRILL_SIZE, Math.random, extra).map((id) => {
 				const s = progress.cards[id];
 				return { id, isNew: false, drill: s.due > now };
 			});
@@ -81,9 +83,19 @@
 		return [...due, ...fresh];
 	}
 
-	const initial = buildQueue();
-	const total = initial.length;
+	/** The kanji drill needs this week's set, read from the log first. */
+	const waitForSet = practice?.id === 'forgetting' && !forgetting.ready;
+	let loadingSet = $state(waitForSet);
+	const initial = waitForSet ? [] : buildQueue();
+	let total = $state(initial.length);
 	let queue = $state<Entry[]>(initial);
+	if (waitForSet)
+		void forgetting.load().then(() => {
+			queue = buildQueue();
+			total = queue.length;
+			loadingSet = false;
+			prep();
+		});
 	let done = $state(0);
 	let correctCount = $state(0);
 	let lastCorrect = true;
@@ -103,6 +115,7 @@
 	const wordCard = $derived(entry && !kana && !kanji ? words.cards[entry.id] : undefined);
 	const mode = $derived.by<Mode>(() => {
 		if (practice?.id === 'lookalikes') return 'choose';
+		if (practice?.id === 'forgetting' && kanji) return 'draw'; // writing from memory is the point of this drill
 		const m: Mode = !card || card.state !== 'review' || card.stability < 3 ? 'choose' : card.stability < 21 ? 'type' : 'draw';
 		// kanji have no typed step: their answer is a meaning, not a reading
 		return kanji ? (card && card.state === 'review' && card.stability >= 21 ? 'draw' : 'choose') : m;
@@ -152,6 +165,7 @@
 		}
 		// drawing takes longer than tapping, so scale the time before grading
 		const scaled = mode === 'draw' ? ms / 3 : mode === 'type' ? ms / 1.5 : ms;
+		if (kanji && mode === 'draw' && !correct) void forgetting.addWriteSlip(kanji.char);
 		await record(correct, ms, scaled, usedHint);
 		if (autoNext(correct)) setTimeout(next, 700);
 	}
@@ -195,7 +209,9 @@
 		<div class="tagline caption">{@html t('review.practicing', { drill: `${practice.emoji} <b>${c(practice.title)}</b>` })}</div>
 	{/if}
 
-	{#if !entry || (!kana && !kanji && !wordCard)}
+	{#if loadingSet}
+		<section class="stage"><Skeleton variant="card" label={t('common.loading')} /></section>
+	{:else if !entry || (!kana && !kanji && !wordCard)}
 		<section class="stage" in:scale={{ start: 0.94, duration: 400 }}>
 			<div class="stack center" style:--gap="var(--space-4)">
 				<ProgressRing value={total ? correctCount / Math.max(done, 1) : 1} size={140}>

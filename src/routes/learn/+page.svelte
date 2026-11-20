@@ -15,17 +15,20 @@
 	import { words } from '#lib/state/words.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { DRILLS, drillCounts } from '#lib/practice/drills.ts';
+	import { forgetting } from '#lib/state/forgetting.svelte.ts';
+	import { kanjiByChar } from '#lib/content/kanji.ts';
 	import { KANJI_LESSONS, kanjiCardId } from '#lib/content/kanji.ts';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import { LEVELS, isDraft, thaiUnchecked, visibleUnits, type LevelInfo } from '#lib/content/levels/index.ts';
 	import { levels } from '#lib/state/levels.svelte.ts';
 	import { et } from '#lib/i18n/content.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
-	import { Badge, Button, Notice, Skeleton } from '#lib/ui/index.ts';
+	import { Badge, Button, KanjiTile, Notice, Skeleton } from '#lib/ui/index.ts';
 
 	type Filter = string;
 	onMount(() => {
 		void lessonPacks.load();
+		void forgetting.refresh(); // reviews since the last visit may add slips
 		for (const l of LEVELS) void levels.load(l.id);
 	});
 	/** Browse everything of one kind, whatever lesson teaches it. */
@@ -75,7 +78,17 @@
 
 	/** Lessons left per script, for the placement check cards. */
 	const left = (script: 'hiragana' | 'katakana') => LESSONS.filter((l) => l.script === script && !progress.completed.includes(l.id)).length;
-	const counts = $derived(drillCounts(progress.cards, (id) => !!words.cards[id] && !words.cards[id].deleted));
+	const counts = $derived(
+		drillCounts(progress.cards, (id) => !!words.cards[id] && !words.cards[id].deleted, {
+			forgotten: forgetting.set.map((k) => k.char),
+			textOf: (id) => words.cards[id]?.kanji ?? null
+		})
+	);
+	/** A reading to show under a forgotten kanji: the kun reading, else the on reading. */
+	const readingOf = (char: string) => {
+		const k = kanjiByChar.get(char);
+		return k ? (k.kun[0]?.replace('.', '') ?? k.on[0]) : undefined;
+	};
 	/** Drills appear once there is something to practise (all of them under the Practice filter). */
 	const anyDrill = $derived(Object.values(counts).some((n) => n > 0));
 
@@ -142,6 +155,21 @@
 					</Card>
 				{/each}
 			</div>
+			{#if forgetting.set.length}
+				<h3 class="eyebrow section">🧠 {t('learn.forgottenTitle')}</h3>
+				<div class="kanji-set">
+					{#each forgetting.set as k (k.char)}
+						<KanjiTile
+							kanji={k.char}
+							reading={readingOf(k.char)}
+							misread={k.misread}
+							unwritten={k.unwritten}
+							label={t('learn.forgottenTile', { kanji: k.char, misread: k.misread, unwritten: k.unwritten })}
+						/>
+					{/each}
+				</div>
+				<p class="caption blurb legend">{t('learn.forgottenLegend')}</p>
+			{/if}
 		</section>
 	{/snippet}
 
@@ -339,6 +367,14 @@
 	}
 	.practice {
 		margin-top: var(--space-1);
+	}
+	.blurb.legend {
+		margin-top: var(--space-2);
+	}
+	.kanji-set {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+		gap: var(--space-3);
 	}
 	/* Unfolded: hiragana and katakana paths side by side */
 	@media (min-width: 600px) {

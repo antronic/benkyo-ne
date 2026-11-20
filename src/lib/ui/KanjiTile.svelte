@@ -1,11 +1,11 @@
 <!--
 	One kanji with its reading and this week's slips: red dots for misreads,
-	blue dots for "couldn't write". Draft for "Kanji you keep forgetting"
-	(docs/EVERYDAY.md).
+	blue dots for "couldn't write". Used by "Kanji you keep forgetting" on
+	Learn (docs/EVERYDAY.md).
 -->
 <script lang="ts">
-	let { kanji, reading, misread = 0, unwritten = 0 }: { kanji: string; reading?: string; misread?: number; unwritten?: number } = $props();
-	const aria = $derived(`${kanji}${reading ? `, ${reading}` : ''}: misread ${misread}, couldn't write ${unwritten}`);
+	let { kanji, reading, misread = 0, unwritten = 0, label }: { kanji: string; reading?: string; misread?: number; unwritten?: number; /** translated screen-reader text */ label?: string } = $props();
+	const aria = $derived(label ?? `${kanji}${reading ? `, ${reading}` : ''}: misread ${misread}, couldn't write ${unwritten}`);
 </script>
 
 <div class="glass tile" role="img" aria-label={aria}>
