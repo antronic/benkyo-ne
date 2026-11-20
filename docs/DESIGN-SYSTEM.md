@@ -153,6 +153,15 @@ the screen works; prefer that to throwing. Kuri is drawn in plain SVG here, neve
 renderer, so it shows when the app is broken. `src/routes/+error.svelte` picks the kind with
 `errorKind()` in `src/lib/errorKind.ts`.
 
+### More below
+
+`ScrollMore` (kit) is a glass "More below ↓" pill that floats above the bottom of a long screen
+while more than 200px, or 40% of the screen, is still below (`scrollMore.ts`). Tapping it scrolls
+smoothly to the end (instantly under reduced motion) and moves focus to `<main>`; it fades out near
+the bottom. The root layout shows one on every screen. It clears the tab bar (none on the side rail),
+the safe area and the keyboard; a screen with its own fixed bottom bar sets `ui.scrollClear` (Ask AI
+composer, Fleet menu pill). It sits under the tab bar and sheets (z-index 45).
+
 ## Motion and transitions
 
 The live versions of these, with replay buttons, are in the Motion section of `/design`.

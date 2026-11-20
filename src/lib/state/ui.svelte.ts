@@ -13,5 +13,7 @@ export const ui = $state({
 	/** beta sign-up / sign-in after the introduction (passkey only) */
 	showWelcome: false,
 	/** Kuri's first meeting: once, after onboarding (and once for existing users on Today) */
-	showKuriIntro: false
+	showKuriIntro: false,
+	/** px of a screen's own fixed bottom bar (the Ask AI composer) that the "More below" button clears */
+	scrollClear: 0
 });

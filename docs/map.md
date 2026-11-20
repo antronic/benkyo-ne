@@ -98,4 +98,5 @@ Announce a change to any of these to the other threads ([teamwork.md](guides/tea
 | Worker config | `worker/env.ts`, `wrangler.jsonc`, `wrangler.embedded.jsonc` | Keep both wrangler files in step |
 | Device and layout | `src/lib/ios/device.svelte.ts` (`RAIL_QUERY`, also in `app.css` and `TabBar.svelte`) | Change all three together |
 | Error pages | `src/routes/+error.svelte`, `src/lib/errorKind.ts`, kit `ErrorState` | Every route error (learner and Fleet) goes through `ErrorState`; a panel that fails inside a screen uses `layout="inline"` instead of throwing. The error ID comes from `page.error.errorId` |
+| More below button | kit `ScrollMore` (`src/lib/ui/ScrollMore.svelte`, rule in `scrollMore.ts`), one instance in `src/routes/+layout.svelte`, `ui.scrollClear` | Every long screen gets it from the layout. A screen with its own fixed bottom bar sets `ui.scrollClear` to the px it needs (Ask AI composer, Fleet menu pill) and resets it to 0 when it leaves |
 | Startup | `src/app.html`, `src/lib/boot.ts`, `src/service-worker/` | Must survive failed imports and slow storage on Safari |

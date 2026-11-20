@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { t } from '#lib/i18n/index.svelte.ts';
-	import { Button, Skeleton } from '#lib/ui/index.ts';
+	import { Button, ScrollMore, Skeleton } from '#lib/ui/index.ts';
 	import '../app.css';
 	import { onMount, untrack } from 'svelte';
 	import { goto, onNavigate } from '$app/navigation';
@@ -270,6 +270,10 @@
 
 {#if !immersive}
 	<TabBar />
+{/if}
+{#if progress.ready && words.ready && !ui.showIntro && !ui.showOnboarding && !ui.showWelcome && !ai.needsConsent && !avatar.setup}
+	<!-- "More below" on every long screen; the Ask AI composer sets ui.scrollClear -->
+	<ScrollMore nav={!immersive} clear={ui.scrollClear} />
 {/if}
 
 {#if ui.showIntro}

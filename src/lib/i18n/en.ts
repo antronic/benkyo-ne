@@ -1383,6 +1383,8 @@ export const en = {
 	'error.sendNote': 'Send',
 	'error.noteSent': 'Thanks, it’s attached to the report.',
 	'error.noteFailed': 'Couldn’t send. Copy the details instead.',
+	'scrollMore.text': 'More below',
+	'scrollMore.label': 'More below, jump to the bottom',
 } as const satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;
