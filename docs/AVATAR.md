@@ -18,6 +18,13 @@ It shows on Today, in Settings, on community posts and replies, and beside your 
 the reader) → camera or "Choose a photo" → reading → result (answer any questions, Tweak or
 Looks good) → save. "Build it myself" opens `AvatarEditor.svelte` at any step and works offline.
 
+The camera step opens the front camera and shows a spinner until the picture is live. When the
+device has two or more cameras, a switch button (kit `IconButton`, top right of the viewfinder)
+flips between front and back by `facingMode`; on a computer, where cameras report no facing mode,
+it steps to the next camera in `enumerateDevices()`. Only a camera that reports
+`facingMode: 'environment'` is shown and shot unmirrored. If switching fails, the old camera comes
+back with a warning; if that fails too, the "Camera is off" problem step shows.
+
 ## Reading a selfie (on the device)
 
 1. `src/lib/avatar/selfie.ts` loads MediaPipe Tasks Vision: Face Landmarker (478 points and
