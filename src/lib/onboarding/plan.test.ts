@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildPlan, DEFAULTS, NEW_PER_DAY, sanitize, type Answers } from './plan.ts';
 
-const env = { firstLesson: 'h1', firstUnit: (c: string) => ({ travel: 'basics', friends: 'greetings', japanglish: 'food-drink' })[c], hasPlacement: true };
+const env = { firstLesson: 'h1', firstUnit: (c: string) => ({ travel: 'basics', friends: 'greetings', japanglish: 'food-drink' })[c], hasPlacement: true, levelReady: (j: string) => j === 'N5' };
 const kinds = (a: Answers, e = env) => buildPlan(a, e).map((s) => (s.kind === 'placement' ? `placement:${s.script}` : s.kind));
 
 describe('onboarding plan', () => {
@@ -25,12 +25,22 @@ describe('onboarding plan', () => {
 		expect(buildPlan({ ...DEFAULTS, goals: ['anime'] }, env)[1]).toMatchObject({ course: 'friends' });
 	});
 
+	it('takes everyday users past the kana to their level, the phrasebook and the Writing helper', () => {
+		const a: Answers = { ...DEFAULTS, level: 'daily', jlpt: 'N3', goals: ['work'] };
+		expect(kinds(a)).toEqual(['placement:hiragana', 'placement:katakana', 'level', 'everyday', 'daily']);
+		expect(buildPlan(a, env)[2]).toEqual({ kind: 'level', jlpt: 'N3', ready: false, href: '/learn' });
+		expect(buildPlan({ ...a, jlpt: 'N5' }, env)[2]).toMatchObject({ ready: true });
+		expect(kinds(a, { ...env, hasPlacement: false })).toEqual(['level', 'everyday', 'daily']);
+	});
+
 	it('maps daily time to new kana per day', () => {
 		expect(NEW_PER_DAY).toEqual({ 5: 5, 10: 10, 20: 15 });
 	});
 
 	it('sanitizes stored answers', () => {
-		expect(sanitize({ goals: ['travel', 'nope', 'travel'] as never, level: 'x' as never, minutes: 7 as never })).toEqual({ goals: ['travel'], level: 'new', minutes: 10 });
+		expect(sanitize({ goals: ['travel', 'nope', 'travel'] as never, level: 'x' as never, minutes: 7 as never })).toEqual({ goals: ['travel'], level: 'new', jlpt: 'N3', minutes: 10 });
+		expect(sanitize({ level: 'daily', jlpt: 'N9' as never }).jlpt).toBe('N3');
+		expect(sanitize({ level: 'daily', jlpt: 'N2' })).toMatchObject({ level: 'daily', jlpt: 'N2' });
 		expect(sanitize(null)).toEqual(DEFAULTS);
 	});
 });

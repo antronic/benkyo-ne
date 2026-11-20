@@ -68,3 +68,16 @@ Everything else in the drafts is built from existing kit components (`ListRow` w
   reason, Copy, and **Save phrases**: the phrases become cards with a `writing` sighting, so they
   rank in the phrasebook. A phrase the dictionary doesn't know keeps the same card id each time.
 - Not yet: the "same pattern" sheet and Practise this pattern from the draft.
+
+## Built: "I use Japanese every day" in onboarding (E1)
+
+- The level question has a fourth answer, **I use Japanese every day** (`Level` `'daily'` in
+  `src/lib/onboarding/plan.ts`). It adds one more page, **Pick your level**: one sample sentence
+  per JLPT level (`JLPT_PICKS`), and the learner taps the hardest one they can read. No quiz.
+- The plan: test out of hiragana and katakana (2 minutes each, so words saved from photos are not
+  parked), **Your level: N3** (Learn opens at that level when it has units: the Learn filter is set
+  on the device; otherwise the step says the units are being written), **Your phrasebook and
+  Writing helper**, then minutes a day. `Answers.jlpt` is stored with the profile.
+- The Today plan card ticks the level step when a unit of that level is done, and the phrasebook
+  step when any word has come up (a sighting).
+- Not yet: Today suggesting the next level at 80%.
