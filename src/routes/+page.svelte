@@ -19,11 +19,52 @@
 	import { plan } from '#lib/state/plan.svelte.ts';
 	import { greetingFor, greetName } from '#lib/greeting.ts';
 	import { week } from '#lib/state/week.svelte.ts';
+	import { LEVELS, visibleUnits, type JlptLevel } from '#lib/content/levels/index.ts';
+	import { levels } from '#lib/state/levels.svelte.ts';
+	import { levelUp } from '#lib/practice/levelUp.ts';
+	import { openLearnAt } from '#lib/onboarding/profile.svelte.ts';
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
 	const greeting = greetingFor(new Date().getHours());
 	// the weekly report card shows once the week has something in it
-	onMount(() => void week.refresh());
+	onMount(() => {
+		void week.refresh();
+		for (const l of LEVELS) void levels.load(l.id);
+	});
+
+	// Moving up a level: suggested at 80% of the hardest level you've started (docs/EVERYDAY.md)
+	const LEVEL_UP_KEY = 'benkyo.levelUp';
+	let levelUpHidden = $state((() => {
+		try {
+			return localStorage.getItem(LEVEL_UP_KEY);
+		} catch {
+			return null;
+		}
+	})());
+	const up = $derived.by(() => {
+		const units: Partial<Record<JlptLevel, string[]>> = {};
+		for (const l of LEVELS) {
+			const ids = visibleUnits(levels.units[l.id] ?? [], progress.settings.showDraftUnits).map((u) => u.id);
+			if (ids.length) units[l.id] = ids;
+		}
+		const u = levelUp(units, progress.completed);
+		return u && levelUpHidden !== `${u.from}>${u.to}` ? u : null;
+	});
+	function hideLevelUp() {
+		if (!up) return;
+		levelUpHidden = `${up.from}>${up.to}`;
+		try {
+			localStorage.setItem(LEVEL_UP_KEY, levelUpHidden);
+		} catch {
+			/* it comes back next time, nothing is lost */
+		}
+	}
+	function goUp() {
+		if (!up) return;
+		openLearnAt(up.to);
+		void goto('/learn');
+	}
 	const thisWeek = $derived(week.week && (week.week.totalMinutes || week.week.saved || week.week.wrote || week.week.read) ? week.week : null);
 	const name = $derived(greetName(ai.signedIn ? ai.account?.name : plan.name));
 
@@ -124,6 +165,22 @@
 	</Card>
 
 	<PlanCard i={2} />
+
+	{#if up}
+		<Card as="section" sheen padding="lg" radius="large" class="rise" style="--i: 2">
+			<div class="stack" style:--gap="var(--space-3)">
+				<div class="stack" style:--gap="var(--space-px)">
+					<div class="eyebrow" style="color:var(--accent)">{t('home.levelUpEyebrow')}</div>
+					<div class="title-2">{t('home.levelUpTitle', { pct: Math.round(up.done * 100), from: up.from })}</div>
+					<div class="subhead">{up.ready ? t('home.levelUpReady', { to: up.to }) : t('home.levelUpSoon', { to: up.to, from: up.from })}</div>
+				</div>
+				<div class="row prompt-actions">
+					<Button variant="ghost" size="md" onclick={hideLevelUp}>{t('avatar.notNow')}</Button>
+					{#if up.ready}<Button variant="accent" size="md" class="grow" onclick={goUp}>{t('home.levelUpGo', { to: up.to })}</Button>{/if}
+				</div>
+			</div>
+		</Card>
+	{/if}
 
 	<InstallCard i={2} />
 

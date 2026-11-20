@@ -50,7 +50,7 @@ function levelReady(jlpt: JlptLevel): boolean {
 }
 
 /** Learn remembers its filter on the device; an everyday learner's opens at their level when it has units. */
-function openLearnAt(jlpt: JlptLevel) {
+export function openLearnAt(jlpt: JlptLevel) {
 	if (!LEVELS.some((l) => l.id === jlpt)) return;
 	try {
 		localStorage.setItem('learn.filter', jlpt.toLowerCase());
