@@ -44,3 +44,4 @@ Call `kuriReact('happy' | 'encourage')` from a study screen to make Kuri react.
 - Full model ~1,500 triangles (~90 KB GPU); low poly ~950 (~57 KB). Small Kuris use low poly at 30 fps by default.
 - One interleaved vertex buffer (20 bytes a vertex), no per-frame matrix allocations, hidden parts skipped.
 - Drawing stops when the tab is hidden, when the canvas is off screen, and after one still frame with reduced motion. `destroy()` frees the buffer, shader and WebGL context when a screen unmounts.
+- When the browser drops the WebGL context (Safari does after the app sat in the background, a sleep or memory pressure), `Kuri.svelte` replaces the canvas and builds Kuri again once the page is visible, at most 3 times a minute. `npm run check:render` checks it on Settings.
