@@ -1140,7 +1140,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'avatar.hereYouAre': 'นี่คือคุณ!',
 	'avatar.previewLabel': 'ตัวอย่างอวาตาร์ของคุณ',
 	'avatar.yours': 'อวาตาร์ของคุณ',
-	'avatar.tweak': 'ปรับแต่ง',
+	'avatar.edit': 'แก้ไข',
 	'avatar.looksGood': 'ใช้ได้เลย',
 	'avatar.save': 'บันทึก',
 	'avatar.saved': 'บันทึกอวาตาร์แล้ว',

@@ -253,7 +253,7 @@
 			saving = false;
 		}
 	}
-	// the dice: a new random look in the preview; "Build it myself" then opens it to tweak and save
+	// the dice: a new random look in the preview; "Build it myself" then opens it to edit and save
 	function roll() {
 		haptic('selection');
 		person = randomPerson();
@@ -391,7 +391,7 @@
 				/>
 			</Card>
 			<div class="actions row">
-				<Button variant="ghost" onclick={() => (step = 'edit')}>{t('avatar.tweak')}</Button>
+				<Button variant="ghost" onclick={() => (step = 'edit')}>{t('avatar.edit')}</Button>
 				<Button variant="accent" class="grow" busy={saving} disabled={asks.some((q) => !answered[q])} onclick={save}>{t('avatar.looksGood')}</Button>
 			</div>
 			{#if saveError}<Notice tone="danger">{saveError}</Notice>{/if}

@@ -1139,7 +1139,7 @@ export const en = {
 	'avatar.hereYouAre': 'Here you are!',
 	'avatar.previewLabel': 'Your avatar preview',
 	'avatar.yours': 'Your avatar',
-	'avatar.tweak': 'Tweak',
+	'avatar.edit': 'Edit',
 	'avatar.looksGood': 'Looks good',
 	'avatar.save': 'Save',
 	'avatar.saved': 'Avatar saved',

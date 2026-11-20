@@ -15,7 +15,7 @@ It shows on Today, in Settings, on community posts and replies, and beside your 
 - **Settings.** Account → Profile picture opens the same sheet. Remove is there too.
 
 `AvatarSetup.svelte` steps: start → consent (selfie only) → getting ready (first time: downloads
-the reader) → camera or "Choose a photo" → reading → result (answer any questions, Tweak or
+the reader) → camera or "Choose a photo" → reading → result (answer any questions, Edit or
 Looks good) → save. "Build it myself" opens `AvatarEditor.svelte` at any step and works offline.
 The editor's preview is the SVG still, never the live avatar: `mountAvatar`'s `update()` tears the
 GPU engine down and builds a new one (and bakes a new wave strip) on every change, which on iPhone
