@@ -15,12 +15,14 @@
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { CONSENT_DATE, CONSENT_VERSION } from '#lib/beta/contract.ts';
 	import { OPERATOR } from '#lib/beta/consentText.ts';
-	import { Button, Card, Checkbox } from '#lib/ui/index.ts';
+	import { Button, Card, Checkbox, ScrollMore } from '#lib/ui/index.ts';
 
 	let { review = false, onclose }: { review?: boolean; onclose?: () => void } = $props();
 
 	const { AGREE_LABEL, CHOICES, COLLECTED, CONSENT_INTRO, CONTACT, HOW_USED, NEVER_COLLECTED, RETENTION } = $derived(consentCopy(i18n.locale));
 	let agreed = $state(false);
+	/** the screen scrolls itself, so its "More below" button follows this element */
+	let sheet: HTMLElement | undefined = $state();
 	let busy = $state(false);
 	let error = $state('');
 	// agreed to an older version before: say why this is back
@@ -56,7 +58,7 @@
 	}
 </script>
 
-<div class="consent" transition:fade={{ duration: 300 }} role="dialog" aria-modal="true" aria-labelledby="consent-title">
+<div class="consent" bind:this={sheet} transition:fade={{ duration: 300 }} role="dialog" aria-modal="true" aria-labelledby="consent-title">
 	<div class="panel" in:fly|global={{ y: 18, duration: 500, easing: cubicOut }}>
 		<header class="hero">
 			<span class="beta">BETA</span>
@@ -122,6 +124,7 @@
 			<Button variant="plain" class="later" onclick={signOut} disabled={busy}>{t('consent.later')}</Button>
 		{/if}
 	</div>
+	{#if sheet}<ScrollMore target={sheet} />{/if}
 </div>
 
 <style>

@@ -6,39 +6,43 @@
 	The root layout puts one on every screen, so a screen only needs to tell it what to clear:
 	- `nav`: the bottom tab bar is on this screen (ignored on the side rail, where there is none)
 	- `clear`: px of a fixed bar of the screen's own, such as the Ask AI composer
+	A full-screen sheet that scrolls itself (the beta consent) puts its own inside the sheet with
+	`target` set to the scrolling element.
 	The safe area and the on-screen keyboard (--kb) are always cleared.
 	`demo` draws it in place and always shown, for /design.
 -->
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import Button from './Button.svelte';
 	import { showMore } from './scrollMore.ts';
 
-	type Props = { nav?: boolean; clear?: number; demo?: boolean };
-	let { nav = false, clear = 0, demo = false }: Props = $props();
+	type Props = { nav?: boolean; clear?: number; demo?: boolean; target?: HTMLElement };
+	let { nav = false, clear = 0, demo = false, target }: Props = $props();
 
 	let shown = $state(false);
 
-	onMount(() => {
+	// The page (window) scrolls, unless `target` is given: a full-screen sheet that scrolls itself.
+	$effect(() => {
 		if (demo) return;
+		const el = target;
 		let frame = 0;
 		const measure = () => {
 			if (frame) return;
 			frame = requestAnimationFrame(() => {
 				frame = 0;
-				const doc = document.documentElement;
-				shown = showMore(scrollY, innerHeight, doc.scrollHeight);
+				shown = el ? showMore(el.scrollTop, el.clientHeight, el.scrollHeight) : showMore(scrollY, innerHeight, document.documentElement.scrollHeight);
 			});
 		};
-		addEventListener('scroll', measure, { passive: true });
+		const scroller: HTMLElement | Window = el ?? window;
+		scroller.addEventListener('scroll', measure, { passive: true });
 		addEventListener('resize', measure);
-		// content that grows or shrinks (a lesson loading, a chat answer streaming in)
+		// content that grows or shrinks (a lesson loading, a chat answer streaming in, a section opening)
 		const ro = new ResizeObserver(measure);
-		ro.observe(document.body);
+		ro.observe(el ?? document.body);
+		for (const child of el?.children ?? []) ro.observe(child);
 		measure();
 		return () => {
-			removeEventListener('scroll', measure);
+			scroller.removeEventListener('scroll', measure);
 			removeEventListener('resize', measure);
 			ro.disconnect();
 			cancelAnimationFrame(frame);
@@ -46,18 +50,19 @@
 	});
 
 	function jump() {
-		const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-		scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? 'instant' : 'smooth' });
+		const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+		if (target) target.scrollTo({ top: target.scrollHeight, behavior });
+		else scrollTo({ top: document.documentElement.scrollHeight, behavior });
 		// the button hides on the way down; keep keyboard focus on the page, not on nothing
-		const main = document.querySelector('main');
-		if (main && document.activeElement?.closest('.scroll-more')) {
-			if (!main.hasAttribute('tabindex')) main.setAttribute('tabindex', '-1');
-			main.focus({ preventScroll: true });
+		const home = target ?? document.querySelector('main');
+		if (home && document.activeElement?.closest('.scroll-more')) {
+			if (!home.hasAttribute('tabindex')) home.setAttribute('tabindex', '-1');
+			home.focus({ preventScroll: true });
 		}
 	}
 </script>
 
-<div class="scroll-more" class:demo class:shown={demo || shown} class:nav style:--clear="{clear}px" inert={!demo && !shown}>
+<div class="scroll-more" class:demo class:shown={demo || shown} class:nav class:sheet={!!target} style:--clear="{clear}px" inert={!demo && !shown}>
 	<Button variant="ghost" size="md" class="scroll-more-btn" aria-label={t('scrollMore.label')} onclick={jump}>
 		{#snippet icon()}
 			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5v13M6 12l6 6 6-6" /></svg>
@@ -91,6 +96,12 @@
 		}
 		.scroll-more.nav {
 			bottom: calc(var(--safe-bottom) + var(--kb) + var(--clear) + var(--space-5));
+		}
+	}
+	/* inside a full-screen sheet there is no rail: centre on the screen */
+	@media (min-width: 600px) and (orientation: landscape), (min-width: 840px) {
+		.scroll-more.sheet {
+			left: calc(var(--safe-left) + (100% - var(--safe-left) - var(--safe-right)) / 2);
 		}
 	}
 	:global(html.nav-side) .scroll-more.nav {

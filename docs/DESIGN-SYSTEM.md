@@ -160,7 +160,9 @@ while more than 200px, or 40% of the screen, is still below (`scrollMore.ts`). T
 smoothly to the end (instantly under reduced motion) and moves focus to `<main>`; it fades out near
 the bottom. The root layout shows one on every screen. It clears the tab bar (none on the side rail),
 the safe area and the keyboard; a screen with its own fixed bottom bar sets `ui.scrollClear` (Ask AI
-composer, Fleet menu pill). It sits under the tab bar and sheets (z-index 45).
+composer, Fleet menu pill). It sits under the tab bar and sheets (z-index 45). A full-screen sheet that
+scrolls itself (the beta consent) puts its own `ScrollMore` inside, with `target` set to the scrolling
+element.
 
 ## Motion and transitions
 
