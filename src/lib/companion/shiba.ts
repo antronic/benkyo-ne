@@ -5,7 +5,7 @@
  * Loaded with a dynamic import, so nothing is downloaded while Kuri is turned off.
  *
  *   const k = create(canvas, { variant: 'bandana' | 'neckerchief', detail: 'full' | 'low', theme, reducedMotion, fps });
- *   k.setPose('idle' | 'happy' | 'thinking' | 'encourage' | 'sleep' | 'wave' | 'walk' | 'held');
+ *   k.setPose('idle' | 'happy' | 'thinking' | 'encourage' | 'sleep' | 'wave' | 'walk' | 'held' | 'dizzy');
  *   k.setFacing(radians); k.setTheme('light' | 'dark'); k.setReducedMotion(bool); k.setPaused(bool); k.destroy();
  *
  * Performance: one interleaved vertex buffer (20 bytes a vertex), no per-frame
@@ -379,6 +379,19 @@ function build(variant, detail) {
 		var dm = new Mesh(); box(dm, [0, 0, 0], [0.19, 0.035, 0.03], zc);
 		z.mesh = zm; kid(z, N('zd', [0, 0, 0], [0, 0, 0.72], dm));
 	}
+	// dizzy: little gold stars circling the head (a flat five-point star, front and back)
+	var star = new Mesh(), ro = 0.15, ri = 0.064, sz = 0.016;
+	for (i = 0; i < 5; i++) {
+		var a0 = i / 5 * 6.283 + 1.571, a1 = a0 + 0.628;
+		var po = [Math.cos(a0) * ro, Math.sin(a0) * ro, 0], pa = [Math.cos(a0 - 0.628) * ri, Math.sin(a0 - 0.628) * ri, 0], pb = [Math.cos(a1) * ri, Math.sin(a1) * ri, 0];
+		[[sz, [0, 0, -1]], [-sz, [0, 0, 1]]].forEach(function (f) {
+			var c0 = [0, 0, f[0]];
+			star.tri(c0, pa, po, i % 2 ? C.gold : mix(C.gold, C.white, 0.35), f[1]).tri(c0, po, pb, C.gold, f[1]);
+		});
+	}
+	for (i = 0; i < 3; i++) {
+		reg(kid(root, N('star' + i, [0, 2, 0.2]))).mesh = star; // one shape, three placements
+	}
 	return { root: root, nodes: nodes };
 }
 
@@ -391,7 +404,8 @@ var BASE = {
 	shLx: -0.3, shLz: 0, elL: 0, shRx: -0.3, shRz: 0, elR: 0,
 	eyeOpen: 1, lidAngle: 0.45, browY: 0, browTilt: 0,
 	jaw: 0.05, tongue: 0.4, blush: 1,
-	stand: 0, stride: 0, walkHz: 2.2, bounce: 0, waveAmp: 0, orbs: 0, zzz: 0, gemGlow: 0.15, breatheHz: 0.33, sway: 1
+	stand: 0, stride: 0, walkHz: 2.2, bounce: 0, waveAmp: 0, orbs: 0, zzz: 0, gemGlow: 0.15, breatheHz: 0.33, sway: 1,
+	lidX: 0, dizzy: 0, stars: 0 // dizzy: lids cross into x x, the head circles, stars orbit
 };
 function P(o) { var r = {}; for (var k in BASE) r[k] = BASE[k]; for (k in o) r[k] = o[k]; return r; }
 var POSES = {
@@ -424,6 +438,12 @@ var POSES = {
 		rootY: 0.15, hx: -0.45, earL: 0.35, earR: 0.35, earOut: 0.2, wag: 0.9, wagHz: 3.6,
 		shLx: -0.55, shLz: -0.25, elL: -0.3, shRx: -0.55, shRz: 0.25, elR: -0.3,
 		eyeOpen: 1, browY: 0.035, browTilt: 0.15, jaw: 0.45, tongue: 0.6, blush: 1.4, sway: 0.2
+	}),
+	dizzy: P({
+		hx: -0.32, earL: 0.5, earR: 0.15, earOut: 0.35, wag: 0.08, wagHz: 0.6, tailLift: -0.12,
+		shLx: -0.85, shLz: -0.5, elL: -0.15, shRx: -0.85, shRz: 0.5, elR: -0.15,
+		eyeOpen: 0, lidX: 1, lidAngle: 0.8, browY: 0.02, browTilt: -0.3,
+		jaw: 0.4, tongue: 1, blush: 0.9, dizzy: 1, stars: 1, sway: 0, gemGlow: 0.2
 	}),
 	wave: P({
 		hx: -0.35, hz: 0.14, hy: 0.1, earL: -0.05, earR: -0.1, wag: 0.5, wagHz: 2.2,
@@ -523,11 +543,14 @@ function create(canvas, opts) {
 		walkPhase += dt * p.walkHz * 6.283 * R;
 		var st = Math.max(0, Math.min(1, p.stand)), sw1 = Math.sin(walkPhase) * p.stride * R, step = Math.abs(Math.cos(walkPhase)) * 0.05 * st * R;
 		nd.root.t = [0, p.rootY + bounce + step, 0]; nd.root.r = [0, p.turn, 0];
-		nd.torso.r = [p.lean, 0, p.torsoZ];
 		nd.torso.t = [0, 0.42 - 0.17 * p.lie + 0.4 * st, -0.05 - 0.4 * p.lie - 0.3 * st];
 		nd.torsoMesh.s = [1 + 0.012 * breathe, 1 + 0.018 * breathe, 1 + 0.012 * breathe];
 		var sw = p.sway * R;
-		nd.head.r = [p.hx - (p.lean - 0.3) + Math.sin(t * 0.8) * 0.03 * sw, p.hy + Math.sin(t * 0.5) * 0.06 * sw, p.hz + Math.sin(t * 0.65) * 0.04 * sw];
+		// dizzy: the head rolls round in circles and the body sways after it (still with reduced motion)
+		var dz = Math.max(0, p.dizzy), spin = t * 5.5 * R + 0.8;
+		var dzx = Math.sin(spin) * 0.16 * dz, dzz = Math.cos(spin) * 0.24 * dz;
+		nd.torso.r = [p.lean, Math.sin(spin * 0.5) * 0.12 * dz, p.torsoZ + Math.cos(spin) * 0.1 * dz];
+		nd.head.r = [p.hx - (p.lean - 0.3) + Math.sin(t * 0.8) * 0.03 * sw + dzx, p.hy + Math.sin(t * 0.5) * 0.06 * sw, p.hz + Math.sin(t * 0.65) * 0.04 * sw + dzz];
 		nd.head.t = [0, 1.0 - 0.12 * p.lie, 0.12 + 0.02 * p.lie]; nd.head.s = [1.1, 1.1, 1.1];
 		var twitch = R && poseName === 'idle' && (t % 7.3) < 0.18 ? 0.25 : 0;
 		nd.earL.r = [-p.earL, 0, 0.28 + p.earOut + twitch]; nd.earR.r = [-p.earR, 0, -0.28 - p.earOut];
@@ -549,8 +572,11 @@ function create(canvas, opts) {
 		['L', 'R'].forEach(function (id, i) {
 			var sd = i ? 1 : -1;
 			nd['eye' + id].s = [1, Math.max(0.02, open), 1];
-			nd['lid' + id].s = [shut, shut, shut];
+			var ls = shut * (1 + 0.45 * Math.max(0, p.lidX)); nd['lid' + id].s = [ls, ls, ls]; // bigger x x when dizzy
 			nd['lidA' + id].r = [0, 0, p.lidAngle]; nd['lidB' + id].r = [0, 0, -p.lidAngle];
+			// lidX slides both strokes onto the same centre, so they cross into an x
+			var lx = Math.max(0, Math.min(1, p.lidX)), ca = 0.03 * Math.cos(p.lidAngle), sa = 0.03 * Math.sin(p.lidAngle);
+			nd['lidA' + id].t = [-0.03 + (ca + 0.03) * lx, sa * lx, 0]; nd['lidB' + id].t = [0.03 - (ca + 0.03) * lx, sa * lx, 0];
 			nd['brow' + id].t = [0.17 * sd, 0.51 + p.browY, 0.44];
 			nd['brow' + id].r = [-0.2, 0.3 * sd, p.browTilt * -sd];
 			var bb = Math.max(0, p.blush); nd['blush' + id].s = [bb, bb, bb];
@@ -567,6 +593,10 @@ function create(canvas, opts) {
 			var z = nd['z' + i], ph = R ? ((t * 0.35 + i / 3) % 1) : 0.25 + i * 0.25, zz = Math.max(0, p.zzz);
 			z.t = [0.45 + ph * 0.5, 1.25 + ph * 0.9, 0.55]; z.r = [0, yaw - p.turn, Math.sin(ph * 6) * 0.15];
 			var zs = zz * Math.sin(Math.PI * Math.min(1, ph * 1.2)) * (0.7 + ph * 0.5); z.s = [zs, zs, zs]; z.emit = 0.45;
+			// stars ride a tilted ring round the head, following its wobble, and face the camera
+			var s = nd['star' + i], sa2 = t * 3.2 * R + i * 2.094, ss = Math.max(0, p.stars) * (0.85 + 0.15 * Math.sin(t * 7 * R + i));
+			s.t = [Math.cos(sa2) * 0.7 + dzz * 0.6, 1.92 + Math.sin(sa2) * 0.08 + dzx * 0.3, 0.2 + Math.sin(sa2) * 0.5];
+			s.r = [0, yaw - p.turn, t * 4 * R + i]; s.s = [ss, ss, ss]; s.emit = 0.5;
 		}
 	}
 

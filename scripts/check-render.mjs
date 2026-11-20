@@ -17,6 +17,7 @@
  * It also opens Settings (three Kuris), drops every Kuri's WebGL context the way Safari does after
  * the app sat in the background, and fails unless each Kuri gets a fresh, working context
  * (src/lib/companion/Kuri.svelte; docs/guides/lessons.md kuri-context-lost).
+ * Last it shakes Kuri on Today: a shake makes Kuri dizzy, a plain drag does not.
  *
  * The API is mocked with a synthetic signed-in learner (scripts/layout-fixtures.mjs).
  * Set LAYOUT_URL to check a server that is already running.
@@ -188,6 +189,58 @@ async function kuriLost(browser, problems) {
 	}
 }
 
+/**
+ * Today: pick Kuri up and shake it. Kuri must get dizzy (its dizzy line shows when set down),
+ * while a plain drag must not (src/lib/companion/KuriWalker.svelte).
+ */
+async function kuriShake(browser, problems) {
+	const at = 'Kuri shake @ Today';
+	const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block', reducedMotion: 'no-preference' });
+	await ctx.route('**/api/**', signedInRoute);
+	const page = await ctx.newPage();
+	const errors = [];
+	page.on('pageerror', (e) => errors.push(String(e.message ?? e).split('\n')[0]));
+	const said = () => page.locator('.say.on').textContent({ timeout: 300 }).catch(() => '');
+	const grab = async () => {
+		const b = await page.locator('.walker').boundingBox();
+		const p = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+		await page.mouse.move(p.x, p.y);
+		await page.mouse.down();
+		p.x -= 120;
+		await page.mouse.move(p.x, p.y, { steps: 8 });
+		return p;
+	};
+	try {
+		await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+		await page.evaluate(skipIntro);
+		await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+		await page.locator('.walker').waitFor({ timeout: 20000 });
+		await page.locator('.splash').waitFor({ state: 'detached', timeout: 10000 }).catch(() => {});
+		// a slow drag is just a move
+		let p = await grab();
+		await page.mouse.move(p.x, p.y - 60, { steps: 10 });
+		await page.mouse.up();
+		await page.waitForTimeout(300);
+		const plain = await said();
+		if (/spinning/i.test(plain ?? '')) problems.push(`${at}: a plain drag made Kuri dizzy`);
+		await page.waitForTimeout(2500);
+		// a shake: quick back-and-forth swings while held
+		p = await grab();
+		for (let i = 0; i < 6; i++) {
+			await page.mouse.move(p.x + (i % 2 ? -45 : 45), p.y, { steps: 4 });
+			await page.waitForTimeout(40);
+		}
+		await page.mouse.up();
+		await page.waitForTimeout(300);
+		const dizzy = await said();
+		if (!/spinning/i.test(dizzy ?? '')) problems.push(`${at}: shaking Kuri did not make it dizzy (said "${dizzy ?? ''}")`);
+		for (const e of [...new Set(errors)]) problems.push(`${at}: page error: ${e}`);
+		console.log(`${at}: plain drag ${plain ? `said "${plain}"` : 'quiet'}, shake said "${dizzy ?? ''}"`);
+	} finally {
+		await ctx.close();
+	}
+}
+
 async function main() {
 	let server;
 	if (!process.env.LAYOUT_URL) server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
@@ -198,6 +251,7 @@ async function main() {
 		await waitFor(BASE + '/');
 		for (const [label, width, height] of WIDTHS) await walk(browser, label, width, height, problems);
 		await kuriLost(browser, problems);
+		await kuriShake(browser, problems);
 	} finally {
 		await browser.close();
 		server?.kill();
@@ -207,7 +261,7 @@ async function main() {
 		console.error(`\nRender check: ${problems.length} problem(s). See docs/AVATAR.md (Live avatar).`);
 		process.exit(1);
 	}
-	console.log(`Render check: avatar setup at ${WIDTHS.length} widths, no GPU rebuilds, no lost contexts; Kuri rebuilds after a lost context.`);
+	console.log(`Render check: avatar setup at ${WIDTHS.length} widths, no GPU rebuilds, no lost contexts; Kuri rebuilds after a lost context and gets dizzy when shaken.`);
 }
 
 await main();

@@ -403,6 +403,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'kuri.sayCheer': 'สู้ๆ นะ!',
 	'kuri.sayAsk': 'ถามอะไรก็ได้ใน Ask AI',
 	'kuri.sayRest': 'ทบทวนครบแล้ว เก่งมาก!',
+	'kuri.sayDizzy': 'โอ๊ย… หัวหมุนไปหมดแล้ว!',
 	'kuri.thinking': 'คุริกำลังคิด',
 	'settings.jsFallback': 'JavaScript (สำรอง)',
 	'sync.err.offline': 'คุณออฟไลน์อยู่ ความคืบหน้าจะซิงก์เมื่อกลับมาออนไลน์',
