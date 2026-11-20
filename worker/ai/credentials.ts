@@ -143,6 +143,9 @@ export function accountDataStatements(env: Env, userId: number): D1PreparedState
 		...deleteSyncStatements(env.DB, userId),
 		// community profile, posts, replies, likes, reports, blocks (worker/community.ts)
 		...communityDataStatements(env.DB, userId),
+		// thumbs and reports on lessons and words (worker/feedback.ts)
+		env.DB.prepare(`DELETE FROM content_votes WHERE account_id = ?1`).bind(userId),
+		env.DB.prepare(`DELETE FROM content_reports WHERE account_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM ai_credentials WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM ai_feature_models WHERE user_id = ?1`).bind(userId),
 		env.DB.prepare(`DELETE FROM ai_model_prices WHERE user_id = ?1`).bind(userId),

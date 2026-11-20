@@ -34,6 +34,7 @@ import {
 	type AdminUsage
 } from './contract.ts';
 import type { AdminCommunity, AdminContentAction, CommunityStatus, TargetKind } from '#lib/community/contract.ts';
+import type { AdminFeedback, FeedbackReportStatus } from '#lib/feedback/contract.ts';
 
 export type AdminErrorCode = 'access' | 'closed' | 'forbidden' | 'signin' | 'offline' | 'stepup' | 'bad' | 'server';
 
@@ -171,3 +172,8 @@ export const setCommunityStatus = (accountId: number, status: CommunityStatus) =
 	const go = () => call<{ ok: true }>('/api/admin/community/author', { method: 'POST', json: { accountId, status } });
 	return status === 'active' ? go() : withStepUp(go);
 };
+
+// content feedback (worker/admin/feedback.ts)
+export const getFeedback = () => call<AdminFeedback>('/api/admin/feedback');
+export const setFeedbackReport = (id: number, status: FeedbackReportStatus) =>
+	call<{ ok: true }>('/api/admin/feedback/report', { method: 'POST', json: { id, status } });

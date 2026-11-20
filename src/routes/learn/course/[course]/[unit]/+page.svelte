@@ -14,6 +14,7 @@
 	import Romaji from '#lib/components/Romaji.svelte';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
+	import ContentFeedback from '#lib/components/ContentFeedback.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
 	import { courseTag, NOW_TAG, type CourseItem } from '#lib/content/courses.ts';
 	import { lessonPacks } from '#lib/state/lessonPacks.svelte.ts';
@@ -105,6 +106,7 @@
 
 		<div class="unit-note">
 			<NoteCard value={notes.text(subject)} loading={!notes.ready} onsave={(b) => notes.save(subject, tc(unit.title), b)} />
+			<ContentFeedback {subject} label={tc(unit.title)} />
 			<CommunityNotes {subject} label={tc(unit.title)} note={notes.text(subject)} />
 		</div>
 
@@ -128,6 +130,7 @@
 						{#if c.note}<span class="caption">💬 {tc(c.note)}</span>{/if}
 					</div>
 					{#if have}<span class="check" aria-label={t('unit.addedOne')}>✓</span>{/if}
+					<ContentFeedback compact class="say" subject={c.key} label={c.written[0] ?? c.reading} />
 				</Card>
 			{/each}
 		</ul>

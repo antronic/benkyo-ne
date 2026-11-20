@@ -19,6 +19,7 @@ Plan: [Fleet console plan](https://claude.ai/artifact/V5aGj3ttAxjHqYzje5XLdg).
 | 7 | Promo codes: made in the console, redeemed in Settings | PR #32 |
 | 8 | Navigation: sidebar (≥ 960px), menu pill and sheet on phones, breadcrumbs (`src/lib/admin/nav.ts`, `FleetNav.svelte`, `src/routes/admin/+layout.svelte`) | merged (#38) |
 | 9 | Desktop layouts: 1160px column from 1200px, accounts and audit log as tables (`DataTable`), sections side by side (`Columns`) | this PR |
+| 10 | Feedback: thumbs and reports learners leave on lessons, units, grammar, kanji and words; mark fixed or dismiss ([FEEDBACK.md](FEEDBACK.md)) | this PR |
 
 ## Security
 

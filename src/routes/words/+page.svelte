@@ -5,6 +5,7 @@
 	import { Badge, Button, Card, Chip, FieldRow, LargeTitle, ListGroup, ListRow, Segmented, Sheet, Skeleton, TextField } from '#lib/ui/index.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import CommunityNotes from '#lib/components/CommunityNotes.svelte';
+	import ContentFeedback from '#lib/components/ContentFeedback.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
 	import { subjectKind, type Note } from '#lib/notes/contract.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
@@ -292,6 +293,7 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 		{#key open.id}
 			{@const card = open}
 			<NoteCard value={notes.text(card.id)} loading={!notes.ready} onsave={(b) => notes.save(card.id, card.front, b)} />
+			<ContentFeedback subject={card.id} label={card.front} />
 			<CommunityNotes subject={card.id} label={card.front} note={notes.text(card.id)} />
 		{/key}
 		{#if words.isParked(open) && !progress.cards[open.id]}
