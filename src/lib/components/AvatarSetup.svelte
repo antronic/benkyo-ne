@@ -14,7 +14,7 @@
 	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
 	import { t, type MessageKey } from '#lib/i18n/index.svelte.ts';
-	import { Avatar, Button, Card, Chip, FileButton, Notice, Spinner } from '#lib/ui/index.ts';
+	import { Avatar, Button, Card, Chip, FileButton, IconButton, Notice, Spinner } from '#lib/ui/index.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
@@ -40,6 +40,12 @@
 	let saveError = $state('');
 	let video = $state<HTMLVideoElement>();
 	let stream: MediaStream | null = null;
+	// the camera in use: front cameras show (and shoot) as a mirror, back cameras don't
+	let facing = $state<'user' | 'environment'>('user');
+	let mirror = $state(true);
+	let cameras = $state(0); // how many cameras the device has; the switch shows when there are two or more
+	let camBusy = $state(false); // opening or switching: the viewfinder shows a spinner
+	let switchFailed = $state(false);
 	const name = $derived(ai.account?.name ?? '');
 
 	function stopCamera() {
@@ -74,24 +80,87 @@
 		}
 		await openCamera();
 	}
+	/** Ask for a camera: the facing one by default, or a given device (computers with two webcams). */
+	async function getStream(want: { facing: 'user' | 'environment' } | { deviceId: string }) {
+		const pick = 'deviceId' in want ? { deviceId: { exact: want.deviceId } } : { facingMode: want.facing };
+		return navigator.mediaDevices.getUserMedia({ video: { ...pick, width: { ideal: 1280 } }, audio: false });
+	}
+	async function show(s: MediaStream) {
+		stream = s;
+		const set = s.getVideoTracks()[0]?.getSettings() ?? {};
+		if (set.facingMode === 'user' || set.facingMode === 'environment') facing = set.facingMode;
+		// only a camera that says it faces away is shown as is; webcams look like a mirror
+		mirror = set.facingMode !== 'environment';
+		if (video) {
+			video.srcObject = s;
+			await video.play(); // ui-ok: callers hold camBusy, the viewfinder spinner
+		}
+	}
+	async function countCameras() {
+		try {
+			cameras = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput').length; // ui-ok: background count, the switch appears when it is known
+		} catch {
+			cameras = 1;
+		}
+	}
 	async function openCamera() {
 		step = 'camera';
+		camBusy = true;
+		switchFailed = false;
 		try {
-			stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 } }, audio: false });
-			if (video) {
-				video.srcObject = stream;
-				await video.play();
-			}
+			await show(await getStream({ facing }));
+			void countCameras(); // device labels and the full list only come after permission
 		} catch {
 			stopCamera();
 			problem = 'camera';
 			step = 'problem';
+		} finally {
+			camBusy = false;
+		}
+	}
+	async function switchCamera() {
+		if (camBusy) return;
+		haptic('selection');
+		camBusy = true;
+		switchFailed = false;
+		const was = stream?.getVideoTracks()[0]?.getSettings() ?? {};
+		const other = facing === 'user' ? 'environment' : 'user';
+		// iOS and Android need the old camera let go before the other one opens
+		stopCamera();
+		try {
+			let next: MediaStream | null = null;
+			if (was.facingMode) next = await getStream({ facing: other }).catch(() => null);
+			if (next && next.getVideoTracks()[0]?.getSettings().deviceId === was.deviceId) {
+				next.getTracks().forEach((tr) => tr.stop());
+				next = null;
+			}
+			if (!next) {
+				// no facing mode to go by (a computer): step to the next camera in the list
+				const list = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+				const at = list.findIndex((d) => d.deviceId === was.deviceId);
+				const to = list[(at + 1) % list.length];
+				if (to && to.deviceId !== was.deviceId) next = await getStream({ deviceId: to.deviceId });
+			}
+			if (!next) throw new Error('no other camera');
+			await show(next);
+		} catch {
+			// keep going with the camera we had
+			switchFailed = true;
+			try {
+				await show(await getStream(was.deviceId ? { deviceId: was.deviceId } : { facing }));
+			} catch {
+				stopCamera();
+				problem = 'camera';
+				step = 'problem';
+			}
+		} finally {
+			camBusy = false;
 		}
 	}
 	async function shoot() {
 		if (!video?.videoWidth) return;
 		haptic('selection');
-		const c = await toCanvas(video, 720, true);
+		const c = await toCanvas(video, 720, mirror);
 		stopCamera();
 		await read(c);
 	}
@@ -246,13 +315,25 @@
 		{:else if step === 'camera'}
 			<div class="camera">
 				<!-- the live camera; the frame is read only when the shutter is pressed -->
-				<video bind:this={video} playsinline muted aria-label={t('avatar.cameraLabel')}></video>
+				<video bind:this={video} class:mirror playsinline muted aria-label={t('avatar.cameraLabel')}></video>
 				<div class="oval" aria-hidden="true"></div>
+				{#if cameras > 1}
+					<div class="flip">
+						<IconButton label={facing === 'user' ? t('avatar.useBackCamera') : t('avatar.useFrontCamera')} disabled={camBusy} onclick={switchCamera}>🔄</IconButton>
+					</div>
+				{/if}
+				{#if camBusy}
+					<div class="cam-wait" role="status" aria-live="polite">
+						<Spinner size="lg" label={t('avatar.cameraStarting')} />
+						<p class="caption">{t('avatar.cameraStarting')}</p>
+					</div>
+				{/if}
 				<p class="hint caption">{t('avatar.cameraHint')}</p>
 			</div>
+			{#if switchFailed}<Notice tone="warning">{t('avatar.switchFailed')}</Notice>{/if}
 			<div class="actions row">
 				<Button variant="ghost" onclick={() => (stopCamera(), (step = 'consent'))}>{t('common.cancel')}</Button>
-				<Button variant="accent" class="grow" onclick={shoot}>{t('avatar.shutter')}</Button>
+				<Button variant="accent" class="grow" disabled={camBusy} onclick={shoot}>{t('avatar.shutter')}</Button>
 			</div>
 		{:else if step === 'reading'}
 			<div class="center" role="status" aria-live="polite">
@@ -450,7 +531,29 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		transform: scaleX(-1); /* a mirror, like the iPhone camera */
+	}
+	video.mirror {
+		transform: scaleX(-1); /* the front camera is a mirror, like the iPhone camera */
+	}
+	.flip {
+		position: absolute;
+		top: var(--space-3);
+		right: var(--space-3);
+	}
+	.cam-wait {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-3);
+		background: rgb(0 0 0 / 0.55); /* ui-ok: dims the camera image */
+		color: #fff; /* ui-ok: text on the camera image */
+	}
+	.cam-wait p {
+		margin: 0;
+		color: #fff; /* ui-ok: text on the camera image */
 	}
 	.oval {
 		position: absolute;
