@@ -986,6 +986,7 @@ export const en = {
 	'avatar.cameraLabel': 'Camera',
 	'avatar.cameraHint': 'Face the light and keep your whole face in the oval',
 	'avatar.shutter': 'Take photo',
+	'avatar.skinCheck': 'Is this your skin tone? Light can fool the camera, so tap the closest one.',
 	'avatar.useBackCamera': 'Use the back camera',
 	'avatar.useFrontCamera': 'Use the front camera',
 	'avatar.cameraStarting': 'Starting the camera…',

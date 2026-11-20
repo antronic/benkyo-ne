@@ -14,7 +14,7 @@ export interface Measurements {
 	faceRatio: number;
 	/** jaw width / cheekbone width */
 	jawRatio: number;
-	/** median skin colour, CIE L*a*b* */
+	/** skin colour on the side of the face that faces the light, CIE L*a*b* */
 	skinLab: [number, number, number];
 	/** hair pixels / (face width × face length) */
 	hairArea: number;
@@ -158,24 +158,19 @@ export function measure(s: SelfieInput): Measurements {
 	const faceRatio = fw / fl;
 	const jawRatio = dist(P(L.jawL), P(L.jawR)) / fw;
 
-	// skin: both cheeks and the forehead, never hair
+	// skin: both cheeks and the forehead, never hair. Indoor light usually comes from one side,
+	// and the shaded cheek can read 30 L* darker than the lit one, so the skin colour is the
+	// brightest of the three patches: the side that faces the light shows the real tone.
 	const r = fw * 0.06;
-	const skinPts = [P(L.cheekPatchL), P(L.cheekPatchR), P(L.forehead)];
-	const skinL: number[] = [],
-		skinA: number[] = [],
-		skinB: number[] = [];
-	for (const p of skinPts) {
-		const c = patch(p.x - r, p.y - r, p.x + r, p.y + r, (x, y) => !isHair(x, y)).lab;
-		skinL.push(c[0]);
-		skinA.push(c[1]);
-		skinB.push(c[2]);
-	}
-	const skinLab: [number, number, number] = [median(skinL), median(skinA), median(skinB)];
+	const [skinL, skinR, skinF] = [P(L.cheekPatchL), P(L.cheekPatchR), P(L.forehead)].map((p) => patch(p.x - r, p.y - r, p.x + r, p.y + r, (x, y) => !isHair(x, y)));
+	const skinLab = [skinL, skinR, skinF].filter((q) => q.n > 0).reduce((a, b) => (b.lab[0] > a[0] ? b.lab : a), [0, 0, 0] as [number, number, number]);
+	// the skin next to a point: the cheek on its side (one side of the face is often in shadow)
+	const sideL = P(L.cheekPatchL).x < cx;
+	const skinAt = (x: number) => ((x < cx) === sideL ? skinL : skinR).lab;
 
 	// hair mask, in face units
 	let hairN = 0,
-		minY = H,
-		maxSideY = -1;
+		minY = H;
 	const hl: number[] = [],
 		ha: number[] = [],
 		hb: number[] = [];
@@ -185,7 +180,6 @@ export function measure(s: SelfieInput): Measurements {
 			if (!hair[at(x, y)]) continue;
 			hairN++;
 			if (y < minY) minY = y;
-			if (Math.abs(x - cx) > fw * 0.35 && y > maxSideY) maxSideY = y;
 			// colour from the inside of the mask only: its edges blend into skin and background
 			const e = step * 3;
 			if (hairN % 3 === 0 && isHair(x - e, y) && isHair(x + e, y) && isHair(x, y - e) && isHair(x, y + e)) {
@@ -196,7 +190,17 @@ export function measure(s: SelfieInput): Measurements {
 			}
 		}
 	const hairArea = (hairN * step * step) / (fw * fl);
-	const hairBelowChin = maxSideY > chin.y ? (maxSideY - chin.y) / fl : 0;
+	// how far the side hair hangs: follow it down from the eyes and stop at the first gap, so a
+	// dark shirt, chair or wall the segmenter calls hair doesn't count as long hair
+	const eyeY = (P(L.eyeLT).y + P(L.eyeRT).y) / 2;
+	let lowSide = -1;
+	for (let y = eyeY; y < H; y += step) {
+		let found = false;
+		for (let x = cx - fw * 0.85; x <= cx + fw * 0.85 && !found; x += step) if (Math.abs(x - cx) > fw * 0.35 && isHair(x, y)) found = true;
+		if (found) lowSide = y;
+		else if (y - Math.max(lowSide, eyeY) > fl * 0.05) break;
+	}
+	const hairBelowChin = lowSide > chin.y ? (lowSide - chin.y) / fl : 0;
 	const hairLab: [number, number, number] = [median(hl), median(ha), median(hb)];
 
 	// fringe: hair over the forehead (between the brows and the top of the face)
@@ -223,27 +227,26 @@ export function measure(s: SelfieInput): Measurements {
 	const hairTop = crownGap > 0.42 && topWidth < 0.55;
 
 	// outline roughness: how much the hair's left and right edges jump row to row
-	let jumps = 0,
-		rows = 0,
-		prevL = -1,
+	// Only near the head (not stray patches elsewhere in the photo), below the round top of the
+	// head (where the outline widens fast on any haircut), and the median row (one messy tuft is
+	// not curls).
+	const jumps: number[] = [];
+	let prevL = -1,
 		prevR = -1;
-	for (let y = minY; y < Math.min(H, chin.y); y += step) {
+	for (let y = minY + fl * 0.12; y < Math.min(H, chin.y); y += step) {
 		let x0 = -1,
 			x1 = -1;
-		for (let x = 0; x < W; x += step)
+		for (let x = Math.max(0, cx - fw * 0.85); x < Math.min(W, cx + fw * 0.85); x += step)
 			if (hair[at(x, y)]) {
 				if (x0 < 0) x0 = x;
 				x1 = x;
 			}
 		if (x0 < 0) continue;
-		if (prevL >= 0) {
-			jumps += Math.abs(x0 - prevL) + Math.abs(x1 - prevR);
-			rows++;
-		}
+		if (prevL >= 0) jumps.push(Math.abs(x0 - prevL) + Math.abs(x1 - prevR));
 		prevL = x0;
 		prevR = x1;
 	}
-	const hairRough = rows ? clamp01((jumps / rows / step - 3) / 5) : 0;
+	const hairRough = jumps.length ? clamp01((median(jumps) / step - 1) / 4) : 0;
 
 	// covered: no hair at the forehead edge, and what is there is neither skin nor background
 	const above = patch(cx - fw * 0.2, top.y - fl * 0.22, cx + fw * 0.2, top.y - fl * 0.08, () => true);
@@ -253,6 +256,7 @@ export function measure(s: SelfieInput): Measurements {
 	// eyes, mouth, brows
 	const eye = (t: number, b: number, o: number, i: number) => dist(P(t), P(b)) / dist(P(o), P(i));
 	const eyeOpen = (eye(L.eyeLT, L.eyeLB, L.eyeLO, L.eyeLI) + eye(L.eyeRT, L.eyeRB, L.eyeRO, L.eyeRI)) / 2;
+
 	const bs = (n: string) => s.blend[n] ?? 0;
 	const smile = (bs('mouthSmileLeft') + bs('mouthSmileRight')) / 2;
 	const jawOpen = bs('jawOpen');
@@ -273,7 +277,40 @@ export function measure(s: SelfieInput): Measurements {
 	};
 	const bridge = edge(P(L.bridge), fw * 0.05, fw * 0.03);
 	const cheekEdge = (edge(P(L.cheekPatchL), fw * 0.04, fw * 0.04) + edge(P(L.cheekPatchR), fw * 0.04, fw * 0.04)) / 2;
-	const glasses = clamp01((bridge / Math.max(0.5, cheekEdge) - 1.5) / 3);
+	const thick = clamp01((bridge / Math.max(0.5, cheekEdge) - 1.5) / 3);
+	// thin wire frames: a dark line a few pixels wide on both sides of the nose (the rims) and
+	// across it (the bridge). Skin there is smooth, so thin dark lines mean frames.
+	const k = Math.max(2, Math.round(fw * 0.012));
+	const Lx = (x: number, y: number) => (inside(x, y) ? lab(x, y)[0] : 100);
+	const ridgeH = (x: number, y: number) => !isHair(x, y) && Lx(x, y) < Math.min(Lx(x - k, y), Lx(x + k, y)) - 5;
+	const ridgeV = (x: number, y: number) => !isHair(x, y) && Lx(x, y) < Math.min(Lx(x, y - k), Lx(x, y + k)) - 5;
+	const li = P(L.eyeLI),
+		ri = P(L.eyeRI);
+	const lidTop = Math.min(P(L.eyeLT).y, P(L.eyeRT).y),
+		lidBot = Math.max(P(L.eyeLB).y, P(L.eyeRB).y);
+	let rimRows = 0,
+		rimHits = 0;
+	for (let y = lidTop - fw * 0.05; y < lidBot + fw * 0.12; y++) {
+		rimRows++;
+		let l = false,
+			rr = false;
+		for (let x = Math.min(li.x, ri.x) + fw * 0.02; x < cx - fw * 0.03 && !l; x++) l = ridgeH(x, y);
+		for (let x = cx + fw * 0.03; x < Math.max(li.x, ri.x) - fw * 0.02 && !rr; x++) rr = ridgeH(x, y);
+		if (l && rr) rimHits++;
+	}
+	const browIn = Math.max(P(L.browLIn).y, P(L.browRIn).y);
+	let brCols = 0,
+		brHits = 0;
+	for (let x = cx - fw * 0.06; x < cx + fw * 0.06; x++) {
+		brCols++;
+		let hit = false;
+		for (let y = browIn + fw * 0.03; y < P(L.bridge).y + fw * 0.04 && !hit; y++) hit = ridgeV(x, y);
+		if (hit) brHits++;
+	}
+	const rims = rimRows ? rimHits / rimRows : 0,
+		bridgeLine = brCols ? brHits / brCols : 0;
+	const thin = (clamp01((rims - 0.15) / 0.35) + clamp01((bridgeLine - 0.2) / 0.5)) / 2;
+	const glasses = Math.max(thick, thin);
 
 	// beard: hair-dark pixels in the jaw band, above the lip and on the chin, against the cheeks
 	const dark = (x0: number, y0: number, x1: number, y1: number) => {
@@ -284,7 +321,7 @@ export function measure(s: SelfieInput): Measurements {
 			for (let x = Math.max(0, x0); x < Math.min(W, x1); x += st) {
 				n++;
 				const c = lab(x, y);
-				if (!isHair(x, y) && c[0] < skinLab[0] - 22 && deltaE(c, skinLab) > 24) d++;
+				if (!isHair(x, y) && c[0] < skinAt(x)[0] - 22 && deltaE(c, skinAt(x)) > 24) d++;
 			}
 		return n ? d / n : 0;
 	};

@@ -14,13 +14,13 @@
 	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
 	import { t, type MessageKey } from '#lib/i18n/index.svelte.ts';
-	import { Avatar, Button, Card, Chip, FileButton, IconButton, Notice, Spinner } from '#lib/ui/index.ts';
+	import { Avatar, Button, Card, Chip, FileButton, IconButton, Notice, Spinner, SwatchPicker } from '#lib/ui/index.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { avatar } from '#lib/state/avatar.svelte.ts';
 	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
-	import { cleanPerson, DEFAULTS, type Person } from '#lib/avatar/person.ts';
+	import { cleanPerson, DEFAULTS, SKIN, type Person } from '#lib/avatar/person.ts';
 	import { mapToPerson, type Ask } from '#lib/avatar/mapping.ts';
 	import { loadReader, toCanvas, wipe } from '#lib/avatar/selfie.ts';
 	import AvatarEditor from './AvatarEditor.svelte';
@@ -366,6 +366,16 @@
 					</div>
 				</Card>
 			{/each}
+			<!-- light and camera change how skin looks in a photo, so the tone is always one tap away -->
+			<Card padding="md">
+				<p class="body-b">{t('avatar.skinCheck')}</p>
+				<SwatchPicker
+					label={t('avatar.part.skin')}
+					value={person.skin}
+					options={Object.entries(SKIN).map(([v, color]) => ({ value: v as Person['skin'], color, label: t(`avatar.opt.skin.${v}` as MessageKey) }))}
+					onchange={(v) => (person = { ...person, skin: v })}
+				/>
+			</Card>
 			<div class="actions row">
 				<Button variant="ghost" onclick={() => (step = 'edit')}>{t('avatar.tweak')}</Button>
 				<Button variant="accent" class="grow" busy={saving} disabled={asks.some((q) => !answered[q])} onclick={save}>{t('avatar.looksGood')}</Button>

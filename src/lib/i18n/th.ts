@@ -996,6 +996,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'avatar.cameraLabel': 'กล้อง',
 	'avatar.cameraHint': 'หันหน้าเข้าหาแสง และให้ทั้งใบหน้าอยู่ในวงรี',
 	'avatar.shutter': 'ถ่ายรูป',
+	'avatar.skinCheck': 'สีผิวนี้ใช่ไหม แสงอาจทำให้กล้องเห็นสีผิดได้ แตะสีที่ใกล้ที่สุดได้เลย',
 	'avatar.useBackCamera': 'ใช้กล้องหลัง',
 	'avatar.useFrontCamera': 'ใช้กล้องหน้า',
 	'avatar.cameraStarting': 'กำลังเปิดกล้อง…',

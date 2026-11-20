@@ -23,12 +23,28 @@ function nearest<K extends string>(lab: number[], palette: Record<K, string>): K
 	return best;
 }
 
+/**
+ * Skin lightness as a phone photo shows it, for each skin tone (s1 lightest … s10 darkest).
+ * A photo comes out darker and less even than the drawn palette, so tones are matched by
+ * lightness against this scale, not by colour distance to the drawn swatches.
+ */
+export const SKIN_PHOTO_L: Record<keyof typeof SKIN, number> = { s1: 82, s2: 77, s3: 72, s4: 66, s5: 60, s6: 54, s7: 48, s8: 42, s9: 36, s10: 30 };
+/** The skin tone for a photo: the nearest step on the photo lightness scale. Colour is not used: indoor light tints it. */
+export function skinTone(m: Pick<Measurements, 'skinLab'>): keyof typeof SKIN {
+	let best: keyof typeof SKIN = 's1',
+		bd = Infinity;
+	for (const [s, v] of Object.entries(SKIN_PHOTO_L) as [keyof typeof SKIN, number][]) {
+		if (Math.abs(m.skinLab[0] - v) < bd) (bd = Math.abs(m.skinLab[0] - v)), (best = s);
+	}
+	return best;
+}
+
 export function mapToPerson(m: Measurements): { person: Person; ask: Ask[] } {
 	const ask: Ask[] = [];
 	const p: Person = { ...DEFAULTS };
 
 	p.headShape = m.jawRatio > 0.9 ? 'square' : m.faceRatio < 0.74 ? 'oval' : 'round';
-	p.skin = nearest(m.skinLab, SKIN);
+	p.skin = skinTone(m);
 
 	if (m.hairCovered) {
 		// a hijab, turban, scarf or hat: the learner says which, or none
