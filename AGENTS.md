@@ -53,7 +53,7 @@ Worker backend (D1, KV) at https://benkyo.jirachai.me. Learners are English and 
 
 | Path | What |
 | --- | --- |
-| `src/routes/` | Screens: Today, Learn, Words, AI, Review, Kana, Settings, `/design` catalog, `/admin` fleet console |
+| `src/routes/` | Screens: Today, Learn, Words, Community, AI, Review, Kana, Settings, `/design` catalog, `/admin` fleet console |
 | `src/lib/` | Client code: content, SRS, state stores (IndexedDB), i18n, design tokens and `ui/` kit, AI client, beta telemetry |
 | `src/service-worker/` | Offline caching |
 | `worker/` | Cloudflare Worker: `/api/*` (auth, sync, AI proxy, beta data, admin), D1 migrations in `worker/migrations/` |

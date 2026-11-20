@@ -61,6 +61,7 @@ export function fakeCommunity({ joined = true, empty = false, fail = false } = {
 
 	return {
 		communityMe: () => (fail ? failing() : wait(me)),
+		getFeed: () => (fail ? failing() : wait({ posts, next: null })),
 		setProfile: async (handle: string) => {
 			me = { profile: { handle: handle.replace(/^@/, '').toLowerCase(), guidelinesVersion: GUIDELINES_VERSION, status: 'active' }, guidelinesVersion: GUIDELINES_VERSION, canPost: true };
 			return wait(me);
