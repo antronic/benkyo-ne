@@ -54,6 +54,7 @@ export interface AdminAccountPatch {
 }
 
 import type { InviteCardData } from '../invite/contract.ts';
+import type { CreditRate } from '../ai/credits.ts';
 
 /** Status 428 + this code: confirm with a passkey, then retry. */
 export const STEPUP_REQUIRED = 'stepup_required';
@@ -121,7 +122,7 @@ export interface AdminUsage {
 	/** finished calls by whose key paid: the learner's own ('own') or a package's managed AI ('package') */
 	bySource: { source: 'own' | 'package'; calls: number; usd: number }[];
 	/** managed AI per package: spend on the operator's keys, and how many accounts used it */
-	byPackage: { planId: string; name: string; calls: number; usd: number; accounts: number; allowanceUsd: number }[];
+	byPackage: { planId: string; name: string; calls: number; usd: number; credits: number; accounts: number; allowanceCredits: number }[];
 	/** the latest failed calls in the window */
 	failures: { at: number; feature: string; model: string; accountId: number | null; name: string | null }[];
 }
@@ -179,8 +180,8 @@ export interface AdminPlan {
 	name: string;
 	priceMonthUsd: number;
 	priceYearUsd: number;
-	/** managed AI model cost included per month */
-	aiAllowanceUsd: number;
+	/** managed AI credits included per month (src/lib/ai/credits.ts) */
+	aiCredits: number;
 	blurb: string;
 	/** offered to new people */
 	available: boolean;
@@ -220,7 +221,31 @@ export interface AdminPlanCreate {
 	blurb?: string;
 	priceMonthUsd: number;
 	priceYearUsd: number;
-	aiAllowanceUsd: number;
+	aiCredits: number;
+}
+
+/** A model in at least one package, and what it costs in credits. */
+export interface AdminCreditRate {
+	providerId: number;
+	/** null if the provider was removed */
+	providerLabel: string | null;
+	model: string;
+	label: string;
+	/** the provider's USD per million tokens, from when the model was added; null when unknown */
+	inputPerM: number | null;
+	outputPerM: number | null;
+	/** names of the packages that include it */
+	packages: string[];
+	/** null: no rate set, so it costs its USD price at `creditsPerUsd` */
+	rate: CreditRate | null;
+	updatedAt: number | null;
+}
+
+/** PUT /api/admin/credit-rates. `rate: null` clears it (back to the USD price). */
+export interface AdminCreditRateInput {
+	providerId: number;
+	model: string;
+	rate: CreditRate | null;
 }
 
 // ------------------------------------------------------------ AI providers ----
@@ -329,6 +354,10 @@ export interface AdminPackages {
 	plans: AdminPlan[];
 	/** live grants, soonest to end first */
 	grants: AdminGrant[];
+	/** every model in a package, with its credit rate */
+	rates: AdminCreditRate[];
+	/** what a model without a rate costs: credits per USD of its price */
+	creditsPerUsd: number;
 }
 
 /** PUT /api/admin/packages/:id (any subset) */
@@ -336,7 +365,7 @@ export interface AdminPlanPatch {
 	name?: string;
 	priceMonthUsd?: number;
 	priceYearUsd?: number;
-	aiAllowanceUsd?: number;
+	aiCredits?: number;
 	blurb?: string;
 	available?: boolean;
 }

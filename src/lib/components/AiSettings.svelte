@@ -4,6 +4,7 @@
 	prices, the monthly cap meter, and the second explanation language.
 -->
 <script lang="ts">
+	import { formatCredits } from '#lib/ai/credits.ts';
 	import { fmtDate, i18n, t, type MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { Badge, Button, FieldRow, ListGroup, ListRow, Notice, Segmented, Select, Skeleton, Spinner, TextField } from '#lib/ui/index.ts';
 	import AccountSettings from '#lib/components/AccountSettings.svelte';
@@ -211,7 +212,7 @@
 	{:else if ai.managed?.plan}
 		{@const m = ai.managed}
 		{@const plan = m.plan!}
-		{@const pct = Math.min(1, m.spentUsd / Math.max(m.allowanceUsd, 0.0001))}
+		{@const pct = Math.min(1, m.spentCredits / Math.max(m.allowanceCredits, 0.0001))}
 		<h3 class="eyebrow section">{t('managed.section')}</h3>
 		{#if m.blocked === 'allowance'}
 			<Notice tone="warning" title={t('managed.usedUpTitle')}>
@@ -224,7 +225,7 @@
 			</ListRow>
 			<ListRow>
 				<span class="stack" style:--gap="var(--space-1h)">
-					<span class="row"><span>{t('managed.allowance')}</span><span class="spacer"></span><b class="nowrap">{t('managed.allowanceOf', { spent: fmt(m.spentUsd), cap: fmt(m.allowanceUsd) })}</b></span>
+					<span class="row"><span>{t('managed.allowance')}</span><span class="spacer"></span><b class="nowrap">{t('managed.allowanceOf', { spent: formatCredits(m.spentCredits), cap: t('managed.credits', { n: formatCredits(m.allowanceCredits) }) })}</b></span>
 					<span class="meter" class:warn={pct > 0.8}><span style:width="{pct * 100}%"></span></span>
 					<span class="caption">{t('managed.resets', { n: m.calls, date: day(m.resetsAt) })}</span>
 				</span>

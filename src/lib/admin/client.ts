@@ -16,6 +16,7 @@ import {
 	type AdminAccountPatch,
 	type AdminAuditList,
 	type AdminGrantInput,
+	type AdminCreditRateInput,
 	type AdminPackages,
 	type AdminPlanId,
 	type AdminPlanPatch,
@@ -146,6 +147,8 @@ export const deletePackage = (id: AdminPlanId) =>
 	withStepUp(() => call<AdminPackages>(`/api/admin/packages/${id}`, { method: 'DELETE' }));
 export const setPackageModels = (id: AdminPlanId, input: AdminPlanModelsInput) =>
 	withStepUp(() => call<AdminPackages>(`/api/admin/packages/${id}/models`, { method: 'PUT', json: input }));
+export const setCreditRate = (input: AdminCreditRateInput) =>
+	withStepUp(() => call<AdminPackages>('/api/admin/credit-rates', { method: 'PUT', json: input }));
 
 export const getProviders = () => call<AdminProviders>('/api/admin/ai/providers');
 export const addProvider = (input: AdminProviderInput) =>

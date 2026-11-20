@@ -302,7 +302,7 @@ describe('fleet: editing a code', () => {
 
 	it('stops a package from being deleted while a code gives it', async () => {
 		stepUp();
-		const made = await admin('POST', '/api/admin/packages', { name: 'Teacher', priceMonthUsd: 0, priceYearUsd: 0, aiAllowanceUsd: 0 });
+		const made = await admin('POST', '/api/admin/packages', { name: 'Teacher', priceMonthUsd: 0, priceYearUsd: 0, aiCredits: 0 });
 		expect(made.status).toBe(201);
 		const id = made.body.created as string;
 		await make({ code: 'TEACHERS', plan: id, kind: 'comp', days: 30 });

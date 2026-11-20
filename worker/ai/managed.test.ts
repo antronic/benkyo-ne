@@ -97,7 +97,9 @@ describe('managed AI', () => {
 		expect(ledger()).toEqual([{ source: 'package', planId: 'plus', status: 'done', model: 'claude-sonnet-5-5' }]);
 
 		const s = await call('GET', '/api/ai/managed');
-		expect(s.body).toMatchObject({ plan: { id: 'plus', name: 'Plus', endsAt: null }, allowanceUsd: 1.5, calls: 1, prefer: 'package', active: 'package', blocked: null });
+		expect(s.body).toMatchObject({ plan: { id: 'plus', name: 'Plus', endsAt: null }, allowanceCredits: 1500, calls: 1, prefer: 'package', active: 'package', blocked: null });
+		// no credit rate set: the model's USD price at 1000 credits per dollar
+		expect(s.body.spentCredits).toBeCloseTo(((1000 * 3 + 200 * 15) / 1e6) * 1000, 6);
 		expect(s.body.spentUsd).toBeCloseTo((1000 * 3 + 200 * 15) / 1e6, 9);
 		expect(s.body.models).toEqual([
 			{ feature: 'fill', label: 'Claude Sonnet 5.5', model: 'claude-sonnet-5-5' },
@@ -120,7 +122,7 @@ describe('managed AI', () => {
 		expect(anthropicCalls).toEqual([{ model: 'my-gpu-model', key: PLATFORM_KEY }]);
 		expect(ledger()).toEqual([{ source: 'package', planId: 'plus', status: 'done', model: 'my-gpu-model' }]);
 		const s = await call('GET', '/api/ai/managed');
-		expect(s.body).toMatchObject({ active: 'package', spentUsd: 0, calls: 1 });
+		expect(s.body).toMatchObject({ active: 'package', spentCredits: 0, calls: 1 });
 		expect(s.body.byFeature.find((b: any) => b.feature === 'fill')).toEqual({ feature: 'fill', source: 'package' });
 	});
 
@@ -148,10 +150,32 @@ describe('managed AI', () => {
 		expect(ledger().map((l) => l.source)).toEqual(['package', 'own']);
 	});
 
+	it('charges the model’s credit rate and keeps the provider’s USD cost beside it', async () => {
+		grant(2);
+		// 2 credits per 1K input tokens, 10 per 1K output
+		db.exec(`INSERT INTO model_credit_rates (provider_id, model, unit, input_credits, output_credits, updated_at) VALUES (1, 'claude-sonnet-5-5', 1000, 2, 10, 0)`);
+		expect((await call('POST', '/api/ai/fill', fillBody)).status).toBe(200);
+		const row = db.prepare(`SELECT credits, cost_usd AS usd FROM ai_ledger`).get() as { credits: number; usd: number };
+		expect(row.credits).toBeCloseTo((1000 * 2 + 200 * 10) / 1000, 9);
+		expect(row.usd).toBeCloseTo((1000 * 3 + 200 * 15) / 1e6, 9);
+		expect((await call('GET', '/api/ai/managed')).body).toMatchObject({ spentCredits: 4, allowanceCredits: 1500 });
+	});
+
+	it('refuses a call whose worst case in credits doesn’t fit what’s left', async () => {
+		grant(2);
+		// a pricey rate: one call's worst case is more than the whole package
+		db.exec(`INSERT INTO model_credit_rates (provider_id, model, unit, input_credits, output_credits, updated_at) VALUES (1, 'claude-sonnet-5-5', 1, 1, 10, 0)`);
+		const r = await call('POST', '/api/ai/fill', fillBody);
+		expect(r.status).toBe(402);
+		expect(r.body.error).toBe('allowance_reached');
+		expect(anthropicCalls).toEqual([]);
+		expect(ledger()).toEqual([]);
+	});
+
 	it('says clearly when the allowance is used up, and falls back to an own key when there is one', async () => {
 		grant(2);
-		db.exec(`INSERT INTO ai_ledger (at, feature, provider, model, status, cost_usd, user_id, source, plan_id)
-			VALUES (${Date.now()}, 'fill', 'anthropic', 'claude-sonnet-5-5', 'done', 1.5, 2, 'package', 'plus')`);
+		db.exec(`INSERT INTO ai_ledger (at, feature, provider, model, status, cost_usd, user_id, source, plan_id, credits)
+			VALUES (${Date.now()}, 'fill', 'anthropic', 'claude-sonnet-5-5', 'done', 1.5, 2, 'package', 'plus', 1500)`);
 		const r = await call('POST', '/api/ai/fill', fillBody);
 		expect(r.status).toBe(402);
 		expect(r.body.error).toBe('allowance_reached');
@@ -184,8 +208,8 @@ describe('managed AI', () => {
 		grant(2);
 		await addOwnKey(2);
 		db.exec(`UPDATE accounts SET cap_usd = 0 WHERE id = 2`);
-		db.exec(`INSERT INTO ai_ledger (at, feature, provider, model, status, cost_usd, user_id, source, plan_id)
-			VALUES (${Date.now()}, 'fill', 'anthropic', 'claude-sonnet-5-5', 'done', 1.5, 2, 'package', 'plus')`);
+		db.exec(`INSERT INTO ai_ledger (at, feature, provider, model, status, cost_usd, user_id, source, plan_id, credits)
+			VALUES (${Date.now()}, 'fill', 'anthropic', 'claude-sonnet-5-5', 'done', 1.5, 2, 'package', 'plus', 1500)`);
 		const r = await call('POST', '/api/ai/fill', fillBody);
 		expect(r.status).toBe(402);
 		expect(r.body.error).toBe('cap_reached');

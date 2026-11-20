@@ -2,8 +2,11 @@
  * Managed AI (docs/AI-PLAN.md, Phase B): a learner on a paid package runs AI
  * through the operator's provider keys (ai_providers, sealed with
  * AI_MASTER_KEY) on the model the package assigns to each feature
- * (plan_models), counted against the package's monthly allowance
- * (plans.ai_allowance_usd) in ai_ledger rows with source 'package'.
+ * (plan_models), counted in credits against the package's monthly credits
+ * (plans.ai_credits) in ai_ledger rows with source 'package'. Each model's
+ * credit rate is set in the fleet console (model_credit_rates); a model
+ * without one costs its USD price at the default exchange
+ * (src/lib/ai/credits.ts).
  *
  * Which AI a call uses (`startCall`):
  *   prefer 'package' (default): the package, then the learner's own key as a fallback
@@ -17,12 +20,14 @@
  * Provider keys never leave this module: callers get a `key()` function.
  */
 import type { AiSource, Feature, ManagedAi, Price, ProviderKind } from '../../src/lib/ai/contract.ts';
+import { CREDITS_PER_USD, creditsForTokens, creditsForUsd, isCreditUnit, type CreditRate } from '../../src/lib/ai/credits.ts';
 import { builtinPrice } from '../../src/lib/ai/prices.ts';
 import { decryptProvider, type ProviderRow } from '../admin/providers.ts';
 import type { Env } from '../env.ts';
 import { aiError, httpError } from '../http.ts';
 import { planOfSql } from '../plans.ts';
 import { decryptKey } from './credentials.ts';
+import type { Charge } from './cost.ts';
 import { getPackageSpend, getUsage, monthLabel, rateLimit, reserve } from './ledger.ts';
 import { FEATURES, featureModels, priceFor, resolveFeature } from './models.ts';
 
@@ -44,18 +49,30 @@ export interface AiTarget {
 	key: () => Promise<string>;
 	/** the package billed, for 'package' */
 	planId: string | null;
-	/** the package allowance, for 'package' */
-	capUsd: number | null;
+	/** the package's monthly credits, for 'package' */
+	capCredits: number | null;
+	/** the model's credit rate, for 'package'; null: its USD price at the default exchange */
+	rate: CreditRate | null;
 }
 
 interface PlanRow {
 	id: string;
 	name: string;
+	/** monthly credits */
 	allowance: number;
 	prefer: AiSource | null;
 }
 
-type PackageModelRow = ProviderRow & { pm_model: string; pm_label: string; pm_features: string; pm_in: number | null; pm_out: number | null };
+type PackageModelRow = ProviderRow & {
+	pm_model: string;
+	pm_label: string;
+	pm_features: string;
+	pm_in: number | null;
+	pm_out: number | null;
+	cr_unit: number | null;
+	cr_in: number | null;
+	cr_out: number | null;
+};
 
 const nextMonth = (now: number) => {
 	const d = new Date(now);
@@ -65,7 +82,7 @@ const nextMonth = (now: number) => {
 /** The account's live package, its allowance and the learner's preference. */
 async function planState(env: Env, userId: number): Promise<PlanRow> {
 	const r = await env.DB.prepare(
-		`SELECT p.id, p.name, p.ai_allowance_usd AS allowance, (SELECT ai_source FROM accounts WHERE id = ?1) AS prefer
+		`SELECT p.id, p.name, p.ai_credits AS allowance, (SELECT ai_source FROM accounts WHERE id = ?1) AS prefer
 		   FROM plans p WHERE p.id = ${planOfSql('?1')}`
 	)
 		.bind(userId)
@@ -76,8 +93,10 @@ async function planState(env: Env, userId: number): Promise<PlanRow> {
 /** The package's models on turned-on providers, in the console's order. */
 async function packageModels(env: Env, planId: string): Promise<PackageModelRow[]> {
 	const { results } = await env.DB.prepare(
-		`SELECT pr.*, m.model AS pm_model, m.label AS pm_label, m.features AS pm_features, m.input_per_m AS pm_in, m.output_per_m AS pm_out
+		`SELECT pr.*, m.model AS pm_model, m.label AS pm_label, m.features AS pm_features, m.input_per_m AS pm_in, m.output_per_m AS pm_out,
+		        r.unit AS cr_unit, r.input_credits AS cr_in, r.output_credits AS cr_out
 		   FROM plan_models m JOIN ai_providers pr ON pr.id = m.provider_id
+		   LEFT JOIN model_credit_rates r ON r.provider_id = m.provider_id AND r.model = m.model
 		  WHERE m.plan_id = ?1 AND pr.enabled = 1 ORDER BY m.position`
 	)
 		.bind(planId)
@@ -98,6 +117,20 @@ export function packagePrice(r: Pick<PackageModelRow, 'pm_in' | 'pm_out' | 'pm_m
 	return builtinPrice(r.pm_model) ?? { inputPerM: 0, outputPerM: 0 };
 }
 
+/** The model's credit rate from the console, or null when none is set. */
+export function packageRate(r: Pick<PackageModelRow, 'cr_unit' | 'cr_in' | 'cr_out'>): CreditRate | null {
+	if (!isCreditUnit(r.cr_unit) || r.cr_in === null || r.cr_out === null) return null;
+	return { unit: r.cr_unit, inputCredits: r.cr_in, outputCredits: r.cr_out };
+}
+
+/** Credits for a million input plus a million output tokens: how the cheapest model is picked. */
+function creditsPerMillion(m: PackageModelRow) {
+	const rate = packageRate(m);
+	if (rate) return creditsForTokens(1_000_000, 1_000_000, rate);
+	const p = packagePrice(m);
+	return creditsForUsd(p.inputPerM + p.outputPerM);
+}
+
 /** The package with managed AI: a paid package with an allowance and at least one model with a feature. */
 async function livePackage(env: Env, userId: number) {
 	const plan = await planState(env, userId);
@@ -114,11 +147,7 @@ async function livePackage(env: Env, userId: number) {
 function packageRow(models: PackageModelRow[], feature: Feature): PackageModelRow | undefined {
 	const row = models.find((m) => featuresOf(m).includes(feature));
 	if (row || feature !== 'translate') return row;
-	const cost = (m: PackageModelRow) => {
-		const p = packagePrice(m);
-		return p.inputPerM + p.outputPerM;
-	};
-	return [...models].sort((a, b) => cost(a) - cost(b))[0];
+	return [...models].sort((a, b) => creditsPerMillion(a) - creditsPerMillion(b))[0];
 }
 
 function packageTarget(plan: PlanRow, models: PackageModelRow[], feature: Feature, env: Env): AiTarget | null {
@@ -133,7 +162,8 @@ function packageTarget(plan: PlanRow, models: PackageModelRow[], feature: Featur
 		price,
 		key: () => decryptProvider(env, row),
 		planId: plan.id,
-		capUsd: plan.allowance
+		capCredits: plan.allowance,
+		rate: packageRate(row)
 	};
 }
 
@@ -150,7 +180,8 @@ async function ownTarget(env: Env, ctx: ExecutionContext, userId: number, featur
 		price: priced.price,
 		key: () => decryptKey(env, own.cred),
 		planId: null,
-		capUsd: null
+		capCredits: null,
+		rate: null
 	};
 	return { target, exists: true, noPrice: null };
 }
@@ -160,7 +191,7 @@ async function endedPackage(env: Env, userId: number, now = Date.now()) {
 	return (
 		(await env.DB.prepare(
 			`SELECT pl.name, COALESCE(g.ended_at, g.ends_at) AS endedAt FROM plan_grants g JOIN plans pl ON pl.id = g.plan_id
-			  WHERE g.account_id = ?1 AND pl.id != 'free' AND pl.ai_allowance_usd > 0
+			  WHERE g.account_id = ?1 AND pl.id != 'free' AND pl.ai_credits > 0
 			    AND COALESCE(g.ended_at, g.ends_at) BETWEEN ?2 AND ?3
 			  ORDER BY endedAt DESC LIMIT 1`
 		)
@@ -169,9 +200,18 @@ async function endedPackage(env: Env, userId: number, now = Date.now()) {
 	);
 }
 
-/** Reserve the worst case under the target's budget. */
-export function reserveFor(env: Env, userId: number, t: AiTarget, feature: Feature, worstUsd: number) {
-	return reserve(env, userId, { feature, provider: t.provider, model: t.model, worstUsd, source: t.source, planId: t.planId, capUsd: t.capUsd ?? 0 });
+/** Reserve the worst case under the target's budget: USD under the own cap, credits under the package's. */
+export function reserveFor(env: Env, userId: number, t: AiTarget, feature: Feature, worst: Charge) {
+	return reserve(env, userId, {
+		feature,
+		provider: t.provider,
+		model: t.model,
+		worstUsd: worst.usd,
+		source: t.source,
+		planId: t.planId,
+		worstCredits: worst.credits,
+		capCredits: t.capCredits ?? 0
+	});
 }
 
 const FEATURE_NAME: Record<Feature, string> = { fill: 'filling in cards', propose: 'suggestions and Ask AI', vision: 'reading photos', translate: 'translating community notes' };
@@ -187,9 +227,9 @@ export async function startCall(
 	ctx: ExecutionContext,
 	userId: number,
 	feature: Feature,
-	worstOf: (t: AiTarget) => number,
+	worstOf: (t: AiTarget) => Charge,
 	now = Date.now()
-): Promise<{ ok: true; target: AiTarget; worst: number; reservation: number } | { ok: false; res: Response }> {
+): Promise<{ ok: true; target: AiTarget; worst: Charge; reservation: number } | { ok: false; res: Response }> {
 	const pkg = await livePackage(env, userId);
 	const pkgT = pkg.plan ? packageTarget(pkg.plan, pkg.models, feature, env) : null;
 	// The own key is looked up only when it may be used: its price lookup can call the learner's provider.
@@ -202,7 +242,7 @@ export async function startCall(
 			: [async () => pkgT, async () => (await getOwn()).target];
 
 	// the last budget that refused is reported: it's the one the learner can act on
-	const failures: { why: 'allowance' | 'limit' | 'cap'; worst: number }[] = [];
+	const failures: { why: 'allowance' | 'limit' | 'cap'; worst: Charge }[] = [];
 	for (const next of order) {
 		const t = await next();
 		if (!t) continue;
@@ -212,7 +252,7 @@ export async function startCall(
 				(await rateLimit(env, `pkg-day:${userId}`, PACKAGE_PER_DAY, now, 1440)) &&
 				(await rateLimit(env, 'pkg-all', PACKAGE_GLOBAL_PER_MIN, now));
 			if (!ok) {
-				failures.push({ why: 'limit', worst: 0 });
+				failures.push({ why: 'limit', worst: { usd: 0, credits: 0 } });
 				continue;
 			}
 		}
@@ -223,7 +263,7 @@ export async function startCall(
 	}
 	const last = failures.at(-1);
 	const first = last?.why ?? null;
-	const worstFirst = last?.worst ?? 0;
+	const worstFirst = last?.worst.usd ?? 0;
 	const alsoPackage = failures.length > 1 ? ' Your package’s AI can’t be used right now either.' : '';
 
 	if (first === 'limit')
@@ -290,8 +330,8 @@ export async function managedStatus(env: Env, userId: number, now = Date.now()):
 			if (row) models.push({ feature: f, label: row.pm_label, model: row.pm_model });
 		}
 	}
-	const allowanceUsd = pkg.plan?.allowance ?? 0;
-	const blocked: ManagedAi['blocked'] = plan && spend.spentUsd >= allowanceUsd - 1e-9 ? 'allowance' : null;
+	const allowanceCredits = pkg.plan?.allowance ?? 0;
+	const blocked: ManagedAi['blocked'] = plan && spend.spentCredits >= allowanceCredits - 1e-9 ? 'allowance' : null;
 	// the order startCall follows, per feature (the own key's price and cap aside)
 	const byFeature: ManagedAi['byFeature'] = FEATURES.map((feature) => {
 		const ownHas = ownFeatures.some((x) => x.feature === feature);
@@ -307,8 +347,11 @@ export async function managedStatus(env: Env, userId: number, now = Date.now()):
 		models,
 		byFeature,
 		month: monthLabel(now),
-		allowanceUsd,
-		spentUsd: spend.spentUsd,
+		allowanceCredits,
+		spentCredits: spend.spentCredits,
+		// for app versions from before credits: the same numbers at the default exchange
+		allowanceUsd: allowanceCredits / CREDITS_PER_USD,
+		spentUsd: spend.spentCredits / CREDITS_PER_USD,
 		calls: spend.calls,
 		resetsAt: nextMonth(now),
 		prefer: pkg.prefer,

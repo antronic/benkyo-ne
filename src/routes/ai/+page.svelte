@@ -1,5 +1,6 @@
 <!-- ✨ AI hub: make word-card packs, make lesson packs, ask the tutor. -->
 <script lang="ts">
+	import { formatCredits } from '#lib/ai/credits.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import { Card, LargeTitle } from '#lib/ui/index.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
@@ -32,7 +33,7 @@
 	</div>
 	{#if ai.onPackage && ai.managed?.plan}
 		<p class="caption">
-			{t('ai.usagePackage', { name: ai.managed.plan.name, spent: '$' + ai.managed.spentUsd.toFixed(3), cap: '$' + ai.managed.allowanceUsd.toFixed(2), n: ai.managed.calls })}
+			{t('ai.usagePackage', { name: ai.managed.plan.name, spent: formatCredits(ai.managed.spentCredits), cap: t('managed.credits', { n: formatCredits(ai.managed.allowanceCredits) }), n: ai.managed.calls })}
 		</p>
 	{:else if ai.usage}
 		<p class="caption">{t('ai.usage', { spent: '$' + ai.usage.spentUsd.toFixed(3), cap: '$' + ai.usage.capUsd.toFixed(2), n: ai.usage.calls })}</p>

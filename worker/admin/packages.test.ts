@@ -10,7 +10,7 @@ vi.mock('../auth/passkey.ts', async (importOriginal) => ({
 }));
 const { handleAdmin } = await import('./routes.ts');
 const { planOf } = await import('../plans.ts');
-const { parseGrantInput, parsePlanPatch } = await import('./packages.ts');
+const { parseGrantInput, parsePlanPatch, parseRateInput } = await import('./packages.ts');
 
 let db: DatabaseSync;
 let env: Record<string, unknown>;
@@ -42,11 +42,14 @@ const audit = () => db.prepare(`SELECT action, target_id AS target, detail_json 
 describe('packages', () => {
 	it('starts from the pricing proposal with everyone on Free', async () => {
 		const r = await call('GET', '/api/admin/packages');
-		expect(r.body.plans.map((p: any) => [p.id, p.priceMonthUsd, p.aiAllowanceUsd, p.accounts])).toEqual([
+		// AI credits start at the old USD allowance x 1000 (migration 0022)
+		expect(r.body.plans.map((p: any) => [p.id, p.priceMonthUsd, p.aiCredits, p.accounts])).toEqual([
 			['free', 0, 0, 3],
-			['plus', 4.99, 1.5, 0],
-			['pro', 9.99, 3.5, 0]
+			['plus', 4.99, 1500, 0],
+			['pro', 9.99, 3500, 0]
 		]);
+		expect(r.body.rates).toEqual([]);
+		expect(r.body.creditsPerUsd).toBe(1000);
 		expect(r.body.grants).toEqual([]);
 	});
 
@@ -56,14 +59,17 @@ describe('packages', () => {
 		expect((await call('PUT', '/api/admin/packages/plus', { priceMonthUsd: -1 })).status).toBe(400);
 		expect((await call('PUT', '/api/admin/packages/gold', { priceMonthUsd: 1 })).status).toBe(404);
 		expect((await call('PUT', '/api/admin/packages/free', { priceMonthUsd: 1 })).status).toBe(400);
-		const r = await call('PUT', '/api/admin/packages/plus', { priceMonthUsd: 5.99, aiAllowanceUsd: 1.5, available: false });
-		expect(r.body.plans[1]).toMatchObject({ priceMonthUsd: 5.99, aiAllowanceUsd: 1.5, available: false });
+		const r = await call('PUT', '/api/admin/packages/plus', { priceMonthUsd: 5.99, aiCredits: 1500, available: false });
+		expect(r.body.plans[1]).toMatchObject({ priceMonthUsd: 5.99, aiCredits: 1500, available: false });
 		expect(audit().map((a) => [a.action, JSON.parse(a.d)])).toEqual([
 			['package.update', { plan: 'plus', priceMonthUsd: { from: 4.99, to: 5.99 }, available: { from: true, to: false } }]
 		]);
+		expect((await call('PUT', '/api/admin/packages/plus', { aiCredits: 2500 })).body.plans[1].aiCredits).toBe(2500);
+		expect((await call('PUT', '/api/admin/packages/free', { aiCredits: 10 })).status).toBe(400);
+		audit().pop();
 		// nothing changed: no audit row
 		await call('PUT', '/api/admin/packages/plus', { priceMonthUsd: 5.99 });
-		expect(audit()).toHaveLength(1);
+		expect(audit()).toHaveLength(2);
 	});
 
 	it('grants, replaces and ends a package', async () => {
@@ -101,6 +107,45 @@ describe('packages', () => {
 		expect(JSON.parse(audit()[1].d).replaced).toHaveLength(1);
 	});
 
+	it('sets, changes and clears a model’s credit rate with a passkey tap', async () => {
+		db.exec(`INSERT INTO ai_providers (id, kind, preset, label, key_cipher, key_iv, key_last4, created_at, updated_at)
+			VALUES (1, 'anthropic', 'anthropic', 'Anthropic', 'x', 'y', '0001', 0, 0)`);
+		db.exec(`INSERT INTO plan_models (plan_id, provider_id, model, label, features, input_per_m, output_per_m, position, added_at) VALUES
+			('plus', 1, 'claude-haiku-5-5', 'Claude Haiku 5.5', 'fill', 0.1, 0.5, 0, 0),
+			('pro', 1, 'claude-haiku-5-5', 'Claude Haiku 5.5', '', 0.1, 0.5, 1, 0)`);
+		const body = { providerId: 1, model: 'claude-haiku-5-5', rate: { unit: 1000, inputCredits: 0.5, outputCredits: 2 } };
+		expect((await call('PUT', '/api/admin/credit-rates', body)).status).toBe(428);
+		stepUp();
+		// only models in a package, only per 1, 1K or 1M tokens
+		expect((await call('PUT', '/api/admin/credit-rates', { ...body, model: 'gpt-x' })).status).toBe(400);
+		expect((await call('PUT', '/api/admin/credit-rates', { ...body, rate: { ...body.rate, unit: 100 } })).status).toBe(400);
+		let r = await call('PUT', '/api/admin/credit-rates', body);
+		expect(r.status).toBe(200);
+		// one row per model, listing every package that has it
+		expect(r.body.rates).toEqual([
+			{
+				providerId: 1,
+				providerLabel: 'Anthropic',
+				model: 'claude-haiku-5-5',
+				label: 'Claude Haiku 5.5',
+				inputPerM: 0.1,
+				outputPerM: 0.5,
+				packages: ['Plus', 'Pro'],
+				rate: { unit: 1000, inputCredits: 0.5, outputCredits: 2 },
+				updatedAt: expect.any(Number)
+			}
+		]);
+		r = await call('PUT', '/api/admin/credit-rates', { ...body, rate: { unit: 1_000_000, inputCredits: 100, outputCredits: 500 } });
+		expect(r.body.rates[0].rate).toEqual({ unit: 1_000_000, inputCredits: 100, outputCredits: 500 });
+		r = await call('PUT', '/api/admin/credit-rates', { ...body, rate: null });
+		expect(r.body.rates[0].rate).toBeNull();
+		expect(audit().map((a) => [a.action, JSON.parse(a.d).to])).toEqual([
+			['credits.rate', { unit: 1000, inputCredits: 0.5, outputCredits: 2 }],
+			['credits.rate', { unit: 1_000_000, inputCredits: 100, outputCredits: 500 }],
+			['credits.rate', null]
+		]);
+	});
+
 	it('expired grants fall back to Free', async () => {
 		db.exec(`INSERT INTO plan_grants (account_id, plan_id, kind, starts_at, ends_at, created_at) VALUES (3, 'pro', 'trial', 0, ${Date.now() - 1000}, 0)`);
 		expect(await planOf(env as never, 3)).toBe('free');
@@ -115,6 +160,18 @@ describe('packages', () => {
 });
 
 describe('input checks', () => {
+	it('checks credit rates', () => {
+		expect(parseRateInput({ providerId: 1, model: ' m ', rate: { unit: 1, inputCredits: 0, outputCredits: 0.25 } })).toEqual({
+			providerId: 1,
+			model: 'm',
+			rate: { unit: 1, inputCredits: 0, outputCredits: 0.25 }
+		});
+		expect(parseRateInput({ providerId: 1, model: 'm', rate: null })).toEqual({ providerId: 1, model: 'm', rate: null });
+		expect(() => parseRateInput({ providerId: 1, model: 'm', rate: { unit: 1000, inputCredits: -1, outputCredits: 1 } })).toThrow();
+		expect(() => parseRateInput({ providerId: 1, model: 'm', rate: { unit: 1000, inputCredits: 1 } })).toThrow();
+		expect(() => parseRateInput({ providerId: 0, model: 'm', rate: null })).toThrow();
+	});
+
 	it('grants', () => {
 		expect(() => parseGrantInput({ plan: 'free', kind: 'comp', days: 1 })).toThrow();
 		expect(() => parseGrantInput({ plan: 'plus', kind: 'gift', days: 1 })).toThrow();

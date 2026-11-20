@@ -11,7 +11,7 @@
  *   DELETE /api/admin/accounts/:id {confirm}   delete it and all its data  step-up
  *   /api/admin/settings, /api/admin/invites    sign-ups, invites, session lifetime (worker/admin/settings.ts)
  *   /api/admin/usage, /system, /audit          read-only insights (worker/admin/insights.ts)
- *   /api/admin/packages, /accounts/:id/grants  packages and grants (worker/admin/packages.ts)
+ *   /api/admin/packages, /credit-rates, /accounts/:id/grants  packages, model credit rates and grants (worker/admin/packages.ts)
  *   /api/admin/ai/*                     platform AI providers and their models (worker/admin/providers.ts)
  *   /api/admin/promos                  promo codes (worker/admin/promos.ts)
  *   /api/admin/community               community reports and moderation (worker/admin/community.ts)
@@ -168,7 +168,7 @@ export async function handleAdmin(req: Request, env: Env, url: URL): Promise<Res
 		const res = await handleInsights(req, env, url, ctx);
 		if (res) return res;
 	}
-	if (p.startsWith('/api/admin/packages') || /^\/api\/admin\/accounts\/\d+\/grants/.test(p)) {
+	if (p.startsWith('/api/admin/packages') || p === '/api/admin/credit-rates' || /^\/api\/admin\/accounts\/\d+\/grants/.test(p)) {
 		const res = await handlePackages(req, env, url, ctx);
 		if (res) return res;
 	}
