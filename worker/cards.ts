@@ -2,7 +2,7 @@
  * User card content sync (contract UserCard), piggybacking on POST /api/sync.
  * Last-write-wins by updatedAt; `rev` (per user, monotonic) is the pull cursor.
  */
-import type { Bi, UserCard } from '../src/lib/ai/contract.ts';
+import { SEEN_RECENT, SIGHTING_VIAS, type Bi, type Seen, type UserCard } from '../src/lib/ai/contract.ts';
 
 export const MAX_CARDS_PUSH = 500;
 export const MAX_CARDS_PULL = 1000;
@@ -17,6 +17,16 @@ const isExampleOrNull = (v: unknown) =>
 	v === undefined ||
 	(isRec(v) && isStr(v.jp, 500) && isStr(v.reading, 1000) && isStr(v.en, 500) && strOrNull(v.second, 500));
 const isTime = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 1e15;
+const isSeenOrNull = (v: unknown) =>
+	v === null ||
+	v === undefined ||
+	(isRec(v) &&
+		Number.isInteger(v.count) &&
+		(v.count as number) >= 0 &&
+		(v.count as number) <= 1e6 &&
+		Array.isArray(v.recent) &&
+		v.recent.length <= SEEN_RECENT &&
+		v.recent.every((s) => isRec(s) && isTime(s.at) && SIGHTING_VIAS.includes(s.via as never) && strOrNull(s.ctx, 300)));
 
 export function validCard(c: unknown): c is UserCard {
 	if (!isRec(c)) return false;
@@ -38,24 +48,28 @@ export function validCard(c: unknown): c is UserCard {
 		c.tags.every((t) => isStr(t, 60, 1)) &&
 		isTime(c.createdAt) &&
 		isTime(c.updatedAt) &&
-		typeof c.deleted === 'boolean'
+		typeof c.deleted === 'boolean' &&
+		isSeenOrNull(c.seen)
 	);
 }
+
+const pickSeen = (s: Seen | null | undefined) =>
+	s ? JSON.stringify({ count: s.count, recent: s.recent.map((x) => ({ at: Math.round(x.at), via: x.via, ctx: x.ctx ?? null })) }) : null;
 
 const pickBi = (b: Bi | null | undefined) => (b ? JSON.stringify({ en: b.en, second: b.second ?? null }) : null);
 
 export function upsertCardStatements(db: D1Database, userId: number, cards: UserCard[]): D1PreparedStatement[] {
 	const stmt = db.prepare(
 		`INSERT INTO user_cards (user_id, card_id, kind, front, kanji, gloss, gloss2, usage_json, hook_json, example_json,
-		                         verified, source, tags_json, created_at, updated_at, deleted, rev)
-		 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+		                         verified, source, tags_json, created_at, updated_at, deleted, seen_json, rev)
+		 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
 		         (SELECT COALESCE(MAX(rev), 0) + 1 FROM user_cards WHERE user_id = ?1))
 		 ON CONFLICT (user_id, card_id) DO UPDATE SET
 		   kind = excluded.kind, front = excluded.front, kanji = excluded.kanji, gloss = excluded.gloss,
 		   gloss2 = excluded.gloss2, usage_json = excluded.usage_json, hook_json = excluded.hook_json,
 		   example_json = excluded.example_json, verified = excluded.verified, source = excluded.source,
 		   tags_json = excluded.tags_json, created_at = excluded.created_at, updated_at = excluded.updated_at,
-		   deleted = excluded.deleted, rev = excluded.rev
+		   deleted = excluded.deleted, seen_json = COALESCE(excluded.seen_json, user_cards.seen_json), rev = excluded.rev
 		 WHERE excluded.updated_at > user_cards.updated_at`
 	);
 	return cards.map((c) =>
@@ -77,7 +91,8 @@ export function upsertCardStatements(db: D1Database, userId: number, cards: User
 			JSON.stringify([...new Set(c.tags)]),
 			Math.round(c.createdAt),
 			Math.round(c.updatedAt),
-			c.deleted ? 1 : 0
+			c.deleted ? 1 : 0,
+			pickSeen(c.seen)
 		)
 	);
 }
@@ -98,6 +113,7 @@ interface CardRow {
 	created_at: number;
 	updated_at: number;
 	deleted: number;
+	seen_json: string | null;
 	rev: number;
 }
 
@@ -126,7 +142,8 @@ export function rowToCard(r: CardRow): UserCard {
 		tags: parse(r.tags_json, [] as string[]),
 		createdAt: r.created_at,
 		updatedAt: r.updated_at,
-		deleted: !!r.deleted
+		deleted: !!r.deleted,
+		seen: parse<Seen | null>(r.seen_json, null)
 	};
 }
 

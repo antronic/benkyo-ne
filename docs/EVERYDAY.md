@@ -37,3 +37,34 @@ The N3 to N1 units do not exist yet; they are the content work in the experience
 `PolitenessMeter`, `MarkedText`, `KanjiTile`, `SpeechBubble` (see [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)).
 Everything else in the drafts is built from existing kit components (`ListRow` with `selected`,
 `Segmented`, `Badge`, `StatTile`, `BarChart`, `Card`).
+
+## Built: personal phrasebook (E1)
+
+- **Data.** Each card carries `seen` (`UserCard.seen` in `src/lib/ai/contract.ts`): a total count
+  and the last 10 sightings (`at`, `via`, `ctx`). `via` is `photo`, `lookup`, `writing` or `add`;
+  `ctx` is the look-up text or the message, up to 300 characters. It syncs in
+  `user_cards.seen_json` (migration 0021); the Worker refuses a malformed one.
+- **Recording.** `words.see(ids, via, ctx)` adds a sighting (`src/lib/words/phrasebook.ts`
+  `addSighting`). The same card from the same place within 10 minutes counts once, so re-reading a
+  photo does not inflate it. The card maker records every word a photo finds that you already have,
+  the top hit of a look-up, and the cards you save from either. Scenario packs do not count.
+- **Screen.** Words gets a third view, **Phrasebook**: your own cards (and pack cards you met),
+  ranked by sightings in the last 30 days, then all time, then newest. Filters: All, From photos,
+  Look-ups, From my writing. A card's sheet shows **Where you met it**.
+- The Writing helper will record `writing` sightings for phrases it fixes.
+
+## Built: Writing helper (E1)
+
+- **Where.** AI tab › Writing helper (`/ai/write`). Pick who it is for (friend, colleague, boss,
+  customer; remembered on the device), paste the message, tap Check.
+- **AI.** `POST /api/ai/write` (`WriteRequest` → `WriteResponse` in `src/lib/ai/contract.ts`),
+  prompt `WRITE_SYSTEM` in `src/lib/ai/prompts.ts`. It runs on the **Suggestions** model (feature
+  `propose`), like Ask AI, so it uses the package allowance or the learner's own key with no new
+  model slot or migration. The validator keeps only changes whose `from` is in the message and
+  whose `to` is in the rewrite, and phrases that appear in the rewrite.
+- **Screen.** `PolitenessMeter` (the message's level against `WRITE_TARGET` for the person),
+  `MarkedText` with the edits in place (`markChanges` in `src/lib/words/writing.ts`) or the clean
+  suggestion, Kuri's verdict in a `SpeechBubble` (with the second language), each change with its
+  reason, Copy, and **Save phrases**: the phrases become cards with a `writing` sighting, so they
+  rank in the phrasebook. A phrase the dictionary doesn't know keeps the same card id each time.
+- Not yet: the "same pattern" sheet and Practise this pattern from the draft.

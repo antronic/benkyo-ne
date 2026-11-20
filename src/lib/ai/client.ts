@@ -26,6 +26,8 @@ import type {
 	ProposeResponse,
 	TranslateRequest,
 	TranslateResponse,
+	WriteRequest,
+	WriteResponse,
 	Usage
 } from './contract.ts';
 import type { Person } from '../avatar/person.ts';
@@ -207,6 +209,8 @@ export const propose = (r: ProposeRequest) => call<ProposeResponse>('/api/ai/pro
 export const fill = (r: FillRequest) => call<FillResponse>('/api/ai/fill', { method: 'POST', json: r });
 export const lesson = (r: LessonRequest) => call<LessonResponse>('/api/ai/lesson', { method: 'POST', json: r });
 export const ask = (r: AskRequest) => call<AskResponse>('/api/ai/ask', { method: 'POST', json: r });
+/** Writing helper: politeness check and a natural rewrite of a message. */
+export const write = (r: WriteRequest) => call<WriteResponse>('/api/ai/write', { method: 'POST', json: r });
 /** Translate a community note or reply (the Worker reads the text). */
 export const translate = (r: TranslateRequest) => call<TranslateResponse>('/api/ai/translate', { method: 'POST', json: r });
 
