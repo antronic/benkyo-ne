@@ -142,6 +142,17 @@ The user always knows what the app is doing (Job, 2026-11-19).
 `Button` and `IconButton` reuse the global `.btn` / `.icon-btn` styles in `app.css`, so a
 migrated button and an old one look the same.
 
+### Errors
+
+`ErrorState` (kit) is the one way to show that something failed. Kinds: `offline`, `not-found`,
+`server`, `crash`, `session`, `access` (Fleet 403), `update`. Each says what happened in plain words,
+what still works ("your progress is saved on this device"), and two actions. Bugs and server errors
+show the error ID and build on screen, so a screenshot is a full report, with Copy details, Show
+details and an optional note. `layout="inline"` puts it in a card when one panel fails and the rest of
+the screen works; prefer that to throwing. Kuri is drawn in plain SVG here, never with the WebGL
+renderer, so it shows when the app is broken. `src/routes/+error.svelte` picks the kind with
+`errorKind()` in `src/lib/errorKind.ts`.
+
 ## Motion and transitions
 
 The live versions of these, with replay buttons, are in the Motion section of `/design`.
