@@ -17,7 +17,9 @@ Every task follows the same loop. Do not skip a step because the task looks smal
    impact (what else uses the route, table, store, component or string). Look it up in
    [docs/map.md](docs/map.md), then confirm with a search. No guesses left in the plan.
 4. **Change** the smallest thing that does the task. Copy the existing pattern.
-5. **Verify.** Run the gate and read the output yourself. For UI, walk the flow in a real browser.
+5. **Verify.** Run the gate and read the output yourself. For UI, walk the flow in a real browser and
+   do the [visual review](docs/guides/working-carefully.md#visual-review): look at every changed
+   screen at phone, iPad and desktop width before you push, and attach the shots to the PR.
 6. **Report** with one of: **Done**, **Done, not verified**, **Failed**, **Blocked**. Never report a
    guess as a fact, and never report a half-finished run as succeeded.
 7. **Clean up** every dev server, preview, temp config and scratch file you created.
@@ -71,14 +73,15 @@ npm run check              # svelte-kit sync + svelte-check (TypeScript)
 npm run lint:ui            # spacing lint (--space-* tokens) + UI kit lint (kit controls only, kit on /design, loading states)
 npm test                   # vitest: src/**/*.test.ts and worker/**/*.test.ts
 npm run build              # static SPA into build/
-npm run check:layout       # Playwright layout check on the build: overflow, centred column, card padding, control size
+npm run check:layout       # Playwright layout check on the build: overflow, centred column, card padding, control size, row heights, avatar setup steps
+npm run check:render       # Playwright GPU check on the build: a live avatar must not build a new WebGL/WebGPU context per change
 npm run db:migrate:local   # apply D1 migrations to the local database
 npx wrangler dev --port 8787 --infer-origin-from-routes=false   # full stack locally (after build)
 npm run dev                # Vite only, UI without /api (forever process: background it)
 ```
 
 **The gate** (run before every push, paste the result in the PR; CI runs it on the self-hosted runner, [docs/CI-RUNNER.md](docs/CI-RUNNER.md)):
-`npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout`.
+`npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout && npm run check:render`.
 
 ## Hard rules
 

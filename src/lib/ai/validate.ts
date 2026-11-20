@@ -24,9 +24,14 @@ import type {
 	AskTurn,
 	TranslateLang,
 	TranslateRequest,
-	TranslateResponse
+	TranslateResponse,
+	WriteChange,
+	WriteRequest,
+	WriteResponse,
+	WriteTo
 } from './contract.ts';
 import { knownKanaChars } from './prompts.ts';
+import { WRITE_MAX, WRITE_TO } from './contract.ts';
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -363,4 +368,53 @@ export function validateTranslateOutput(raw: unknown, to: TranslateLang): Result
 	const text = cleanStr(raw.text, TRANSLATE_MAX);
 	if (!text) return fail('missing text');
 	return ok({ text, to });
+}
+
+// ----------------------------------------------------------------- write ----
+
+export function parseWriteRequest(body: unknown): Result<WriteRequest> {
+	if (!isRec(body)) return fail('body must be an object');
+	if (typeof body.text === 'string' && body.text.length > WRITE_MAX) return fail(`message is longer than ${WRITE_MAX} characters`);
+	const text = cleanStr(body.text, WRITE_MAX);
+	if (!text) return fail('text required');
+	if (!WRITE_TO.includes(body.to as WriteTo)) return fail('to must be friend, colleague, boss or customer');
+	const lang = parseLang(body.secondLang);
+	if (!lang.ok) return lang;
+	return ok({ text, to: body.to as WriteTo, secondLang: lang.value });
+}
+
+/**
+ * Keeps only what the screen can trust: changes whose `from` is in the message
+ * and whose `to` is in the rewrite, and phrases that appear in the rewrite.
+ */
+export function validateWriteOutput(raw: unknown, req: WriteRequest): Result<WriteResponse> {
+	if (!isRec(raw)) return fail('output must be an object');
+	const better = cleanStr(raw.better, WRITE_MAX * 2);
+	const verdict = cleanBi(raw.verdict, req.secondLang, 400);
+	if (!better || !verdict) return fail('missing better or verdict');
+	const level = typeof raw.level === 'number' && Number.isFinite(raw.level) ? Math.min(1, Math.max(0, raw.level)) : null;
+	if (level === null) return fail('missing level');
+	const changes: WriteChange[] = [];
+	if (Array.isArray(raw.changes))
+		for (const c of raw.changes) {
+			if (!isRec(c)) continue;
+			const from = cleanStr(c.from, 400);
+			const to = cleanStr(c.to, 400);
+			const why = cleanBi(c.why, req.secondLang, 300);
+			if (!from || !to || !why || from === to || !req.text.includes(from) || !better.includes(to)) continue;
+			changes.push({ from, to, why });
+			if (changes.length >= 8) break;
+		}
+	const phrases: ProposedItem[] = [];
+	if (Array.isArray(raw.phrases))
+		for (const p of raw.phrases) {
+			if (!isRec(p)) continue;
+			const text = cleanStr(p.text, 100);
+			const reading = cleanStr(p.reading, 100);
+			const gloss = cleanStr(p.gloss, 200);
+			if (!text || !reading || !gloss || !isKanaReading(reading) || !better.includes(text) || phrases.some((x) => x.text === text)) continue;
+			phrases.push({ text, reading, kind: p.kind === 'word' ? 'word' : 'phrase', gloss, note: cleanBi(p.note, req.secondLang, 300) });
+			if (phrases.length >= 4) break;
+		}
+	return ok({ level, fits: raw.fits === true, verdict, better, changes, phrases });
 }

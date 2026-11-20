@@ -101,6 +101,21 @@ describe('account sync', () => {
 		expect(b.body.cards.map((c: { id: string }) => c.id)).toEqual(['word:neko']);
 	});
 
+	it('phrasebook sightings travel with the card, and a bad one is refused', async () => {
+		signedInAs = 1;
+		const seen = { count: 3, recent: [{ at: 7, via: 'photo', ctx: '資料を共有します' }] };
+		await post({ cursor: 0, logs: [], cards: [{ ...card('shiryou', 5), seen }], cardsCursor: 0 });
+		const b = await post({ cursor: 0, logs: [], cards: [], cardsCursor: 0 });
+		expect(b.body.cards[0].seen).toEqual(seen);
+		// an older app that does not know about sightings edits the card: they are kept
+		const { seen: _drop, ...plain } = { ...card('shiryou', 8, 'documents'), seen: null };
+		await post({ cursor: 0, logs: [], cards: [plain], cardsCursor: 0 });
+		const c = await post({ cursor: 0, logs: [], cards: [], cardsCursor: 0 });
+		expect(c.body.cards[0]).toMatchObject({ gloss: 'documents', seen });
+		const bad = await post({ cursor: 0, logs: [], cards: [{ ...card('x', 6), seen: { count: 1, recent: [{ at: 1, via: 'mind', ctx: null }] } }], cardsCursor: 0 });
+		expect(bad.status).toBe(400);
+	});
+
 	it('accounts are kept apart', async () => {
 		signedInAs = 1;
 		await post({ cursor: 0, logs: [log('mine')] });

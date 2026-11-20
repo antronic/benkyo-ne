@@ -169,3 +169,23 @@ export const FLEET_SAMPLES = {
 	'/admin/accounts/[id]': '/admin/accounts/3',
 	'/admin/ai/[id]': '/admin/ai/1'
 };
+
+/**
+ * A signed-in learner with no avatar yet, so Today shows the one-time "Make your avatar" prompt
+ * (avatarAsked false) and the avatar setup can be opened from it. Beta consent is up to date,
+ * so no consent sheet covers it. Made-up account.
+ */
+export const SIGNED_IN_ME = {
+	signedIn: true,
+	account: { id: 4242, name: 'Layout Check', isAdmin: false, recovery: false, via: 'passkey', appleLinked: false, avatar: null, avatarAsked: false },
+	signupOpen: true,
+	appleEnabled: false,
+	beta: null
+};
+
+/** Answers /api/* for a signed-in learner: /api/auth/me from SIGNED_IN_ME, everything else 404. */
+export function signedInRoute(route) {
+	const path = new URL(route.request().url()).pathname;
+	if (path === '/api/auth/me') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SIGNED_IN_ME) });
+	return route.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"not_found"}' });
+}

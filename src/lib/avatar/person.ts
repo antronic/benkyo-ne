@@ -15,6 +15,8 @@ export const HAIRC = { black: '#1d1a19', dark: '#3b2a24', brown: '#6a453b', aubu
 export const CLOTH = { shu: '#e8432e', ai: '#3b5bdb', sumire: '#8b5cf6', matcha: '#34a853', sakura: '#f2a7b8', sky: '#4f9fd9', sand: '#d7c49b', slate: '#5d6b82', white: '#f3f5fb', sumi: '#2b2b33' } as const;
 export const COLLAR = { navy: '#26305a', white: '#f3f5fb', shu: '#b8264f', ai: '#2b44a8', matcha: '#22803c', sand: '#b59a63' } as const;
 export const HEADC = { ai: '#7b93ff', shu: '#ff7a5c', sumire: '#a78bfa', matcha: '#5fd17a', dusty: '#c9a39e', sand: '#d9c6a0', sakura: '#e9a3b4', slate: '#5d6b82', sumi: '#2b2b33' } as const;
+/** Eye (iris) colours. 'dark' is the near-black brown most learners have. */
+export const EYEC = { dark: '#2e2421', brown: '#5b3a26', hazel: '#7a6136', green: '#4d6b48', blue: '#47698f', grey: '#69717c' } as const;
 export const FRAMEC = { shu: '#e8432e', ai: '#3b5bdb', sumire: '#8b5cf6', matcha: '#34a853', sand: '#c9a46a', graphite: '#4b5263' } as const;
 
 /** Hats and head coverings, and which hair each one hides ('front' fringe, 'top' bun or tie, 'back' behind the head). */
@@ -45,7 +47,7 @@ export const OPTIONS = {
 } as const;
 
 /** Colour choices, by person key. */
-export const COLOURS = { skin: SKIN, hairColor: HAIRC, cloth: CLOTH, collar: COLLAR, headColor: HEADC, frameColor: FRAMEC } as const;
+export const COLOURS = { skin: SKIN, eyeColor: EYEC, hairColor: HAIRC, cloth: CLOTH, collar: COLLAR, headColor: HEADC, frameColor: FRAMEC } as const;
 
 type Opt<K extends keyof typeof OPTIONS> = (typeof OPTIONS)[K][number];
 type Col<K extends keyof typeof COLOURS> = keyof (typeof COLOURS)[K];
@@ -57,6 +59,7 @@ export interface Person {
 	headShape: Opt<'headShape'>;
 	beard: Opt<'beard'>;
 	eyes: Opt<'eyes'>;
+	eyeColor: Col<'eyeColor'>;
 	brows: Opt<'brows'>;
 	mouth: Opt<'mouth'>;
 	blush: Opt<'blush'>;
@@ -79,6 +82,7 @@ export const DEFAULTS: Person = {
 	headShape: 'round',
 	beard: 'none',
 	eyes: 'oval',
+	eyeColor: 'dark',
 	brows: 'bar',
 	mouth: 'grin',
 	blush: 'on',
@@ -103,6 +107,7 @@ const ALLOWED: Record<keyof Person, readonly string[]> = {
 	headShape: OPTIONS.headShape,
 	beard: OPTIONS.beard,
 	eyes: OPTIONS.eyes,
+	eyeColor: Object.keys(EYEC),
 	brows: OPTIONS.brows,
 	mouth: OPTIONS.mouth,
 	blush: OPTIONS.blush,
@@ -140,4 +145,37 @@ export function compactPerson(p: Person): Partial<Person> {
 	const out: Partial<Person> = {};
 	for (const k of PERSON_KEYS) if (p[k] !== DEFAULTS[k]) (out as Record<string, string>)[k] = p[k];
 	return out;
+}
+
+/**
+ * A random, valid person (the dice on the avatar start screen). Every part is picked evenly,
+ * except the extras most people don't wear, which stay off most of the time so a roll looks
+ * like someone rather than a costume: a hat or scarf 1 in 5, a beard 1 in 4, glasses 1 in 3,
+ * earrings 1 in 4, a hearing aid 1 in 10. `rand` returns [0, 1) like Math.random (tests pass a seeded one).
+ */
+export function randomPerson(rand: () => number = Math.random): Person {
+	const pick = <T>(list: readonly T[]): T => list[Math.min(list.length - 1, Math.floor(rand() * list.length))];
+	const keys = <O extends object>(o: O) => Object.keys(o) as (keyof O)[];
+	const extra = <T>(chance: number, off: T, list: readonly T[]): T => (rand() < chance ? pick(list.filter((v) => v !== off)) : off);
+	return {
+		skin: pick(keys(SKIN)),
+		hair: pick(OPTIONS.hair),
+		hairColor: pick(keys(HAIRC)),
+		headShape: pick(OPTIONS.headShape),
+		beard: extra(0.25, 'none', OPTIONS.beard),
+		eyes: pick(OPTIONS.eyes),
+		eyeColor: pick(keys(EYEC)),
+		brows: pick(OPTIONS.brows),
+		mouth: pick(OPTIONS.mouth),
+		blush: pick(OPTIONS.blush),
+		head: extra(0.2, 'none', OPTIONS.head),
+		headColor: pick(keys(HEADC)),
+		glasses: extra(1 / 3, 'none', OPTIONS.glasses),
+		aid: extra(0.1, 'off', OPTIONS.aid),
+		earrings: extra(0.25, 'off', OPTIONS.earrings),
+		outfit: pick(OPTIONS.outfit),
+		cloth: pick(keys(CLOTH)),
+		collar: pick(keys(COLLAR)),
+		frameColor: pick(keys(FRAMEC))
+	};
 }

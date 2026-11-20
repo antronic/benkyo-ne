@@ -142,7 +142,14 @@
 		if (ai.managed?.prefer === prefer) return;
 		const r = await guard(() => api.setAiSource(prefer), t('managed.switched'), 'source');
 		if (r) ai.managed = r;
+		// the switch always shows what the server saved, also after a failed save
+		sourceView = ai.managed?.prefer ?? 'package';
 	}
+	/** The switch's position; follows the saved choice whenever it's loaded. */
+	let sourceView = $state<AiSource>('package');
+	$effect(() => {
+		sourceView = ai.managed?.prefer ?? 'package';
+	});
 	const day = (ms: number) => fmtDate(ms, { day: 'numeric', month: 'short', year: 'numeric' });
 	const sourceOptions = $derived<{ value: AiSource; label: string; disabled?: boolean }[]>([
 		{ value: 'package', label: t('managed.usePackage'), disabled: busy },
@@ -225,7 +232,7 @@
 			<ListRow>
 				<span class="stack source" style:--gap="var(--space-2)" aria-busy={pending === 'source'}>
 					<span class="row"><span>{t('managed.useFrom')}</span><span class="spacer"></span>{#if pending === 'source'}<Spinner size="sm" label={t('common.loading')} />{/if}</span>
-					<Segmented label={t('managed.useAria')} options={sourceOptions} value={m.prefer} onchange={chooseSource} />
+					<Segmented label={t('managed.useAria')} options={sourceOptions} bind:value={sourceView} onchange={chooseSource} />
 					<span class="caption"><b>{t('managed.inUse', { what: inUse })}</b></span>
 					<span class="caption">
 						{ai.credentials.length === 0 ? t('managed.needKey') : m.prefer === 'own' ? t('managed.ownHint') : t('managed.packageHint')}

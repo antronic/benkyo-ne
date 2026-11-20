@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   gate:
-    name: check, lint, test, build, layout
+    name: check, lint, test, build, layout, render
     # Runs on Job's self-hosted runner (docs/CI-RUNNER.md). To go back to a
     # GitHub-hosted machine without a code change, set the repository variable
     # CI_RUNNER to ubuntu-latest (Settings → Secrets and variables → Actions).
@@ -55,9 +55,18 @@ jobs:
       - run: npm run check:layout
         env:
           LAYOUT_SHOTS: layout-failures
+          LAYOUT_REVIEW: layout-review
+      - run: npm run check:render
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: layout-failures
           path: layout-failures
+          if-no-files-found: ignore
+      # every avatar setup step at 390/768/1024/1280 px, for the visual review in the PR
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: layout-review
+          path: layout-review
           if-no-files-found: ignore

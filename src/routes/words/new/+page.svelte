@@ -14,6 +14,7 @@
 	import { words } from '#lib/state/words.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { candidatesFor, imageToBase64, saveCandidates, type Candidate, type CandidateResult, type MakerMode } from '#lib/words/maker.ts';
+	import type { SightingVia } from '#lib/ai/contract.ts';
 	import { unknownKanaIn } from '#lib/dict/readable.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
@@ -39,6 +40,12 @@
 	let saving = $state(false);
 
 	const m = $derived(MODES.find((x) => x.id === mode)!);
+	/** Phrasebook (docs/EVERYDAY.md): a photo or a look-up counts as the word coming up in your life. */
+	const via = $derived<SightingVia | undefined>(mode === 'screenshot' ? 'photo' : mode === 'scenario' ? undefined : 'lookup');
+	const inDeck = (c: Candidate) => {
+		const card = words.cards[c.key];
+		return card && !card.deleted ? card : null;
+	};
 	const blocked = $derived(m.ai === 'required' && !ai.available);
 
 	function setMode(id: MakerMode) {
@@ -68,12 +75,28 @@
 			// scenario/photo: the AI names the pack; it becomes the tag (still editable)
 			if ((mode === 'scenario' || mode === 'screenshot') && result.packName) tags = result.packName.en;
 			else if (mode === 'scenario' && !tags.trim()) tags = input.trim();
+			await seeKnown(result);
 			haptic(result.items.length ? 'success' : 'warning');
 		} catch (e) {
 			toast(e instanceof Error ? e.message : t('maker.lookupFailed'), '⚠️');
 		} finally {
 			busy = false;
 		}
+	}
+
+	/**
+	 * Words you already have count as met again: every one found in a photo,
+	 * and the top hit of a look-up. They stay unticked, since saving adds nothing.
+	 */
+	async function seeKnown(r: CandidateResult) {
+		if (!via) return;
+		const known = (via === 'photo' ? r.items : r.items.slice(0, 1)).filter((c) => inDeck(c));
+		if (!known.length) return;
+		await words.see(known.map((c) => c.key), via, via === 'lookup' ? input.trim() : null);
+		const n = new Set(chosen);
+		for (const c of known) n.delete(c.key);
+		chosen = n;
+		if (via === 'photo') toast(t('maker.seenToast', { n: known.length }), '📖', 2400);
 	}
 
 	function toggle(k: string) {
@@ -89,7 +112,13 @@
 		try {
 			const items = result.items.filter((i) => chosen.has(i.key));
 			const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean);
-			const cards = await saveCandidates(items, { tags: tagList, source: mode === 'scenario' ? 'scenario' : 'user' });
+			const cards = await saveCandidates(items, {
+				tags: tagList,
+				source: mode === 'scenario' ? 'scenario' : 'user',
+				// cards already counted by the search are not counted twice (same place within 10 minutes)
+				via,
+				ctx: via === 'lookup' ? input.trim() : null
+			});
 			const parked = cards.filter((c) => words.isParked(c)).length;
 			haptic('success');
 			toast(tn('maker.saved', cards.length) + (parked ? ` · ${t('maker.parkedN', { n: parked })}` : ''), '✓', 2400);
@@ -172,6 +201,7 @@
 										{#if c.text !== c.reading}<span class="jp written">{c.text}</span>{/if}
 										{#if c.kind === 'phrase'}<span class="tag">{t('card.phrase')}</span>{/if}
 										{#if !c.verified}<span class="tag warn">{t('card.unverified')}</span>{/if}
+										{#if inDeck(c)}{@const seen = inDeck(c)?.seen?.count ?? 0}<span class="tag">{seen ? t('maker.seenAgain', { n: seen }) : t('maker.inDeck')}</span>{/if}
 									</span>
 									<Romaji text={c.reading} />
 									<span class="gloss">{c.gloss}</span>

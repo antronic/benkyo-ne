@@ -27,7 +27,10 @@
 		background: none;
 		color: inherit;
 		width: 36px;
-		height: 32px;
+		height: 34px;
+		min-height: 34px;
+		flex: none;
+		line-height: 1;
 		font-size: 20px;
 		cursor: pointer;
 	}

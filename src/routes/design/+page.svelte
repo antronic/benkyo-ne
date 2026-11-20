@@ -281,10 +281,11 @@
 						<Button size="sm" busy>Saving</Button>
 						<Button size="sm" disabled>Disabled</Button>
 					</div>
-					<div class="wrap">
+					<div class="wrap" data-mixed-sizes>
 						<IconButton label="Play audio">🔊</IconButton>
 						<IconButton label="Close">✕</IconButton>
 						<IconButton label="More" size="sm">⋯</IconButton>
+						<IconButton label="Random look" size="lg">🎲</IconButton>
 					</div>
 					<Button variant="accent" block>Block button</Button>
 				</Card>
@@ -688,7 +689,8 @@
 							<Button variant="ghost-danger" busy>Deleting</Button>
 							<Button variant="plain" busy>Saving</Button>
 						</div>
-						<div class="row" style:--gap="var(--space-2)" style:flex-wrap="wrap">
+						<!-- the sizes side by side on purpose: check:layout's one-height rule skips data-mixed-sizes -->
+						<div class="row" data-mixed-sizes style:--gap="var(--space-2)" style:flex-wrap="wrap">
 							<Button size="sm" busy>Small</Button>
 							<Button size="md" busy>Medium</Button>
 							<Button size="lg" busy>Large</Button>

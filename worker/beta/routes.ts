@@ -118,7 +118,7 @@ async function ingest(req: Request, env: Env, s: Session) {
 // ---------------------------------------------------------------- AI ----
 
 export interface AiCallRecord {
-	kind: 'propose' | 'fill' | 'lesson' | 'ask' | 'ask_stream' | 'translate';
+	kind: 'propose' | 'fill' | 'lesson' | 'ask' | 'ask_stream' | 'translate' | 'write';
 	feature?: string;
 	provider?: string;
 	model?: string;

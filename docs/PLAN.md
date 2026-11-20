@@ -302,7 +302,7 @@ Looking like iOS isn't enough; the app has to *behave* like iOS. Implemented in
 | Action sheets & alerts | `actionSheet()` / `confirmDestructive()` replace `window.confirm()`. Bottom sheet when folded, centred alert when unfolded |
 | HUD toasts | `toast()` for sync results, copy-to-clipboard and resets |
 | Haptics | iOS Safari has no Vibration API, so `haptics.ts` clicks a hidden native `switch` (iOS 18+), which plays the system haptic. Android uses `navigator.vibrate` |
-| Keyboard | romaji field uses `autocorrect=off`, `enterkeyhint=done`; the visual viewport is tracked (`--kb`) so the field stays above the keyboard |
+| Keyboard | romaji field uses `autocorrect=off`, `enterkeyhint=done`; the visual viewport is tracked (`--kb`, `--vv-top`) so the field stays above the keyboard and sticky bars (Ask AI) stay at the top of what shows |
 | Touch | 44 pt minimum targets, no double-tap-zoom delay, no long-press callouts on controls, press-down scale on every control |
 | Accessibility | Reduce Motion, Reduce Transparency (solid surfaces), Dark Mode, VoiceOver labels; backdrops are hidden from assistive tech |
 

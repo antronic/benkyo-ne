@@ -33,19 +33,27 @@
  *   - the Fleet nav has a way back out to the app;
  *   - every top-level app screen under src/routes is in the tab bar;
  *   - at 1200px and wider, every Fleet page fills at least 900px beside the sidebar.
- * Set LAYOUT_URL to check a server that is already running.
+ * The avatar setup, a full-screen sheet outside <main>, is walked step by step
+ * (start, dice, editor top and scrolled, consent, camera, "no face") with the
+ * same checks rooted at the sheet, plus: controls in one row share one height,
+ * and the sheet's top padding is not smaller than its side padding.
+ * Set LAYOUT_URL to check a server that is already running. Set LAYOUT_REVIEW
+ * to a folder to save every avatar setup step for the visual review.
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { chromium } from 'playwright';
-import { FLEET_FIXTURES, FLEET_SAMPLES, FLEET_SCREENS } from './layout-fixtures.mjs';
+import { FLEET_FIXTURES, FLEET_SAMPLES, FLEET_SCREENS, signedInRoute } from './layout-fixtures.mjs';
 
 const PORT = 4179;
 const BASE = process.env.LAYOUT_URL ?? `http://localhost:${PORT}`;
 const SHOTS = process.env.LAYOUT_SHOTS; // optional folder for failure screenshots
+// LAYOUT_REVIEW=dir saves every step of the full-screen flows (pass or fail) for the visual review
+// in the PR (docs/guides/working-carefully.md, "Visual review")
+const REVIEW = process.env.LAYOUT_REVIEW;
 
-export const SCREENS = ['/', '/learn', '/learn/level/n5-01', '/learn/browse/kanji', '/learn/browse/kanji/%E6%9D%B1', '/learn/browse/grammar', '/kana', '/words', '/ai', '/settings', '/design', '/admin', '/admin/accounts', '/admin/promos'];
+export const SCREENS = ['/', '/learn', '/learn/level/n5-01', '/learn/browse/kanji', '/learn/browse/kanji/%E6%9D%B1', '/learn/browse/grammar', '/kana', '/words', '/ai', '/ai/ask', '/settings', '/design', '/admin', '/admin/accounts', '/admin/promos'];
 const WIDTHS = [
 	['phone', 390, 844],
 	['ipad', 768, 1024],
@@ -57,7 +65,7 @@ const EDGE_Y = 8;
 const MIN_CONTROL = 32;
 
 /** Runs in the page. Returns a list of problems (strings). */
-function inspect({ EDGE_X, EDGE_Y, MIN_CONTROL, desktop }) {
+function inspect({ EDGE_X, EDGE_Y, MIN_CONTROL, desktop, root = 'main' }) {
 	const out = [];
 	const visible = (el) => {
 		const r = el.getBoundingClientRect();
@@ -85,7 +93,7 @@ function inspect({ EDGE_X, EDGE_Y, MIN_CONTROL, desktop }) {
 	}
 
 	// Text must not hug the edge of the card it sits in.
-	for (const card of document.querySelectorAll('main .glass')) {
+	for (const card of document.querySelectorAll(`${root} .glass`)) {
 		if (!visible(card) || card.closest('[data-layout-skip]')) continue;
 		const box = card.getBoundingClientRect();
 		// Pills, steppers and segmented controls are controls, not cards.
@@ -126,10 +134,52 @@ function inspect({ EDGE_X, EDGE_Y, MIN_CONTROL, desktop }) {
 		}
 	}
 
-	for (const el of document.querySelectorAll('main button, main a.btn, main [role="button"], main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), main select')) {
+	const CONTROL = 'button, a.btn, label.btn, [role="button"], input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select';
+	const controls = [...document.querySelectorAll(CONTROL.split(', ').map((c) => `${root} ${c}`).join(', '))];
+	for (const el of controls) {
 		if (!visible(el) || el.closest('[data-layout-skip]')) continue;
 		const h = el.getBoundingClientRect().height;
 		if (h < MIN_CONTROL - 0.5) out.push(`control too small: ${name(el)} is ${Math.round(h)}px tall (min ${MIN_CONTROL}px)`);
+	}
+
+	// Controls side by side in one row share one height (a 40px icon button beside a 50px button
+	// looked broken in the avatar setup, PR #67). Text-only (plain) buttons and chips are exempt, and
+	// so is a row marked data-mixed-sizes (the /design catalogue shows the sizes side by side).
+	const rowParents = new Set(controls.filter((el) => visible(el) && !el.closest('[data-layout-skip]')).map((el) => el.parentElement));
+	for (const row of rowParents) {
+		const s = getComputedStyle(row);
+		if (!/flex/.test(s.display) || s.flexDirection !== 'row' || row.closest('[data-mixed-sizes]')) continue;
+		const kids = [...row.children].filter((el) => el.matches(CONTROL) && visible(el) && !el.matches('.plain, .chip, [role="tab"], [role="radio"], [role="option"]'));
+		if (kids.length < 2) continue;
+		const boxes = kids.map((el) => el.getBoundingClientRect());
+		// only controls on the same line (a wrapped row is two rows)
+		const line = boxes.filter((b) => b.top < boxes[0].bottom - 1 && b.bottom > boxes[0].top + 1);
+		if (line.length < 2) continue;
+		const hs = line.map((b) => Math.round(b.height));
+		if (Math.max(...hs) - Math.min(...hs) > 1) out.push(`controls in one row have different heights: ${kids.slice(0, line.length).map((el, i) => `${name(el)} ${hs[i]}px`).join(', ')}`);
+	}
+
+	// "Back" leads: it sits on the left, where iOS puts it (the avatar setup's consent and problem
+	// steps had it on the right, where "Later" goes).
+	const scope = document.querySelector(root);
+	if (scope) {
+		const mid = (scope.getBoundingClientRect().left + scope.getBoundingClientRect().right) / 2;
+		for (const el of controls) {
+			if (!visible(el) || el.textContent.trim() !== 'Back') continue;
+			const r = el.getBoundingClientRect();
+			if ((r.left + r.right) / 2 > mid) out.push(`${name(el)} is on the right; Back goes on the left`);
+		}
+	}
+
+	// A full-screen sheet keeps at least its side gutter at the top too (no safe area on a computer
+	// or a landscape phone left the avatar setup's "Later" 12px from the top edge).
+	if (root !== 'main') {
+		const sheet = document.querySelector(root);
+		if (sheet && visible(sheet)) {
+			const st = getComputedStyle(sheet);
+			const top = parseFloat(st.paddingTop), side = Math.min(parseFloat(st.paddingLeft), parseFloat(st.paddingRight));
+			if (top + 0.5 < side) out.push(`full-screen sheet ${name(sheet)} has ${Math.round(top)}px padding at the top but ${Math.round(side)}px at the sides`);
+		}
 	}
 	return [...new Set(out)];
 }
@@ -207,6 +257,82 @@ function skipIntro() {
 	});
 }
 
+const DIALOG = '[role="dialog"][aria-modal="true"]';
+/** A small PNG with no face in it (a grey square), for the "Choose a photo" path. */
+const NO_FACE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAwElEQVR4nNXOQREAAAyDMKRX+kTw4BYFYc9RByzqgEUdsKgDFnXAog5Y1AGLOmBRByzqgEUdsKgDFnXAog5Y1AGLOmBRByzqgEUdsKgDFnXAog5Y1AGLOmBRByzqgEUdsKgDFnXAog5Y1AGLOmBRByzqgEUdsKgDFnXAog5Y1AGLOmBRByzqgEUdsKgDFnXAog5Y1AGLOmBRByzqgEUdsKgDFnXAog5Y1AGLOmBRByzqgEUdsKgDFnXAog5Y1AHrAB8+AWlViFU0AAAAAElFTkSuQmCC', 'base64');
+
+/**
+ * The avatar setup (AvatarSetup.svelte), a full-screen sheet outside <main>, step by step:
+ * start, after the dice, consent, the camera (Chromium's fake camera), the "no face" problem from
+ * a chosen photo, and the editor at the top and scrolled (the sticky compact preview).
+ * Each step gets the same checks as a screen, rooted at the sheet.
+ */
+async function avatarFlow(browser, label, width, height, problems) {
+	const ctx = await browser.newContext({ viewport: { width, height }, serviceWorkers: 'block', reducedMotion: 'reduce', permissions: ['camera'] });
+	await ctx.route('**/api/**', signedInRoute);
+	const page = await ctx.newPage();
+	await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+	await page.evaluate(skipIntro);
+	await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+	const at = (step) => `avatar setup (${step}) @ ${label} ${width}px`;
+	const check = async (step) => {
+		await page.waitForTimeout(400);
+		const found = await page.evaluate(inspect, { EDGE_X, EDGE_Y, MIN_CONTROL, desktop: false, root: DIALOG });
+		for (const f of found) problems.push(`${at(step)}: ${f}`);
+		const dir = REVIEW ?? (found.length ? SHOTS : null);
+		if (dir) {
+			mkdirSync(dir, { recursive: true });
+			await page.screenshot({ path: `${dir}/avatar-${label}-${step}.png` });
+		}
+	};
+	const press = async (step, name) => {
+		const el = page.locator(DIALOG).getByRole('button', { name, exact: true }).first();
+		if (!(await el.count())) {
+			problems.push(`${at(step)}: nothing to press called "${name}"`);
+			return false;
+		}
+		await el.click();
+		return true;
+	};
+	try {
+		const open = page.getByRole('button', { name: 'Make it', exact: true });
+		try {
+			await open.waitFor({ timeout: 8000 });
+		} catch {
+			problems.push(`avatar setup @ ${label} ${width}px: the "Make your avatar" prompt did not show on Today (scripts/layout-fixtures.mjs SIGNED_IN_ME)`);
+			return;
+		}
+		await open.click();
+		await page.locator(DIALOG).waitFor();
+		await check('start');
+		if (await press('start', 'Random look')) await check('dice');
+		if (await press('dice', 'Build it myself')) {
+			await check('editor');
+			await page.locator(DIALOG).evaluate((d) => d.scrollTo(0, d.scrollHeight));
+			await page.waitForTimeout(400);
+			await check('editor-scrolled');
+			await press('editor', 'Back');
+		}
+		if (await press('start', 'Use a selfie')) {
+			await check('consent');
+			if (await press('consent', 'Open camera')) {
+				try {
+					await page.locator(`${DIALOG} video`).waitFor({ timeout: 30000 });
+					await page.waitForFunction(() => !document.querySelector('.cam-wait'), null, { timeout: 15000 });
+					await check('camera');
+					await page.locator(DIALOG).locator('input[type="file"]').first().setInputFiles({ name: 'blank.png', mimeType: 'image/png', buffer: NO_FACE_PNG });
+					await page.getByText('We couldn’t find a face').waitFor({ timeout: 30000 });
+					await check('no-face');
+				} catch (e) {
+					problems.push(`${at('camera')}: the camera or photo step did not show (${String(e.message ?? e).split('\n')[0]})`);
+				}
+			}
+		}
+	} finally {
+		await ctx.close();
+	}
+}
+
 async function waitFor(url, ms = 20000) {
 	const end = Date.now() + ms;
 	while (Date.now() < end) {
@@ -226,7 +352,8 @@ async function main() {
 		server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
 	}
 	const problems = [];
-	const browser = await chromium.launch();
+	// a fake camera, so the avatar setup's camera step can be checked
+	const browser = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
 	try {
 		await waitFor(BASE + '/');
 		for (const [label, width, height] of WIDTHS) {
@@ -359,6 +486,8 @@ async function main() {
 				for (const f of found) problems.push(`${url} ${at}: ${f}`);
 			}
 			await fctx.close();
+
+			await avatarFlow(browser, label, width, height, problems);
 		}
 	} finally {
 		await browser.close();
@@ -369,7 +498,7 @@ async function main() {
 		console.error(`\nLayout check: ${problems.length} problem(s). See docs/DESIGN-SYSTEM.md (Spacing).`);
 		process.exit(1);
 	}
-	console.log(`Layout check: ${SCREENS.length} screens and ${FLEET_SCREENS.length} Fleet views with data × ${WIDTHS.length} widths, plus navigation for ${routesUnder('src/routes/admin').length} Fleet pages and the tab bar, no problems.`);
+	console.log(`Layout check: ${SCREENS.length} screens, ${FLEET_SCREENS.length} Fleet views with data and 7 avatar setup steps × ${WIDTHS.length} widths, plus navigation for ${routesUnder('src/routes/admin').length} Fleet pages and the tab bar, no problems.`);
 }
 
 await main();

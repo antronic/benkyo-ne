@@ -88,16 +88,16 @@ export async function claimKeyStore(env: Env, keyHash: string, store: number, ac
 		).bind(store, old.id),
 		env.DB.prepare(
 			`INSERT INTO user_cards (user_id, card_id, kind, front, kanji, gloss, gloss2, usage_json, hook_json, example_json,
-			                         verified, source, tags_json, created_at, updated_at, deleted, rev)
+			                         verified, source, tags_json, created_at, updated_at, deleted, seen_json, rev)
 			 SELECT ?1, card_id, kind, front, kanji, gloss, gloss2, usage_json, hook_json, example_json,
-			        verified, source, tags_json, created_at, updated_at, deleted, ?3 + rev
+			        verified, source, tags_json, created_at, updated_at, deleted, seen_json, ?3 + rev
 			   FROM user_cards WHERE user_id = ?2
 			 ON CONFLICT (user_id, card_id) DO UPDATE SET
 			   kind = excluded.kind, front = excluded.front, kanji = excluded.kanji, gloss = excluded.gloss,
 			   gloss2 = excluded.gloss2, usage_json = excluded.usage_json, hook_json = excluded.hook_json,
 			   example_json = excluded.example_json, verified = excluded.verified, source = excluded.source,
 			   tags_json = excluded.tags_json, created_at = excluded.created_at, updated_at = excluded.updated_at,
-			   deleted = excluded.deleted, rev = excluded.rev
+			   deleted = excluded.deleted, seen_json = excluded.seen_json, rev = excluded.rev
 			 WHERE excluded.updated_at > user_cards.updated_at`
 		).bind(store, old.id, top?.rev ?? 0),
 		claimNotesStatement(env.DB, store, old.id),
