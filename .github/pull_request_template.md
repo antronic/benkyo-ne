@@ -23,11 +23,13 @@
 Status: Done | Done, not verified | Failed | Blocked
 
 ```text
-npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout
+npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout && npm run check:render
 <paste the summary lines: svelte-check result, Test Files / Tests, build>
 ```
 
 - [ ] Flow walked in a real browser (phone 390 px, iPad, desktop; light and dark; English and Thai) — or "no UI change"
+- [ ] Visual review: every new or changed screen and step looked at in shots at 390, 768 and 1280 px (`LAYOUT_REVIEW=<dir> npm run check:layout` for the avatar setup); edges line up, controls in a row share one height, Back on the left — or "no UI change"
+- [ ] A new screen, sheet or step is in `check:layout` (and a GPU or animation change in `check:render`) — or "none"
 - [ ] `docs/map.md` and the feature's doc updated — or "nothing to update"
 - [ ] No secrets, `.dev.vars` or real learner data in the diff
 

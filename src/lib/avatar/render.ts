@@ -8,7 +8,7 @@
  *
  * three.js is not bundled: the engine imports it from /avatar/vendor/ (scripts/copy-avatar-vendor.mjs).
  */
-import { avatarSVG, mountAvatar, setLiveLimit, type AvatarHandle } from '@antronic/coreva-render';
+import { avatarSVG, clearCache, mountAvatar, setLiveLimit, type AvatarHandle } from '@antronic/coreva-render';
 import { BENKYO_STYLE } from './pack/benkyo-style.js';
 import { cleanPerson, FIXED, type Person } from './person.ts';
 
@@ -33,6 +33,26 @@ export function avatarSvg(p: Partial<Person> | null | undefined, size: number): 
 	return svg;
 }
 
+/** iPhone and iPad (iPadOS says it is a Mac with touch), where the engine draws with WebGL2. */
+export function appleMobile(ua = navigator.userAgent, touch = navigator.maxTouchPoints ?? 0): boolean {
+	return /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && touch > 1);
+}
+
+// Wave strips baked on iPhone and iPad by reading frames back from the live engine came out torn and
+// blue-tinted (red and blue swapped), and the cache then replayed them on every visit. There the live
+// avatar never bakes a strip, and strips cached by an older build are forgotten once.
+const STRIPS_CLEARED = 'benkyo.avatarStrips';
+const STRIPS_VERSION = '2';
+function forgetBadStrips() {
+	try {
+		if (localStorage.getItem(STRIPS_CLEARED) === STRIPS_VERSION) return;
+		localStorage.setItem(STRIPS_CLEARED, STRIPS_VERSION);
+	} catch {
+		return; // no storage: nothing was kept either
+	}
+	void clearCache().catch(() => {}); // ui-ok: background clean-up, nothing on screen waits for it
+}
+
 let limited = false;
 export interface LiveOptions {
 	size: number;
@@ -42,9 +62,11 @@ export interface LiveOptions {
 }
 /** The live avatar in el. Destroy the handle when the element goes away. */
 export function mountLive(el: HTMLElement, p: Partial<Person> | null | undefined, o: LiveOptions): AvatarHandle {
+	const apple = appleMobile();
 	if (!limited) {
 		setLiveLimit(2);
 		limited = true;
+		if (apple) forgetBadStrips();
 	}
 	return mountAvatar(el, params(p), {
 		style: STYLE,
@@ -52,6 +74,7 @@ export function mountLive(el: HTMLElement, p: Partial<Person> | null | undefined
 		size: o.size,
 		wave: o.wave ?? false,
 		follow: o.follow ?? true,
+		warmCache: !apple,
 		threeUrl: new URL('/avatar/vendor/three.webgpu.min.js', location.href).href,
 		onState: (s) => o.onState?.(s as 'still' | 'strip' | 'live')
 	});

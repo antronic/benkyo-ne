@@ -107,7 +107,7 @@ git switch -c <your-branch> FETCH_HEAD
 
 | You changed | Run |
 | --- | --- |
-| Anything | The gate: `npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout` |
+| Anything | The gate: `npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout && npm run check:render` |
 | Worker code | The module's `*.test.ts`, and for a flow: `npm run build && npm run db:migrate:local && npx wrangler dev --port 8787 --infer-origin-from-routes=false`, then call the route |
 | A migration | The steps in [risky-changes.md](risky-changes.md#d1-migrations) |
 | A screen or component | Walk the flow in Playwright at 390 px, 768 px and 1280 px, light and dark, English and Thai; save screenshots under `/mnt/project-files/<topic>/` |
@@ -115,6 +115,21 @@ git switch -c <your-branch> FETCH_HEAD
 | Passkey sign-up or sign-in | Playwright with CDP `WebAuthn.addVirtualAuthenticator` against `wrangler dev` |
 | Strokes or WASM | `npm run build:strokes` or `npm run build:wasm`, then the handwriting tests |
 | Docs or these guides | Check every link and command you wrote against the file that defines it |
+
+### Visual review
+
+The checks catch what they measure; a person still has to look. Before you push a UI change:
+
+1. Take shots of every new or changed screen, sheet and step at 390, 768 and 1280 px (the avatar
+   setup: `LAYOUT_REVIEW=<dir> npm run check:layout` saves every step).
+2. Look at each one for: one content edge in a card, controls in a row at one height, Back on the
+   left, nothing against the top or side edge, the loading, empty and error states visible.
+3. Something moves or draws with the GPU (the live avatar, Kuri, animations)? Watch it run for a
+   few seconds after each tap, not one still: a torn or flashing frame does not show in a single
+   screenshot. `npm run check:render` counts GPU contexts for the avatar; a new animated view goes
+   into that check.
+4. Put the shots in the PR. A new screen, sheet or step that `check:layout` does not open yet is
+   added to it in the same PR.
 
 Rules for verifying:
 
