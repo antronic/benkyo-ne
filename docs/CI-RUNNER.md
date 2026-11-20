@@ -23,7 +23,7 @@ workflows from outside collaborators" on "Require approval for all outside colla
 | `git`, `curl`, `tar`, `bash` | checkout and the runner itself | `git --version` |
 | About 5 GB free disk | `node_modules`, Node in the tool cache, Chromium, the runner | `df -h ~` |
 | Outbound HTTPS to github.com, registry.npmjs.org and the Playwright CDN | checkout, `npm ci`, the Chromium download | |
-| Port 4179 free on localhost | `npm run check:layout` serves the build there | `lsof -i :4179` |
+| Ports 4179 and 4181 free on localhost | `npm run check:layout` and `npm run check:render` serve the build there | `lsof -i :4179 -i :4181` |
 | Playwright's system libraries (Linux only) | Chromium will not start without them | see step 3 |
 
 Node does not need to be installed: `actions/setup-node` downloads Node 22 into the runner's tool

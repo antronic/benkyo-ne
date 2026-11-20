@@ -17,6 +17,25 @@ It shows on Today, in Settings, on community posts and replies, and beside your 
 `AvatarSetup.svelte` steps: start → consent (selfie only) → getting ready (first time: downloads
 the reader) → camera or "Choose a photo" → reading → result (answer any questions, Tweak or
 Looks good) → save. "Build it myself" opens `AvatarEditor.svelte` at any step and works offline.
+The editor's preview is the SVG still, never the live avatar: `mountAvatar`'s `update()` tears the
+GPU engine down and builds a new one (and bakes a new wave strip) on every change, which on iPhone
+and iPad heated the device and showed torn, striped frames. The preview and the tabs stick to the
+top while the options scroll, and the preview shrinks from 150 to 96 px.
+
+A dice button (kit `IconButton size="lg"`, 50px like the button beside it, 🎲) shares a row with
+"Build it myself" on the start screen. Each press puts a random look (`randomPerson()` in
+`person.ts`) in the preview; extras such as a hat, beard or glasses stay off most of the time.
+Nothing is saved until "Build it myself" → Save. The start screen's live avatar lets its engine go
+at the first roll and shows the SVG still from then on (see Drawing).
+
+The camera step opens the front camera and shows a spinner until the picture is live. When the
+device has two or more cameras, a switch button (kit `IconButton`, top right of the viewfinder)
+flips between front and back by `facingMode`; on a computer, where cameras report no facing mode,
+it steps to the next camera in `enumerateDevices()`. Only a camera that reports
+`facingMode: 'environment'` is shown and shot unmirrored. If switching fails, the old camera comes
+back with a warning; if that fails too, the "Camera is off" problem step shows. Under Cancel and
+Take photo, "Choose a photo" (kit `FileButton`) stops the camera and reads a picture from the
+device instead, through the same getting-ready, reading and problem steps.
 
 ## Reading a selfie (on the device)
 
@@ -37,16 +56,53 @@ Looks good) → save. "Build it myself" opens `AvatarEditor.svelte` at any step 
 Thresholds were tuned on two public MediaPipe test images kept outside the repo. No real face is
 committed.
 
+Lessons from a real indoor selfie (2026-11-20, dim side light, thin wire glasses), which came out
+as Tone 8, long hair and no glasses:
+
+- **Skin.** Side light left one cheek about 30 L* darker than the other, and the median of the
+  three patches landed on the shade. Skin now comes from the brightest patch (the side facing the
+  light) and is matched by lightness alone against `SKIN_PHOTO_L` in `mapping.ts`, a photo
+  lightness scale. Hue is ignored because indoor light tints it. The result screen always shows
+  the skin swatches, so a wrong tone takes one tap to fix. The beard is judged against the cheek
+  on the same side, so a shaded jaw isn't read as a beard.
+- **Exposure** (photos 2 and 3, 2026-11-20: a dark bathroom where skin read L* 44, and warm curtain
+  light where it read 58; same skin as the L* 69 window photo). Phones set the exposure for the
+  face, so plain lightness can't give a tone. `measure()` returns `faceBright`, the 99th
+  percentile L* inside the face: the shine on the nose and forehead. Shine is a surface
+  reflection, about as bright on any skin, so light skin sits close to it and dark skin well
+  below it in any exposure. The tone is `skin / faceBright × 82` on the `SKIN_PHOTO_L` scale. All
+  three photos give s2 to s3. A face with no shine at all (`faceBright` < 30) asks with no tone picked.
+  An earlier try used the teeth as a white reference. It worked only when smiling, and was
+  dropped once the shine ratio covered all three photos.
+- **Glasses** (photo 3): the inner-rim and bridge test scored 0.38. The lower rim under both eyes
+  is now a cue too: a thin dark line across the cheek in most columns under each eye.
+- **Eye colour**: the style had one fixed blue-grey. `eyeColor` (`EYEC` in `person.ts`, style id
+  `benkyo-v2`) is read from MediaPipe's iris points (468 to 477): the ring between pupil and
+  glints. Only an iris lighter than L* 30 picks a colour, otherwise 'dark'.
+- **Hair length.** Side hair is followed down from the eyes and stops at the first gap. Before,
+  any dark patch the segmenter called hair (a shirt or a chair) counted as long hair.
+  Roughness (curls) uses the median row jump near the head and skips the round top of the head.
+- **Glasses.** Thin wire frames hardly change the edge average at the nose bridge. The reader now
+  also looks for thin dark lines: the rims beside the nose on both sides, and the bridge across it.
+
 ## Drawing
 
 The engine is `@antronic/coreva-render` (Job's Coreva Render, from GitHub Packages; `.npmrc`
 reads `GITHUB_PACKAGES_TOKEN` from the environment; CI maps the repository secret `PACKAGES_TOKEN` to it). Benkyo ships its own style pack,
-`src/lib/avatar/pack/benkyo-style.js` (id `benkyo-v1`, the Coreva flat style in Benkyo colours,
+`src/lib/avatar/pack/benkyo-style.js` (id `benkyo-v2` since eye colours; was `benkyo-v1`, the Coreva flat style in Benkyo colours,
 with head coverings, hats and 16 hairstyles). `render.ts` wraps it:
 
 - `avatarSvg(person, size)`: a memoised still SVG, used for every small avatar and tile.
 - `mountLive(el, person, …)`: the live 3D avatar (three.js WebGPU build at
   `/avatar/vendor/three.webgpu.min.js`), at most two at once, off when reduced motion is on.
+  Use it only where the person does not change while it shows (result screen, Today), not in editors.
+  The kit `Avatar` enforces it: when `person` changes after the live avatar mounted, it destroys the
+  engine and shows the SVG still; it never calls `update()`, which builds a new GPU engine. On
+  iPhone and iPad (`appleMobile()`) the live avatar never bakes a wave strip (`warmCache: false`):
+  strips read back from the engine there came out torn and blue-tinted (red and blue swapped) and
+  the strip cache replayed them; strips cached by older builds are cleared once
+  (`localStorage` `benkyo.avatarStrips`). `npm run check:render` fails if a change builds a new
+  GPU context.
 
 `scripts/copy-avatar-vendor.mjs` copies three.js and the MediaPipe wasm into
 `static/avatar/vendor/` (gitignored) before `dev` and `build`. The two model files are committed in

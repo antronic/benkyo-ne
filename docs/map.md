@@ -69,7 +69,7 @@ beta data.
 | `outbox` | Changes waiting to sync | `progress.svelte.ts` |
 | `notes` | Personal notes, key `subject` (VERSION 3) | `notes.svelte.ts`, sync |
 
-localStorage keys: `benkyo.locale` (interface language), `benkyo.avatar` (the signed-in account's avatar parts, for offline), `benkyo.boot` (startup safe mode),
+localStorage keys: `benkyo.locale` (interface language), `benkyo.avatar` (the signed-in account's avatar parts, for offline), `benkyo.boot` (startup safe mode), `benkyo.avatarStrips` (iPhone/iPad: old avatar wave strips cleared once),
 `benkyo.installCard` (install card dismissed), `benkyo.plan` (last known package, grant end and name of the signed-in account, for the Today badge offline;
 `src/lib/state/plan.svelte.ts`).
 
@@ -80,8 +80,9 @@ Announce a change to any of these to the other threads ([teamwork.md](guides/tea
 | Thing | Where | Rule |
 | --- | --- | --- |
 | Design tokens | `src/lib/design/tokens.css`, `tokens.ts` | Old names (`--bg`, `--ink`, `--accent`) are aliases; do not remove them while screens use them |
-| Spacing checks | `scripts/check-spacing.mjs`, `scripts/check-layout.mjs`, `.claude/settings.json` | Spacing uses `var(--space-*)`; a new screen goes into `SCREENS` in `check-layout.mjs` |
-| Layout check fixtures | `scripts/layout-fixtures.mjs` | Synthetic Fleet data for `check:layout`; a new Fleet screen with forms goes into `FLEET_SCREENS`, a new dynamic Fleet route into `FLEET_SAMPLES` |
+| Spacing checks | `scripts/check-spacing.mjs`, `scripts/check-layout.mjs`, `.claude/settings.json` | Spacing uses `var(--space-*)`; a new screen goes into `SCREENS` in `check-layout.mjs`; a new full-screen sheet or step gets a flow like `avatarFlow` |
+| Render (GPU) check | `scripts/check-render.mjs` | A live avatar or other GPU view must not build a new WebGL/WebGPU context per change; a new animated view gets a walk there |
+| Layout check fixtures | `scripts/layout-fixtures.mjs` | Synthetic Fleet data for `check:layout`, and `SIGNED_IN_ME` (a signed-in learner with no avatar) for the avatar setup in `check:layout` and `check:render`; a new Fleet screen with forms goes into `FLEET_SCREENS`, a new dynamic Fleet route into `FLEET_SAMPLES` |
 | Fleet navigation | `src/lib/admin/nav.ts` (`FLEET_NAV`, `FLEET_SIDEBAR_QUERY`, also in `admin.css`) | A new Fleet page gets a `FLEET_NAV` entry whose label matches its title, and `<FleetTrail />` above its LargeTitle; `check:layout` fails otherwise |
 | UI kit checks | `scripts/check-ui.mjs`, `src/lib/ui/kit.test.ts`, `.claude/settings.json` | No raw controls outside `src/lib/ui`; every kit component exported and on `/design`; async work shows a loading state; no spinning element boxes (Safari wobble) |
 | UI kit | `src/lib/ui/` (import from `#lib/ui/index.ts`), shown on `/design` | Every control in the app comes from here. New component: export it and add it to `/design` (the lint fails otherwise) |

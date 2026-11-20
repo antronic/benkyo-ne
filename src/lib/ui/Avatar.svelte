@@ -4,6 +4,10 @@
 	The SVG still is instant and works offline. `live` mounts the live 3D avatar on top of it
 	(looks around, follows the pointer, waves once when `wave`); it stays the still under
 	reduced motion, without a GPU, or before three.js has loaded once.
+	The live avatar is for a person that holds still: when `person` changes after it has mounted
+	(the dice, a picked part), the live engine is let go and the SVG still shows the new look.
+	Updating it in place would build a new GPU engine on every change, which on iPhone and iPad
+	showed torn, blue-tinted frames and heated the phone (docs/guides/lessons.md, live-avatar-editor).
 -->
 <script lang="ts">
 	import { onDestroy } from 'svelte';
@@ -38,20 +42,33 @@
 	const still = $derived(person ? avatarSvg(person, size) : '');
 	const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+	// the look the live engine was built for; once the person changes, this avatar stays the still
+	let liveKey: string | null = null;
+	let changed = false;
+	function drop() {
+		handle?.destroy();
+		handle = null;
+		liveOn = false;
+	}
 	$effect(() => {
 		const p = person;
-		if (!live || !p || !host || reduced) return;
+		const key = p ? JSON.stringify(p) : null;
+		if (!live || !p || !host || reduced || changed) return;
 		if (handle) {
-			handle.update(p);
+			if (key !== liveKey) {
+				changed = true;
+				drop();
+			}
 			return;
 		}
 		try {
+			liveKey = key;
 			handle = mountLive(host, p, { size, wave, onState: (s) => (liveOn = s === 'live') });
 		} catch {
 			handle = null; // the still stays
 		}
 	});
-	onDestroy(() => handle?.destroy());
+	onDestroy(drop);
 </script>
 
 <span class="avatar" style:--size="{size}px" role={label === '' ? undefined : 'img'} aria-label={label === '' ? undefined : (label ?? name)} aria-hidden={label === '' ? 'true' : undefined}>
