@@ -8,6 +8,7 @@
 	  errorId  "E-7F3K2Q" from lib/debug/errors.ts; shown with the build so a
 	           screenshot is enough for Job to find the error in Fleet → Errors
 	  details  plain-text block for "Copy details" (errorDetails() in lib/debug)
+	  title, body  override the kind's copy (Fleet: the server's own message)
 	  sendNote optional: lets the learner add a line to the report (the report
 	           itself is sent automatically when the error happens)
 
@@ -44,6 +45,9 @@
 		retry?: () => unknown;
 		sendNote?: (note: string) => Promise<boolean>;
 		kuri?: boolean;
+		/** Replace the kind's own title and body (Fleet passes the server's message). */
+		title?: string;
+		body?: string;
 	};
 	let {
 		kind,
@@ -58,7 +62,9 @@
 		home = { href: '/', label: t('error.goToday') },
 		retry,
 		sendNote,
-		kuri = true
+		kuri = true,
+		title,
+		body
 	}: Props = $props();
 
 	const back = () => (history.length > 1 ? history.back() : location.assign(home.href));
@@ -242,8 +248,8 @@
 	<section class="page-error" role={kind === 'offline' || kind === 'update' ? 'status' : 'alert'} data-kind={kind}>
 		{#if kuri}{@render face(copy.mood, 132)}{/if}
 		{#if status != null && kind !== 'offline'}<p class="eyebrow">{t('error.code', { code: String(status) })}</p>{/if}
-		<h1 class="title-1">{t(copy.title)}</h1>
-		<p class="body">{t(copy.body)}</p>
+		<h1 class="title-1">{title ?? t(copy.title)}</h1>
+		<p class="body">{body ?? t(copy.body)}</p>
 		{#if kind === 'offline' || kind === 'server' || kind === 'crash' || kind === 'session'}
 			<p class="safe caption">{t('error.progressSafe')}</p>
 		{/if}
@@ -257,8 +263,8 @@
 		<div class="inline-row" role={kind === 'offline' ? 'status' : 'alert'} data-kind={kind}>
 			{#if kuri}{@render face(copy.mood, 56)}{/if}
 			<div class="stack text" style:--gap="var(--space-1)">
-				<strong class="headline">{t(copy.title)}</strong>
-				<p class="footnote">{t(copy.body)}</p>
+				<strong class="headline">{title ?? t(copy.title)}</strong>
+				<p class="footnote">{body ?? t(copy.body)}</p>
 			</div>
 		</div>
 		<div class="inline-foot stack" style:--gap="var(--space-2)">

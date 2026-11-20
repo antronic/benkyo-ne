@@ -1,11 +1,15 @@
-<!-- Fleet console error card with the right way out for each kind of failure. -->
+<!--
+	Fleet console error card: the kit's in-card ErrorState with the right way
+	out for each kind of failure, and the server's own message as the body.
+-->
 <script lang="ts">
-	import { Button, Card } from '#lib/ui/index.ts';
-	import type { AdminError } from './client.ts';
+	import { ErrorState, type ErrorAction, type ErrorKind } from '#lib/ui/index.ts';
+	import { version } from '$app/env';
+	import type { AdminError, AdminErrorCode } from './client.ts';
 
-	let { error, onretry }: { error: AdminError; onretry: () => void } = $props();
+	let { error, onretry }: { error: AdminError; onretry: () => unknown } = $props();
 
-	const TITLES = {
+	const TITLES: Record<AdminErrorCode, string> = {
 		access: 'Cloudflare Access sign-in needed',
 		closed: 'The console is closed',
 		signin: 'Sign in first',
@@ -13,39 +17,37 @@
 		offline: 'You’re offline',
 		stepup: 'Passkey confirmation needed',
 		bad: 'That didn’t work',
-		server: 'Something went wrong'
-	} as const;
+		server: 'Something went wrong on our side'
+	};
+	const KINDS: Record<AdminErrorCode, ErrorKind> = {
+		access: 'access',
+		closed: 'server',
+		signin: 'session',
+		forbidden: 'access',
+		offline: 'offline',
+		stepup: 'session',
+		bad: 'server',
+		server: 'server'
+	};
+	const primary = $derived<ErrorAction>(
+		error.code === 'access'
+			? { label: 'Sign in again', onclick: () => location.reload() }
+			: error.code === 'signin'
+				? { label: 'Go to Settings', href: '/settings#account' }
+				: { label: 'Try again', onclick: onretry }
+	);
+	// the error id from the frontend log, when it has one
+	const errorId = $derived((error as AdminError & { errorId?: string }).errorId);
 </script>
 
-<Card padding="lg" role="alert">
-	<div class="error">
-		<b class="title">{TITLES[error.code]}</b>
-		<p class="caption message">{error.message}</p>
-		<div class="row actions" style:--gap="var(--space-2)">
-			{#if error.code === 'access'}
-				<Button size="sm" onclick={() => location.reload()}>Sign in again</Button>
-			{:else if error.code === 'signin'}
-				<Button size="sm" href="/settings#account">Go to Settings</Button>
-			{:else}
-				<Button size="sm" variant="ghost" onclick={onretry}>Try again</Button>
-			{/if}
-		</div>
-	</div>
-</Card>
-
-<style>
-	.error {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-	.title {
-		font-size: 1.0625rem;
-	}
-	.message {
-		margin: 0;
-	}
-	.actions {
-		margin-top: var(--space-2);
-	}
-</style>
+<ErrorState
+	kind={KINDS[error.code]}
+	layout="inline"
+	title={TITLES[error.code]}
+	body={error.message}
+	status={error.status || undefined}
+	{errorId}
+	build={version}
+	message={`${error.code} ${error.status}: ${error.message}`}
+	{primary}
+/>
