@@ -15,6 +15,8 @@ export const HAIRC = { black: '#1d1a19', dark: '#3b2a24', brown: '#6a453b', aubu
 export const CLOTH = { shu: '#e8432e', ai: '#3b5bdb', sumire: '#8b5cf6', matcha: '#34a853', sakura: '#f2a7b8', sky: '#4f9fd9', sand: '#d7c49b', slate: '#5d6b82', white: '#f3f5fb', sumi: '#2b2b33' } as const;
 export const COLLAR = { navy: '#26305a', white: '#f3f5fb', shu: '#b8264f', ai: '#2b44a8', matcha: '#22803c', sand: '#b59a63' } as const;
 export const HEADC = { ai: '#7b93ff', shu: '#ff7a5c', sumire: '#a78bfa', matcha: '#5fd17a', dusty: '#c9a39e', sand: '#d9c6a0', sakura: '#e9a3b4', slate: '#5d6b82', sumi: '#2b2b33' } as const;
+/** Eye (iris) colours. 'dark' is the near-black brown most learners have. */
+export const EYEC = { dark: '#2e2421', brown: '#5b3a26', hazel: '#7a6136', green: '#4d6b48', blue: '#47698f', grey: '#69717c' } as const;
 export const FRAMEC = { shu: '#e8432e', ai: '#3b5bdb', sumire: '#8b5cf6', matcha: '#34a853', sand: '#c9a46a', graphite: '#4b5263' } as const;
 
 /** Hats and head coverings, and which hair each one hides ('front' fringe, 'top' bun or tie, 'back' behind the head). */
@@ -45,7 +47,7 @@ export const OPTIONS = {
 } as const;
 
 /** Colour choices, by person key. */
-export const COLOURS = { skin: SKIN, hairColor: HAIRC, cloth: CLOTH, collar: COLLAR, headColor: HEADC, frameColor: FRAMEC } as const;
+export const COLOURS = { skin: SKIN, eyeColor: EYEC, hairColor: HAIRC, cloth: CLOTH, collar: COLLAR, headColor: HEADC, frameColor: FRAMEC } as const;
 
 type Opt<K extends keyof typeof OPTIONS> = (typeof OPTIONS)[K][number];
 type Col<K extends keyof typeof COLOURS> = keyof (typeof COLOURS)[K];
@@ -57,6 +59,7 @@ export interface Person {
 	headShape: Opt<'headShape'>;
 	beard: Opt<'beard'>;
 	eyes: Opt<'eyes'>;
+	eyeColor: Col<'eyeColor'>;
 	brows: Opt<'brows'>;
 	mouth: Opt<'mouth'>;
 	blush: Opt<'blush'>;
@@ -79,6 +82,7 @@ export const DEFAULTS: Person = {
 	headShape: 'round',
 	beard: 'none',
 	eyes: 'oval',
+	eyeColor: 'dark',
 	brows: 'bar',
 	mouth: 'grin',
 	blush: 'on',
@@ -103,6 +107,7 @@ const ALLOWED: Record<keyof Person, readonly string[]> = {
 	headShape: OPTIONS.headShape,
 	beard: OPTIONS.beard,
 	eyes: OPTIONS.eyes,
+	eyeColor: Object.keys(EYEC),
 	brows: OPTIONS.brows,
 	mouth: OPTIONS.mouth,
 	blush: OPTIONS.blush,
