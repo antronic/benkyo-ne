@@ -276,23 +276,25 @@
 
 <main class="chat">
 	<header class="top">
-		<IconButton label={t('common.back')} onclick={() => goto('/ai')}>
-			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		</IconButton>
-		{#if progress.settings.kuri}
-			<span class="kuri-avatar" title={busy ? t('kuri.thinking') : t('kuri.name')}>
-				<Kuri pose={busy ? 'thinking' : 'idle'} label={busy ? t('kuri.thinking') : t('kuri.name')} options={{ yaw: 0.3, pitch: 0.1, distance: 3.1, target: [0, 1.62, 0.25], fps: 30 }} />
-			</span>
-		{/if}
-		<h1 class="title-2 head-title">{current && msgs.length ? current.title : t('ask.title')}</h1>
-		<span class="spacer"></span>
-		<IconButton label={t('ask.history')} onclick={() => ((historyOpen = true), haptic('selection'))}>
-			<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" /><path d="M3 4v4.5h4.5" /><path d="M12 7.5V12l3 2" /></svg>
-			{#if threads.length}<span class="badge">{threads.length}</span>{/if}
-		</IconButton>
-		<IconButton label={t('ask.newChat')} onclick={newChat} disabled={!msgs.length && !busy}>
-			<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" /><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
-		</IconButton>
+		<div class="top-row">
+			<IconButton label={t('common.back')} onclick={() => goto('/ai')}>
+				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			</IconButton>
+			{#if progress.settings.kuri}
+				<span class="kuri-avatar" title={busy ? t('kuri.thinking') : t('kuri.name')}>
+					<Kuri pose={busy ? 'thinking' : 'idle'} label={busy ? t('kuri.thinking') : t('kuri.name')} options={{ yaw: 0.3, pitch: 0.1, distance: 3.1, target: [0, 1.62, 0.25], fps: 30 }} />
+				</span>
+			{/if}
+			<h1 class="title-2 head-title">{current && msgs.length ? current.title : t('ask.title')}</h1>
+			<span class="spacer"></span>
+			<IconButton label={t('ask.history')} onclick={() => ((historyOpen = true), haptic('selection'))}>
+				<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" /><path d="M3 4v4.5h4.5" /><path d="M12 7.5V12l3 2" /></svg>
+				{#if threads.length}<span class="badge">{threads.length}</span>{/if}
+			</IconButton>
+			<IconButton label={t('ask.newChat')} onclick={newChat} disabled={!msgs.length && !busy}>
+				<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" /><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
+			</IconButton>
+		</div>
 	</header>
 
 	<div class="msgs" bind:this={list} aria-live="polite" aria-busy={busy}>
@@ -401,15 +403,41 @@
 
 <style>
 	.chat {
+		--chat-max: 760px; /* the column, gutters included */
 		min-height: 100dvh;
-		max-width: 760px;
-		margin: 0 auto;
-		padding: calc(var(--safe-top) + var(--space-3)) var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + 96px) var(--gutter-l); /* ui-ok: 96px clears the fixed composer */
+		padding: 0 var(--gutter-r) calc(var(--safe-bottom) + var(--kb) + 96px) var(--gutter-l); /* ui-ok: 96px clears the fixed composer */
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
 	}
+	/* The top bar stays put while the conversation scrolls under it. It spans the whole width
+	   (glass, hairline below) and its row lines up with the message column. While the iOS keyboard
+	   pans the page, --vv-top (lib/ios/gestures.ts) keeps it at the top of what is visible. */
 	.top {
+		position: sticky;
+		top: var(--vv-top, 0px);
+		z-index: 30;
+		margin-inline: calc(-1 * var(--gutter-l)) calc(-1 * var(--gutter-r));
+		padding: calc(var(--safe-top) + var(--space-2)) var(--gutter-r) var(--space-2) var(--gutter-l);
+		background: var(--glass-strong);
+		-webkit-backdrop-filter: blur(28px) saturate(180%);
+		backdrop-filter: blur(28px) saturate(180%);
+		border-bottom: 0.5px solid var(--glass-edge);
+	}
+	@media (prefers-reduced-transparency: reduce) {
+		.top {
+			background: var(--bg-2);
+			-webkit-backdrop-filter: none;
+			backdrop-filter: none;
+		}
+	}
+	.top-row,
+	.msgs {
+		width: 100%;
+		max-width: calc(var(--chat-max) - var(--gutter-l) - var(--gutter-r));
+		margin-inline: auto;
+	}
+	.top-row {
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);

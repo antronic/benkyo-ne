@@ -16,6 +16,7 @@
 	--rail-w: 76px;
 	--rail: 0px; /* horizontal space taken by the side rail */
 	--kb: 0px; /* on-screen keyboard height (lib/ios/gestures.ts) */
+	--vv-top: 0px; /* how far the visible area is panned down while the keyboard is open (same file) */
 	--gutter-l: max(16px, env(safe-area-inset-left, 0px));
 	--gutter-r: max(16px, env(safe-area-inset-right, 0px));
 }

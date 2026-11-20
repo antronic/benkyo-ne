@@ -105,7 +105,8 @@ export function edgeSwipeBack(node: HTMLElement, opts: SwipeBackOptions) {
 /**
  * Track the on-screen keyboard. iOS Safari doesn't resize the layout
  * viewport when the keyboard opens, so we expose its height as --kb and
- * keep the focused field in view.
+ * keep the focused field in view. --vv-top is how far the visible area is
+ * panned down the page, so a sticky bar can stay at the top of what shows.
  */
 export function trackKeyboard() {
 	const vv = window.visualViewport;
@@ -113,6 +114,7 @@ export function trackKeyboard() {
 	const update = () => {
 		const kb = Math.max(0, innerHeight - vv.height - vv.offsetTop);
 		document.documentElement.style.setProperty('--kb', `${Math.round(kb)}px`);
+		document.documentElement.style.setProperty('--vv-top', `${Math.max(0, Math.round(vv.offsetTop))}px`);
 		document.documentElement.classList.toggle('keyboard', kb > 80);
 	};
 	vv.addEventListener('resize', update);

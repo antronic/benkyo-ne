@@ -53,7 +53,7 @@ const SHOTS = process.env.LAYOUT_SHOTS; // optional folder for failure screensho
 // in the PR (docs/guides/working-carefully.md, "Visual review")
 const REVIEW = process.env.LAYOUT_REVIEW;
 
-export const SCREENS = ['/', '/learn', '/learn/level/n5-01', '/learn/browse/kanji', '/learn/browse/kanji/%E6%9D%B1', '/learn/browse/grammar', '/kana', '/words', '/ai', '/settings', '/design', '/admin', '/admin/accounts', '/admin/promos'];
+export const SCREENS = ['/', '/learn', '/learn/level/n5-01', '/learn/browse/kanji', '/learn/browse/kanji/%E6%9D%B1', '/learn/browse/grammar', '/kana', '/words', '/ai', '/ai/ask', '/settings', '/design', '/admin', '/admin/accounts', '/admin/promos'];
 const WIDTHS = [
 	['phone', 390, 844],
 	['ipad', 768, 1024],
