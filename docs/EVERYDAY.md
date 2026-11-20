@@ -95,3 +95,19 @@ Everything else in the drafts is built from existing kit components (`ListRow` w
   for couldn't write) and a 🧠 drill, `/review?practice=forgetting`: each kanji card in the set,
   always written from memory with `RecallPad`, plus the word cards written with those kanji.
   As with the other drills, cards that aren't due keep their schedule.
+
+## Built: weekly report (E2)
+
+- **Where.** `/week`, from a **Your week** card on Today (shown once the last 7 days have any
+  review, saved card, check or read). Back goes to Today.
+- **Numbers** (`weekReport` in `src/lib/report/week.ts`, the 7 local days ending today):
+  **Read** = distinct photos and look-ups among the cards' sightings; **Wrote** = messages the
+  Writing helper checked; **Saved** = your own cards made this week (not pack cards); **Minutes a
+  day** = review time from the log (`durationMs`), in a `BarChart` with translated labels.
+- **One thing to work on**, first that applies: a person you write to where at least 2 checked
+  messages, and at least half, were off (→ Writing helper); else this week's forgotten kanji
+  (→ the 🧠 drill); else the cards you missed (→ Weakest first). Kuri sums up the week in a
+  `SpeechBubble`, and **5 minute practice** opens the drill.
+- **Data.** Writing helper checks are kept on the device only, in `meta` key `writeChecks`
+  (`{at, to, gap}`, last 60 days); `src/lib/state/week.svelte.ts` records and loads them. No sync,
+  no migration.
