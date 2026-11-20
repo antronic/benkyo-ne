@@ -44,6 +44,21 @@ back with a warning; if that fails too, the "Camera is off" problem step shows.
 Thresholds were tuned on two public MediaPipe test images kept outside the repo. No real face is
 committed.
 
+Lessons from a real indoor selfie (2026-11-20, dim side light, thin wire glasses), which came out
+as Tone 8, long hair and no glasses:
+
+- **Skin.** Side light left one cheek about 30 L* darker than the other, and the median of the
+  three patches landed on the shade. Skin now comes from the brightest patch (the side facing the
+  light) and is matched by lightness alone against `SKIN_PHOTO_L` in `mapping.ts`, a photo
+  lightness scale. Hue is ignored because indoor light tints it. The result screen always shows
+  the skin swatches, so a wrong tone takes one tap to fix. The beard is judged against the cheek
+  on the same side, so a shaded jaw isn't read as a beard.
+- **Hair length.** Side hair is followed down from the eyes and stops at the first gap. Before,
+  any dark patch the segmenter called hair (a shirt or a chair) counted as long hair.
+  Roughness (curls) uses the median row jump near the head and skips the round top of the head.
+- **Glasses.** Thin wire frames hardly change the edge average at the nose bridge. The reader now
+  also looks for thin dark lines: the rims beside the nose on both sides, and the bridge across it.
+
 ## Drawing
 
 The engine is `@antronic/coreva-render` (Job's Coreva Render, from GitHub Packages; `.npmrc`
