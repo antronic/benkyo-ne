@@ -7,6 +7,11 @@ reports, blocks, the Translate button (文A) and the Fleet Community screen.
 
 ## What learners see
 
+- **Community tab** (`/community`, `src/routes/community/+page.svelte`): the Community home. Every
+  shared note on every item, **New** (newest first) or **Popular** (most liked in the last 30 days,
+  `TOP_DAYS`), 20 at a time with Show more. Each note shows the item it is about; tapping it opens a
+  sheet with your own note and all the shared notes on that item, where you can share yours.
+
 - **Community notes** (`CommunityNotes.svelte`, on `/design`) sits under "My note" on the Words card
   sheet, the Kana detail, the kanji Meet step and course units. It lists notes other learners
   shared on the same item (same subject id, see NOTES.md), most liked first, three at a time.
@@ -73,6 +78,7 @@ Editing a shared note keeps the status a moderator gave it, so editing doesn't b
 | --- | --- |
 | `GET /api/community/me` | your handle, status and whether you can post |
 | `PUT /api/community/profile` | `{handle, guidelines}` |
+| `GET /api/community/feed?sort=new\|top&before=` | the Community home, 20 a page (`Feed`) |
 | `GET /api/community/subject?s=` | shared notes on one item, plus yours |
 | `POST /api/community/posts` | share or update your note on an item |
 | `GET`/`DELETE /api/community/posts/:id` | a note with its replies / delete yours |

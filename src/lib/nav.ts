@@ -29,7 +29,7 @@ export const NAV_ITEMS: NavItem[] = [
 	{ href: '/kana', label: 'nav.kana', desc: 'nav.desc.kana', group: 'study', icon: '' },
 	{ href: '/words', label: 'nav.words', desc: 'nav.desc.words', group: 'make', icon: 'M8.5 4H18a2 2 0 0 1 2 2v9.5M6 7.5h9.5a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9.5a2 2 0 0 1 2-2zM7.5 12h6.5M7.5 15.5h4' },
 	{ href: '/ai', label: 'nav.ai', desc: 'nav.desc.ai', group: 'make', icon: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18.5 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z' },
-	{ href: '/community', label: 'nav.community', desc: 'nav.desc.community', group: 'people', icon: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3.5 19.5c.5-3 2.7-5 5.5-5s5 2 5.5 5M15.5 5.3a3 3 0 0 1 0 5.4M17 14.6c2 .6 3.2 2.3 3.5 4.9' },
+	{ href: '/community', label: 'nav.community', desc: 'nav.desc.community', group: 'people', icon: 'M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM19 9a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2v3l-4-3h-3' },
 	{ href: '/settings', label: 'nav.settings', desc: 'nav.desc.settings', group: 'you', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 13a7.5 7.5 0 0 0 0-2l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-1.7-1L15 3.6h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.3-1-2 3.4 2 1.5a7.5 7.5 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.3 1 2-3.4z' }
 ];
 

@@ -4,7 +4,7 @@
  */
 import { translate as aiTranslate } from '#lib/ai/client.ts';
 import type { TranslateLang } from '#lib/ai/contract.ts';
-import type { Blocked, CommunityError, CommunityProblem, Lang, Me, Post, Reply, ReportReason, SubjectNotes, TargetKind, Thread } from './contract.ts';
+import type { Blocked, CommunityError, CommunityProblem, Feed, FeedSort, Lang, Me, Post, Reply, ReportReason, SubjectNotes, TargetKind, Thread } from './contract.ts';
 
 export class CommunityRequestError extends Error {
 	constructor(
@@ -42,6 +42,7 @@ export const communityMe = () => call<Me>('GET', '/api/community/me');
 export const setProfile = (handle: string, guidelines: number) => call<Me>('PUT', '/api/community/profile', { handle, guidelines });
 export const subjectNotes = (subject: string) => call<SubjectNotes>('GET', `/api/community/subject?s=${encodeURIComponent(subject)}`);
 export const shareNote = (subject: string, label: string, body: string, lang: Lang) => call<Post>('POST', '/api/community/posts', { subject, label, body, lang });
+export const getFeed = (sort: FeedSort, before = 0) => call<Feed>('GET', `/api/community/feed?sort=${sort}${before ? `&before=${before}` : ''}`);
 export const getThread = (id: number) => call<Thread>('GET', `/api/community/posts/${id}`);
 export const deletePost = (id: number) => call<{ ok: true }>('DELETE', `/api/community/posts/${id}`);
 export const postReply = (postId: number, body: string, lang: Lang) => call<Reply>('POST', `/api/community/posts/${postId}/replies`, { body, lang });
@@ -56,7 +57,7 @@ export const unblock = (handle: string) => call<{ ok: true }>('DELETE', `/api/co
 /** Translate a note or reply into `to` with the learner's AI (POST /api/ai/translate). */
 const translate = async (kind: TargetKind, id: number, to: TranslateLang): Promise<string> => (await aiTranslate({ kind, id, to })).text;
 
-export const communityApi = { subjectNotes, shareNote, getThread, deletePost, postReply, deleteReply, setLike, report, block, setProfile, communityMe, translate };
+export const communityApi = { getFeed, subjectNotes, shareNote, getThread, deletePost, postReply, deleteReply, setLike, report, block, setProfile, communityMe, translate };
 export type CommunityApi = typeof communityApi;
 
 /** What to tell the learner when a call fails, as a message key. */

@@ -90,6 +90,43 @@ describe('shared notes', () => {
 		expect(own.posts.map((p: any) => p.handle)).toEqual(['user2']);
 	});
 
+	it('the Community home lists every item’s notes, newest or most liked, minus hidden and blocked', async () => {
+		await join(1);
+		await join(2);
+		await join(3);
+		const a = (await share(1, 'On the sun', 'kanji:日')).body;
+		const b = (await share(2, 'On the moon', 'kanji:月')).body;
+		const c = (await share(3, 'On あ', 'kana:あ')).body;
+		db.prepare(`UPDATE community_posts SET created_at = ? WHERE id = ?`).run(Date.now() - 3000, a.id);
+		db.prepare(`UPDATE community_posts SET created_at = ? WHERE id = ?`).run(Date.now() - 2000, b.id);
+		await call(4, 'POST', '/api/community/like', { kind: 'post', id: a.id, on: true });
+
+		const fresh = (await call(4, 'GET', '/api/community/feed')).body;
+		expect(fresh.posts.map((p: any) => p.id)).toEqual([c.id, b.id, a.id]);
+		expect(fresh.next).toBeNull();
+		const top = (await call(4, 'GET', '/api/community/feed?sort=top')).body;
+		expect(top.posts[0]).toMatchObject({ id: a.id, likes: 1, liked: true, label: '日' });
+
+		// blocked authors and hidden notes drop out; signed out gets nothing
+		await call(4, 'POST', '/api/community/block', { kind: 'post', id: b.id });
+		db.prepare(`UPDATE community_posts SET status = 'hidden' WHERE id = ?`).run(c.id);
+		expect((await call(4, 'GET', '/api/community/feed')).body.posts.map((p: any) => p.id)).toEqual([a.id]);
+		expect((await call(null, 'GET', '/api/community/feed')).status).toBe(401);
+	});
+
+	it('pages the Community home', async () => {
+		for (let i = 1; i <= 4; i++) await join(i);
+		const subjects = ['kanji:一', 'kanji:二', 'kanji:三', 'kanji:四', 'kanji:五', 'kanji:六'];
+		let n = 0;
+		for (let round = 0; round < 6; round++) for (let i = 1; i <= 4; i++) await share(i, `Note ${n++}`, subjects[round]);
+		const first = (await call(1, 'GET', '/api/community/feed')).body;
+		expect(first.posts).toHaveLength(20);
+		expect(first.next).toBe(20);
+		const second = (await call(1, 'GET', '/api/community/feed?before=20')).body;
+		expect(second.posts).toHaveLength(4);
+		expect(second.next).toBeNull();
+	});
+
 	it('likes are one per person and can be taken back', async () => {
 		const post = (await share(1)).body;
 		await call(2, 'POST', '/api/community/like', { kind: 'post', id: post.id, on: true });

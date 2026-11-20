@@ -73,6 +73,18 @@ export interface Reply {
 	createdAt: number;
 }
 
+/** GET /api/community/feed: the Community home, newest or most liked first, every item. */
+export type FeedSort = 'new' | 'top';
+export const FEED_PAGE = 20;
+/** How far back "Popular" looks. */
+export const TOP_DAYS = 30;
+
+export interface Feed {
+	posts: Post[];
+	/** pass back as `before` for the next page; null at the end */
+	next: number | null;
+}
+
 export interface SubjectNotes {
 	subject: string;
 	/** others' notes, most liked first, then newest */

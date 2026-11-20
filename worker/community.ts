@@ -3,6 +3,7 @@
  *
  *   GET    /api/community/me                       your handle and whether you can post
  *   PUT    /api/community/profile {handle, guidelines}   pick or change your handle, accept the guidelines
+ *   GET    /api/community/feed?sort=new|top&before=<n>   the Community home → Feed
  *   GET    /api/community/subject?s=<subject>      shared notes on one study item → SubjectNotes
  *   POST   /api/community/posts {subject, label, body, lang}   share your note (or update the shared copy)
  *   GET    /api/community/posts/:id                a note with its replies → Thread
@@ -23,6 +24,7 @@
 import {
 	AUTO_HIDE_REPORTS,
 	countLinks,
+	FEED_PAGE,
 	GUIDELINES_VERSION,
 	HANDLE_RE,
 	LANGS,
@@ -31,8 +33,11 @@ import {
 	REPLY_MAX,
 	REPORT_DETAIL_MAX,
 	REPORT_REASONS,
+	TOP_DAYS,
 	type Blocked,
 	type CommunityProblem,
+	type Feed,
+	type FeedSort,
 	type Lang,
 	type Me,
 	type Post,
@@ -182,6 +187,28 @@ export async function subjectNotes(env: Env, viewer: number, subject: string): P
 		mine: m ? toPost(m) : null,
 		total: (total.results[0] as { n: number } | undefined)?.n ?? 0
 	};
+}
+
+/**
+ * The Community home: everyone's shared notes on every item, yours included.
+ * `new` pages by offset of newest first; `top` is the most liked of the last
+ * TOP_DAYS days. Hidden, removed, banned, closed and blocked authors are left
+ * out by `visible`, like everywhere else.
+ */
+export async function feed(env: Env, viewer: number, url: URL, now = Date.now()): Promise<Feed> {
+	const sort: FeedSort = url.searchParams.get('sort') === 'top' ? 'top' : 'new';
+	const offset = Math.max(0, Math.min(500, Number(url.searchParams.get('before')) || 0));
+	const where = sort === 'top' ? `AND p.created_at >= ${now - TOP_DAYS * 86_400_000}` : '';
+	const order = sort === 'top' ? 'p.like_count DESC, p.created_at DESC' : 'p.created_at DESC, p.id DESC';
+	const { results } = await env.DB.prepare(
+		`SELECT ${POST_COLS} ${POST_FROM}
+		  WHERE p.type = 'note' AND (p.author_id != ?1 OR p.status = 'published') AND ${visible('p')} ${where}
+		  ORDER BY ${order} LIMIT ${FEED_PAGE + 1} OFFSET ?2`
+	)
+		.bind(viewer, offset)
+		.all<Row<Post>>();
+	const more = results.length > FEED_PAGE;
+	return { posts: results.slice(0, FEED_PAGE).map(toPost), next: more ? offset + FEED_PAGE : null };
 }
 
 async function visiblePost(env: Env, viewer: number, id: number): Promise<Post> {
@@ -394,6 +421,7 @@ export async function handleCommunity(req: Request, env: Env, url: URL): Promise
 	const s = await signedIn(req, env);
 	if (p === '/api/community/me' && m === 'GET') return json(await me(env, s.userId));
 	if (p === '/api/community/profile' && m === 'PUT') return json(await setProfile(env, s, await readJson(req, 1024)));
+	if (p === '/api/community/feed' && m === 'GET') return json(await feed(env, s.userId, url));
 	if (p === '/api/community/subject' && m === 'GET') return json(await subjectNotes(env, s.userId, url.searchParams.get('s') ?? ''));
 	if (p === '/api/community/posts' && m === 'POST') return json(await shareNote(env, s, await readJson(req, MAX_BODY)));
 	let r = /^\/api\/community\/posts\/(\d+)$/.exec(p);
