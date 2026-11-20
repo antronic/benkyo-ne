@@ -58,6 +58,16 @@
 		return out;
 	});
 
+	/** the "More below" button (kit ScrollMore, in the root layout) floats above the composer, which grows with the text */
+	let chatEl: HTMLElement | undefined = $state();
+	$effect(() => {
+		const composer = chatEl?.querySelector<HTMLElement>('.composer');
+		if (!composer) return;
+		const ro = new ResizeObserver(() => (ui.scrollClear = composer.offsetHeight + 12)); // the composer sits 12px above the safe area
+		ro.observe(composer);
+		return () => (ro.disconnect(), (ui.scrollClear = 0));
+	});
+
 	onMount(() => {
 		void (async () => {
 			threads = await loadThreads();
@@ -274,7 +284,7 @@
 	{/if}
 {/snippet}
 
-<main class="chat">
+<main class="chat" bind:this={chatEl}>
 	<header class="top">
 		<div class="top-row">
 			<IconButton label={t('common.back')} onclick={() => goto('/ai')}>

@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
+	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, ScrollMore, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
 	import { avatarSvg } from '#lib/avatar/render.ts';
 	import { DEFAULTS as AV_DEFAULTS, SKIN, type Person } from '#lib/avatar/person.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
@@ -668,6 +668,10 @@
 				<p class="caption">Inline, when one panel fails and the rest of the screen still works (Fleet → Packages saving a credit rate):</p>
 				<ErrorState kind="server" layout="inline" status={500} errorId="E-9QH2MX" build="1795166208411" message="PUT /api/admin/credit-rates → 500" retry={() => wait(900)} />
 				<ErrorState kind="offline" layout="inline" retry={() => wait(900)} />
+
+				<SectionHeader title="More below" />
+				<p class="caption">Floats above the bottom of a long screen while more than about half a screen is still below, and scrolls smoothly to the end when tapped. It clears the tab bar, the safe area, the keyboard and the Ask AI composer, and hides near the bottom. The root layout shows it on every screen, so there is nothing to add per screen.</p>
+				<div class="row"><ScrollMore demo /></div>
 
 				<SectionHeader title="Field with an action" />
 				<Card padding="md">

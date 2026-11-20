@@ -1384,4 +1384,6 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'error.sendNote': 'ส่ง',
 	'error.noteSent': 'ขอบคุณ แนบไปกับรายงานแล้ว',
 	'error.noteFailed': 'ส่งไม่สำเร็จ คัดลอกรายละเอียดแทนได้',
+	'scrollMore.text': 'ยังมีต่อด้านล่าง',
+	'scrollMore.label': 'ยังมีต่อด้านล่าง ไปที่ด้านล่างสุด',
 };

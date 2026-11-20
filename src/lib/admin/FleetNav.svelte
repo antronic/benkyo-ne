@@ -9,6 +9,7 @@
 	import { MediaQuery } from 'svelte/reactivity';
 	import { Button, Card, MenuBar, Sheet, SideNav } from '#lib/ui/index.ts';
 	import { FLEET_EXIT, FLEET_NAV, FLEET_SIDEBAR_QUERY, fleetSection } from './nav.ts';
+	import { ui } from '#lib/state/ui.svelte.ts';
 
 	const sidebar = new MediaQuery(FLEET_SIDEBAR_QUERY);
 	const section = $derived(fleetSection(page.url.pathname));
@@ -18,6 +19,12 @@
 	$effect(() => {
 		document.documentElement.classList.add('fleet-shell');
 		return () => document.documentElement.classList.remove('fleet-shell');
+	});
+	// The "More below" button (kit ScrollMore) floats above the menu pill: 48px tall, 12px above the safe area.
+	$effect(() => {
+		if (sidebar.current) return;
+		ui.scrollClear = 48 + 12;
+		return () => (ui.scrollClear = 0);
 	});
 	// A page change (from the sheet, a crumb or a link) closes the menu.
 	$effect(() => {
