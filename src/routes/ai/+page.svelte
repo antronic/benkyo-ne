@@ -1,4 +1,4 @@
-<!-- ✨ AI hub: make word-card packs, make lesson packs, ask the tutor. -->
+<!-- ✨ AI hub: make word-card packs, make lesson packs, ask the tutor, check a message (Writing helper). -->
 <script lang="ts">
 	import { formatCredits } from '#lib/ai/credits.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
@@ -10,7 +10,8 @@
 	const ACTIONS = [
 		{ href: '/words/new?mode=scenario', icon: '🃏', title: 'ai.packTitle', desc: 'ai.packDesc' },
 		{ href: '/ai/lesson', icon: '📚', title: 'ai.lessonTitle', desc: 'ai.lessonDesc' },
-		{ href: '/ai/ask', icon: '💬', title: 'ai.askTitle', desc: 'ai.askDesc' }
+		{ href: '/ai/ask', icon: '💬', title: 'ai.askTitle', desc: 'ai.askDesc' },
+		{ href: '/ai/write', icon: '✍️', title: 'ai.writeTitle', desc: 'ai.writeDesc' }
 	] as const;
 </script>
 
@@ -49,10 +50,10 @@
 		display: grid;
 		gap: var(--space-3);
 	}
-	/* three across only when each card stays wide enough for its text (not unfolded portrait) */
+	/* two across only when each card stays wide enough for its text (not unfolded portrait) */
 	@media (min-width: 900px) {
 		.actions {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
 	.actions :global(.action) {

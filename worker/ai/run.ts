@@ -1,13 +1,13 @@
 /**
- * POST /api/ai/propose, /fill, /lesson, /ask and /translate.
+ * POST /api/ai/propose, /fill, /lesson, /ask, /translate and /write.
  *
  * auth (caller) → rate limit → pick the package's AI or the learner's own key
  * for the feature ('vision' when an image is attached; worker/ai/managed.ts) →
  * reserve worst case under the allowance or cap (402 allowance_reached / cap_reached) → call provider → settle ledger with actual usage →
  * validate output (502 invalid_output) → respond.
  */
-import type { AskRequest, Feature, FillRequest, LessonRequest, ProposeRequest, TranslateLang, TranslateRequest } from '../../src/lib/ai/contract.ts';
-import { buildAskPrompt, buildFillPrompt, buildLessonPrompt, buildProposePrompt, buildTranslatePrompt, type PromptParts } from '../../src/lib/ai/prompts.ts';
+import type { AskRequest, Feature, FillRequest, LessonRequest, ProposeRequest, TranslateLang, TranslateRequest, WriteRequest } from '../../src/lib/ai/contract.ts';
+import { buildAskPrompt, buildFillPrompt, buildLessonPrompt, buildProposePrompt, buildTranslatePrompt, buildWritePrompt, type PromptParts } from '../../src/lib/ai/prompts.ts';
 import {
 	parseAskRequest,
 	parseFillRequest,
@@ -15,11 +15,13 @@ import {
 	parseModelJson,
 	parseProposeRequest,
 	parseTranslateRequest,
+	parseWriteRequest,
 	validateAskOutput,
 	validateFillOutput,
 	validateLessonOutput,
 	validateProposeOutput,
 	validateTranslateOutput,
+	validateWriteOutput,
 	type Result
 } from '../../src/lib/ai/validate.ts';
 import type { Env } from '../env.ts';
@@ -36,8 +38,8 @@ import { visibleText } from '../communityData.ts';
 
 const MAX_BODY = 8 * 1024 * 1024; // screenshots
 
-type Kind = 'propose' | 'fill' | 'lesson' | 'ask' | 'translate';
-type Req = ProposeRequest | FillRequest | LessonRequest | AskRequest | TranslateRequest;
+type Kind = 'propose' | 'fill' | 'lesson' | 'ask' | 'translate' | 'write';
+type Req = ProposeRequest | FillRequest | LessonRequest | AskRequest | TranslateRequest | WriteRequest;
 
 export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: ExecutionContext, session: Session) {
 	const body = await readJson(req, kind === 'propose' ? MAX_BODY : 256 * 1024);
@@ -50,7 +52,9 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 					? parseLessonRequest(body)
 					: kind === 'translate'
 						? parseTranslateRequest(body)
-						: parseAskRequest(body);
+						: kind === 'write'
+							? parseWriteRequest(body)
+							: parseAskRequest(body);
 	if (!parsed.ok) return aiError(400, 'bad_request', parsed.error);
 
 	// Translate: the Worker reads the note itself, only what this learner may see
@@ -75,8 +79,10 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 					? buildLessonPrompt(parsed.value as LessonRequest)
 					: kind === 'translate'
 						? buildTranslatePrompt({ ...source!, to: (parsed.value as TranslateRequest).to })
-						: buildAskPrompt(parsed.value as AskRequest);
-	// lesson packs and Ask AI use the "Suggestions" model
+						: kind === 'write'
+							? buildWritePrompt(parsed.value as WriteRequest)
+							: buildAskPrompt(parsed.value as AskRequest);
+	// lesson packs, Ask AI and the Writing helper use the "Suggestions" model
 	const feature: Feature = parts.image ? 'vision' : kind === 'fill' ? 'fill' : kind === 'translate' ? 'translate' : 'propose';
 
 	// the package's AI or the learner's own key (worker/ai/managed.ts), worst case reserved
@@ -146,6 +152,8 @@ export async function handleGenerate(kind: Kind, req: Request, env: Env, ctx: Ex
 					return validateLessonOutput(raw, parsed.value as LessonRequest);
 				case 'translate':
 					return validateTranslateOutput(raw, (parsed.value as TranslateRequest).to);
+				case 'write':
+					return validateWriteOutput(raw, parsed.value as WriteRequest);
 				default:
 					return validateAskOutput(raw, parsed.value as AskRequest);
 			}

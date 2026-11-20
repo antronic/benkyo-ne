@@ -214,7 +214,7 @@ export function reserveFor(env: Env, userId: number, t: AiTarget, feature: Featu
 	});
 }
 
-const FEATURE_NAME: Record<Feature, string> = { fill: 'filling in cards', propose: 'suggestions and Ask AI', vision: 'reading photos', translate: 'translating community notes' };
+const FEATURE_NAME: Record<Feature, string> = { fill: 'filling in cards', propose: 'suggestions, Ask AI and the Writing helper', vision: 'reading photos', translate: 'translating community notes' };
 const day = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 
 /**

@@ -31,6 +31,9 @@
 			const units = COURSES.find((c) => c.id === x.course)?.units ?? [];
 			return words.list.some((c) => units.some((u) => c.tags.includes(courseTag(x.course, u.id))));
 		}
+		// everyday learners: a unit of their level done, and a word met in a photo, look-up or message
+		if (x.kind === 'level') return progress.completed.some((id) => id.startsWith(`${x.jlpt.toLowerCase()}-`));
+		if (x.kind === 'everyday') return words.list.some((c) => (c.seen?.count ?? 0) > 0);
 		return false;
 	}
 	const allDone = $derived(steps.length > 0 && steps.every(done));
@@ -38,9 +41,29 @@
 	const show = $derived(profile.loaded && (p ? !p.skipped && !p.hidden && !allDone : progress.learnedCount < 10));
 
 	const icon = (x: Step) =>
-		x.kind === 'lesson' ? 'あ' : x.kind === 'placement' ? (x.script === 'hiragana' ? 'あ' : 'ア') : (GOALS.find((g) => g.id === p?.goals[0])?.emoji ?? '✨');
+		x.kind === 'lesson'
+			? 'あ'
+			: x.kind === 'placement'
+				? x.script === 'hiragana'
+					? 'あ'
+					: 'ア'
+				: x.kind === 'level'
+					? '📗'
+					: x.kind === 'everyday'
+						? '📖'
+						: (GOALS.find((g) => g.id === p?.goals[0])?.emoji ?? '✨');
 	const title = (x: Step) =>
-		x.kind === 'lesson' ? t.steps.lesson : x.kind === 'placement' ? t.steps.placement[x.script] : x.kind === 'course' ? t.steps.course(x.course) : '';
+		x.kind === 'lesson'
+			? t.steps.lesson
+			: x.kind === 'placement'
+				? t.steps.placement[x.script]
+				: x.kind === 'course'
+					? t.steps.course(x.course)
+					: x.kind === 'level'
+						? t.steps.level(x.jlpt)
+						: x.kind === 'everyday'
+							? t.steps.everyday
+							: '';
 </script>
 
 {#if show}
@@ -57,7 +80,7 @@
 					{@const ok = done(x)}
 					<li class:ok class:next={x === nextStep}>
 						<a href={x.href}>
-							<span class="badge" class:jp={x.kind !== 'course'}>{ok ? '✓' : icon(x)}</span>
+							<span class="badge" class:jp={x.kind === 'lesson' || x.kind === 'placement'}>{ok ? '✓' : icon(x)}</span>
 							<span class="headline">{title(x)}</span>
 							<span class="spacer"></span>
 							{#if x === nextStep}<span class="go">›</span>{/if}

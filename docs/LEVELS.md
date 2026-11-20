@@ -128,4 +128,4 @@ All 27 are AI drafts waiting for review. Kanji: all 79 N5 kanji on Waller's list
 | n5-26 | What I want to do | 本 | 〜たいです, どうして・なぜ, 何も・だれも・どこへも + negative |
 | n5-27 | A summer festival | 人 | ぜんぜん〜ない, 何か・どこか・だれか, それから・でも・だから |
 
-Not yet built: the onboarding level picker, a local review page, and recorded audio (🔊 uses the device voice).
+The onboarding level picker is built (docs/EVERYDAY.md, "I use Japanese every day"). Not yet built: a local review page, and recorded audio (🔊 uses the device voice).
