@@ -17,6 +17,10 @@ It shows on Today, in Settings, on community posts and replies, and beside your 
 `AvatarSetup.svelte` steps: start → consent (selfie only) → getting ready (first time: downloads
 the reader) → camera or "Choose a photo" → reading → result (answer any questions, Tweak or
 Looks good) → save. "Build it myself" opens `AvatarEditor.svelte` at any step and works offline.
+The editor's preview is the SVG still, never the live avatar: `mountAvatar`'s `update()` tears the
+GPU engine down and builds a new one (and bakes a new wave strip) on every change, which on iPhone
+and iPad heated the device and showed torn, striped frames. The preview and the tabs stick to the
+top while the options scroll, and the preview shrinks from 150 to 96 px.
 
 The camera step opens the front camera and shows a spinner until the picture is live. When the
 device has two or more cameras, a switch button (kit `IconButton`, top right of the viewfinder)
@@ -83,6 +87,7 @@ with head coverings, hats and 16 hairstyles). `render.ts` wraps it:
 - `avatarSvg(person, size)`: a memoised still SVG, used for every small avatar and tile.
 - `mountLive(el, person, …)`: the live 3D avatar (three.js WebGPU build at
   `/avatar/vendor/three.webgpu.min.js`), at most two at once, off when reduced motion is on.
+  Use it only where the person does not change while it shows (result screen, Today), not in editors.
 
 `scripts/copy-avatar-vendor.mjs` copies three.js and the MediaPipe wasm into
 `static/avatar/vendor/` (gitignored) before `dev` and `build`. The two model files are committed in
