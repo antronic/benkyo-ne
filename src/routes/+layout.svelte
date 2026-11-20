@@ -11,6 +11,7 @@
 	import Splash from '#lib/components/Splash.svelte';
 	import Intro from '#lib/components/Intro.svelte';
 	import Welcome from '#lib/components/Welcome.svelte';
+	import Handoff from '#lib/components/Handoff.svelte';
 	import BetaConsent from '#lib/components/BetaConsent.svelte';
 	import AvatarSetup from '#lib/components/AvatarSetup.svelte';
 	import { avatar } from '#lib/state/avatar.svelte.ts';
@@ -53,7 +54,8 @@
 	// A promo link (?ref=CODE, src/lib/promo/link.ts): kept on this device until someone is
 	// signed in and past the welcome and consent screens, then redeemed once.
 	let redeeming = false;
-	const promoReady = () => progress.ready && words.ready && ai.checked && !ui.showIntro && !ui.showOnboarding && !ui.showWelcome && !ai.needsConsent;
+	const promoReady = () =>
+		progress.ready && words.ready && ai.checked && !ui.showIntro && !ui.showOnboarding && !ui.onboardingNext && !ui.showWelcome && !ui.handoff && !ai.needsConsent;
 	$effect(() => {
 		const ready = promoReady();
 		const signedIn = ai.signedIn && !!ai.account?.id;
@@ -199,8 +201,14 @@
 			return;
 		}
 		if (r.result === 'linked') toast(t('apple.connected'), '✓');
-		else if (r.result === 'created') (avatar.afterSignup = true), toast(t('welcome.toBeta', { name: ai.account?.name ?? '' }).trim(), '🎉', 2800);
-		else toast(t('welcome.back', { name: ai.account?.name ?? '' }).trim(), '👋');
+		else if (r.result === 'created') {
+			avatar.afterSignup = true;
+			toast(t('welcome.toBeta', { name: ai.account?.name ?? '' }).trim(), '🎉', 2800);
+			await afterWelcome('created');
+		} else {
+			toast(t('welcome.back', { name: ai.account?.name ?? '' }).trim(), '👋');
+			await afterWelcome('signedIn');
+		}
 	}
 
 	// Page morphs with the View Transitions API (falls back to instant swap).
@@ -219,13 +227,20 @@
 	let kuriPending = $state(false);
 	$effect(() => {
 		if (!kuriPending || !progress.settings.kuri || page.url.pathname !== '/') return;
-		if (ui.showIntro || ui.showOnboarding || ui.showWelcome || ai.needsConsent || avatar.setup || avatar.afterSignup) return;
+		if (ui.showIntro || ui.showOnboarding || ui.onboardingNext || ui.showWelcome || ui.handoff || ai.needsConsent || avatar.setup || avatar.afterSignup) return;
 		kuriPending = false;
 		ui.showKuriIntro = true;
 	});
-	// The avatar step of sign-up (docs/AVATAR.md): after the welcome (and its recovery code) and the beta consent.
+	// Sign-up (docs/ONBOARDING.md): the welcome (and its recovery code) → the beta consent →
+	// the first-run questions → the avatar step (docs/AVATAR.md) → Today.
 	$effect(() => {
-		if (!avatar.afterSignup || avatar.setup || ui.showIntro || ui.showOnboarding || ui.showWelcome) return;
+		if (!ui.onboardingNext || ui.showIntro || ui.showWelcome || ui.showOnboarding || ai.needsConsent || avatar.setup) return;
+		ui.onboardingNext = false;
+		firstRun = true;
+		ui.showOnboarding = true;
+	});
+	$effect(() => {
+		if (!avatar.afterSignup || avatar.setup || ui.showIntro || ui.showOnboarding || ui.onboardingNext || ui.showWelcome) return;
 		if (!ai.signedIn || ai.needsConsent) return;
 		avatar.setup = 'signup';
 	});
@@ -241,6 +256,50 @@
 		if (!ai.checked) await ai.refresh();
 		if (!ai.signedIn) ui.showWelcome = true;
 	}
+	/** the intro ended with no answers on this device: the questions come after sign-up */
+	let askAfterWelcome = false;
+	/**
+	 * After the welcome sheet. A new account answers the questions (unless this device already
+	 * has answers) after its consent; "Not now" answers them straight away on a first run; an
+	 * existing account signing in is not asked again. Signing in or up shows a loading screen
+	 * until the next screen is ready.
+	 */
+	async function afterWelcome(how: 'created' | 'signedIn' | 'later') { // ui-ok: the Handoff loading screen covers it; the profile read is a quick local read
+		const ask = askAfterWelcome;
+		askAfterWelcome = false;
+		if (how !== 'later') startHandoff(how === 'created' ? 'signup' : 'signin');
+		ui.showWelcome = false;
+		if (how === 'signedIn') return;
+		if (how === 'later' && !ask) return;
+		if (!(await profile.load().catch(() => null))) ui.onboardingNext = true;
+		else if (ui.handoff === 'signup') endHandoffSoon();
+	}
+
+	// The loading screen after sign-in or sign-up (Handoff.svelte): it stays at least long
+	// enough to cover the welcome sheet's fade, and ends when the next screen is up.
+	const HANDOFF_MIN_MS = 450;
+	const HANDOFF_MAX_MS = 8000;
+	let handoffAt = 0;
+	let handoffTimer: ReturnType<typeof setTimeout> | undefined;
+	function startHandoff(kind: 'signin' | 'signup') {
+		ui.handoff = kind;
+		handoffAt = Date.now();
+		clearTimeout(handoffTimer);
+		handoffTimer = setTimeout(() => (ui.handoff = null), HANDOFF_MAX_MS); // never stuck
+		if (page.url.pathname !== '/') void goto('/', { replaceState: true });
+		// signing in brings the account's progress: wait for it, so Today opens with it
+		if (kind === 'signin') void sync().catch(() => null).finally(endHandoffSoon);
+	}
+	function endHandoffSoon() {
+		const wait = Math.max(0, HANDOFF_MIN_MS - (Date.now() - handoffAt));
+		clearTimeout(handoffTimer);
+		handoffTimer = setTimeout(() => (ui.handoff = null), wait);
+	}
+	// sign-up: the next screen (consent, questions or avatar step) is on screen underneath
+	$effect(() => {
+		if (ui.handoff !== 'signup') return;
+		if (ai.needsConsent || ui.showOnboarding || avatar.setup) untrack(endHandoffSoon);
+	});
 </script>
 
 <Backdrop hue={ui.hue} />
@@ -281,9 +340,11 @@
 		ondone={async () => {
 			ui.showIntro = false;
 			void idbPut('meta', true, 'introSeen');
-			// first run: a few questions to set up the plan, then sign-up
-			if (!(await profile.load())) (firstRun = true), (ui.showOnboarding = true);
-			else await offerWelcome();
+			// first run: sign-up first, then a few questions to set up the plan (afterWelcome)
+			askAfterWelcome = !(await profile.load().catch(() => null));
+			await offerWelcome();
+			// already signed in (the intro replayed from Settings): straight to the questions
+			if (!ui.showWelcome && askAfterWelcome) (askAfterWelcome = false), (ui.onboardingNext = true);
 		}}
 	/>
 {/if}
@@ -295,14 +356,13 @@
 			firstRun = false;
 			// land on Today, where the plan card offers the first step; never jump into a lesson
 			if (page.url.pathname !== '/') void goto('/', { replaceState: true });
-			await offerWelcome();
-			// after the questions (and sign-up, if it's showing), Kuri says hello on Today
-			kuriPending = true;
+			// after the questions (and the avatar step, for a new account), Kuri says hello on Today
+			if (!(await idbGet<boolean>('meta', 'kuriIntroSeen').catch(() => false))) kuriPending = true;
 		}}
 	/>
 {/if}
 {#if ui.showWelcome}
-	<Welcome ondone={() => (ui.showWelcome = false)} />
+	<Welcome ondone={afterWelcome} />
 {/if}
 {#if ui.showKuriIntro}
 	<KuriIntro
@@ -321,6 +381,9 @@
 {/if}
 {#if avatar.setup && !ai.needsConsent}
 	<AvatarSetup from={avatar.setup} />
+{/if}
+{#if ui.handoff}
+	<Handoff kind={ui.handoff} />
 {/if}
 <Splash ready={progress.ready && words.ready} />
 <UpdateBanner />

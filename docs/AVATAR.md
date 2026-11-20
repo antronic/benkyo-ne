@@ -5,9 +5,10 @@ It shows on Today, in Settings, on community posts and replies, and beside your 
 
 ## Flow
 
-- **Sign-up.** Registration (passkey, recovery code, consent), then the avatar step, then Today.
+- **Sign-up.** Registration (passkey, recovery code, consent), then the first-run questions
+  ([ONBOARDING.md](ONBOARDING.md)), then the avatar step, then Today.
   `Welcome.svelte` (and the Apple `created` result) sets `avatar.afterSignup`; `+layout.svelte`
-  opens `AvatarSetup` once the intro, onboarding and Welcome sheets are closed. Closing the step
+  opens `AvatarSetup` once the intro, Welcome and onboarding sheets are closed (and no questions are waiting, `ui.onboardingNext`). Closing the step
   in sign-up mode goes to `/`, never a lesson.
 - **Existing accounts.** A one-time card on Today ("Make it" / "Not now"). It shows while
   `account.avatarAsked` is false. Saving or "Not now" sets `accounts.avatar_asked_at`, so the
