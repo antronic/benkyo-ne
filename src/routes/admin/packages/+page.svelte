@@ -35,7 +35,7 @@
 	/** the new-package form */
 	let making = $state<{ name: string; blurb: string; month: string; year: string; credits: string } | null>(null);
 	/** the model whose credit rate is being edited, as form strings */
-	let rating = $state<{ key: string; providerId: number; model: string; unit: string; input: string; output: string } | null>(null);
+	let rating = $state<{ key: string; providerId: number; model: string; unit: string; input: string | number | null; output: string | number | null } | null>(null);
 	const FEATURES: AdminFeature[] = ['fill', 'propose', 'vision', 'translate'];
 
 	async function load() {
@@ -203,8 +203,14 @@
 			? { key: rateKey(r), providerId: r.providerId, model: r.model, unit: String(r.rate.unit), input: String(r.rate.inputCredits), output: String(r.rate.outputCredits) }
 			: { key: rateKey(r), providerId: r.providerId, model: r.model, unit: '1000000', input: String(+((r.inputPerM ?? 0) * per).toFixed(4)), output: String(+((r.outputPerM ?? 0) * per).toFixed(4)) };
 	}
+	/**
+	 * A number field's bound value is a number once typed in (Svelte binds
+	 * type="number" as a number), and null or '' when empty: never call string
+	 * methods on it.
+	 */
+	const filled = (v: string | number | null | undefined) => v !== null && v !== undefined && String(v).trim() !== '';
 	const ratingValid = $derived(
-		!!rating && rating.input.trim() !== '' && rating.output.trim() !== '' && Number(rating.input) >= 0 && Number(rating.output) >= 0
+		!!rating && filled(rating.input) && filled(rating.output) && Number(rating.input) >= 0 && Number(rating.output) >= 0
 	);
 	/** What one credit is worth in provider cost at the rate being typed, as a hint. */
 	const ratingHint = $derived.by(() => {
@@ -218,7 +224,7 @@
 	function changeUnit(next: string) {
 		if (!rating) return;
 		const k = Number(next) / Number(ratingUnit || next);
-		const scale = (v: string) => (v.trim() === '' || !Number.isFinite(Number(v)) ? v : String(+(Number(v) * k).toPrecision(6)));
+		const scale = (v: string | number | null) => (!filled(v) || !Number.isFinite(Number(v)) ? v : String(+(Number(v) * k).toPrecision(6)));
 		rating.input = scale(rating.input);
 		rating.output = scale(rating.output);
 		ratingUnit = next;
