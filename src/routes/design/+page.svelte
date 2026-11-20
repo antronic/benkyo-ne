@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
+	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
 	import { avatarSvg } from '#lib/avatar/render.ts';
 	import { DEFAULTS as AV_DEFAULTS, SKIN, type Person } from '#lib/avatar/person.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
@@ -36,6 +36,19 @@
 	let confirmName = $state('');
 	let picked = $state('');
 	let sheetOpen = $state(false);
+	// error pages draft: one ErrorState per kind, fake id and build, no network
+	let errKind = $state<ErrorKind>('server');
+	const ERR_KINDS: { value: ErrorKind; label: string }[] = [
+		{ value: 'server', label: '500' },
+		{ value: 'crash', label: 'Bug' },
+		{ value: 'offline', label: 'Offline' },
+		{ value: 'not-found', label: '404' },
+		{ value: 'session', label: 'Signed out' },
+		{ value: 'access', label: 'Fleet 403' },
+		{ value: 'update', label: 'Update' }
+	];
+	const ERR_STATUS: Partial<Record<ErrorKind, number>> = { server: 500, 'not-found': 404, session: 401, access: 403 };
+	const fakeNote = async (note: string) => (await wait(800), note.length > 0); // ui-ok: demo for ErrorState, whose Send button shows busy
 	const demoCommunity = fakeCommunity();
 	const demoFeedback = fakeFeedback();
 	const demoFeedbackFail = fakeFeedback({ fail: true });
@@ -633,6 +646,29 @@
 					<Notice tone="danger">Couldn't reach the server. Your progress is saved on this device.</Notice>
 				</div>
 
+				<SectionHeader title="Error pages" />
+				<p class="caption">What went wrong in plain words, what still works, and the next step. The error ID and build are on screen so a screenshot is a full report. Pick a case:</p>
+				<div class="row wrap" style:--gap="var(--space-2)" role="group" aria-label="Error case">
+					{#each ERR_KINDS as k (k.value)}<Chip selected={errKind === k.value} onclick={() => (errKind = k.value)}>{k.label}</Chip>{/each}
+				</div>
+				<Card padding="none" class="err-frame">
+					{#key errKind}
+						<ErrorState
+							kind={errKind}
+							status={ERR_STATUS[errKind]}
+							errorId="E-7F3K2Q"
+							build="1795166208411"
+							message="PUT /api/admin/credit-rates → 500"
+							retry={() => wait(900)}
+							sendNote={fakeNote}
+							home={errKind === 'access' ? { href: '/admin', label: 'Fleet overview' } : undefined}
+						/>
+					{/key}
+				</Card>
+				<p class="caption">Inline, when one panel fails and the rest of the screen still works (Fleet → Packages saving a credit rate):</p>
+				<ErrorState kind="server" layout="inline" status={500} errorId="E-9QH2MX" build="1795166208411" message="PUT /api/admin/credit-rates → 500" retry={() => wait(900)} />
+				<ErrorState kind="offline" layout="inline" retry={() => wait(900)} />
+
 				<SectionHeader title="Field with an action" />
 				<Card padding="md">
 					<div class="stack" style:--gap="var(--space-3)">
@@ -799,6 +835,13 @@
 </Sheet>
 
 <style>
+	.wrap {
+		flex-wrap: wrap;
+	}
+	.panel :global(.err-frame) {
+		overflow: hidden;
+		background: var(--color-bg);
+	}
 	.catalog {
 		--panel-max: 640px;
 		--page-max: 1280px;

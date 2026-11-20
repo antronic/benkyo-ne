@@ -74,7 +74,7 @@ beta data.
 | `notes` | Personal notes, key `subject` (VERSION 3) | `notes.svelte.ts`, sync |
 
 localStorage keys: `benkyo.locale` (interface language), `benkyo.errors` (last 20 errors caught on this device), `benkyo.debug` (debug mode), `benkyo.avatar` (the signed-in account's avatar parts, for offline), `benkyo.boot` (startup safe mode), `benkyo.avatarStrips` (iPhone/iPad: old avatar wave strips cleared once),
-`benkyo.installCard` (install card dismissed), `benkyo.plan` (last known package, grant end and name of the signed-in account, for the Today badge offline;
+`benkyo.installCard` (install card dismissed), `benkyo.levelUp` (Next level suggestion hidden, `N5>N4`), `benkyo.plan` (last known package, grant end and name of the signed-in account, for the Today badge offline;
 `src/lib/state/plan.svelte.ts`).
 
 ## Shared things
@@ -97,4 +97,5 @@ Announce a change to any of these to the other threads ([teamwork.md](guides/tea
 | HTTP helpers | `worker/http.ts` | `json`, `aiError`, `httpError`, `readJson` |
 | Worker config | `worker/env.ts`, `wrangler.jsonc`, `wrangler.embedded.jsonc` | Keep both wrangler files in step |
 | Device and layout | `src/lib/ios/device.svelte.ts` (`RAIL_QUERY`, also in `app.css` and `TabBar.svelte`) | Change all three together |
+| Error pages | `src/routes/+error.svelte`, `src/lib/errorKind.ts`, kit `ErrorState` | Every route error (learner and Fleet) goes through `ErrorState`; a panel that fails inside a screen uses `layout="inline"` instead of throwing. The error ID comes from `page.error.errorId` |
 | Startup | `src/app.html`, `src/lib/boot.ts`, `src/service-worker/` | Must survive failed imports and slow storage on Safari |

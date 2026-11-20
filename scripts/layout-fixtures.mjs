@@ -179,7 +179,8 @@ export const FLEET_FIXTURES = {
 
 /**
  * Fleet screens checked with data. `open` lists button texts to press first,
- * so forms and pickers that start closed are checked open.
+ * so forms and pickers that start closed are checked open; `type` maps a
+ * field selector to text typed into it key by key (a script error fails).
  */
 export const FLEET_SCREENS = [
 	{ path: '/admin/ai', open: [] },
@@ -190,6 +191,7 @@ export const FLEET_SCREENS = [
 	{ path: '/admin/packages', open: ['＋ New package'], label: 'new package form' },
 	{ path: '/admin/packages', open: ['Change'], label: 'model picker' },
 	{ path: '/admin/packages', open: ['Set rate'], label: 'credit rate form' },
+	{ path: '/admin/packages', open: ['Set rate', 'Per 1K'], type: { '#rate-in': '2.5', '#rate-out': '10' }, label: 'credit rate typed in' },
 	{ path: '/admin/promos', open: [] },
 	{ path: '/admin/invitations', open: [] },
 	{ path: '/admin/invitations', open: ['＋ New VIP'], label: 'new VIP' },

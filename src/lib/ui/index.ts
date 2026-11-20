@@ -49,3 +49,5 @@ export { default as MarkedText } from './MarkedText.svelte';
 export type { MarkedPart } from './MarkedText.svelte';
 export { default as KanjiTile } from './KanjiTile.svelte';
 export { default as SpeechBubble } from './SpeechBubble.svelte';
+export { default as ErrorState } from './ErrorState.svelte';
+export type { ErrorKind, ErrorAction } from './ErrorState.svelte';
