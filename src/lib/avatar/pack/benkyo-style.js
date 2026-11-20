@@ -203,7 +203,7 @@ function layers(st) {
 }
 
 /* ---------- rig: Coreva's joints, face blend shapes and waving arm ----------
- * Copied from coreva-avatar.js 0.6.1 (rigDef, buildFace, buildArm, flatMat, buildFlatRig), with Benkyo's
+ * Copied from coreva-avatar.js 0.6.1, unchanged in 0.6.2 (rigDef, buildFace, buildArm, flatMat, buildFlatRig), with Benkyo's
  * palettes. Remove this block when the engine exports it (docs/AVATAR.md, "Asks for Coreva Render"). */
 function qpts(x0, y0, cx, cy, x1, y1, n) { var p = []; n = n || 12; for (var i = 0; i <= n; i++) { var t = i / n, u = 1 - t; p.push([u * u * x0 + 2 * u * t * cx + t * t * x1, u * u * y0 + 2 * u * t * cy + t * t * y1]); } return p; }
 var RIGJ = (function () {
