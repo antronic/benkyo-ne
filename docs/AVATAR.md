@@ -53,6 +53,13 @@ as Tone 8, long hair and no glasses:
   lightness scale. Hue is ignored because indoor light tints it. The result screen always shows
   the skin swatches, so a wrong tone takes one tap to fix. The beard is judged against the cheek
   on the same side, so a shaded jaw isn't read as a beard.
+- **Dim photos** (second sample, 2026-11-20: a dark bathroom, so the face's brightest spot was L* 47
+  and skin, teeth and eye whites all read about 44). A dark photo can't tell light skin in dim
+  light from dark skin in good light. `measure()` now also returns `faceBright` (99th percentile
+  L* inside the face) and `teethL` (pale pixels between parted lips). When `faceBright` is below
+  `DIM_FACE` (60), skin is read against the teeth, which are near-white in any skin tone
+  (skin / teeth × 78 on the photo scale). With no teeth showing, the result screen asks
+  ("too dark to tell") with no tone picked.
 - **Hair length.** Side hair is followed down from the eyes and stops at the first gap. Before,
   any dark patch the segmenter called hair (a shirt or a chair) counted as long hair.
   Roughness (curls) uses the median row jump near the head and skips the round top of the head.

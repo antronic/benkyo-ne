@@ -211,18 +211,19 @@
 		}
 	}
 
-	function answer(q: Ask, v: string) {
+	function answer(q: Exclude<Ask, 'skin'>, v: string) {
 		answered = { ...answered, [q]: true };
 		if (q === 'glasses') person = { ...person, glasses: v as Person['glasses'] };
 		if (q === 'beard') person = { ...person, beard: v as Person['beard'] };
 		if (q === 'head') person = { ...person, head: v as Person['head'] };
 	}
-	const QUESTIONS: Record<Ask, string[]> = {
+	const QUESTIONS: Record<Exclude<Ask, 'skin'>, string[]> = {
 		head: ['none', 'hijab', 'turban', 'headscarf', 'cap', 'beanie', 'bucket'],
 		glasses: ['none', 'round', 'square'],
 		beard: ['none', 'stubble']
 	};
-	const answerOf = (q: Ask) => (q === 'head' ? person.head : q === 'glasses' ? person.glasses : person.beard);
+	const skinAsked = $derived(asks.includes('skin'));
+	const answerOf = (q: Exclude<Ask, 'skin'>) => (q === 'head' ? person.head : q === 'glasses' ? person.glasses : person.beard);
 
 	async function save() {
 		saving = true;
@@ -256,7 +257,7 @@
 		step = 'edit';
 		telemetry.track('event', 'avatar_editor', { from });
 	}
-	const chips = $derived([t(`avatar.opt.hair.${person.hair}` as MessageKey), t(`avatar.opt.eyes.${person.eyes}` as MessageKey), ...(person.glasses !== 'none' ? [t(`avatar.opt.glasses.${person.glasses}` as MessageKey)] : []), t(`avatar.opt.skin.${person.skin}` as MessageKey)]);
+	const chips = $derived([t(`avatar.opt.hair.${person.hair}` as MessageKey), t(`avatar.opt.eyes.${person.eyes}` as MessageKey), ...(person.glasses !== 'none' ? [t(`avatar.opt.glasses.${person.glasses}` as MessageKey)] : []), ...(skinAsked && !answered.skin ? [] : [t(`avatar.opt.skin.${person.skin}` as MessageKey)])]);
 	const READ_STEPS: MessageKey[] = ['avatar.read.face', 'avatar.read.colours', 'avatar.read.parts'];
 	const PROBLEM: Record<NonNullable<typeof problem>, [MessageKey, MessageKey]> = {
 		no_face: ['avatar.problem.noFace', 'avatar.problem.noFaceBody'],
@@ -356,7 +357,7 @@
 				<Avatar {person} {name} size={200} live wave label={t('avatar.previewLabel')} />
 				<div class="chips">{#each chips as c (c)}<Chip>{c}</Chip>{/each}</div>
 			</div>
-			{#each asks as q (q)}
+			{#each asks.filter((q) => q !== 'skin') as q (q)}
 				<Card padding="md">
 					<p class="body-b">{t(`avatar.ask.${q}` as MessageKey)}</p>
 					<div class="chips">
@@ -368,12 +369,13 @@
 			{/each}
 			<!-- light and camera change how skin looks in a photo, so the tone is always one tap away -->
 			<Card padding="md">
-				<p class="body-b">{t('avatar.skinCheck')}</p>
+				<!-- too dim to tell: nothing is picked until the learner taps one -->
+				<p class="body-b">{t(skinAsked && !answered.skin ? 'avatar.skinAsk' : 'avatar.skinCheck')}</p>
 				<SwatchPicker
 					label={t('avatar.part.skin')}
-					value={person.skin}
+					value={skinAsked && !answered.skin ? ('' as Person['skin']) : person.skin}
 					options={Object.entries(SKIN).map(([v, color]) => ({ value: v as Person['skin'], color, label: t(`avatar.opt.skin.${v}` as MessageKey) }))}
-					onchange={(v) => (person = { ...person, skin: v })}
+					onchange={(v) => ((person = { ...person, skin: v }), (answered = { ...answered, skin: true }))}
 				/>
 			</Card>
 			<div class="actions row">

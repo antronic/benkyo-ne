@@ -11,7 +11,7 @@ import { deltaE, hexToLab } from './measure.ts';
 import { DEFAULTS, HAIRC, SKIN, type Person } from './person.ts';
 
 /** Questions the result screen asks when the photo was unclear. */
-export type Ask = 'glasses' | 'beard' | 'head';
+export type Ask = 'glasses' | 'beard' | 'head' | 'skin';
 
 function nearest<K extends string>(lab: number[], palette: Record<K, string>): K {
 	let best = Object.keys(palette)[0] as K,
@@ -29,14 +29,30 @@ function nearest<K extends string>(lab: number[], palette: Record<K, string>): K
  * lightness against this scale, not by colour distance to the drawn swatches.
  */
 export const SKIN_PHOTO_L: Record<keyof typeof SKIN, number> = { s1: 82, s2: 77, s3: 72, s4: 66, s5: 60, s6: 54, s7: 48, s8: 42, s9: 36, s10: 30 };
-/** The skin tone for a photo: the nearest step on the photo lightness scale. Colour is not used: indoor light tints it. */
-export function skinTone(m: Pick<Measurements, 'skinLab'>): keyof typeof SKIN {
+/** Below this, the face has no bright spot at all: the photo is too dim to read skin lightness directly. */
+export const DIM_FACE = 60;
+/** Teeth, mapped onto the photo scale: skin as light as the teeth reads as this (lighter than s2). */
+const TEETH_AS = 78;
+
+const nearestL = (l: number) => {
 	let best: keyof typeof SKIN = 's1',
 		bd = Infinity;
-	for (const [s, v] of Object.entries(SKIN_PHOTO_L) as [keyof typeof SKIN, number][]) {
-		if (Math.abs(m.skinLab[0] - v) < bd) (bd = Math.abs(m.skinLab[0] - v)), (best = s);
-	}
+	for (const [s, v] of Object.entries(SKIN_PHOTO_L) as [keyof typeof SKIN, number][]) if (Math.abs(l - v) < bd) (bd = Math.abs(l - v)), (best = s);
 	return best;
+};
+
+/**
+ * The skin tone for a photo, and whether the photo can tell. Colour is not used: indoor light tints it.
+ * - A well-exposed face: the lit skin's lightness on the photo scale.
+ * - A dim face with teeth showing: skin against the teeth, which are near-white in any skin tone.
+ * - A dim face without teeth: no guess (the default tone), and the learner is asked (`sure: false`). A dark photo
+ *   can't tell light skin in dim light from dark skin in good light.
+ */
+export function skinTone(m: Pick<Measurements, 'skinLab' | 'faceBright' | 'teethL'>): { skin: keyof typeof SKIN; sure: boolean } {
+	if (m.faceBright >= DIM_FACE) return { skin: nearestL(m.skinLab[0]), sure: true };
+	if (m.teethL && m.teethL > 0) return { skin: nearestL(Math.min(1.05, m.skinLab[0] / m.teethL) * TEETH_AS), sure: true };
+	// no guess: the dark reading would only mislead, so the preview keeps the default tone
+	return { skin: DEFAULTS.skin, sure: false };
 }
 
 export function mapToPerson(m: Measurements): { person: Person; ask: Ask[] } {
@@ -44,7 +60,9 @@ export function mapToPerson(m: Measurements): { person: Person; ask: Ask[] } {
 	const p: Person = { ...DEFAULTS };
 
 	p.headShape = m.jawRatio > 0.9 ? 'square' : m.faceRatio < 0.74 ? 'oval' : 'round';
-	p.skin = skinTone(m);
+	const tone = skinTone(m);
+	p.skin = tone.skin;
+	if (!tone.sure) ask.push('skin');
 
 	if (m.hairCovered) {
 		// a hijab, turban, scarf or hat: the learner says which, or none

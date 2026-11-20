@@ -5,7 +5,7 @@ import { cleanPerson, compactPerson, DEFAULTS } from './person.ts';
 
 // synthetic measurements, not real people
 const base: Measurements = {
-	faceRatio: 0.8, jawRatio: 0.8, skinLab: [74, 16, 22], hairArea: 0.25, hairBelowChin: 0, hairFringe: 0.1, hairTop: false, hairRough: 0.05,
+	faceRatio: 0.8, jawRatio: 0.8, skinLab: [74, 16, 22], faceBright: 80, teethL: null, hairArea: 0.25, hairBelowChin: 0, hairFringe: 0.1, hairTop: false, hairRough: 0.05,
 	hairLab: [15, 1, 0], hairCovered: false, eyeOpen: 0.26, smile: 0.2, jawOpen: 0.05, browArch: 0.4, glasses: 0, beardJaw: 0.05, beardLip: 0.03, beardChin: 0.04
 };
 const map = (m: Partial<Measurements>) => mapToPerson({ ...base, ...m });
@@ -113,5 +113,17 @@ describe('measure()', () => {
 		const m = drawnFace({ stray: true });
 		expect(m.hairBelowChin).toBe(0);
 		expect(mapToPerson(m).person.hair).not.toBe('long');
+	});
+
+	it('reads skin in a dim photo against the teeth, or asks', () => {
+		// light skin in a dark bathroom: skin and teeth both come out near L* 44
+		expect(map({ skinLab: [44, 11, 11], faceBright: 47, teethL: 44 }).person.skin).toBe('s2');
+		// dark skin, dim light, smiling: teeth twice as bright as the skin
+		expect(map({ skinLab: [30, 12, 16], faceBright: 55, teethL: 62 }).person.skin).toBe('s9');
+		// dim, lips closed: no reference, so the learner picks
+		const closed = map({ skinLab: [44, 11, 11], faceBright: 47, teethL: null });
+		expect(closed.ask).toContain('skin');
+		// a well-exposed photo needs no question
+		expect(map({ skinLab: [44, 11, 11], faceBright: 75 }).ask).not.toContain('skin');
 	});
 });
