@@ -398,6 +398,9 @@ async function main() {
 				return route.fulfill({ status: body ? 200 : 404, contentType: 'application/json', body: JSON.stringify(body ?? { error: 'not_found' }) });
 			});
 			const fpage = await fctx.newPage();
+			// A script error while a form is used (the SvelteKit "500" page) is a failure too.
+			const pageErrors = [];
+			fpage.on('pageerror', (e) => pageErrors.push(e.message));
 			await fpage.goto(BASE + '/', { waitUntil: 'networkidle' });
 			await fpage.evaluate(skipIntro);
 			for (const s of FLEET_SCREENS) {
@@ -416,6 +419,23 @@ async function main() {
 					await fpage.waitForTimeout(300);
 				}
 				if (!opened) continue;
+				// type into fields (selector → text), as a person would, key by key
+				for (const [sel, text] of Object.entries(s.type ?? {})) {
+					const field = fpage.locator(sel).first();
+					if (!(await field.count())) {
+						problems.push(`${where}: no field ${sel} to type in (update scripts/layout-fixtures.mjs)`);
+						continue;
+					}
+					try {
+						await field.fill('', { timeout: 5000 });
+						await field.pressSequentially(text, { timeout: 5000 });
+					} catch {
+						problems.push(`${where}: typing "${text}" into ${sel} failed: the field went away`);
+					}
+					await fpage.waitForTimeout(200);
+				}
+				for (const e of pageErrors.splice(0)) problems.push(`${where}: script error: ${e}`);
+				if (await fpage.getByText('Internal Error', { exact: true }).count()) problems.push(`${where}: the page broke into the error screen`);
 				const found = await fpage.evaluate(inspect, { EDGE_X, EDGE_Y, MIN_CONTROL, desktop: width >= 600 });
 				for (const f of found) problems.push(`${where}: ${f}`);
 				if (found.length && SHOTS) {
