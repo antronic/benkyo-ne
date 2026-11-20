@@ -44,6 +44,7 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | Sign-up mode, invite codes, VIP invites | everyone, Job | `/api/auth/register/options`, `/api/auth/invite/:code` (card + coupon), `/api/admin/invites` (GET, POST incl. VIP), `/api/admin/invites/:code` (PATCH card/coupon, DELETE revoke), `/api/admin/invites/:code/delete` (POST, soft delete) | `app_settings`, `invite_codes` (+ `card_note`, `card_from`, `card_ink`, `coupon`, `deleted_at`) | `worker/auth/signup.ts`, `worker/invite.ts`, `worker/admin/settings.ts` | `Welcome.svelte`, `src/routes/invite/[code]` (`/invite/VIP` links, `InviteCard`), `src/lib/invite/`, `src/routes/admin/invitations/` (Fleet → Invitations), `src/routes/admin/settings/` (sign-up mode) |
 | AI tutor (BYOK) | AI user | `/api/ai/{ask,ask/stream,fill,propose,lesson,translate}` | `ai_ledger`, `ai_rate` | `worker/ai/{ask,run,anthropic,openai,ledger}.ts` | `src/lib/ai/`, `src/routes/ai/` |
 | Writing helper ([EVERYDAY.md](EVERYDAY.md)) | AI user | `/api/ai/write` (Suggestions model) | `ai_ledger`, `ai_rate` | `worker/ai/run.ts` | `src/routes/ai/write/`, `src/lib/words/writing.ts`, `PolitenessMeter`, `MarkedText`, `SpeechBubble` |
+| Weekly report ([EVERYDAY.md](EVERYDAY.md)) | learner | none | none | none | `src/routes/week/`, `src/lib/report/week.ts`, `src/lib/state/week.svelte.ts`, Today (Your week card), `BarChart`, `StatTile` |
 | AI keys, models, prices, cap | AI user | `/api/ai/{credentials,models,prices,features,cap,usage}` | `ai_credentials`, `ai_feature_models`, `ai_model_prices`, `ai_settings` | `worker/ai/{credentials,models,cost}.ts`, `worker/crypto.ts` | `AiSettings.svelte`, `src/lib/state/ai.svelte.ts` |
 | Managed AI (package AI) | learner on a package | `/api/ai/managed` (+ every `/api/ai/*` call) | `ai_ledger` (`source`, `plan_id`), `accounts.ai_source`, `plans`, `plan_models`, `ai_providers` | `worker/ai/managed.ts`, `worker/ai/{run,ask,ledger}.ts` | `AiSettings.svelte` (Use AI from), `src/lib/state/ai.svelte.ts` (`managed`) |
 | Plans and packages | Job | `/api/admin/packages`, `/api/admin/accounts/:id/grants` | `plans`, `plan_grants` | `worker/plans.ts`, `worker/admin/packages.ts` | `src/routes/admin/packages/` |
@@ -64,7 +65,7 @@ beta data.
 | --- | --- | --- |
 | `cards` | FSRS card state | `progress.svelte.ts`, review |
 | `logs` | Review log (index `synced`) | `progress.svelte.ts`, sync |
-| `meta` | Flags such as `introSeen`, `kuriIntroSeen`; `kanjiWriteSlips` (kanji drawn wrong, device only) | layout, intro, onboarding, `forgetting.svelte.ts` |
+| `meta` | Flags such as `introSeen`, `kuriIntroSeen`; `kanjiWriteSlips` (kanji drawn wrong, device only), `writeChecks` (Writing helper checks, device only) | layout, intro, onboarding, `forgetting.svelte.ts`, `week.svelte.ts` |
 | `userCards` | Learner-made word cards | `words.svelte.ts` |
 | `packs` | Lesson packs | `lessonPacks.svelte.ts` |
 | `outbox` | Changes waiting to sync | `progress.svelte.ts` |

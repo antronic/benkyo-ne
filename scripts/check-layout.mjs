@@ -53,7 +53,7 @@ const SHOTS = process.env.LAYOUT_SHOTS; // optional folder for failure screensho
 // in the PR (docs/guides/working-carefully.md, "Visual review")
 const REVIEW = process.env.LAYOUT_REVIEW;
 
-export const SCREENS = ['/', '/learn', '/learn/level/n5-01', '/learn/browse/kanji', '/learn/browse/kanji/%E6%9D%B1', '/learn/browse/grammar', '/kana', '/words', '/ai', '/ai/ask', '/settings', '/design', '/admin', '/admin/accounts', '/admin/promos'];
+export const SCREENS = ['/', '/learn', '/learn/level/n5-01', '/learn/browse/kanji', '/learn/browse/kanji/%E6%9D%B1', '/learn/browse/grammar', '/kana', '/words', '/ai', '/ai/ask', '/week', '/settings', '/design', '/admin', '/admin/accounts', '/admin/promos'];
 const WIDTHS = [
 	['phone', 390, 844],
 	['ipad', 768, 1024],
@@ -220,7 +220,7 @@ export function routesUnder(dir, base = 'src/routes') {
 	return out.map((r) => r.replace(/\/$/, '') || '/').sort();
 }
 /** Top-level app screens that are deliberately not in the tab bar, and why. */
-const OFF_TAB_BAR = { '/design': 'developer catalog', '/admin': 'Fleet, opened from Settings' };
+const OFF_TAB_BAR = { '/design': 'developer catalog', '/admin': 'Fleet, opened from Settings', '/week': 'weekly report, opened from the Your week card on Today' };
 
 /** Runs in the page: hrefs of the visible links in navs matching `sel`. */
 function navLinks(sel) {

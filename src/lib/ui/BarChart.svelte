@@ -1,19 +1,24 @@
 <!--
-	Fleet console: one bar per UTC day, with hover read-out and a table view
-	for screen readers and exact numbers. Used by Settings (sign-ups) and Usage (spend).
+	One bar per day, with hover read-out and a table view for screen readers and
+	exact numbers. Used by Fleet Settings (sign-ups) and Usage (spend), in UTC
+	days, and by the learner's weekly report (/week), which passes translated
+	`text` and local days.
 -->
 <script lang="ts">
 	let {
 		days,
 		label,
 		format = (n: number) => String(n),
-		column = 'Value'
+		column = 'Value',
+		text = {}
 	}: {
 		days: { day: string; value: number }[];
 		/** what the chart shows, for its accessible name */
 		label: string;
 		format?: (n: number) => string;
 		column?: string;
+		/** translated words for learner screens (English Fleet wording by default) */
+		text?: { today?: string; table?: string; day?: string; none?: string; summary?: string };
 	} = $props();
 
 	const W = 300;
@@ -43,7 +48,7 @@
 		viewBox="0 0 {W} {H}"
 		preserveAspectRatio="none"
 		role="img"
-		aria-label="{label} over {days.length} days, {format(total)} in total, at most {format(top)} in a day"
+		aria-label={text.summary ?? `${label} over ${days.length} days, ${format(total)} in total, at most ${format(top)} in a day`}
 		onmouseleave={() => (hover = null)}
 	>
 		<line x1="0" x2={W} y1={H - 0.5} y2={H - 0.5} class="base" />
@@ -59,16 +64,16 @@
 		<figcaption class="caption row">
 			<span>{dayLabel(days[0].day)}</span><span class="spacer"></span>
 			{#if hover !== null}<b>{dayLabel(days[hover].day)}: {format(days[hover].value)}</b><span class="spacer"></span>{/if}
-			<span>Today</span>
+			<span>{text.today ?? 'Today'}</span>
 		</figcaption>
 	{/if}
 </figure>
 <details>
-	<summary class="caption">Show as a table</summary>
+	<summary class="caption">{text.table ?? 'Show as a table'}</summary>
 	<table class="caption">
-		<thead><tr><th>Day (UTC)</th><th>{column}</th></tr></thead>
+		<thead><tr><th>{text.day ?? 'Day (UTC)'}</th><th>{column}</th></tr></thead>
 		<tbody>
-			{#each days.filter((d) => d.value) as d (d.day)}<tr><td>{dayLabel(d.day)}</td><td class="num">{format(d.value)}</td></tr>{:else}<tr><td colspan="2">None</td></tr>{/each}
+			{#each days.filter((d) => d.value) as d (d.day)}<tr><td>{dayLabel(d.day)}</td><td class="num">{format(d.value)}</td></tr>{:else}<tr><td colspan="2">{text.none ?? 'None'}</td></tr>{/each}
 		</tbody>
 	</table>
 </details>

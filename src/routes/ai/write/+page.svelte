@@ -17,6 +17,7 @@
 	import { saveCandidates, verifiedCandidate } from '#lib/words/maker.ts';
 	import { markChanges, politeGap } from '#lib/words/writing.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
+	import { week } from '#lib/state/week.svelte.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 
 	ui.hue = 265;
@@ -64,6 +65,7 @@
 			checkedTo = to;
 			result = await api.write({ text: checked, to, secondLang: progress.settings.secondLang });
 			haptic(result.fits ? 'success' : 'warning');
+			void week.addCheck({ at: Date.now(), to: checkedTo, gap: politeGap(result.level, WRITE_TARGET[checkedTo], result.fits) });
 		} catch (e) {
 			haptic('error');
 			toast(e instanceof Error ? e.message : t('write.failed'), '⚠️', 2800);
