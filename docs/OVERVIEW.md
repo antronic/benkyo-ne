@@ -197,7 +197,11 @@ All AI is optional; every feature still works without it.
     written (server-sent events from the Worker; Stop keeps what was
     written). Every conversation is saved on the device as a thread: the
     History sheet groups them by day, searches titles and messages, and
-    rows swipe left to delete.
+    rows swipe left to delete. A word card (Words → tap a card → Ask AI
+    about this word) opens a new chat about that word: the word, reading
+    and meaning go to the Worker as `focus` (`AskRequest`), the chat shows
+    an "About this word" card and word starters, and the thread keeps the
+    focus for later questions.
 - **Accuracy:**
   - **Everything the AI writes in Japanese is checked against JMdict on
     the device.**

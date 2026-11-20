@@ -213,6 +213,18 @@ export interface AskRequest {
 	turns: AskTurn[];
 	knownKana: string[];
 	secondLang: string | null;
+	/** the word the chat is about, when it was opened from a word card (Words → card → Ask AI) */
+	focus?: AskFocus | null;
+}
+
+/** A word card's details, passed to Ask AI as the topic of the chat. */
+export interface AskFocus {
+	/** as written (kanji when it has them) */
+	word: string;
+	/** kana reading, or null when the word is kana only */
+	reading: string | null;
+	/** meaning in English */
+	meaning: string;
 }
 
 export interface AskResponse {

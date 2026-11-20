@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildAskStreamPrompt, finishAskText, parseAskText } from './askStream.ts';
-import { searchThreads, sectionOf, titleFor, type AskThread } from './threads.ts';
+import { askAboutHref, focusFromUrl, searchThreads, sectionOf, titleFor, type AskThread } from './threads.ts';
 
 const req = { turns: [{ role: 'user' as const, text: 'hi' }], knownKana: [], secondLang: 'th' };
 
@@ -34,6 +34,32 @@ describe('ask stream format', () => {
 		const p = buildAskStreamPrompt(req);
 		expect(p.plain).toBe(true);
 		expect(p.user).toContain('Second language: th');
+	});
+	it('a chat opened from a word card is about that word', () => {
+		const focus = { word: '食べる', reading: 'たべる', meaning: 'to eat' };
+		const p = buildAskStreamPrompt({ ...req, focus });
+		expect(p.user).toContain(JSON.stringify(focus));
+		expect(p.user.indexOf('食べる')).toBeLessThan(p.user.indexOf('Conversation so far'));
+		expect(buildAskStreamPrompt(req).user).not.toContain('This chat is about');
+	});
+});
+
+describe('ask about a word card', () => {
+	it('round-trips a card through the link', () => {
+		const href = askAboutHref({ front: 'たべる', kanji: '食べる', gloss: 'to eat; to live on' });
+		expect(focusFromUrl(new URL(href, 'https://x'))).toEqual({ word: '食べる', reading: 'たべる', meaning: 'to eat; to live on' });
+		const kana = askAboutHref({ front: 'ねこ', kanji: null, gloss: 'cat' });
+		expect(focusFromUrl(new URL(kana, 'https://x'))).toEqual({ word: 'ねこ', reading: null, meaning: 'cat' });
+	});
+	it('a plain Ask AI link has no word', () => {
+		expect(focusFromUrl(new URL('https://x/ai/ask'))).toBeNull();
+		expect(focusFromUrl(new URL('https://x/ai/ask?word=ねこ'))).toBeNull();
+	});
+	it('titles the chat with the word when the question does not name it', () => {
+		const focus = { word: '食べる', reading: 'たべる', meaning: 'to eat' };
+		expect(titleFor([{ role: 'user', text: 'Is it polite?' }], focus)).toBe('食べる: Is it polite?');
+		expect(titleFor([{ role: 'user', text: 'Show me 食べる in sentences' }], focus)).toBe('Show me 食べる in sentences');
+		expect(titleFor([], focus)).toBe('食べる');
 	});
 });
 

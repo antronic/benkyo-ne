@@ -3,7 +3,7 @@
  * One list under meta/'askThreads'; the open one under meta/'askCurrent'.
  * The single chat from earlier versions (meta/'askThread') becomes the first thread.
  */
-import type { AskResponse } from './contract.ts';
+import type { AskFocus, AskResponse } from './contract.ts';
 import { del, get, put } from '../db/idb.ts';
 
 export interface AskMsg {
@@ -20,15 +20,35 @@ export interface AskThread {
 	createdAt: number;
 	updatedAt: number;
 	msgs: AskMsg[];
+	/** the word this chat is about, when it was started from a word card */
+	focus?: AskFocus | null;
 }
 
 const MAX_THREADS = 200;
 
 export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-export function titleFor(msgs: AskMsg[]): string {
-	const q = msgs.find((m) => m.role === 'user')?.text.replace(/\s+/g, ' ').trim() ?? '';
-	return q.length > 60 ? `${q.slice(0, 57).trimEnd()}…` : q || 'New chat';
+/** A chat about a word card is titled with that word when the question doesn't name it. */
+export function titleFor(msgs: AskMsg[], focus?: AskFocus | null): string {
+	let q = msgs.find((m) => m.role === 'user')?.text.replace(/\s+/g, ' ').trim() ?? '';
+	if (focus && q && !q.includes(focus.word)) q = `${focus.word}: ${q}`;
+	return q.length > 60 ? `${q.slice(0, 57).trimEnd()}…` : q || focus?.word || 'New chat';
+}
+
+/** Words → card → Ask AI: the link that opens a new chat about that card. */
+export function askAboutHref(card: { front: string; kanji: string | null; gloss: string }): string {
+	const q = new URLSearchParams({ word: card.kanji || card.front, meaning: card.gloss });
+	if (card.kanji && card.kanji !== card.front) q.set('reading', card.front);
+	return `/ai/ask?${q}`;
+}
+
+/** The word in an Ask AI link, or null when the link has none (opens the last chat as before). */
+export function focusFromUrl(url: { searchParams: { get(name: string): string | null } }): AskFocus | null {
+	const word = url.searchParams.get('word')?.trim().slice(0, 60);
+	const meaning = url.searchParams.get('meaning')?.trim().slice(0, 300);
+	if (!word || !meaning) return null;
+	const reading = url.searchParams.get('reading')?.trim().slice(0, 120) || null;
+	return { word, reading: reading && reading !== word ? reading : null, meaning };
 }
 
 export async function loadThreads(): Promise<AskThread[]> {

@@ -21,6 +21,7 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 	import { NOW_TAG } from '#lib/content/courses.ts';
 	import { ensurePacks, listPacks, MIN_KANA, type Pack } from '#lib/words/packs.ts';
 	import { processOutbox } from '#lib/words/maker.ts';
+	import { askAboutHref } from '#lib/ai/threads.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 
@@ -275,6 +276,8 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 <Sheet open={!!open} label={tr('words.card')} onclose={() => (open = null)}>
 	{#if open}
 		<WordCardView card={open} />
+		<Button variant="ghost" block href={askAboutHref(open)}>💬 {tr('words.askAi')}</Button>
+		{#if ai.checked && !ai.available && ai.reason}<p class="caption ask-hint">✨ {ai.reason}</p>{/if}
 		{#if open.seen?.count}
 			<section class="stack where" style:--gap="var(--space-1h)">
 				<h3 class="eyebrow">{tr('phrasebook.where')}</h3>
@@ -343,7 +346,8 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 		overflow: hidden;
 		white-space: pre-wrap;
 	}
-	.hint {
+	.hint,
+	.ask-hint {
 		margin: 0;
 	}
 	.rank {

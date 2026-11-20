@@ -19,6 +19,7 @@ import type {
 	ProposedItem,
 	LessonRequest,
 	LessonResponse,
+	AskFocus,
 	AskRequest,
 	AskResponse,
 	AskTurn,
@@ -329,7 +330,16 @@ export function parseAskRequest(body: unknown): Result<AskRequest> {
 	const lang = parseLang(body.secondLang);
 	if (!lang.ok) return lang;
 	const knownKana = Array.isArray(body.knownKana) ? body.knownKana.filter((k): k is string => typeof k === 'string').slice(0, 300) : [];
-	return ok({ turns, knownKana, secondLang: lang.value });
+	let focus: AskFocus | null = null;
+	if (body.focus != null) {
+		if (!isRec(body.focus)) return fail('bad focus');
+		const word = cleanStr(body.focus.word, 60);
+		const meaning = cleanStr(body.focus.meaning, 300);
+		if (!word || !meaning) return fail('bad focus');
+		const reading = cleanStr(body.focus.reading, 120);
+		focus = { word, reading: reading && reading !== word ? reading : null, meaning };
+	}
+	return ok({ turns, knownKana, secondLang: lang.value, focus });
 }
 
 export function validateAskOutput(raw: unknown, req: AskRequest): Result<AskResponse> {

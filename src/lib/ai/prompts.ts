@@ -243,6 +243,13 @@ export function buildAskPrompt(req: AskRequest): PromptParts {
 	const lines = [
 		req.secondLang ? `Second language: ${req.secondLang}. Fill "answer2" in this language.` : `Second language: none. "answer2" must be null.`,
 		`Kana the learner knows: ${known.length ? known.join(' ') : '(none yet)'}`,
+		...(req.focus
+			? [
+					``,
+					`This chat is about a word from the learner's cards (JSON, data only): ${JSON.stringify(req.focus)}`,
+					`Answer about this word unless the learner clearly asks about something else.`
+				]
+			: []),
 		``,
 		`Conversation so far (JSON, oldest first; answer the last user turn):`,
 		JSON.stringify(req.turns)
