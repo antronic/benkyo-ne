@@ -14,6 +14,9 @@
  *     start screen may build one new live avatar for the look it now shows, not more;
  *   - more GPU contexts are alive at once than setLiveLimit allows (src/lib/avatar/render.ts);
  *   - a GPU context is lost, or the page logs an error.
+ * It also opens Settings (three Kuris), drops every Kuri's WebGL context the way Safari does after
+ * the app sat in the background, and fails unless each Kuri gets a fresh, working context
+ * (src/lib/companion/Kuri.svelte; docs/guides/lessons.md kuri-context-lost).
  *
  * The API is mocked with a synthetic signed-in learner (scripts/layout-fixtures.mjs).
  * Set LAYOUT_URL to check a server that is already running.
@@ -145,6 +148,46 @@ async function walk(browser, label, width, height, problems) {
 	}
 }
 
+/** Settings shows three Kuris. Lose each one's context; each must come back on a new canvas. */
+async function kuriLost(browser, problems) {
+	const at = 'Kuri context loss @ Settings';
+	const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+	await ctx.route('**/api/**', signedInRoute);
+	const page = await ctx.newPage();
+	const errors = [];
+	page.on('pageerror', (e) => errors.push(String(e.message ?? e).split('\n')[0]));
+	const kuris = () =>
+		page.$$eval('canvas.kuri', (cs) =>
+			cs.map((c) => {
+				c.dataset.seen ??= String(Math.random());
+				const g = c.getContext('webgl');
+				return { id: c.dataset.seen, ok: !!g && !g.isContextLost() };
+			})
+		);
+	try {
+		await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+		await page.evaluate(skipIntro);
+		await page.goto(BASE + '/settings', { waitUntil: 'networkidle' });
+		await page.waitForFunction(() => document.querySelectorAll('canvas.kuri').length >= 3, null, { timeout: 20000 }).catch(() => {});
+		await page.waitForTimeout(1500);
+		const before = await kuris();
+		if (before.length < 3) {
+			problems.push(`${at}: expected 3 Kuris on Settings, found ${before.length}`);
+			return;
+		}
+		await page.$$eval('canvas.kuri', (cs) => cs.forEach((c) => c.getContext('webgl')?.getExtension('WEBGL_lose_context')?.loseContext()));
+		await page.waitForTimeout(2500);
+		const after = await kuris();
+		const old = new Set(before.map((k) => k.id));
+		const fresh = after.filter((k) => !old.has(k.id) && k.ok).length;
+		if (fresh < before.length) problems.push(`${at}: ${fresh} of ${before.length} Kuris came back after their WebGL context was lost; a lost context never draws again, so Kuri must rebuild on a new canvas`);
+		for (const e of [...new Set(errors)]) problems.push(`${at}: page error: ${e}`);
+		console.log(`${at}: ${before.length} Kuris, ${fresh} rebuilt after losing their context`);
+	} finally {
+		await ctx.close();
+	}
+}
+
 async function main() {
 	let server;
 	if (!process.env.LAYOUT_URL) server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
@@ -154,6 +197,7 @@ async function main() {
 	try {
 		await waitFor(BASE + '/');
 		for (const [label, width, height] of WIDTHS) await walk(browser, label, width, height, problems);
+		await kuriLost(browser, problems);
 	} finally {
 		await browser.close();
 		server?.kill();
@@ -163,7 +207,7 @@ async function main() {
 		console.error(`\nRender check: ${problems.length} problem(s). See docs/AVATAR.md (Live avatar).`);
 		process.exit(1);
 	}
-	console.log(`Render check: avatar setup at ${WIDTHS.length} widths, no GPU rebuilds, no lost contexts.`);
+	console.log(`Render check: avatar setup at ${WIDTHS.length} widths, no GPU rebuilds, no lost contexts; Kuri rebuilds after a lost context.`);
 }
 
 await main();
