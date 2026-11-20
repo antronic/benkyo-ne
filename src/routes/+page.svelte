@@ -18,8 +18,13 @@
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { plan } from '#lib/state/plan.svelte.ts';
 	import { greetingFor, greetName } from '#lib/greeting.ts';
+	import { week } from '#lib/state/week.svelte.ts';
+	import { onMount } from 'svelte';
 
 	const greeting = greetingFor(new Date().getHours());
+	// the weekly report card shows once the week has something in it
+	onMount(() => void week.refresh());
+	const thisWeek = $derived(week.week && (week.week.totalMinutes || week.week.saved || week.week.wrote || week.week.read) ? week.week : null);
 	const name = $derived(greetName(ai.signedIn ? ai.account?.name : plan.name));
 
 	// The package badge follows the signed-in account (Fleet grant or promo code).
@@ -169,6 +174,16 @@
 		</Card>
 	{:else}
 		<Card padding="lg" radius="large" class="rise">{t('home.allDone')}</Card>
+	{/if}
+
+	{#if thisWeek}
+		<Card href="/week" sheen padding="lg" radius="large" class="review rise" style="--i: 3">
+			<div class="stack" style:--gap="var(--space-px)">
+				<div class="eyebrow" style="color:var(--accent)">{t('home.weekTitle')}</div>
+				<div class="subhead">{t('home.weekBody', { minutes: thisWeek.totalMinutes, saved: thisWeek.saved, wrote: thisWeek.wrote })}</div>
+			</div>
+			<div class="go">›</div>
+		</Card>
 	{/if}
 
 	<Card as="section" sheen padding="lg" radius="large" class="tip rise" style="--i: 4">
