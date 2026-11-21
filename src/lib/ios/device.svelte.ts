@@ -21,6 +21,18 @@ export const wide = new MediaQuery('min-width: 900px');
  */
 export const RAIL_QUERY = '(min-width: 600px) and (orientation: landscape), (min-width: 840px)';
 export const rail = new MediaQuery(RAIL_QUERY);
+/**
+ * Where the rail grows into a sidebar with labels and group headings (desktop).
+ * Keep in sync with app.css and TabBar.svelte.
+ */
+export const SIDEBAR_QUERY = '(min-width: 1200px)';
+export const sidebar = new MediaQuery(SIDEBAR_QUERY);
+/**
+ * Tall enough for the rail to hold every screen in src/lib/nav.ts (8 rows of 58 px,
+ * group gaps and margins). Shorter (a landscape phone), the rail shows the pinned
+ * tabs and More, like the bottom bar.
+ */
+export const railFits = new MediaQuery('(min-height: 600px)');
 /** Two side-by-side viewport segments (open device across the hinge). Progressive enhancement. */
 export const spanning = new MediaQuery('(horizontal-viewport-segments: 2)');
 export const standalone = new MediaQuery('(display-mode: standalone)');
