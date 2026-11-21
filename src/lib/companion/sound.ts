@@ -9,7 +9,8 @@
  * syllable at a time), so it copies no recording and no real voice.
  *
  * Silent mode: Safari 16.4+ can mark page audio as "ambient", which follows the
- * iPhone's silent switch. Other browsers play at the page volume. Sound is on
+ * iPhone's silent switch. We do that on iPhone and iPad only: on the Mac an
+ * ambient page stayed silent. Other browsers play at the page volume. Sound is on
  * by default; nothing plays until the first tap unlocks audio.
  */
 
@@ -23,13 +24,45 @@ let ctx: AudioContext | null = null;
 let master: GainNode;
 let noiseBuf: AudioBuffer;
 
+/**
+ * Set when the page goes to the background. iPhone Safari moves a context to
+ * "interrupted" there (or after a call or another app's audio), and an
+ * interrupted context can stay silent even after resume(), so Kuri went quiet
+ * until the app was closed. The next tap builds a fresh context instead.
+ */
+let stale = false;
+if (typeof document !== 'undefined')
+	document.addEventListener('visibilitychange', () => {
+		if (document.visibilityState === 'hidden') stale = true;
+	});
+
+/** iPhone, iPod or iPad (iPadOS reports a Mac, but one with a touch screen). */
+export function isIOS(nav: Pick<Navigator, 'userAgent' | 'maxTouchPoints'> = navigator): boolean {
+	return /iPhone|iPad|iPod/.test(nav.userAgent) || (/Macintosh/.test(nav.userAgent) && nav.maxTouchPoints > 1);
+}
+
+/** Inside a tap or key press, where a browser lets a new context start. */
+function inGesture(): boolean {
+	const ua = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation;
+	return ua ? ua.isActive : true;
+}
+
 /** Create or resume the audio context. Call it from a tap so browsers allow sound. */
 export function unlock(): AudioContext | null {
 	if (typeof window === 'undefined') return null;
+	if (ctx && (ctx.state === 'closed' || (stale && ctx.state !== 'running')) && inGesture()) {
+		// a context the browser closed or left interrupted: drop it and start again
+		void ctx.close().catch(() => {});
+		ctx = null;
+	}
+	if (ctx && stale && inGesture()) stale = false; // running again after the background: keep it
 	if (!ctx) {
+		stale = false;
 		try {
+			// Only on iPhone and iPad, where "ambient" follows the silent switch. Safari on
+			// the Mac has no silent switch, and an ambient page there played nothing at all.
 			const s = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
-			if (s) s.type = 'ambient';
+			if (s && isIOS()) s.type = 'ambient';
 		} catch {
 			/* older Safari */
 		}
@@ -48,7 +81,8 @@ export function unlock(): AudioContext | null {
 		const d = noiseBuf.getChannelData(0);
 		for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
 	}
-	if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
+	// 'suspended' before the first tap, 'interrupted' on iPhone after a call or the background
+	if (ctx.state !== 'running' && ctx.state !== 'closed') void ctx.resume().catch(() => {});
 	return ctx;
 }
 
@@ -219,7 +253,6 @@ function mora(c: AudioContext, t: number, cons: 'h' | 'j' | 'm' | 'sh' | 't', v:
 	voiced(c, t + lead, [[0, f0a], [dur - lead, f0b]], dur - lead, V[v], 0.3);
 }
 
-/** Play one of Kuri's sounds now. Does nothing where Web Audio is missing. */
 /**
  * True when a sound may start now: audio is already running, or we are inside a
  * tap. Sound is on by default, so a timer sound (falling asleep) can come before
@@ -229,10 +262,10 @@ function mora(c: AudioContext, t: number, cons: 'h' | 'j' | 'm' | 'sh' | 't', v:
 function allowed(): boolean {
 	if (typeof navigator === 'undefined') return false;
 	if (ctx && ctx.state === 'running') return true;
-	const ua = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation;
-	return ua ? ua.isActive : true; // browsers without userActivation: old behaviour
+	return inGesture(); // browsers without userActivation: old behaviour
 }
 
+/** Play one of Kuri's sounds now. Does nothing where Web Audio is missing. */
 export function play(name: KuriSoundName) {
 	if (!allowed()) return;
 	const c = unlock();
