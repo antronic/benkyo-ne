@@ -14,6 +14,7 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import WordCardView from '#lib/components/WordCardView.svelte';
+	import CardPoliteness from '#lib/components/CardPoliteness.svelte';
 	import { listPacks, finishPack, skipPackWord, type Pack } from '#lib/words/packs.ts';
 	import { speak } from '#lib/content/kana.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
@@ -137,6 +138,7 @@
 											verified: true
 										}}
 									/>
+									<CardPoliteness id={item.key} written={kanji ?? item.reading} />
 								</Card>
 								<Button variant="ghost" block onclick={() => (askAbout = cardFocus({ front: item.reading, kanji, gloss: item.gloss }))}>💬 {t('words.askAi')}</Button>
 								{#if ai.checked && !ai.available && ai.reason}<p class="caption ask-hint">✨ {ai.reason}</p>{/if}

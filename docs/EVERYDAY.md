@@ -114,3 +114,19 @@ Everything else in the drafts is built from existing kit components (`ListRow` w
 - **Data.** Writing helper checks are kept on the device only, in `meta` key `writeChecks`
   (`{at, to, gap}`, last 60 days); `src/lib/state/week.svelte.ts` records and loads them. No sync,
   no migration.
+
+## Built: word politeness
+
+Job asked (2026-11-21) for each word card to show how polite the word is, as a step bar, and who you
+can say it to. On the Words card sheet and the revealed word in a pack (`CardPoliteness.svelte`, looked up by the card's JMdict id with `getMarks` in `src/lib/dict/dict.ts`); kit pieces on `/design` ("Word politeness").
+
+- **Data:** the JMdict usage marks of the word's first sense, which ship with the on-device
+  dictionary (`@johnmorrisdotca/jisho`): `form` formal, `hon` respectful, `hum` humble, `pol` polite,
+  `sl`/`vulg`/`derog` slang, `col`/`fam`/`chn`/`male` casual. No mark means neutral: the sentence
+  ending sets the politeness. About 800 of the 26k common words carry a mark. Everyday お/ご nouns
+  marked `pol` (お茶, お金) count as neutral. Offline and free; no AI call.
+- **Steps:** Casual, Polite, Keigo, Formal. Respectful and humble both sit on Keigo, with a line
+  that says which way they point. A neutral word fills every step softly.
+- **Who:** the Writing helper's people (friend, colleague, boss, customer), each marked fits,
+  be careful, or not with them.
+- Code: `src/lib/words/politeness.ts` (+ test), `WordPoliteness.svelte`, kit `StepBar`.

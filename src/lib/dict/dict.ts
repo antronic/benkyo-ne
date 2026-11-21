@@ -282,6 +282,27 @@ export async function getGlosses(id: number, lang: string): Promise<string[] | n
 	}
 }
 
+/**
+ * The JMdict usage marks of a word's first sense (`hon`, `pol`, `col`…), for its politeness
+ * (`#lib/words/politeness.ts`). Common words come from the precached table, others from their
+ * entry; null when the id is unknown or the piece can't load (offline).
+ */
+export async function getMarks(id: number): Promise<string[] | null> {
+	try {
+		const w = (await commonIndex(await commonWords())).get(id);
+		if (w) return [...(w.senses[0]?.marks ?? [])];
+	} catch {
+		/* fall through */
+	}
+	try {
+		const { loadEntry } = await import('@johnmorrisdotca/jisho/entries');
+		const e = await loadEntry(id);
+		return e ? [...(e.senses[0]?.marks ?? [])] : null;
+	} catch {
+		return null;
+	}
+}
+
 let commonIndexP: Promise<Map<number, Word>> | null = null;
 function commonIndex(c: Words): Promise<Map<number, Word>> {
 	return (commonIndexP ??= jisho().then((j) => {

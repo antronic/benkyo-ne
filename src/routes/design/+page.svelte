@@ -4,10 +4,13 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, SafariPrompt, ScrollMore, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
+	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, SafariPrompt, ScrollMore, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, StepBar, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
 	import { avatarSvg } from '#lib/avatar/render.ts';
 	import { DEFAULTS as AV_DEFAULTS, SKIN, type Person } from '#lib/avatar/person.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
+	import WordCardView from '#lib/components/WordCardView.svelte';
+	import WordPoliteness from '#lib/components/WordPoliteness.svelte';
+	import { politenessFromMarks } from '#lib/words/politeness.ts';
 	import NavMore from '#lib/components/NavMore.svelte';
 	import NavIcon from '#lib/components/NavIcon.svelte';
 	import { cleanPins, MORE_ICON, splitBar } from '#lib/nav.ts';
@@ -97,6 +100,19 @@
 	let politeTarget = $state<'friend' | 'colleague' | 'boss' | 'customer'>('boss');
 	let politeFixed = $state(false);
 	const POLITE_TARGET = { friend: 0.1, colleague: 0.5, boss: 0.78, customer: 0.9 };
+	/** Word politeness draft: real words with the JMdict marks of their first sense. */
+	const POLITE_WORDS = [
+		{ front: 'たべる', kanji: '食べる', gloss: 'to eat', marks: [] },
+		{ front: 'おまえ', kanji: 'お前', gloss: 'you (to an equal or below)', marks: ['fam', 'male'] },
+		{ front: 'サーセン', kanji: null, gloss: 'sorry (slangy すみません)', marks: ['sl'] },
+		{ front: 'すみません', kanji: null, gloss: 'excuse me; I’m sorry', marks: ['uk', 'pol'] },
+		{ front: 'いらっしゃる', kanji: null, gloss: 'to come; to go; to be (someone above you)', marks: ['hon'] },
+		{ front: 'もうす', kanji: '申す', gloss: 'to say; to be called (about yourself)', marks: ['hum'] },
+		{ front: 'さくねん', kanji: '昨年', gloss: 'last year', marks: ['form'] }
+	].map((w) => ({ ...w, level: politenessFromMarks(w.marks, w.kanji ?? w.front), gloss2: null, hook: null, usage: null, example: null, kind: 'word' as const, verified: true }));
+	let politeWord = $state('いらっしゃる');
+	const politeCard = $derived(POLITE_WORDS.find((w) => w.front === politeWord) ?? POLITE_WORDS[0]);
+
 	const politeYours = $derived(politeFixed ? 0.8 : 0.22);
 	const PHRASES = [
 		{ jp: 'よろしくお願いします', from: 'Writing helper · LINE', n: 23 },
@@ -392,6 +408,29 @@
 					onaccept={() => (vipPopup = false)}
 					onclose={() => (vipPopup = false)}
 				/>
+
+				<SectionHeader title="Word politeness" />
+				<p class="caption">
+					On a word’s card: how polite the word is, as a step bar from casual to formal, and who you can say it to. The level comes from the
+					dictionary’s usage marks (JMdict), so it works offline and costs nothing. Words with no mark are neutral: the sentence ending sets
+					the politeness. Shown on the Words card and in word packs.
+				</p>
+				<div class="row wrap" style:--gap="var(--space-2)" role="group" aria-label="Sample word">
+					{#each POLITE_WORDS as w (w.front)}<Chip selected={politeWord === w.front} onclick={() => (politeWord = w.front)}>{w.kanji ?? w.front}</Chip>{/each}
+				</div>
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-4)">
+						<WordCardView card={politeCard} compact />
+						<WordPoliteness level={politeCard.level} />
+					</div>
+				</Card>
+				<SectionHeader title="Step bar" level={3} />
+				<Card padding="md">
+					<div class="stack" style:--gap="var(--space-4)">
+						<StepBar steps={['Casual', 'Polite', 'Keigo', 'Formal']} value={1} label="Politeness" />
+						<StepBar steps={['Casual', 'Polite', 'Keigo', 'Formal']} value={null} tones={['warning', 'success', 'info', 'violet']} label="Politeness" anyLabel="Any level" />
+					</div>
+				</Card>
 
 				<SectionHeader title="Draft · Everyday Japanese" />
 				<p class="caption">

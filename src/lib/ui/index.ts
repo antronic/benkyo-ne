@@ -28,6 +28,7 @@ export { default as Slider } from './Slider.svelte';
 export { default as Spinner } from './Spinner.svelte';
 export { default as TextArea } from './TextArea.svelte';
 export { default as PageDots } from './PageDots.svelte';
+export { default as StepBar } from './StepBar.svelte';
 export { default as StatTile } from './StatTile.svelte';
 export { default as PlanBadge } from './PlanBadge.svelte';
 export { default as Breadcrumbs } from './Breadcrumbs.svelte';
