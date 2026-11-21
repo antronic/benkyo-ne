@@ -1,5 +1,6 @@
 <!-- Words hub: reading packs, card maker, tags, and your word/phrase cards. -->
 <script lang="ts">
+	import { firstRun } from '#lib/state/firstRun.svelte.ts';
 	import { t as tr, tn, fmtDate } from '#lib/i18n/index.svelte.ts';
 	import { gloss } from '#lib/i18n/content.ts';
 	import { Badge, Button, Card, Chip, FieldRow, LargeTitle, ListGroup, ListRow, Segmented, Sheet, Skeleton, TextField } from '#lib/ui/index.ts';
@@ -147,7 +148,20 @@ import CardPoliteness from '#lib/components/CardPoliteness.svelte';
 		{/snippet}
 	</LargeTitle>
 
-	{#if !ai.available && ai.checked && ai.reason && ai.reasonKind !== 'noAi'}
+	<!-- Ask AI and Community live under Words (docs/UX-FLOW.md, phase 4) -->
+	<nav class="places" aria-label={tr('words.more')}>
+		<Card sheen padding="sm" href="/ai" class="place" style="--h: 265">
+			<span class="place-icon" aria-hidden="true">✨</span>
+			<span class="stack" style:--gap="1px"><span class="headline">{tr('nav.ai')}</span><span class="caption">{tr('words.aiBody')}</span></span>
+		</Card>
+		<Card sheen padding="sm" href="/community" class="place" style="--h: 150">
+			<span class="place-icon" aria-hidden="true">💬</span>
+			<span class="stack" style:--gap="1px"><span class="headline">{tr('nav.community')}</span><span class="caption">{tr('words.communityBody')}</span></span>
+		</Card>
+	</nav>
+
+	<!-- no AI notice for an account without AI, or a new one whose consent comes after its first lesson -->
+	{#if !ai.available && ai.checked && ai.reason && ai.reasonKind !== 'noAi' && !(ai.reasonKind === 'consent' && firstRun.consentLater)}
 		<p class="caption hint">✨ {ai.reason} {tr('words.dictStillWorks')}</p>
 	{/if}
 
@@ -343,6 +357,21 @@ import CardPoliteness from '#lib/components/CardPoliteness.svelte';
 </Sheet>
 
 <style>
+	.places {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--space-2);
+	}
+	.places :global(.place) {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+	.place-icon {
+		font-size: 1.375rem;
+		line-height: 1.2;
+	}
 	.note-row {
 		display: flex;
 		flex-direction: column;

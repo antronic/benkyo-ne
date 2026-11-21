@@ -78,32 +78,19 @@
 			toast(t('settings.erased'));
 		}
 	}
+	/** the Advanced section, folded away until asked for */
+	let advanced = $state(false);
 </script>
 
 <main class="page stack settings" style:--gap="var(--space-3)">
 	<LargeTitle title={t('nav.settings')} />
 
-	<LanguageSettings />
 
-	<KuriSettings />
 
 	<h2 class="eyebrow section">{t('settings.learning')}</h2>
 	<ListGroup class="rise">
 		<!-- the first-run answers (goals, level, minutes a day): Today's plan card used to hold this -->
 		<ListRow title={t('settings.plan')} subtitle={t('settings.planBody')} onclick={() => (ui.showOnboarding = true)} chevron />
-		<ListRow title={t('settings.retention')} subtitle={t('settings.retentionBody')}>
-			{#snippet trailing()}<b class="value">{Math.round(progress.settings.retention * 100)}%</b>{/snippet}
-		</ListRow>
-		<div class="slider">
-			<Slider
-				min={0.8}
-				max={0.95}
-				step={0.01}
-				value={progress.settings.retention}
-				oninput={(v) => progress.saveSettings({ retention: v })}
-				label={t('settings.retention')}
-			/>
-		</div>
 		<ListRow title={t('settings.newPerDay')} subtitle={t('settings.newPerDayBody')}>
 			{#snippet trailing()}
 				<Stepper
@@ -124,25 +111,6 @@
 		<ListRow title={t('settings.romaji')} subtitle={t('settings.romajiBody')}>
 			{#snippet trailing()}
 				<Switch label={t('settings.romaji')} checked={progress.settings.showRomaji} onchange={(v) => progress.saveSettings({ showRomaji: v })} />
-			{/snippet}
-		</ListRow>
-		<ListRow title={t('settings.drafts')} subtitle={t('settings.draftsBody')}>
-			{#snippet trailing()}
-				<Switch label={t('settings.drafts')} checked={progress.settings.showDraftUnits} onchange={(v) => progress.saveSettings({ showDraftUnits: v })} />
-			{/snippet}
-		</ListRow>
-		<ListRow title={t('settings.tabbar')} subtitle={t('settings.tabbarBody')}>
-			{#snippet trailing()}
-				<Select
-					label={t('settings.tabbar')}
-					value={progress.settings.navPosition}
-					options={[
-						{ value: 'auto', label: t('settings.tabAuto') },
-						{ value: 'bottom', label: t('settings.tabBottom') },
-						{ value: 'side', label: t('settings.tabSide') }
-					]}
-					onchange={(v) => progress.saveSettings({ navPosition: v })}
-				/>
 			{/snippet}
 		</ListRow>
 		<ListRow title={t('settings.autoplay')}>
@@ -178,6 +146,10 @@
 
 	<CommunitySettings />
 
+	<LanguageSettings />
+
+	<KuriSettings />
+
 	<h2 class="eyebrow section">{t('install.section')}</h2>
 	<ListGroup class="rise">
 		{#if install.installed}
@@ -202,15 +174,9 @@
 		{/if}
 	</ListGroup>
 
-	<DebugSettings />
 
 	<h2 class="eyebrow section">{t('settings.about')}</h2>
 	<ListGroup class="rise">
-		<ListRow title={t('settings.engine')}>
-			{#snippet trailing()}
-				{#if engine === '…'}<Spinner size="sm" label={t('common.loading')} />{:else}<span class="caption">{engine}</span>{/if}
-			{/snippet}
-		</ListRow>
 		<ListRow title={t('settings.version')}>
 			{#snippet trailing()}
 				<span class="caption">{fmtDateTime(Number(version) || Date.now())}{#if updater.ready} · <Button variant="link" onclick={() => updater.restart()}>{t('settings.updateReady')}</Button>{/if}</span>
@@ -218,9 +184,6 @@
 		</ListRow>
 		<ListRow title={t('settings.intro')}>
 			{#snippet trailing()}<Button variant="ghost" size="sm" onclick={() => (ui.showIntro = true)}>▶ {t('settings.replayIntro')}</Button>{/snippet}
-		</ListRow>
-		<ListRow title={t('settings.scheduler')}>
-			{#snippet trailing()}<span class="caption">FSRS-5</span>{/snippet}
 		</ListRow>
 		<ListRow>
 			<span class="caption">{t('settings.strokeData')} <a href="https://kanjivg.tagaini.net" target="_blank" rel="noreferrer">KanjiVG</a>
@@ -231,6 +194,56 @@
 			<Button variant="ghost-danger" block onclick={reset}>{t('settings.erase')}</Button>
 		</ListRow>
 	</ListGroup>
+	<!-- Advanced (docs/UX-FLOW.md, rule 4): scheduler and build details stay out of the way -->
+	<ListGroup class="rise">
+		<ListRow title={t('settings.advanced')} subtitle={t('settings.advancedBody')} onclick={() => (advanced = !advanced)} chevron />
+	</ListGroup>
+	{#if advanced}
+	<h2 class="eyebrow section">{t('settings.advanced')}</h2>
+	<ListGroup class="rise">
+		<ListRow title={t('settings.retention')} subtitle={t('settings.retentionBody')}>
+			{#snippet trailing()}<b class="value">{Math.round(progress.settings.retention * 100)}%</b>{/snippet}
+		</ListRow>
+		<div class="slider">
+			<Slider
+				min={0.8}
+				max={0.95}
+				step={0.01}
+				value={progress.settings.retention}
+				oninput={(v) => progress.saveSettings({ retention: v })}
+				label={t('settings.retention')}
+			/>
+		</div>
+		<ListRow title={t('settings.drafts')} subtitle={t('settings.draftsBody')}>
+			{#snippet trailing()}
+				<Switch label={t('settings.drafts')} checked={progress.settings.showDraftUnits} onchange={(v) => progress.saveSettings({ showDraftUnits: v })} />
+			{/snippet}
+		</ListRow>
+		<ListRow title={t('settings.tabbar')} subtitle={t('settings.tabbarBody')}>
+			{#snippet trailing()}
+				<Select
+					label={t('settings.tabbar')}
+					value={progress.settings.navPosition}
+					options={[
+						{ value: 'auto', label: t('settings.tabAuto') },
+						{ value: 'bottom', label: t('settings.tabBottom') },
+						{ value: 'side', label: t('settings.tabSide') }
+					]}
+					onchange={(v) => progress.saveSettings({ navPosition: v })}
+				/>
+			{/snippet}
+		</ListRow>
+		<ListRow title={t('settings.engine')}>
+			{#snippet trailing()}
+				{#if engine === '…'}<Spinner size="sm" label={t('common.loading')} />{:else}<span class="caption">{engine}</span>{/if}
+			{/snippet}
+		</ListRow>
+		<ListRow title={t('settings.scheduler')}>
+			{#snippet trailing()}<span class="caption">FSRS-5</span>{/snippet}
+		</ListRow>
+	</ListGroup>
+	<DebugSettings />
+	{/if}
 </main>
 
 <style>

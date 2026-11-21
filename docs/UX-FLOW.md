@@ -12,8 +12,9 @@ unclear how to start, and too wordy). Job asked for all four phases to be built.
    from Learn closes to Learn. Never close with a fixed `goto('/learn')`.
 3. **No AI nagging.** An account without AI (`ai.reasonKind === 'noAi'`: no package, no key of
    its own) is normal. Screens hide Ask AI buttons and hints for it instead of asking for an API key.
-4. **Learner words only.** No FSRS, retention targets, engines, drafts or API keys on learner
-   screens. Those live in Settings, under Advanced.
+4. **Learner words only.** No FSRS, retention targets, engines or drafts on learner screens.
+   Those live in Settings, under Advanced (folded away). The tab is called Settings, not Me, so every
+   "in Settings" hint stays true.
 5. **Empty states say how to start.** Review with nothing learned says so and offers the first
    lesson, instead of "All caught up".
 
@@ -23,5 +24,5 @@ unclear how to start, and too wordy). Job asked for all four phases to be built.
 | --- | --- | --- |
 | 1 | Quick wins: back to where you came from, Review empty state, no API-key nagging, N5 draft notice hidden, lighter Today | Live (PR #100) |
 | 2 | Today hero: one next-step card (`NextStep`, `pickNext`), a progress line, the set-up card (`SetupCard`: daily goal, avatar, install); plan answers move to Settings → Your plan; Today keeps room at the bottom for Kuri | Live (PR #101) |
-| 3 | First run: one-page intro, two quick questions, account, straight into lesson 1 (5 taps, was ~18); the consent waits until a lesson is done; recovery code, avatar and install wait on the set-up card (`firstRun.svelte.ts`) | This PR |
-| 4 | Navigation: 5 tabs (Today, Learn, Review, Words, Me), shorter Learn, grouped Settings | Planned |
+| 3 | First run: one-page intro, two quick questions, account, straight into lesson 1 (5 taps, was ~18); the consent waits until a lesson is done; recovery code, avatar and install wait on the set-up card (`firstRun.svelte.ts`) | Live (PR #102) |
+| 4 | Navigation: 5 tabs (Today, Learn, Review, Words, Settings), no More; Kana in Learn, Ask AI and Community in Words; Learn under All shows a few lessons around where you are with "See all" (phone page 5,800 → 3,500 px); Settings starts with Learning and folds scheduling, drafts, tab bar, engine and debugging into Advanced | This PR |
