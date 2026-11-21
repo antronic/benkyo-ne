@@ -20,6 +20,8 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
+	import { askAboutHref } from '#lib/ai/threads.ts';
+	import { ai } from '#lib/state/ai.svelte.ts';
 
 	ui.hue = 285;
 	let pack = $state<Pack | null>(null);
@@ -32,10 +34,19 @@
 	onMount(async () => {
 		pack = (await listPacks()).find((p) => p.id === page.params.id) ?? null;
 		missing = !pack;
+		// back from Ask AI (?at=n): reopen that word, revealed
+		const at = Number(page.url.searchParams.get('at'));
+		if (pack && Number.isInteger(at) && at > 0 && at < pack.items.length) {
+			i = at;
+			revealed = true;
+			return;
+		}
 		if (pack && progress.settings.autoplayAudio) speak(pack.items[0].reading);
 	});
 
 	const item = $derived(pack?.items[i]);
+	/** the written form shown on the back of the card (null when the word is kana only) */
+	const kanji = $derived(item?.written.find((w) => w !== item.reading) ?? null);
 
 	function reveal() {
 		revealed = true;
@@ -112,7 +123,7 @@
 									<WordCardView
 										card={{
 											front: item.reading,
-											kanji: item.written.find((w) => w !== item.reading) ?? null,
+											kanji,
 											gloss: item.gloss,
 											gloss2: item.gloss2,
 											hook: item.hook,
@@ -123,6 +134,8 @@
 										}}
 									/>
 								</Card>
+								<Button variant="ghost" block href={askAboutHref({ front: item.reading, kanji, gloss: item.gloss }, `/words/pack/${pack.id}?at=${i}`)}>💬 {t('words.askAi')}</Button>
+								{#if ai.checked && !ai.available && ai.reason}<p class="caption ask-hint">✨ {ai.reason}</p>{/if}
 								<NoteCard value={notes.text(item.key)} loading={!notes.ready} onsave={(b) => notes.save(item.key, item.reading, b)} />
 							</div>
 							<Button variant="accent" block onclick={next} busy={saving === 'finish'} disabled={saving === 'skip'}>{i < pack.items.length - 1 ? t('pack.next') : t('pack.finish')}</Button>
@@ -183,6 +196,9 @@
 		place-items: center;
 		font-size: clamp(2.5rem, 12vw, 4rem);
 		font-weight: 600;
+	}
+	.ask-hint {
+		margin: 0;
 	}
 	.back {
 		width: 100%;

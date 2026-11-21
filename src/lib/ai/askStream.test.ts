@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildAskStreamPrompt, finishAskText, parseAskText } from './askStream.ts';
-import { askAboutHref, focusFromUrl, searchThreads, sectionOf, titleFor, type AskThread } from './threads.ts';
+import { askAboutHref, backFromUrl, focusFromUrl, searchThreads, sectionOf, titleFor, type AskThread } from './threads.ts';
 
 const req = { turns: [{ role: 'user' as const, text: 'hi' }], knownKana: [], secondLang: 'th' };
 
@@ -50,6 +50,13 @@ describe('ask about a word card', () => {
 		expect(focusFromUrl(new URL(href, 'https://x'))).toEqual({ word: '食べる', reading: 'たべる', meaning: 'to eat; to live on' });
 		const kana = askAboutHref({ front: 'ねこ', kanji: null, gloss: 'cat' });
 		expect(focusFromUrl(new URL(kana, 'https://x'))).toEqual({ word: 'ねこ', reading: null, meaning: 'cat' });
+	});
+	it('Back returns to the pack word it came from, and only inside the app', () => {
+		const href = askAboutHref({ front: 'ねこ', kanji: null, gloss: 'cat' }, '/words/pack/p1?at=3');
+		expect(backFromUrl(new URL(href, 'https://x'))).toBe('/words/pack/p1?at=3');
+		expect(backFromUrl(new URL(askAboutHref({ front: 'ねこ', kanji: null, gloss: 'cat' }), 'https://x'))).toBe('/words');
+		expect(backFromUrl(new URL('https://x/ai/ask?back=//evil.example'))).toBe('/words');
+		expect(backFromUrl(new URL('https://x/ai/ask?back=https://evil.example'))).toBe('/words');
 	});
 	it('a plain Ask AI link has no word', () => {
 		expect(focusFromUrl(new URL('https://x/ai/ask'))).toBeNull();
