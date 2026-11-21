@@ -40,6 +40,8 @@
 	let confirmName = $state('');
 	let picked = $state('');
 	let sheetOpen = $state(false);
+	let peekOpen = $state(false);
+	let peekText = $state('');
 	// navigation draft (src/lib/nav.ts): the phone bar's More sheet, with its own pins
 	let navMoreOpen = $state(false);
 	let navEditing = $state(false);
@@ -782,7 +784,11 @@
 				<p class="caption">Also considered: fewer tabs (Kana inside Learn, Settings behind your avatar on Today; no More, but things move) and a bar that scrolls sideways (hides tabs with no sign they are there; not iOS).</p>
 
 				<SectionHeader title="Sheet" />
-				<Button variant="ghost" onclick={() => (sheetOpen = true)}>Open a sheet</Button>
+				<p class="caption">A sheet holds a short task. A peek sheet (<code>peek</code>) opens at medium height over what you were looking at, so it stays in view: drag the grabber up (or tap it) for full height, down to go back, down again to close. Its <code>footer</code> stays pinned above the keyboard. Ask AI about a word (Words card, word pack) is a peek.</p>
+				<div class="row" style:--gap="var(--space-2)">
+					<Button variant="ghost" onclick={() => (sheetOpen = true)}>Open a sheet</Button>
+					<Button variant="ghost" onclick={() => (peekOpen = true)}>Open a peek sheet</Button>
+				</div>
 
 				<SectionHeader title="My note (words, kana, kanji, units)" />
 				<p class="caption">A private note on any study item. Saves as you type; empty deletes it. In Review it shows as a "My note" button only after you answer.</p>
@@ -865,6 +871,19 @@
 		<p>Sheets hold a short task. Drag down or tap outside to close.</p>
 		<Button onclick={() => (sheetOpen = false)}>Done</Button>
 	</div>
+</Sheet>
+
+<Sheet peek open={peekOpen} label="Example peek sheet" onclose={() => (peekOpen = false)}>
+	{#snippet header()}<h2 class="title-3">💬 Ask AI</h2>{/snippet}
+	<Card padding="sm"><span class="title-3 jp">食べる</span> <span class="caption">たべる · to eat</span></Card>
+	<p class="subhead">The page behind stays in view. Drag up for more room.</p>
+	{#each ['Show me 食べる in a few everyday sentences', 'Is 食べる casual or polite?', 'Break down the kanji in 食べる'] as s}<Chip onclick={() => (peekText = s)}>{s}</Chip>{/each}
+	{#snippet footer()}
+		<FieldRow as="form" size="md" onsubmit={() => (peekText = '')}>
+			<TextArea grow autogrow rows={1} maxRows={4} bind:value={peekText} placeholder="Ask about 食べる…" aria-label="Example question" />
+			<Button type="submit" variant="accent" aria-label="Send" disabled={!peekText.trim()}>↑</Button>
+		</FieldRow>
+	{/snippet}
 </Sheet>
 
 <style>

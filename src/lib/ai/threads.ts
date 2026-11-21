@@ -40,10 +40,21 @@ export function titleFor(msgs: AskMsg[], focus?: AskFocus | null): string {
  * `back` is where the chat's Back button returns (a path in the app); Words when left out.
  */
 export function askAboutHref(card: { front: string; kanji: string | null; gloss: string }, back?: string): string {
-	const q = new URLSearchParams({ word: card.kanji || card.front, meaning: card.gloss });
-	if (card.kanji && card.kanji !== card.front) q.set('reading', card.front);
+	return focusHref(cardFocus(card), back);
+}
+
+/** The Ask AI link for a word already turned into a focus. */
+export function focusHref(f: AskFocus, back?: string): string {
+	const q = new URLSearchParams({ word: f.word, meaning: f.meaning });
+	if (f.reading) q.set('reading', f.reading);
 	if (back) q.set('back', back);
 	return `/ai/ask?${q}`;
+}
+
+/** What Ask AI gets about a word card: the written form, the kana reading when it differs, the meaning. */
+export function cardFocus(card: { front: string; kanji: string | null; gloss: string }): AskFocus {
+	const word = card.kanji || card.front;
+	return { word, reading: card.kanji && card.kanji !== card.front ? card.front : null, meaning: card.gloss };
 }
 
 /** Where Back goes from a chat opened by askAboutHref: an in-app path only, never another site. */
@@ -117,4 +128,13 @@ export function sectionOf(t: number, now = Date.now()): string {
 	if (t >= start.getTime() - 7 * day) return 'Previous 7 Days';
 	if (t >= start.getTime() - 30 * day) return 'Previous 30 Days';
 	return d.toLocaleDateString(undefined, { month: 'long', year: d.getFullYear() === start.getFullYear() ? undefined : 'numeric' });
+}
+
+/** Save one chat into the history (new or updated), keeping the rest; the Ask AI peek saves this way. */
+export async function saveThread(thread: AskThread) {
+	const now = Date.now();
+	const saved = { ...thread, updatedAt: now, title: titleFor(thread.msgs, thread.focus) };
+	const list = (await loadThreads()).filter((t) => t.id !== thread.id);
+	await saveThreads([saved, ...list]);
+	return saved;
 }
