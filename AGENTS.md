@@ -70,18 +70,21 @@ All from the repo root. Copy script names from `package.json`.
 ```sh
 npm ci                     # clean install from the lockfile
 npm run check              # svelte-kit sync + svelte-check (TypeScript)
-npm run lint:ui            # spacing lint (--space-* tokens) + UI kit lint (kit controls only, kit on /design, loading states)
+npm run lint:ui            # spacing lint (--space-* tokens) + UI kit lint (kit controls only, kit on /design and in Storybook, loading states)
 npm test                   # vitest: src/**/*.test.ts and worker/**/*.test.ts
-npm run build              # static SPA into build/
+npm run build              # static SPA into build/, then the Storybook into build/storybook/
 npm run check:layout       # Playwright layout check on the build: overflow, centred column, card padding, control size, row heights, avatar setup steps
 npm run check:render       # Playwright GPU check on the build: a live avatar must not build a new WebGL/WebGPU context per change; Kuri must rebuild after a lost context and get dizzy when shaken
 npm run db:migrate:local   # apply D1 migrations to the local database
 npx wrangler dev --port 8787 --infer-origin-from-routes=false   # full stack locally (after build)
 npm run dev                # Vite only, UI without /api (forever process: background it)
+npm run check:storybook    # Playwright on the build: every Storybook story renders in light and dark with no error
+npm run storybook          # Storybook for the UI kit on port 6006 (forever process: background it)
+npm run build-storybook    # static Storybook into build/storybook/ (npm run build already runs it)
 ```
 
 **The gate** (run before every push, paste the result in the PR; CI runs it on the self-hosted runner, [docs/CI-RUNNER.md](docs/CI-RUNNER.md)):
-`npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout && npm run check:render`.
+`npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout && npm run check:render && npm run check:storybook`.
 
 ## Hard rules
 
@@ -114,8 +117,9 @@ npm run dev                # Vite only, UI without /api (forever process: backgr
   `/* ui-ok: reason */` on its line.
 - **Kit only, and the kit is the storybook.** Every control and card in the app comes from
   `#lib/ui` (no raw `<button>`, `<input>`, `<select>`, `<textarea>`, no hand-made `.btn`/`.glass`), and
-  every component in `src/lib/ui` is exported and shown on `/design`. Missing a component? Add it to
-  the kit and to `/design` in the same PR. A field and its button share a `FieldRow`.
+  every component in `src/lib/ui` is exported, shown on `/design` and has a Storybook story
+  (`src/lib/ui/stories/`, [DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md#storybook)). Missing a component?
+  Add it to the kit, `/design` and Storybook in the same PR. A field and its button share a `FieldRow`.
 - **The user always knows the state.** Loading shows a `Skeleton` or `Spinner`; an action shows
   `busy` on its button; errors say what to do next. `npm run lint:ui` (`scripts/check-ui.mjs`) and
   the hook enforce both rules; a deliberate exception carries `ui-ok: reason` on its line.

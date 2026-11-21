@@ -107,7 +107,7 @@ git switch -c <your-branch> FETCH_HEAD
 
 | You changed | Run |
 | --- | --- |
-| Anything | The gate: `npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout && npm run check:render` |
+| Anything | The gate: `npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout && npm run check:render && npm run check:storybook` |
 | Worker code | The module's `*.test.ts`, and for a flow: `npm run build && npm run db:migrate:local && npx wrangler dev --port 8787 --infer-origin-from-routes=false`, then call the route |
 | A migration | The steps in [risky-changes.md](risky-changes.md#d1-migrations) |
 | A screen or component | Walk the flow in Playwright at 390 px, 768 px and 1280 px, light and dark, English and Thai; save screenshots under `/mnt/project-files/<topic>/` |

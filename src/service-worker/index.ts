@@ -4,6 +4,7 @@
  *                                             except the dictionary's per-piece chunks (below)
  *   navigations                             → network, falling back to cached index.html
  *   /api/*                                  → network only (sync retries from the app)
+ *   /storybook/*                            → not handled (the component Storybook, docs/DESIGN-SYSTEM.md)
  *   /audio/*                                → cache-first, kept across deploys
  *   anything else same-origin GET           → stale-while-revalidate
  */
@@ -91,6 +92,7 @@ self.addEventListener('fetch', (event) => {
 	const url = new URL(req.url);
 	if (url.origin !== location.origin) return;
 	if (url.pathname.startsWith('/api/')) return; // network only
+	if (url.pathname.startsWith('/storybook')) return; // the component Storybook is its own site: never the app shell
 
 	if (req.mode === 'navigate') {
 		event.respondWith(

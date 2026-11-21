@@ -87,7 +87,7 @@ describe('UI kit lint (scripts/check-ui.mjs)', () => {
 		expect(src).not.toMatch(/\.(ring|spinner) \{[^}]*animation:/);
 	});
 
-	it('every kit component is exported and shown on /design', () => {
+	it('every kit component is exported, shown on /design and has a story', () => {
 		expect(kitCoverage()).toEqual([]);
 	});
 });

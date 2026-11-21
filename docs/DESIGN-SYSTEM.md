@@ -3,7 +3,8 @@
 Benkyo's look is an iOS-style Liquid Glass interpretation: washi paper and sumi ink
 backgrounds, translucent glass surfaces, vermilion (朱) for main actions and indigo (藍)
 for links and selection. This document says where things live and how to use them.
-The live reference is the **/design** page (not linked from the tab bar).
+The live references are the **/design** page (not linked from the tab bar) and the component
+**Storybook** at [/storybook/](https://benkyo.jirachai.me/storybook/) ([below](#storybook)).
 
 ## Files
 
@@ -14,6 +15,8 @@ The live reference is the **/design** page (not linked from the tab bar).
 | Global utility classes (`.glass`, `.btn`, type classes, `.page`, `.stack`, `.row`) | `src/app.css` |
 | Components | `src/lib/ui/*.svelte`, exported from `src/lib/ui/index.ts` |
 | Catalog page | `src/routes/design/+page.svelte` |
+| Storybook stories (one file per kit component) | `src/lib/ui/stories/<Name>.stories.svelte` |
+| Storybook config (app CSS, themes, viewports, `$app/*` stand-ins) | `.storybook/` |
 
 ## Tokens
 
@@ -102,12 +105,13 @@ Import from `#lib/ui/index.ts`:
 ### Kit only
 
 Every control and card in the app comes from the kit, and every kit component is on `/design`
-(Job, 2026-11-19: "all components designed must present in storybook, and all components that
-using in app must came from storybook"; the storybook is `/design`).
+and has a Storybook story (Job, 2026-11-19: "all components designed must present in storybook,
+and all components that using in app must came from storybook"; 2026-11-21: "I need the actual
+storybook").
 
 - Outside `src/lib/ui`, no raw `<button>`, `<input>`, `<select>` or `<textarea>`, and no hand-made
   `class="btn"`, `"glass"`, `"card"`, `"chip"` or `"switch"`. If the kit lacks something, add it to
-  `src/lib/ui`, export it from `index.ts` and show it on `/design` in the same PR.
+  `src/lib/ui`, export it from `index.ts`, show it on `/design` and add its story in the same PR.
 - A field and its action sit in a `FieldRow`: one height (md 44px by default), bottoms aligned, the
   field grows and the button keeps its label width. Never pair a 54px field with a 36px pill.
 - A deliberate exception (a drawing canvas's hidden input, the app shell's tab bar) carries
@@ -163,6 +167,34 @@ the safe area and the keyboard; a screen with its own fixed bottom bar sets `ui.
 composer, Fleet menu pill). It sits under the tab bar and sheets (z-index 45). A full-screen sheet that
 scrolls itself (the beta consent) puts its own `ScrollMore` inside, with `target` set to the scrolling
 element.
+
+## Storybook
+
+A real [Storybook](https://storybook.js.org) (10, `@storybook/svelte-vite`, stories in Svelte CSF
+with `@storybook/addon-svelte-csf`) shows every kit component on its own, with controls for its
+props, the variants and states, and a Docs page. Live at https://benkyo.jirachai.me/storybook/.
+
+- **Run it:** `npm run storybook` (dev server on port 6006, a forever process: background it).
+  `npm run build-storybook` writes the static site to `build/storybook/`; `npm run build` runs it
+  after the app build, so every deploy ships it and CI builds it.
+- **Matches the app:** `.storybook/preview.ts` imports `src/app.css` (tokens, type, glass). The
+  toolbar's theme switch sets `data-theme="light|dark"` on `<html>`, as the app does. The viewport
+  menu has the review widths: phone 390, iPad 768, iPad landscape 1024, desktop 1280.
+- **Plain Svelte, no SvelteKit:** `.storybook/vite.config.ts` uses the Svelte plugin only, and maps
+  the few `$app/*` modules the kit reaches (`$app/env`, `$app/navigation`, `$app/state`) to small
+  stand-ins in `.storybook/app/`. A kit component that needs another `$app` module gets a stand-in
+  there.
+- **One story file per component**, `src/lib/ui/stories/<Name>.stories.svelte`, titled by group
+  (`Controls/`, `Content/`, `Feedback/`, `Navigation/`, `Data/`, `Learning/`, `Avatar/`): a
+  `Playground` story with `args` for the controls, plus named stories for variants and states.
+  A story that shows several components together uses `asChild`. Overlays (Sheet, the InviteCard
+  pop-up) set `docs.story.inline: false` so they don't cover the Docs page. `npm run lint:ui`
+  (rule `kit-story`) fails when a kit component has no story file.
+- **Served without Worker code:** `/storybook/*` is a plain static path (not in `run_worker_first`),
+  the service worker leaves it alone, and the embedded deploy skips it.
+- `/design` stays as the in-app catalog (it also shows app components and drafts that are not in
+  the kit). New kit work starts with its story; the story is the source of truth for a component's
+  props and states.
 
 ## Navigation for many items
 

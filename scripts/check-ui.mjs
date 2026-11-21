@@ -30,7 +30,9 @@
  *                 inside a still box. `spin-ok: reason` on the line exempts it.
  * And for the kit:
  *   kit-export    every src/lib/ui/*.svelte is exported from src/lib/ui/index.ts;
- *   kit-catalog   every kit component is shown on /design (src/routes/design/+page.svelte).
+ *   kit-catalog   every kit component is shown on /design (src/routes/design/+page.svelte);
+ *   kit-story     every kit component has a Storybook story, src/lib/ui/stories/<Name>.stories.svelte
+ *                 (docs/DESIGN-SYSTEM.md#storybook).
  *
  * A deliberate exception carries `ui-ok: <reason>` on its line (in a
  * `<!-- -->` or `//` comment); on an async function's first line it covers the
@@ -215,7 +217,7 @@ export function lintSpin(text, file = '<text>') {
 	return problems;
 }
 
-/** Kit coverage: every kit component exported and shown on /design. */
+/** Kit coverage: every kit component exported, shown on /design and in Storybook. */
 export function kitCoverage(root = ROOT) {
 	const problems = [];
 	const dir = join(root, KIT);
@@ -227,6 +229,9 @@ export function kitCoverage(root = ROOT) {
 			problems.push({ file: `${KIT}/index.ts`, line: 1, rule: 'kit-export', message: `${name} is not exported: add \`export { default as ${name} } from './${name}.svelte';\`` });
 		if (!new RegExp(String.raw`<${name}\b`).test(catalog))
 			problems.push({ file: CATALOG, line: 1, rule: 'kit-catalog', message: `${name} is not shown on /design: add an example so it is in the catalog` });
+		const story = `${KIT}/stories/${name}.stories.svelte`;
+		if (!existsSync(join(root, story)))
+			problems.push({ file: story, line: 1, rule: 'kit-story', message: `${name} has no Storybook story: add ${story} (copy a story next to it)` });
 	}
 	return problems;
 }
@@ -292,7 +297,7 @@ async function main() {
 		console.error(`\n${problems.length} UI kit problem(s). See docs/DESIGN-SYSTEM.md (Kit only, Loading states).`);
 		process.exit(1);
 	}
-	console.log(`UI kit lint: ${files.length} files, every control from the kit, every kit component on /design, loading states shown, no box spinners.`);
+	console.log(`UI kit lint: ${files.length} files, every control from the kit, every kit component on /design and in Storybook, loading states shown, no box spinners.`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

@@ -17,7 +17,7 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 
 | Part | Does | Code |
 | --- | --- | --- |
-| Static assets | The SvelteKit SPA from `build/`, served without Worker code | `src/`, `adapter-static` |
+| Static assets | The SvelteKit SPA from `build/` and the component Storybook at `/storybook/`, served without Worker code | `src/`, `adapter-static` |
 | Worker `fetch` | `/api/*` and missing `/_app/*` files (`run_worker_first`) | `worker/index.ts` |
 | Worker `scheduled` | Daily cron `23 3 * * *`: beta data retention (180 days), community retention (removed content 90 days, handled reports 180 days), content feedback retention (handled reports 180 days) | `worker/index.ts`, `worker/beta/`, `worker/community.ts`, `worker/feedback.ts` |
 | Bindings | `DB` (D1 `benkyo`), `CONTENT` (KV), `ASSETS`, `CF_VERSION_METADATA` | `wrangler.jsonc`, `worker/env.ts` |
@@ -89,8 +89,9 @@ Announce a change to any of these to the other threads ([teamwork.md](guides/tea
 | Render (GPU) check | `scripts/check-render.mjs` | A live avatar or other GPU view must not build a new WebGL/WebGPU context per change; a new animated view gets a walk there |
 | Layout check fixtures | `scripts/layout-fixtures.mjs` | Synthetic Fleet data for `check:layout`, and `SIGNED_IN_ME` (a signed-in learner with no avatar) for the avatar setup in `check:layout` and `check:render`; a new Fleet screen with forms goes into `FLEET_SCREENS`, a new dynamic Fleet route into `FLEET_SAMPLES` |
 | Fleet navigation | `src/lib/admin/nav.ts` (`FLEET_NAV`, `FLEET_SIDEBAR_QUERY`, also in `admin.css`) | A new Fleet page gets a `FLEET_NAV` entry whose label matches its title, and `<FleetTrail />` above its LargeTitle; `check:layout` fails otherwise |
-| UI kit checks | `scripts/check-ui.mjs`, `src/lib/ui/kit.test.ts`, `.claude/settings.json` | No raw controls outside `src/lib/ui`; every kit component exported and on `/design`; async work shows a loading state; no spinning element boxes (Safari wobble) |
-| UI kit | `src/lib/ui/` (import from `#lib/ui/index.ts`), shown on `/design` | Every control in the app comes from here. New component: export it and add it to `/design` (the lint fails otherwise) |
+| UI kit checks | `scripts/check-ui.mjs`, `src/lib/ui/kit.test.ts`, `.claude/settings.json` | No raw controls outside `src/lib/ui`; every kit component exported, on `/design` and with a story in `src/lib/ui/stories/`; async work shows a loading state; no spinning element boxes (Safari wobble) |
+| UI kit | `src/lib/ui/` (import from `#lib/ui/index.ts`), shown on `/design` and in Storybook (`/storybook/`) | Every control in the app comes from here. New component: export it, add it to `/design` and add `src/lib/ui/stories/<Name>.stories.svelte` (the lint fails otherwise) |
+| Storybook | `.storybook/` (config, app CSS, themes, viewports, `$app/*` stand-ins), `src/lib/ui/stories/`, built into `build/storybook/` by `npm run build`, served at `/storybook/` | Plain static path: not in `run_worker_first`, skipped by the service worker and the embedded deploy. [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md#storybook) |
 | UI strings | `src/lib/i18n/{en,th}.ts`, `t()` / `tn()` | Append keys; `th.ts` may be partial (falls back to English) |
 | Lesson content Thai | `src/lib/i18n/content.th.ts` | `i18n.test.ts` fails on a missing entry |
 | Consent | `src/lib/beta/consentText.ts`, `consentText.th.ts`, `CONSENT_VERSION` | Change together; bump the version |
