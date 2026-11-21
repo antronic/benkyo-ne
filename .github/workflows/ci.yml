@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   gate:
-    name: check, lint, test, build, layout, render
+    name: check, lint, test, build, layout, render, storybook
     # Runs on Job's self-hosted runner (docs/CI-RUNNER.md). To go back to a
     # GitHub-hosted machine without a code change, set the repository variable
     # CI_RUNNER to ubuntu-latest (Settings → Secrets and variables → Actions).
@@ -57,6 +57,8 @@ jobs:
           LAYOUT_SHOTS: layout-failures
           LAYOUT_REVIEW: layout-review
       - run: npm run check:render
+      # every Storybook story (built into build/storybook/ by npm run build) renders in light and dark
+      - run: npm run check:storybook
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

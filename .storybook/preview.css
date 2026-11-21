@@ -1,0 +1,13 @@
+/* Storybook canvas only: the story sits on the app background, in the app font. */
+html,
+body {
+	background: var(--bg);
+	color: var(--ink);
+}
+.sb-show-main.sb-main-padded {
+	padding: var(--space-4);
+}
+/* stories lay several components out in a wrapping row, as /design does */
+.row.wrap {
+	flex-wrap: wrap;
+}

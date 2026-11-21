@@ -47,6 +47,7 @@ let skippedBytes = 0;
 for (const file of walk(root)) {
 	const rel = '/' + relative(root, file).split('\\').join('/');
 	if (rel === '/_headers') continue; // headers are applied in worker/embedded.ts
+	if (rel.startsWith('/storybook/')) continue; // the component Storybook ships with the assets deploy only
 	if (skip.has(rel)) {
 		skipped++;
 		skippedBytes += statSync(file).size;

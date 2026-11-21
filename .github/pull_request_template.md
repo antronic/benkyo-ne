@@ -23,7 +23,7 @@
 Status: Done | Done, not verified | Failed | Blocked
 
 ```text
-npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout && npm run check:render
+npm ci && npm run check && npm run lint:ui && npm test && npm run build && npm run check:layout && npm run check:render && npm run check:storybook
 <paste the summary lines: svelte-check result, Test Files / Tests, build>
 ```
 

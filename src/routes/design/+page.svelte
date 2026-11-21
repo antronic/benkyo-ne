@@ -204,7 +204,8 @@
 <main class="page stack catalog" style:--gap="var(--space-4)" bind:this={root} onclick={replay} role="presentation">
 	<LargeTitle title="Design system" />
 	<p class="subhead intro">
-		Tokens live in <code class="mono">lib/design/tokens.css</code>, components in <code class="mono">lib/ui</code>. Everything on this page is built from them.
+		Tokens live in <code class="mono">lib/design/tokens.css</code>, components in <code class="mono">lib/ui</code>. Everything on this page is built from them. Each kit component also has its own page, with its props and states, in
+		<a href="/storybook/" data-sveltekit-reload>Storybook</a>.
 	</p>
 	<div class="mode">
 		<Segmented
