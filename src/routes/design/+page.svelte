@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, ScrollMore, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
+	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, SafariPrompt, ScrollMore, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
 	import { avatarSvg } from '#lib/avatar/render.ts';
 	import { DEFAULTS as AV_DEFAULTS, SKIN, type Person } from '#lib/avatar/person.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
@@ -683,6 +683,13 @@
 				<SectionHeader title="More below" />
 				<p class="caption">Floats above the bottom of a long screen while more than about half a screen is still below, and scrolls smoothly to the end when tapped. It clears the tab bar, the safe area, the keyboard and the Ask AI composer, and hides near the bottom. The root layout shows it on every screen, so there is nothing to add per screen.</p>
 				<div class="row"><ScrollMore demo /></div>
+
+				<SectionHeader title="Open in Safari" />
+				<p class="caption">On iPhone and iPad only Safari can install Benkyo. Opened inside LINE, Instagram, Chrome or another app, the app asks once per visit to move the page to Safari, keeping the whole link. Open in Safari uses the iOS 17 Safari link; Copy link is the fallback. The install guide shows the same card.</p>
+				<div class="safari-demos">
+					<SafariPrompt href="https://benkyo.jirachai.me/invite/VIP" app="LINE" oncontinue={() => {}} />
+					<SafariPrompt href="https://benkyo.jirachai.me/" app="Chrome" browser />
+				</div>
 
 				<SectionHeader title="Field with an action" />
 				<Card padding="md">
@@ -1367,5 +1374,9 @@
 		display: grid;
 		place-items: center;
 		font-size: 20px;
+	}
+	.safari-demos {
+		display: grid;
+		gap: var(--space-3);
 	}
 </style>

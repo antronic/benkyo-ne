@@ -15,8 +15,8 @@ export type Env = {
 	browser: 'safari' | 'chrome' | 'edge' | 'firefox' | 'samsung' | 'inapp' | 'other';
 };
 
-/** In-app browsers (LINE, Facebook, Instagram, …) can't add to the Home Screen. */
-const IN_APP = /\bLine\/|FBAN|FBAV|FB_IAB|Instagram|Twitter|MicroMessenger|TikTok|musical_ly|KAKAOTALK/i;
+/** In-app browsers (LINE, Facebook, Instagram, the Google app, …) can't add to the Home Screen. */
+const IN_APP = /\bLine\/|FBAN|FBAV|FB_IAB|Instagram|Twitter|MicroMessenger|TikTok|musical_ly|KAKAOTALK|\bGSA\/|Snapchat|Pinterest|LinkedInApp/i;
 
 export function detectEnv(ua: string, maxTouchPoints = 0): Env {
 	const os: Env['os'] = /iPhone|iPod/.test(ua)
@@ -90,4 +90,41 @@ export function oldSafariToolbar(ua: string, env: Env): boolean {
 	if (env.browser !== 'safari' || (env.os !== 'ios' && env.os !== 'ipados')) return false;
 	const v = /Version\/(\d+)/.exec(ua);
 	return !!v && Number(v[1]) < 26;
+}
+
+/** iPhone or iPad, not in Safari: only Safari can install Benkyo there, so we offer to open it in Safari. */
+export function needsSafari(env: Env): boolean {
+	return (env.os === 'ios' || env.os === 'ipados') && env.browser !== 'safari';
+}
+
+/** The app or browser the page is open in, by its own (untranslated) name; null when we can't tell. */
+const NAMES: [RegExp, string][] = [
+	[/\bLine\//i, 'LINE'],
+	[/Instagram/i, 'Instagram'],
+	[/FBAN|FBAV|FB_IAB/i, 'Facebook'],
+	[/MicroMessenger/i, 'WeChat'],
+	[/TikTok|musical_ly/i, 'TikTok'],
+	[/KAKAOTALK/i, 'KakaoTalk'],
+	[/Twitter/i, 'X'],
+	[/Snapchat/i, 'Snapchat'],
+	[/Pinterest/i, 'Pinterest'],
+	[/LinkedInApp/i, 'LinkedIn'],
+	[/\bGSA\//, 'Google'],
+	[/EdgiOS|EdgA|Edg\//, 'Edge'],
+	[/FxiOS|Firefox/, 'Firefox'],
+	[/CriOS|Chrome/, 'Chrome']
+];
+
+export function appName(ua: string): string | null {
+	for (const [re, name] of NAMES) if (re.test(ua)) return name;
+	return null;
+}
+
+/**
+ * The same page in Safari. iOS 17 and later open `x-safari-https://…` links
+ * in Safari from any app or browser; we keep the whole URL (path, invite
+ * code, ?ref= promo) so the learner lands where they were.
+ */
+export function safariUrl(href: string): string {
+	return /^https?:\/\//i.test(href) ? `x-safari-${href}` : href;
 }
