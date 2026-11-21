@@ -20,7 +20,9 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
-	import { askAboutHref } from '#lib/ai/threads.ts';
+	import { cardFocus } from '#lib/ai/threads.ts';
+	import AskPeek from '#lib/components/AskPeek.svelte';
+	import type { AskFocus } from '#lib/ai/contract.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 
 	ui.hue = 285;
@@ -30,6 +32,8 @@
 	let missing = $state(false);
 	/** which save is running: skipping a word or finishing the pack */
 	let saving = $state<'skip' | 'finish' | null>(null);
+	/** the word the Ask AI peek is about, or null when closed */
+	let askAbout = $state<AskFocus | null>(null);
 
 	onMount(async () => {
 		pack = (await listPacks()).find((p) => p.id === page.params.id) ?? null;
@@ -134,7 +138,7 @@
 										}}
 									/>
 								</Card>
-								<Button variant="ghost" block href={askAboutHref({ front: item.reading, kanji, gloss: item.gloss }, `/words/pack/${pack.id}?at=${i}`)}>💬 {t('words.askAi')}</Button>
+								<Button variant="ghost" block onclick={() => (askAbout = cardFocus({ front: item.reading, kanji, gloss: item.gloss }))}>💬 {t('words.askAi')}</Button>
 								{#if ai.checked && !ai.available && ai.reason}<p class="caption ask-hint">✨ {ai.reason}</p>{/if}
 								<NoteCard value={notes.text(item.key)} loading={!notes.ready} onsave={(b) => notes.save(item.key, item.reading, b)} />
 							</div>
@@ -149,6 +153,8 @@
 		{/key}
 	{/if}
 </main>
+
+<AskPeek focus={askAbout} back={pack ? `/words/pack/${pack.id}?at=${i}` : '/words'} onclose={() => (askAbout = null)} />
 
 <style>
 	.reader {

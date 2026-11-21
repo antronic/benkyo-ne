@@ -86,7 +86,7 @@ Import from `#lib/ui/index.ts`:
 | `Skeleton` | `variant` row · card · tile · line, `count`, `label` | blank space while data loads |
 | `Spinner` | `label` (none = decorative), `size` sm · md · lg · inline (1em), `tone` accent · current, `showLabel` | a short wait with no layout to preview; `Button busy` uses the inline one |
 | `ProgressRing`, `BarChart` | progress and per-day bars | |
-| `Sheet` | `open`, `label`, `onclose` | bottom sheets |
+| `Sheet` | `open`, `label`, `onclose`, `header`, `peek`, `footer`, `bind:body` | bottom sheets; `peek` opens at medium height over what you were looking at (drag or tap the grabber for full height), `footer` stays pinned above the keyboard (Ask AI peek on word cards) |
 | `LargeTitle` | the screen's iOS large title and compact title bar | |
 | `StatTile` | `label`, `value`, `note`, `tone` default · danger; lay out in `<div class="ui-stats">` | `.tile` in the fleet console |
 | `SideNav` | `items` (href, label, icon, group, note), `current`, `label`, `header`/`footer` snippets | a section's pages; Fleet's sidebar and phone menu |
