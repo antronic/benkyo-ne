@@ -9,6 +9,7 @@
 	import type { AskFocus, AskTurn } from '#lib/ai/contract.ts';
 	import { finishAskText, parseAskText } from '#lib/ai/askStream.ts';
 	import {
+		backFromUrl,
 		focusFromUrl,
 		getCurrent,
 		loadThreads,
@@ -55,8 +56,8 @@
 	let list: HTMLDivElement | undefined = $state();
 	/** false until the saved chats are read, so a word chat doesn't flash the general starters first */
 	let loaded = $state(false);
-	/** opened from a word card: Back returns to Words */
-	let fromWords = $state(false);
+	/** opened from a word card or a word pack: where Back returns to (null: the AI tab) */
+	let backTo = $state<string | null>(null);
 
 	let historyOpen = $state(false);
 	let query = $state('');
@@ -89,7 +90,7 @@
 				// A new chat about this word; it is saved with the first question.
 				const now = Date.now();
 				current = { id: newId(), title: about.word, createdAt: now, updatedAt: now, msgs: [], focus: about };
-				fromWords = true;
+				backTo = backFromUrl(page.url);
 				history.replaceState(history.state, '', '/ai/ask'); // a reload opens this chat, not another new one
 			} else {
 				const id = await getCurrent();
@@ -310,7 +311,7 @@
 <main class="chat" bind:this={chatEl}>
 	<header class="top">
 		<div class="top-row">
-			<IconButton label={t('common.back')} onclick={() => goto(fromWords ? '/words' : '/ai')}>
+			<IconButton label={t('common.back')} onclick={() => goto(backTo ?? '/ai')}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
 			</IconButton>
 			{#if progress.settings.kuri}

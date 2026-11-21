@@ -35,11 +35,21 @@ export function titleFor(msgs: AskMsg[], focus?: AskFocus | null): string {
 	return q.length > 60 ? `${q.slice(0, 57).trimEnd()}…` : q || focus?.word || 'New chat';
 }
 
-/** Words → card → Ask AI: the link that opens a new chat about that card. */
-export function askAboutHref(card: { front: string; kanji: string | null; gloss: string }): string {
+/**
+ * Words → card (or a word pack) → Ask AI: the link that opens a new chat about that word.
+ * `back` is where the chat's Back button returns (a path in the app); Words when left out.
+ */
+export function askAboutHref(card: { front: string; kanji: string | null; gloss: string }, back?: string): string {
 	const q = new URLSearchParams({ word: card.kanji || card.front, meaning: card.gloss });
 	if (card.kanji && card.kanji !== card.front) q.set('reading', card.front);
+	if (back) q.set('back', back);
 	return `/ai/ask?${q}`;
+}
+
+/** Where Back goes from a chat opened by askAboutHref: an in-app path only, never another site. */
+export function backFromUrl(url: { searchParams: { get(name: string): string | null } }): string {
+	const back = url.searchParams.get('back') ?? '';
+	return back.startsWith('/') && !back.startsWith('//') && !back.includes('\\') ? back : '/words';
 }
 
 /** The word in an Ask AI link, or null when the link has none (opens the last chat as before). */
