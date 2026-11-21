@@ -3,7 +3,9 @@
 	import { Button, ScrollMore, Skeleton } from '#lib/ui/index.ts';
 	import '../app.css';
 	import { onMount, untrack } from 'svelte';
-	import { goto, onNavigate } from '$app/navigation';
+	import { afterNavigate, goto, onNavigate } from '$app/navigation';
+	import { isImmersive, returnTarget } from '#lib/nav.ts';
+	import { leave } from '#lib/state/leave.ts';
 	import { updater } from '#lib/pwa/update.svelte.ts';
 	import UpdateBanner from '#lib/components/UpdateBanner.svelte';
 	import InstallGuide from '#lib/components/InstallGuide.svelte';
@@ -104,7 +106,11 @@
 	}
 
 	// Immersive screens hide the navigation and can be swiped back from.
-	const immersive = $derived(/^\/(learn\/.+|review|words\/.+|ai\/.+|admin)/.test(page.url.pathname));
+	const immersive = $derived(isImmersive(page.url.pathname));
+	// remember where each full-screen step was opened from, so closing it goes back there
+	afterNavigate(({ from, to }) => {
+		if (to) ui.returnTo = returnTarget(ui.returnTo, from ? from.url.pathname + from.url.search : null, to.url.pathname + to.url.search);
+	});
 	const parent = $derived(
 		page.url.pathname.startsWith('/learn/') ? '/learn' : page.url.pathname.startsWith('/words/') ? '/words' : page.url.pathname.startsWith('/ai/') ? '/ai' : page.url.pathname.startsWith('/admin') ? fleetParent(page.url.pathname) : '/'
 	);
@@ -122,7 +128,7 @@
 	async function back() {
 		if (ui.backGuard && !(await ui.backGuard())) return false;
 		ui.backGuard = null;
-		await goto(parent);
+		await (page.url.pathname.startsWith('/admin') ? goto(parent) : leave(parent)); // ui-ok: a client-side page change, no network
 	}
 
 	/** how long saved progress may take to open before the app starts without it */

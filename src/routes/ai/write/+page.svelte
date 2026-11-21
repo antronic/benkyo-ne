@@ -7,6 +7,7 @@
 	import { t, tn } from '#lib/i18n/index.svelte.ts';
 	import { Button, Card, IconButton, ListGroup, ListRow, MarkedText, PolitenessMeter, Segmented, Skeleton, SpeechBubble, TextArea } from '#lib/ui/index.ts';
 	import { goto } from '$app/navigation';
+	import { leave } from '#lib/state/leave.ts';
 	import { fly } from 'svelte/transition';
 	import * as api from '#lib/ai/client.ts';
 	import { WRITE_MAX, WRITE_TARGET, WRITE_TO, type WriteResponse, type WriteTo } from '#lib/ai/contract.ts';
@@ -105,7 +106,7 @@
 
 <main class="writer">
 	<header class="top">
-		<IconButton label={t('common.back')} onclick={() => goto('/ai')}>
+		<IconButton label={t('common.back')} onclick={() => leave('/ai')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		</IconButton>
 		<h1 class="title-2">{t('write.title')}</h1>

@@ -9,6 +9,7 @@
 	import { Card, Chip, IconButton, Notice, Skeleton, TextField } from '#lib/ui/index.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { leave } from '#lib/state/leave.ts';
 	import { kanjiIndex } from '#lib/state/kanjiIndex.svelte.ts';
 	import { matchesKanji, type GalleryKanji } from '#lib/content/kanjiIndex.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
@@ -38,7 +39,7 @@
 
 <main class="page stack" style:--gap="var(--space-3)">
 	<header class="top">
-		<IconButton label={t('common.back')} onclick={() => goto('/learn')}>
+		<IconButton label={t('common.back')} onclick={() => leave('/learn')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		</IconButton>
 		<div class="stack" style:--gap="0">

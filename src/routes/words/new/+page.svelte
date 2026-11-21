@@ -7,6 +7,7 @@
 	import { Button, Card, FileButton, IconButton, Segmented, Skeleton, TextField } from '#lib/ui/index.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { goto } from '$app/navigation';
+	import { leave } from '#lib/state/leave.ts';
 	import { page } from '$app/state';
 	import { fly } from 'svelte/transition';
 	import { ai } from '#lib/state/ai.svelte.ts';
@@ -133,7 +134,7 @@
 
 <main class="maker">
 	<header class="top">
-		<IconButton label={t('common.close')} onclick={() => goto('/words')}>
+		<IconButton label={t('common.close')} onclick={() => leave('/words')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
 		</IconButton>
 		<h1 class="title-2">{t('maker.title')}</h1>

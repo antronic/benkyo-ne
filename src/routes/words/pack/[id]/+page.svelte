@@ -10,6 +10,7 @@
 	import { notes } from '#lib/state/notes.svelte.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { leave } from '#lib/state/leave.ts';
 	import { page } from '$app/state';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -93,7 +94,7 @@
 
 <main class="reader">
 	<header class="top">
-		<IconButton label={t('common.close')} onclick={() => goto('/words')}>
+		<IconButton label={t('common.close')} onclick={() => leave('/words')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
 		</IconButton>
 		<div class="bar"><span style:width="{pack ? ((i + (revealed ? 1 : 0.5)) / pack.items.length) * 100 : 0}%"></span></div>
@@ -140,8 +141,10 @@
 									/>
 									<CardPoliteness id={item.key} written={kanji ?? item.reading} />
 								</Card>
-								<Button variant="ghost" block onclick={() => (askAbout = cardFocus({ front: item.reading, kanji, gloss: item.gloss }))}>💬 {t('words.askAi')}</Button>
-								{#if ai.checked && !ai.available && ai.reason}<p class="caption ask-hint">✨ {ai.reason}</p>{/if}
+								{#if ai.reasonKind !== 'noAi'}
+									<Button variant="ghost" block onclick={() => (askAbout = cardFocus({ front: item.reading, kanji, gloss: item.gloss }))}>💬 {t('words.askAi')}</Button>
+									{#if ai.checked && !ai.available && ai.reason}<p class="caption ask-hint">✨ {ai.reason}</p>{/if}
+								{/if}
 								<NoteCard value={notes.text(item.key)} loading={!notes.ready} onsave={(b) => notes.save(item.key, item.reading, b)} />
 							</div>
 							<Button variant="accent" block onclick={next} busy={saving === 'finish'} disabled={saving === 'skip'}>{i < pack.items.length - 1 ? t('pack.next') : t('pack.finish')}</Button>

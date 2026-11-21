@@ -85,3 +85,21 @@ export function grouped(items: NavItem[] = NAV_ITEMS): { group: NavGroup; items:
 	const order: NavGroup[] = ['study', 'make', 'people', 'you'];
 	return order.map((group) => ({ group, items: items.filter((i) => i.group === group) })).filter((g) => g.items.length);
 }
+
+/** Full-screen steps (a lesson, a review, a pack, Ask AI, Fleet): no navigation bar, swipe back to leave. */
+export function isImmersive(path: string): boolean {
+	return /^\/(learn\/.+|review|words\/.+|ai\/.+|admin)/.test(path.split(/[?#]/)[0]);
+}
+
+/**
+ * Where a full-screen step goes back to (the close button, swipe-back, Done): the screen it was
+ * opened from, so a lesson opened from Today closes to Today and one opened from Learn to Learn.
+ * Called on every navigation with what was saved so far; `from` and `to` are paths (with any
+ * query). Moving between full-screen steps (a lesson to the next one) keeps the saved screen;
+ * arriving on a normal screen, or in Fleet (it has its own trail), clears it.
+ */
+export function returnTarget(saved: string | null, from: string | null, to: string): string | null {
+	if (!isImmersive(to) || to.startsWith('/admin')) return null;
+	if (from && !isImmersive(from)) return from;
+	return saved;
+}

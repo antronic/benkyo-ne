@@ -10,6 +10,7 @@
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { leave } from '#lib/state/leave.ts';
 	import { fly, scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { speak, type Kana, type Script } from '#lib/content/kana.ts';
@@ -119,7 +120,7 @@
 	async function close() {
 		if (ui.backGuard && !(await ui.backGuard())) return;
 		ui.backGuard = null;
-		goto('/learn');
+		leave('/learn');
 	}
 </script>
 
@@ -218,7 +219,7 @@
 				<Button variant="ghost" block onclick={finish} busy={saving}>{t('placement.stopKeep')}</Button>
 			{:else if phase === 'done'}
 				<div class="row" style="width:100%">
-					<Button variant="ghost" block onclick={() => goto('/learn')}>{t('common.done')}</Button>
+					<Button variant="ghost" block onclick={() => leave('/learn')}>{t('common.done')}</Button>
 					{#if nextLesson}
 						<Button variant="accent" block onclick={() => goto(`/learn/${nextLesson.id}`)}>{t('placement.startLesson', { lesson: c(nextLesson.title) })}</Button>
 					{/if}

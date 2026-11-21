@@ -147,7 +147,7 @@ import CardPoliteness from '#lib/components/CardPoliteness.svelte';
 		{/snippet}
 	</LargeTitle>
 
-	{#if !ai.available && ai.checked && ai.reason}
+	{#if !ai.available && ai.checked && ai.reason && ai.reasonKind !== 'noAi'}
 		<p class="caption hint">✨ {ai.reason} {tr('words.dictStillWorks')}</p>
 	{/if}
 
@@ -282,8 +282,11 @@ import CardPoliteness from '#lib/components/CardPoliteness.svelte';
 	{#if open}
 		<WordCardView card={open} />
 		<CardPoliteness id={open.id} written={open.kanji ?? open.front} />
-		<Button variant="ghost" block onclick={() => (askAbout = cardFocus(open!))}>💬 {tr('words.askAi')}</Button>
-		{#if ai.checked && !ai.available && ai.reason}<p class="caption ask-hint">✨ {ai.reason}</p>{/if}
+		<!-- no AI on this account (no package, no key) is normal: no Ask button to nag about it -->
+		{#if ai.reasonKind !== 'noAi'}
+			<Button variant="ghost" block onclick={() => (askAbout = cardFocus(open!))}>💬 {tr('words.askAi')}</Button>
+			{#if ai.checked && !ai.available && ai.reason}<p class="caption ask-hint">✨ {ai.reason}</p>{/if}
+		{/if}
 		{#if open.seen?.count}
 			<section class="stack where" style:--gap="var(--space-1h)">
 				<h3 class="eyebrow">{tr('phrasebook.where')}</h3>

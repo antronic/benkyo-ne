@@ -9,6 +9,7 @@
 	import { Button, Card, IconButton, Skeleton } from '#lib/ui/index.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { leave } from '#lib/state/leave.ts';
 	import { page } from '$app/state';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -164,7 +165,7 @@
 				{#if saving}<Button variant="ghost" block busy>{t('testOut.saving')}</Button>{/if}
 			{:else}
 				<div class="row" style="width:100%">
-					<Button variant="ghost" block onclick={() => goto('/learn')}>{t('common.done')}</Button>
+					<Button variant="ghost" block onclick={() => leave('/learn')}>{t('common.done')}</Button>
 					<Button variant="accent" block onclick={() => goto(`/learn/level/${unit!.id}`)}>{t('testOut.openUnit')}</Button>
 				</div>
 			{/if}

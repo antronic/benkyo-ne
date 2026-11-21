@@ -13,10 +13,12 @@
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { goto } from '$app/navigation';
+	import { leave } from '#lib/state/leave.ts';
 	import { page } from '$app/state';
 	import { fly, scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { byChar, romajiMatches, speak, type Kana } from '#lib/content/kana.ts';
+	import { LESSONS } from '#lib/content/lessons.ts';
 	import { mnemonicFor } from '#lib/content/mnemonics.ts';
 	import { confusablesOf } from '#lib/content/confusables.ts';
 	import { Good, inferGrade, type Grade } from '#lib/srs/fsrs.ts';
@@ -217,16 +219,19 @@
 		if (result) next();
 		else if (mode === 'type' && answer.trim()) submit(romajiMatches(kana, answer));
 	}
+	// nothing has ever been learned on this device: say how reviews start instead of "All caught up"
+	const nothingYet = $derived(!Object.keys(progress.cards).length && !words.list.length);
+	const firstLesson = $derived(LESSONS.find((l) => !progress.completed.includes(l.id)));
 </script>
 
 <svelte:window onkeydown={onKey} />
 
 <main class="review">
 	<header class="top">
-		<IconButton label={t('review.end')} onclick={() => goto('/')}>
+		<IconButton label={t('review.end')} onclick={() => leave('/')}>
 			<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
 		</IconButton>
-		<div class="bar"><span style:width="{total ? (Math.min(done, total) / total) * 100 : 100}%"></span></div>
+		<div class="bar"><span style:width="{total ? (Math.min(done, total) / total) * 100 : nothingYet ? 0 : 100}%"></span></div>
 		<div class="caption count">{Math.min(done, total)}/{total}</div>
 	</header>
 
@@ -238,6 +243,17 @@
 
 	{#if loadingSet}
 		<section class="stage"><Skeleton variant="card" label={t('common.loading')} /></section>
+	{:else if (!entry || (!kana && !kanji && !wordCard)) && !total && !tag && !practice && nothingYet}
+		<section class="stage" in:scale={{ start: 0.94, duration: 400 }}>
+			<div class="stack center" style:--gap="var(--space-4)">
+				<div class="first-kana" aria-hidden="true"><KanaGlyph char="あ" size={96} /></div>
+				<h1 class="large-title">{t('review.nothingYet')}</h1>
+				<p class="subhead">{t('review.nothingYetBody')}</p>
+				{#if firstLesson}
+					<Button variant="accent" href="/learn/{firstLesson.id}">{t('review.startFirst', { lesson: c(firstLesson.title) })}</Button>
+				{/if}
+			</div>
+		</section>
 	{:else if !entry || (!kana && !kanji && !wordCard)}
 		<section class="stage" in:scale={{ start: 0.94, duration: 400 }}>
 			<div class="stack center" style:--gap="var(--space-4)">
@@ -259,7 +275,7 @@
 				</p>
 				<div class="row">
 					{#if practice && total}<Button variant="ghost" onclick={() => (location.href = `/review?practice=${practice.id}`)}>{t('review.again')}</Button>{/if}
-					<Button variant="accent" onclick={() => goto(practice ? '/learn' : '/')}>{t('common.done')}</Button>
+					<Button variant="accent" onclick={() => leave(practice ? '/learn' : '/')}>{t('common.done')}</Button>
 				</div>
 			</div>
 		</section>
@@ -575,5 +591,8 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-px);
+	}
+	.first-kana {
+		opacity: 0.85;
 	}
 </style>
