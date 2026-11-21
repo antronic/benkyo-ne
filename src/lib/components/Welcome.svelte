@@ -4,7 +4,9 @@
 	Create an account (name + Face ID / Touch ID) or sign in with an existing
 	passkey; a recovery code is shown once after a passkey sign-up. When the
 	server has it set up, "Continue with Apple" is offered beside the passkey.
-	"Not now" keeps the app usable offline without AI.
+	"Not now" keeps the app usable offline without AI, except after an invite
+	link (/invite/CODE): then an account is needed, so there is no "Not now"
+	unless this browser can't make one at all or the server can't be reached.
 	In a browser tab (not installed) a card above the account asks to install
 	first: the Home Screen app keeps its own storage, so starting there leaves
 	nothing behind in the tab. Its button opens the install guide (which, in
@@ -34,6 +36,8 @@
 	let name = $state('');
 	// filled in from a sign-up link (/invite/CODE)
 	let invite = $state(pendingInvite() ?? '');
+	/** came from an invite link: create an account or sign in, no guest way in */
+	const invited = !!pendingInvite();
 	const canCreate = $derived(ai.signupOpen || ai.signupInvite);
 	const needInvite = $derived(!ai.signupOpen && ai.signupInvite);
 	let code = $state('');
@@ -73,6 +77,7 @@
 	async function signIn() {
 		const r = await run(() => api.signIn());
 		if (!r?.signedIn) return;
+		clearPendingInvite(); // an existing account: the invite isn't needed
 		haptic('success');
 		await ai.refresh();
 		toast(t('welcome.back', { name: r.account?.name ?? '' }).trim(), '👋');
@@ -81,6 +86,7 @@
 	async function recover() {
 		const r = await run(() => api.recover(code.trim()));
 		if (!r?.signedIn) return;
+		clearPendingInvite();
 		await ai.refresh();
 		// a recovery session must add a passkey straight away
 		const added = await run(() => api.registerPasskey());
@@ -183,11 +189,12 @@
 					onchange={(v) => ((mode = v), (error = ''))}
 				/>
 
+				{#if invited}<p class="caption">{t('welcome.invited')}</p>{/if}
 				{#if mode === 'create'}
 					{#if canCreate}
 						<form class="stack" style:--gap="var(--space-3)" onsubmit={(e) => (e.preventDefault(), create())}>
 							{#if needInvite}
-								<p class="caption">{t('welcome.inviteOnly')}</p>
+								{#if !invited}<p class="caption">{t('welcome.inviteOnly')}</p>{/if}
 								<TextField size="lg" placeholder={t('welcome.invite')} bind:value={invite} maxlength={20} autocomplete="off" autocapitalize="characters" aria-label={t('welcome.invite')} />
 							{/if}
 							<TextField size="lg" placeholder={t('welcome.name')} bind:value={name} maxlength={40} autocomplete="nickname" aria-label={t('welcome.name')} />
@@ -219,7 +226,7 @@
 			</Card></div>
 		{/if}
 
-		{#if !recoveryCode}
+		{#if !recoveryCode && (!invited || !ai.reached || (!supported && !ai.appleEnabled))}
 			<Button variant="plain" class="wl-later" onclick={later}>{t('welcome.later')}</Button>
 		{/if}
 	</div>

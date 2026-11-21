@@ -9,6 +9,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { page } from '$app/state';
+	import { resumeLink } from '#lib/promo/link.ts';
 	import { install } from '#lib/pwa/install.svelte.ts';
 	import { SafariPrompt } from '#lib/ui/index.ts';
 
@@ -20,7 +21,7 @@
 	<div class="safari-scrim" transition:fade={{ duration: 200 }}>
 		<div class="sheet" transition:fly={{ y: 40, duration: 360, easing: cubicOut }}>
 			<SafariPrompt
-				href={page.url.href}
+				href={resumeLink(page.url.href)}
 				app={install.appName}
 				browser={BROWSERS.has(install.env.browser)}
 				oncontinue={() => install.hideSafari()}

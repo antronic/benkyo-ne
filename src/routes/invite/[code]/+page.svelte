@@ -1,7 +1,8 @@
 <!--
 	Sign-up link: /invite/VIP?coupon=SONGKRAN27. Keeps the invite for the
 	sign-up screen's invite field and the coupon for after sign-up
-	(src/lib/promo/link.ts). A named invite with a card (worker/invite.ts) plays
+	(src/lib/promo/link.ts). An invite needs an account: the card has no
+	"Not now", and sign-up can't be skipped while the invite is pending. A named invite with a card (worker/invite.ts) plays
 	the VIP card first; Accept then opens sign-up. A static path: the SPA
 	fallback serves it, and the card comes from /api/auth/invite/:code.
 -->
@@ -29,11 +30,13 @@
 		return p.days === null ? kind : t('invite.perkDays', { what: kind, days: p.days });
 	});
 
-	async function go(signUp: boolean) {
+	/** On to sign-up: an invite needs an account (Welcome has no "Not now" while it is pending). */
+	async function go() {
 		card = null;
 		await goto('/', { replaceState: true });
 		if (!ai.checked) await ai.refresh().catch(() => {});
-		if (signUp && !ai.signedIn && !ui.showIntro) ui.showWelcome = true;
+		if (ai.signedIn) clearPendingInvite(); // already in: nothing to sign up for
+		else if (!ui.showIntro) ui.showWelcome = true;
 	}
 
 	/** The app is loaded and the splash (Splash.svelte: at least 900 ms, then a 520 ms fade) has gone, so the card is seen. */
@@ -57,13 +60,13 @@
 				// deleted, revoked, expired or every use taken: don't fill in a code sign-up would refuse
 				clearPendingInvite();
 				toast(t(c === 'full' ? 'invite.full' : 'invite.ended'), '🎟️', 3600);
-				await go(true);
+				await go();
 				return;
 			}
 			// a VIP's own promo code (Fleet → Invitations) is used after sign-up, like ?coupon=
 			if (c?.coupon && !ref?.code) savePendingPromo(c.coupon);
 			if (c) card = c;
-			else await go(true);
+			else await go();
 		})();
 	});
 </script>
@@ -83,10 +86,8 @@
 		eyebrow={t('invite.eyebrow')}
 		title={t('invite.title')}
 		acceptLabel={t('invite.accept')}
-		laterLabel={t('invite.later')}
 		inkLabel={t('invite.inkLabel')}
-		onaccept={() => go(true)}
-		onclose={() => go(false)}
+		onaccept={go}
 	/>
 {/if}
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LINK_TTL_MS, cleanInvite, cleanRef, clearPendingPromo, markPendingTold, pendingPromo, promoLink, savePendingPromo, takeRef } from './link.ts';
+import { LINK_TTL_MS, cleanInvite, cleanRef, clearPendingPromo, markPendingTold, pendingPromo, promoLink, resumeLink, savePendingPromo, takeRef } from './link.ts';
 
 describe('promo links', () => {
 	beforeEach(() => {
@@ -59,5 +59,14 @@ describe('promo links', () => {
 		savePendingPromo('ABCDEF', 1000);
 		clearPendingPromo();
 		expect(pendingPromo(2000)).toBeNull();
+	});
+
+	it('puts the saved invite and code back on a link that leaves the app', () => {
+		const at = 'https://benkyo.jirachai.me/';
+		expect(resumeLink(at, 'VIP', 'SONGKRAN27')).toBe('https://benkyo.jirachai.me/invite/VIP?coupon=SONGKRAN27');
+		expect(resumeLink('https://benkyo.jirachai.me/words', 'BK-7KQ2-MX9D', null)).toBe('https://benkyo.jirachai.me/invite/BK-7KQ2-MX9D');
+		expect(resumeLink(at, null, 'SONGKRAN27')).toBe('https://benkyo.jirachai.me/?ref=SONGKRAN27');
+		expect(resumeLink('https://benkyo.jirachai.me/?coupon=OTHER', null, 'SONGKRAN27')).toBe('https://benkyo.jirachai.me/?coupon=OTHER');
+		expect(resumeLink('https://benkyo.jirachai.me/kana', null, null)).toBe('https://benkyo.jirachai.me/kana');
 	});
 });
