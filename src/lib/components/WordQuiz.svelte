@@ -5,6 +5,15 @@
 	  strong card   → meaning → type the reading in romaji or kana (production)
 	Grades are inferred by the parent from correctness + time (PLAN §5.2).
 -->
+<script lang="ts" module>
+	import type { Card } from '#lib/srs/fsrs.ts';
+	export type WordQuizMode = 'study' | 'choose' | 'type';
+	/** Which face a word card opens on; the review screen also uses it to look one card ahead. */
+	export function wordQuizMode(isNew: boolean, fsrs: Card | undefined): WordQuizMode {
+		return isNew ? 'study' : !fsrs || fsrs.state !== 'review' || fsrs.stability < 3 ? 'choose' : 'type';
+	}
+</script>
+
 <script lang="ts">
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import { gloss } from '#lib/i18n/content.ts';
@@ -13,7 +22,6 @@
 	import { fly, scale } from 'svelte/transition';
 	import { romajiToKana } from '@johnmorrisdotca/jisho/words';
 	import type { UserCard } from '#lib/ai/contract.ts';
-	import type { Card } from '#lib/srs/fsrs.ts';
 	import { speak } from '#lib/content/kana.ts';
 	import { words } from '#lib/state/words.svelte.ts';
 	import { shuffle } from '#lib/quiz.ts';
@@ -21,24 +29,26 @@
 	import NoteCard from './NoteCard.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
 	import { Button, Card as Surface, TextField } from '#lib/ui/index.ts';
+	import { focusField } from '#lib/ios/keyboard.ts';
 
 	interface Props {
 		card: UserCard;
 		fsrs: Card | undefined;
 		isNew: boolean;
 		drill: boolean;
-		onanswer: (r: { correct: boolean; ms: number; hint: boolean }) => void;
+		/** auto: the card moves on by itself (no Continue tap), so the parent may prepare the next one now. */
+		onanswer: (r: { correct: boolean; ms: number; hint: boolean; auto: boolean }) => void;
 		onnext: () => void;
 	}
 	let { card, fsrs, isNew, drill, onanswer, onnext }: Props = $props();
 
 	const FALLBACK = ['water', 'red', 'mountain', 'to eat', 'cat', 'tomorrow', 'pond', 'face', 'here', 'thank you', 'station', 'big'];
 
-	type Mode = 'study' | 'choose' | 'type';
 	// The parent re-creates this component per card ({#key}), so the initial props are all we need.
-	let mode = $state<Mode>(
-		untrack(() => (isNew ? 'study' : !fsrs || fsrs.state !== 'review' || fsrs.stability < 3 ? 'choose' : 'type'))
-	);
+	let mode = $state<WordQuizMode>(untrack(() => wordQuizMode(isNew, fsrs)));
+	let field = $state<HTMLInputElement>();
+	// the typed answer is ready for the keyboard as soon as the card shows
+	$effect(() => focusField(field));
 	let options = $state<string[]>([]);
 	let answer = $state('');
 	let picked = $state<string | null>(null);
@@ -85,8 +95,9 @@
 		if (result) return;
 		result = { correct };
 		speak(card.front);
-		onanswer({ correct, ms: performance.now() - t0, hint });
-		if (autoNext(correct)) setTimeout(onnext, 900);
+		const auto = autoNext(correct);
+		onanswer({ correct, ms: performance.now() - t0, hint, auto });
+		if (auto) setTimeout(onnext, 900);
 	}
 </script>
 
@@ -138,7 +149,7 @@
 						autocorrect="off"
 						spellcheck="false"
 						enterkeyhint="done"
-						autofocus
+						bind:ref={field}
 						onkeydown={(e) => e.key === 'Enter' && answer.trim() && submit(check(answer))}
 					/>
 					<Button block disabled={!answer.trim()} onclick={() => submit(check(answer))}>{t('quiz.check')}</Button>

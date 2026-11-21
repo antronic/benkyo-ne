@@ -28,7 +28,8 @@
 	import StrokeAnimator from '#lib/components/StrokeAnimator.svelte';
 	import RecallPad from '#lib/components/RecallPad.svelte';
 	import { Button, Card, IconButton, ProgressRing, Skeleton, TextField } from '#lib/ui/index.ts';
-	import WordQuiz from '#lib/components/WordQuiz.svelte';
+	import WordQuiz, { wordQuizMode } from '#lib/components/WordQuiz.svelte';
+	import { focusField, holdKeyboard } from '#lib/ios/keyboard.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
 	import { notes } from '#lib/state/notes.svelte.ts';
 	import { DRILL_SIZE, DRILLS, isDrillId, pickDrill } from '#lib/practice/drills.ts';
@@ -113,13 +114,35 @@
 	const kana = $derived(entry?.id.startsWith('kana:') ? byChar.get(entry.id.slice(5)) : undefined);
 	const kanji = $derived(entry?.id.startsWith('kanji:') ? kanjiByChar.get(entry.id.slice(6)) : undefined);
 	const wordCard = $derived(entry && !kana && !kanji ? words.cards[entry.id] : undefined);
-	const mode = $derived.by<Mode>(() => {
+	/** How a kana or kanji entry is tested, from its FSRS state. */
+	function modeFor(e: Entry): Mode {
+		const s = progress.cards[e.id];
+		const isKanji = e.id.startsWith('kanji:');
 		if (practice?.id === 'lookalikes') return 'choose';
-		if (practice?.id === 'forgetting' && kanji) return 'draw'; // writing from memory is the point of this drill
-		const m: Mode = !card || card.state !== 'review' || card.stability < 3 ? 'choose' : card.stability < 21 ? 'type' : 'draw';
+		if (practice?.id === 'forgetting' && isKanji) return 'draw'; // writing from memory is the point of this drill
+		const m: Mode = !s || s.state !== 'review' || s.stability < 3 ? 'choose' : s.stability < 21 ? 'type' : 'draw';
 		// kanji have no typed step: their answer is a meaning, not a reading
-		return kanji ? (card && card.state === 'review' && card.stability >= 21 ? 'draw' : 'choose') : m;
-	});
+		return isKanji ? (s && s.state === 'review' && s.stability >= 21 ? 'draw' : 'choose') : m;
+	}
+	const mode = $derived<Mode>(entry ? modeFor(entry) : 'choose');
+
+	/** Whether the card after this one opens with a typed answer (see next() for the order). */
+	function nextIsTyped(): boolean {
+		const [head, ...rest] = queue;
+		const n = rest[0] ?? (lastCorrect ? undefined : head);
+		if (!n) return false;
+		if (n.id.startsWith('kana:')) return modeFor(n) === 'type';
+		if (n.id.startsWith('kanji:')) return false;
+		return wordQuizMode(n.isNew, progress.cards[n.id]) === 'type';
+	}
+	/** Call in the tap that moves on: on iOS the keyboard only opens inside a gesture (#lib/ios/keyboard.ts). */
+	function readyKeyboard() {
+		if (nextIsTyped()) holdKeyboard();
+	}
+
+	let field = $state<HTMLInputElement>();
+	// a typed answer is ready for the keyboard as soon as the card shows
+	$effect(() => focusField(field));
 
 	function prep() {
 		answer = '';
@@ -153,6 +176,7 @@
 		if (!card || !(kana || kanji) || result) return;
 		const ms = performance.now() - t0;
 		result = { correct, guess };
+		if (autoNext(correct)) readyKeyboard();
 		if (correct) {
 			haptic('success');
 			kuriReact('happy');
@@ -170,13 +194,15 @@
 		if (autoNext(correct)) setTimeout(next, 700);
 	}
 
-	async function onWordAnswer(r: { correct: boolean; ms: number; hint: boolean }) {
+	async function onWordAnswer(r: { correct: boolean; ms: number; hint: boolean; auto: boolean }) {
+		if (r.auto) readyKeyboard();
 		haptic(r.correct ? 'success' : 'error');
 		kuriReact(r.correct ? 'happy' : 'encourage');
 		await record(r.correct, r.ms, r.ms / 1.5, r.hint);
 	}
 
 	function next() {
+		readyKeyboard();
 		const [head, ...rest] = queue;
 		done++;
 		// a missed card comes back once more at the end of this session
@@ -349,7 +375,6 @@
 								{/each}
 							</div>
 						{:else if mode === 'type'}
-							<!-- svelte-ignore a11y_autofocus -->
 							<TextField
 								variant="answer"
 								class="answer-field"
@@ -363,7 +388,7 @@
 								inputmode="text"
 								enterkeyhint="done"
 								onfocus={(e) => setTimeout(() => e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300)}
-								autofocus
+								bind:ref={field}
 							/>
 							<Button block disabled={!answer.trim()} onclick={() => submit(romajiMatches(kana, answer))}>{t('quiz.check')}</Button>
 						{/if}
