@@ -7,6 +7,7 @@
 	import { updater } from '#lib/pwa/update.svelte.ts';
 	import UpdateBanner from '#lib/components/UpdateBanner.svelte';
 	import InstallGuide from '#lib/components/InstallGuide.svelte';
+	import OpenInSafari from '#lib/components/OpenInSafari.svelte';
 	import '#lib/pwa/install.svelte.ts'; // listens for the browser's install offer from the start
 	import Splash from '#lib/components/Splash.svelte';
 	import Intro from '#lib/components/Intro.svelte';
@@ -388,6 +389,7 @@
 <Splash ready={progress.ready && words.ready} />
 <UpdateBanner />
 <InstallGuide />
+<OpenInSafari />
 <Overlays />
 
 <style>

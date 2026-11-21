@@ -5,6 +5,10 @@
 	passkey; a recovery code is shown once after a passkey sign-up. When the
 	server has it set up, "Continue with Apple" is offered beside the passkey.
 	"Not now" keeps the app usable offline without AI.
+	In a browser tab (not installed) a card above the account asks to install
+	first: the Home Screen app keeps its own storage, so starting there leaves
+	nothing behind in the tab. Its button opens the install guide (which, in
+	another app's browser on iPhone/iPad, starts with Open in Safari).
 -->
 <script lang="ts">
 	import { t } from '#lib/i18n/index.svelte.ts';
@@ -19,6 +23,7 @@
 	import AppleButton from './AppleButton.svelte';
 	import { Button, Card, Segmented, TextField } from '#lib/ui/index.ts';
 	import { clearPendingInvite, pendingInvite } from '#lib/promo/link.ts';
+	import { install } from '#lib/pwa/install.svelte.ts';
 
 	/** created: a new account · signedIn: an existing one (sign-in or recovery) · later: "Not now" */
 	let { ondone }: { ondone: (how: 'created' | 'signedIn' | 'later') => void } = $props();
@@ -98,6 +103,21 @@
 	function finish(how: 'created' | 'signedIn') {
 		ondone(how);
 	}
+	const askInstall = $derived(!install.installed && !install.justInstalled);
+	let prompting = $state(false);
+	async function installFirst() {
+		haptic('selection');
+		if (!install.canPrompt) {
+			install.showGuide = true;
+			return;
+		}
+		prompting = true;
+		try {
+			await install.prompt();
+		} finally {
+			prompting = false;
+		}
+	}
 	function later() {
 		haptic('selection');
 		ondone('later');
@@ -120,6 +140,17 @@
 				{@html t(ai.appleEnabled ? 'welcome.leadApple' : 'welcome.lead')}
 			</p>
 		</div>
+
+		{#if askInstall && !recoveryCode}
+			<div in:fly|global={{ y: 16, duration: 500, delay: 60 }}><Card strong padding="md" class="wl-install" aria-label={t('welcome.installTitle')}>
+				<img src="/icons/icon.svg" alt="" width="40" height="40" />
+				<div class="stack" style:--gap="var(--space-px)">
+					<b>{t(install.needsSafari ? 'welcome.installSafariTitle' : 'welcome.installTitle')}</b>
+					<span class="caption">{t(install.needsSafari ? 'welcome.installSafariBody' : 'welcome.installBody')}</span>
+				</div>
+				<Button variant="accent" size="md" busy={prompting} onclick={installFirst}>{install.canPrompt ? t('install.now') : t('install.showMe')}</Button>
+			</Card></div>
+		{/if}
 
 		{#if recoveryCode}
 			<div in:fly|global={{ y: 16, duration: 450 }}><Card strong class="wl-card">
@@ -291,6 +322,20 @@
 		letter-spacing: 0.12em;
 		color: #fff;
 		background: linear-gradient(90deg, #e8432e, #8a5cf6);
+	}
+	.panel :global(.wl-install) {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: center;
+		gap: var(--space-3);
+		text-align: left;
+	}
+	.panel :global(.wl-install img) {
+		flex: none;
+		border-radius: 10px;
+	}
+	.panel :global(.wl-install .btn) {
+		grid-column: 1 / -1;
 	}
 	.panel :global(.wl-card) {
 		display: flex;

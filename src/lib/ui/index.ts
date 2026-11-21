@@ -52,3 +52,4 @@ export { default as SpeechBubble } from './SpeechBubble.svelte';
 export { default as ErrorState } from './ErrorState.svelte';
 export type { ErrorKind, ErrorAction } from './ErrorState.svelte';
 export { default as ScrollMore } from './ScrollMore.svelte';
+export { default as SafariPrompt } from './SafariPrompt.svelte';

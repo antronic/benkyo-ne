@@ -8,7 +8,8 @@
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import InstallArt from './InstallArt.svelte';
-	import { Button, Card, Chip, Notice } from '#lib/ui/index.ts';
+	import { page } from '$app/state';
+	import { Button, Card, Chip, Notice, SafariPrompt } from '#lib/ui/index.ts';
 	import { install } from '#lib/pwa/install.svelte.ts';
 	import { orderedGuides, type GuideId } from '#lib/pwa/platform.ts';
 	import { GUIDE_NAME, stepsFor } from '#lib/pwa/steps.ts';
@@ -36,6 +37,8 @@
 	}
 </script>
 
+<!-- its own layer: opened from the sign-in screen (z 150), it must come up above it -->
+<div class="install-layer">
 <Sheet open={install.showGuide} label={t('install.title')} onclose={() => (install.showGuide = false)}>
 	{#snippet header()}
 		<div class="head">
@@ -62,7 +65,10 @@
 		</Card>
 	{/if}
 
-	{#if install.note && picked === install.guide}
+	{#if install.needsSafari && !install.installed && picked === install.guide}
+		<!-- iPhone/iPad outside Safari: only Safari can install, so move there first -->
+		<SafariPrompt href={page.url.href} app={install.appName} browser={['chrome', 'edge', 'firefox'].includes(install.env.browser)} />
+	{:else if install.note && picked === install.guide}
 		<Notice tone="warning">{t(NOTE[install.note])}</Notice>
 	{/if}
 
@@ -97,8 +103,13 @@
 	<p class="caption why">{t('install.why')}</p>
 	</div>
 </Sheet>
+</div>
 
 <style>
+	.install-layer {
+		position: relative;
+		z-index: 160;
+	}
 	.content {
 		flex: none;
 		display: flex;
