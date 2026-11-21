@@ -106,7 +106,7 @@ async function walk(browser, label, width, height, problems) {
 		await page.goto(BASE + '/', { waitUntil: 'networkidle' });
 		await page.evaluate(skipIntro);
 		await page.goto(BASE + '/', { waitUntil: 'networkidle' });
-		await page.getByRole('button', { name: 'Make it', exact: true }).click();
+		await page.getByRole('region', { name: 'Set up Benkyo' }).getByRole('button', { name: 'Make', exact: true }).click();
 		await page.locator(DIALOG).waitFor();
 		// the live engine loads three.js and builds; give it time on a software GPU
 		let started = null;

@@ -295,11 +295,12 @@ async function avatarFlow(browser, label, width, height, problems) {
 		return true;
 	};
 	try {
-		const open = page.getByRole('button', { name: 'Make it', exact: true });
+		// the avatar row of Today's set-up card (SetupCard.svelte, setup.avatarGo)
+		const open = page.getByRole('region', { name: 'Set up Benkyo' }).getByRole('button', { name: 'Make', exact: true });
 		try {
 			await open.waitFor({ timeout: 8000 });
 		} catch {
-			problems.push(`avatar setup @ ${label} ${width}px: the "Make your avatar" prompt did not show on Today (scripts/layout-fixtures.mjs SIGNED_IN_ME)`);
+			problems.push(`avatar setup @ ${label} ${width}px: the avatar row did not show in the set-up card on Today (scripts/layout-fixtures.mjs SIGNED_IN_ME)`);
 			return;
 		}
 		await open.click();

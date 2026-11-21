@@ -21,7 +21,7 @@ unclear how to start, and too wordy). Job asked for all four phases to be built.
 
 | Phase | What | State |
 | --- | --- | --- |
-| 1 | Quick wins: back to where you came from, Review empty state, no API-key nagging, N5 draft notice hidden, lighter Today | This PR |
-| 2 | Today hero: one next-step card, setup card, Kuri beside it | Next |
+| 1 | Quick wins: back to where you came from, Review empty state, no API-key nagging, N5 draft notice hidden, lighter Today | Live (PR #100) |
+| 2 | Today hero: one next-step card (`NextStep`, `pickNext`), a progress line, the set-up card (`SetupCard`: daily goal, avatar, install); plan answers move to Settings → Your plan; Today keeps room at the bottom for Kuri | This PR |
 | 3 | First run: welcome, two questions, account, straight into lesson 1; recovery code, consent, avatar and install move to the setup card | Planned |
 | 4 | Navigation: 5 tabs (Today, Learn, Review, Words, Me), shorter Learn, grouped Settings | Planned |
