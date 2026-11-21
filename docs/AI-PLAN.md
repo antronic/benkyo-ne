@@ -455,8 +455,8 @@ in Settings which AI to use.
   falls back to the learner's own key when the feature isn't in the package, the
   allowance is used up, or the managed daily limit is hit. With `own`, the
   package is used only when they have no key for that feature.
-- **Settings on a package:** with package AI, Settings shows the package, its
-  credits and which model each feature runs on, and hides the own-key setup
+- **Settings on a package:** with package AI, Settings shows the package and its
+  credits only (never which model each feature runs on), and hides the own-key setup
   (keys, model pickers, prices, own cap). It comes back when they choose "My own
   key", or tap "Use my own API key"; the "Use AI from" switch shows only once
   they have a key.
