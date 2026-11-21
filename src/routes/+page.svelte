@@ -2,7 +2,6 @@
 	import { untrack } from 'svelte';
 	import { t, tn, fmtDate } from '#lib/i18n/index.svelte.ts';
 	import { c, scriptName } from '#lib/i18n/content.ts';
-	import Romaji from '#lib/components/Romaji.svelte';
 	import { LESSONS } from '#lib/content/lessons.ts';
 	import KanaGlyph from '#lib/components/KanaGlyph.svelte';
 	import ProgressRing from '#lib/ui/ProgressRing.svelte';
@@ -10,10 +9,12 @@
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
-	import PlanCard from '#lib/components/PlanCard.svelte';
-	import InstallCard from '#lib/components/InstallCard.svelte';
 	import KuriWalker from '#lib/companion/KuriWalker.svelte';
-	import { Avatar, Button, Card, PlanBadge } from '#lib/ui/index.ts';
+	import { Avatar, Button, Card, NextStep, PlanBadge, SetupCard, type SetupItem } from '#lib/ui/index.ts';
+	import { pickNext } from '#lib/today/next.ts';
+	import { planSteps, stepDone } from '#lib/today/plan.svelte.ts';
+	import { profile, s as obStrings } from '#lib/onboarding/profile.svelte.ts';
+	import { install } from '#lib/pwa/install.svelte.ts';
 	import { avatar } from '#lib/state/avatar.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { plan } from '#lib/state/plan.svelte.ts';
@@ -83,30 +84,94 @@
 		});
 	});
 
-	// three made-up avatars on the one-time prompt card
-	const PROMPT_TRIO = [
-		{ hair: 'bob', hairColor: 'black', skin: 's2' },
-		{ head: 'hijab', headColor: 'matcha', skin: 's5', cloth: 'sand' },
-		{ hair: 'afro', hairColor: 'black', skin: 's9', cloth: 'sumire' }
-	] as const;
-	let notNow = $state(false);
-	async function laterPrompt() {
-		notNow = true;
-		try {
-			await avatar.later();
-		} catch {
-			// offline: the card comes back next time, nothing is lost
-		} finally {
-			notNow = false;
-		}
-	}
-
 	const next = $derived(LESSONS.find((l) => !progress.completed.includes(l.id)));
 	const goal = $derived(progress.settings.newPerDay + Math.max(10, progress.due.length));
 	const doneToday = $derived(progress.today.reviews + progress.today.learned);
 
+	onMount(() => void profile.load());
+
+	// The one next step (docs/UX-FLOW.md): reviews, the plan's first step, the next lesson, new words
+	const ob = $derived(obStrings());
+	const openStep = $derived(planSteps().find((x) => !stepDone(x)));
+	const now = $derived(
+		pickNext({
+			due: progress.due.length,
+			newWords: words.newQueue.length,
+			planStep: openStep,
+			lessonId: next?.id,
+			budgetLeft: progress.newBudgetLeft
+		})
+	);
+	const nowLesson = $derived(now.kind === 'lesson' || now.kind === 'rest' ? LESSONS.find((l) => l.id === now.id) : undefined);
+	const planTitle = (x: NonNullable<typeof openStep>) =>
+		x.kind === 'placement'
+			? ob.steps.placement[x.script]
+			: x.kind === 'level'
+				? ob.steps.level(x.jlpt)
+				: x.kind === 'everyday'
+					? ob.steps.everyday
+					: x.kind === 'course'
+						? ob.steps.course(x.course)
+						: ob.steps.lesson;
+	/** what comes after the hero, as one quiet link */
+	const then = $derived.by(() => {
+		if (now.kind === 'review' && next && progress.newBudgetLeft > 0)
+			return { label: t('home.thenLesson', { lesson: c(next.title) }), href: `/learn/${next.id}` };
+		if (now.kind === 'lesson' && openStep?.kind === 'course') return { label: t('home.then', { step: planTitle(openStep) }), href: openStep.href };
+		if (now.kind === 'rest') return { label: t('home.restMore'), href: '/learn' };
+		return undefined;
+	});
+
+	// Set-up steps wait on one card instead of in front of the first lesson
+	const SETUP_KEY = 'benkyo.setupCard';
+	let setupHidden = $state((() => {
+		try {
+			return localStorage.getItem(SETUP_KEY) === 'hidden';
+		} catch {
+			return false;
+		}
+	})());
+	function hideSetup() {
+		setupHidden = true;
+		try {
+			localStorage.setItem(SETUP_KEY, 'hidden');
+		} catch {
+			/* it comes back next time, nothing is lost */
+		}
+	}
+	let installing = $state(false);
+	async function installNow() {
+		if (!install.canPrompt) return void (install.showGuide = true);
+		installing = true;
+		try {
+			await install.prompt(); // ui-ok: installing shows busy on the set-up row's button (SetupItem.busy)
+		} finally {
+			installing = false;
+		}
+	}
+	const setup = $derived.by((): SetupItem[] => {
+		const items: SetupItem[] = [];
+		if (profile.loaded && (!profile.value || profile.value.skipped))
+			items.push({ id: 'plan', icon: '🎯', title: t('setup.plan'), body: t('setup.planBody'), action: t('setup.planGo'), onclick: () => (ui.showOnboarding = true) });
+		if (ai.signedIn)
+			items.push({ id: 'avatar', icon: '🙂', title: t('setup.avatar'), body: t('setup.avatarBody'), done: !!avatar.person, action: t('setup.avatarGo'), onclick: () => (avatar.setup = 'prompt') });
+		if (!install.cardHidden || install.installed)
+			items.push({
+				id: 'install',
+				icon: '📲',
+				title: t('setup.install'),
+				body: t('setup.installBody'),
+				done: install.installed || install.justInstalled,
+				action: install.canPrompt ? t('install.now') : t('install.showMe'),
+				busy: installing,
+				onclick: installNow
+			});
+		return items;
+	});
+	const setupLeft = $derived(setup.filter((x) => !x.done).length);
+
 	$effect(() => {
-		ui.hue = next?.hue ?? 8;
+		ui.hue = nowLesson?.hue ?? next?.hue ?? 8;
 	});
 </script>
 
@@ -128,44 +193,66 @@
 		</div>
 	</header>
 
-	{#if avatar.prompt}
-		<!-- one-time prompt for accounts made before avatars (docs/AVATAR.md) -->
-		<Card as="section" padding="lg" class="avatar-prompt rise">
-			<div class="trio" aria-hidden="true">
-				{#each PROMPT_TRIO as p, i (i)}<Avatar person={p} size={56} />{/each}
-			</div>
-			<div class="stack" style:--gap="var(--space-1)">
-				<b class="headline">{t('avatar.promptTitle')}</b>
-				<span class="subhead">{t('avatar.promptBody')}</span>
-			</div>
-			<div class="row prompt-actions">
-				<Button variant="ghost" size="md" busy={notNow} onclick={laterPrompt}>{t('avatar.notNow')}</Button>
-				<Button variant="accent" size="md" class="grow" onclick={() => (avatar.setup = 'prompt')}>{t('avatar.makeIt')}</Button>
-			</div>
-		</Card>
-	{/if}
+	<!-- the one thing to do now -->
+	<div class="now rise" style="--i: 1">
+		{#if now.kind === 'review'}
+			<NextStep hue={265} eyebrow={t('home.reviewsDue')} title={tn('home.cards', now.n)} body={t('home.reviewsBody')} action={t('home.startReview')} href="/review" {then}>
+				{#snippet art()}<span class="big-count">{now.n}</span>{/snippet}
+			</NextStep>
+		{:else if now.kind === 'plan'}
+			<NextStep hue={200} eyebrow={ob.card.title} title={planTitle(now.step)} action={t('home.start')} href={now.step.href} {then}>
+				{#snippet art()}<span class="big-glyph jp">{now.step.kind === 'placement' ? (now.step.script === 'hiragana' ? 'あ' : 'ア') : '語'}</span>{/snippet}
+			</NextStep>
+		{:else if now.kind === 'lesson' && nowLesson}
+			<NextStep
+				hue={nowLesson.hue}
+				eyebrow="{progress.completed.length ? t('home.upNext') : t('home.startHere')} · {scriptName(nowLesson.script)}"
+				title={c(nowLesson.title)}
+				body={tn('home.lessonMeta', nowLesson.chars.length)}
+				action={t('lesson.start')}
+				href="/learn/{nowLesson.id}"
+				{then}
+			>
+				{#snippet art()}
+					<span class="glyphs">
+						{#each nowLesson.chars.slice(0, 3) as k, i (k.char)}<span style:--j={i}><KanaGlyph char={k.char} size="100%" color="#fff" weight={6} /></span>{/each}
+					</span>
+				{/snippet}
+			</NextStep>
+		{:else if now.kind === 'words'}
+			<NextStep hue={265} eyebrow={t('nav.words')} title={tn('home.newWordsReady', now.n)} body={t('home.wordsQueued')} action={t('home.learnWords')} href="/review" {then} />
+		{:else if now.kind === 'rest'}
+			<NextStep done eyebrow={t('nav.today')} title={t('home.restTitle')} body={t('home.restBody')} {then} />
+		{:else}
+			<NextStep done eyebrow={t('nav.today')} title={t('home.allDoneTitle')} body={t('home.allDoneBody')} />
+		{/if}
+	</div>
 
-	<Card as="section" sheen padding="lg" radius="large" class="hero rise" style="--i: 1">
-		<ProgressRing value={doneToday / goal} size={112} width={11}>
-			<div>
-				<div class="ring-num">{doneToday}</div>
-				<div class="caption">{t('home.of', { n: goal })}</div>
-			</div>
+	<Card as="section" sheen padding="md" radius="large" class="today-line rise" style="--i: 2">
+		<ProgressRing value={doneToday / goal} size={56} width={7}>
+			<span class="ring-num">{doneToday}</span>
 		</ProgressRing>
-		<div class="stack" style:--gap="var(--space-1)">
-			<div class="headline">{t('nav.today')}</div>
-			<div class="subhead">{t('home.reviewedNew', { r: progress.today.reviews, n: progress.today.learned })}</div>
-			<div class="row stats" style:--gap="var(--space-4)">
-				<div><b>{progress.streak.days}</b><span class="caption">{t('home.streak')}</span></div>
-				<div><b>{progress.learnedCount}</b><span class="caption">{t('home.learned')}</span></div>
-			</div>
+		<div class="stack" style:--gap="var(--space-px)">
+			<div class="headline">{t('home.todayCount', { done: doneToday, goal })}</div>
+			<div class="caption">{tn('home.streakLine', progress.streak.days)} · {tn('home.learnedLine', progress.learnedCount)}</div>
 		</div>
 	</Card>
 
-	<PlanCard i={2} />
+	{#if setupLeft && !setupHidden}
+		<div class="rise" style="--i: 3">
+			<SetupCard
+				title={t('setup.title')}
+				count={t('setup.count', { done: setup.length - setupLeft, n: setup.length })}
+				items={setup}
+				hideLabel={t('setup.hide')}
+				doneLabel={t('common.done')}
+				ondismiss={hideSetup}
+			/>
+		</div>
+	{/if}
 
 	{#if up}
-		<Card as="section" sheen padding="lg" radius="large" class="rise" style="--i: 2">
+		<Card as="section" sheen padding="lg" radius="large" class="rise" style="--i: 3">
 			<div class="stack" style:--gap="var(--space-3)">
 				<div class="stack" style:--gap="var(--space-px)">
 					<div class="eyebrow" style="color:var(--accent)">{t('home.levelUpEyebrow')}</div>
@@ -180,59 +267,8 @@
 		</Card>
 	{/if}
 
-	<InstallCard i={2} />
-
-	{#if progress.due.length > 0}
-		<Card href="/review" sheen padding="lg" radius="large" class="review rise" style="--i: 2">
-			<div class="stack" style:--gap="var(--space-px)">
-				<div class="eyebrow" style="color:var(--accent)">{t('home.reviewsDue')}</div>
-				<div class="title-2">{tn('home.cards', progress.due.length)}</div>
-				<div class="subhead">{t('home.reviewsBody')}</div>
-			</div>
-			<div class="go">›</div>
-		</Card>
-	{/if}
-
-	{#if words.newQueue.length > 0 || words.list.length > 0}
-		<Card href={words.newQueue.length ? '/review' : '/words'} sheen padding="lg" radius="large" class="review rise" style="--i: 2">
-			<div class="stack" style:--gap="var(--space-px)">
-				<div class="eyebrow" style="color:#8b5cf6">{t('nav.words')}</div>
-				<div class="title-2">
-					{words.newQueue.length ? tn('home.newWordsReady', words.newQueue.length) : tn('home.cards', words.list.length)}
-				</div>
-				<div class="subhead">{words.newQueue.length ? t('home.wordsQueued') : t('home.wordsEmpty')}</div>
-			</div>
-			<div class="go">›</div>
-		</Card>
-	{/if}
-
-	{#if next}
-		<Card href="/learn/{next.id}" padding="lg" radius="large" class="lesson rise" style="--i: 3; --h: {next.hue}">
-			<div class="lesson-glyphs">
-				{#each next.chars.slice(0, 3) as k, i}
-					<span style:--j={i}><KanaGlyph char={k.char} size="100%" color="#fff" weight={6} /></span>
-				{/each}
-			</div>
-			<div class="stack" style:--gap="var(--space-px)">
-				<div class="eyebrow" style="color:rgb(255 255 255 / .75)">
-					{progress.completed.length ? t('home.upNext') : t('home.startHere')} · {scriptName(next.script)}
-				</div>
-				<div class="title-2">{c(next.title)}</div>
-				<div class="jp" style="opacity:.85">{next.subtitle}</div>
-				<div class="hero-rmj"><Romaji text={next.subtitle} /></div>
-			</div>
-			{#if progress.newBudgetLeft === 0}
-				<div class="caption" style="color:#fff;opacity:.9">
-					{t('home.limit')}
-				</div>
-			{/if}
-		</Card>
-	{:else}
-		<Card padding="lg" radius="large" class="rise">{t('home.allDone')}</Card>
-	{/if}
-
 	{#if thisWeek}
-		<Card href="/week" sheen padding="lg" radius="large" class="review rise" style="--i: 3">
+		<Card href="/week" sheen padding="lg" radius="large" class="review rise" style="--i: 4">
 			<div class="stack" style:--gap="var(--space-px)">
 				<div class="eyebrow" style="color:var(--accent)">{t('home.weekTitle')}</div>
 				<div class="subhead">{t('home.weekBody', { minutes: thisWeek.totalMinutes, saved: thisWeek.saved, wrote: thisWeek.wrote })}</div>
@@ -247,40 +283,21 @@
 {/if}
 
 <style>
-	/* Unfolded: dashboard in two columns */
+	/* Unfolded: the next step across the top, the rest in two columns */
 	@media (min-width: 600px) {
 		.dash {
 			display: grid;
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			align-items: start;
 		}
-		.dash > header {
+		.dash > header,
+		.dash > .now {
 			grid-column: 1 / -1;
 		}
-		.dash > :global(.lesson.lesson) {
-			grid-row: span 2;
-			min-height: 100%;
-		}
 	}
-	.dash > :global(.hero) {
-		display: flex;
-		align-items: center;
-		gap: var(--space-5);
-	}
-	:global(.avatar-prompt) {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-	.trio {
-		display: flex;
-		gap: var(--space-2);
-	}
-	.prompt-actions {
-		gap: var(--space-2);
-	}
-	.prompt-actions :global(.grow) {
-		flex: 1;
+	/* room under the last card, so Kuri (who walks along the bottom) never has to sit on text */
+	.dash {
+		padding-bottom: calc(var(--space-8) + 104px); /* ui-ok: Kuri's height (KuriWalker S) */
 	}
 	.hello {
 		flex-wrap: wrap;
@@ -288,21 +305,22 @@
 		gap: var(--space-2);
 		margin-top: var(--space-1);
 	}
+	.dash > :global(.today-line) {
+		display: flex;
+		align-items: center;
+		gap: var(--space-4);
+	}
 	.ring-num {
 		font-family: var(--font-display);
-		font-size: 30px;
+		font-size: 20px;
 		font-weight: 700;
 		line-height: 1;
 	}
-	.stats {
-		margin-top: var(--space-2);
+	.prompt-actions {
+		gap: var(--space-2);
 	}
-	.stats div {
-		display: flex;
-		flex-direction: column;
-	}
-	.stats b {
-		font-size: 1.125rem;
+	.prompt-actions :global(.grow) {
+		flex: 1;
 	}
 	.dash > :global(.review) {
 		display: flex;
@@ -314,35 +332,28 @@
 		font-size: 34px;
 		color: var(--ink-3);
 	}
-	.dash > :global(.lesson) {
+	.glyphs {
 		display: flex;
-		gap: var(--space-4);
-		flex-direction: column;
-		color: #fff;
-		min-height: 220px;
-		justify-content: flex-end;
-		position: relative;
-		overflow: hidden;
-		background:
-			radial-gradient(120% 90% at 100% 0%, hsl(calc(var(--h) + 30) 90% 62%) 0%, transparent 60%),
-			linear-gradient(160deg, hsl(var(--h) 80% 55%), hsl(calc(var(--h) + 330) 70% 42%));
-		box-shadow: 0 24px 48px -20px hsl(var(--h) 70% 40% / 0.6);
-		view-transition-name: lesson-hero;
+		gap: var(--space-1);
+		width: 9rem;
+		max-width: 100%;
+		opacity: 0.55;
 	}
-	.lesson-glyphs {
-		position: absolute;
-		right: -6px;
-		top: 6px;
-		display: flex;
-		opacity: 0.35;
+	.glyphs span {
+		flex: 1;
+		aspect-ratio: 1;
+		display: block;
 	}
-	.lesson-glyphs span {
-		width: 92px;
-		height: 92px;
-		transform: rotate(calc(-8deg + var(--j) * 8deg)) translateY(calc(var(--j) * 16px));
+	.big-count {
+		font-family: var(--font-display);
+		font-size: 4.5rem;
+		font-weight: 750;
+		line-height: 1;
+		opacity: 0.6;
 	}
-	.hero-rmj :global(.rmj) {
-		color: rgb(255 255 255 / 0.75);
-		font-size: 0.8125rem;
+	.big-glyph {
+		font-size: 4.5rem;
+		line-height: 1;
+		opacity: 0.55;
 	}
 </style>

@@ -46,12 +46,13 @@ It shows for at least 450 ms (the welcome fade) and never more than 8 s (offline
 - The placement check is offered only when `/learn/placement` exists in the build; otherwise
   everyone starts at lesson 1.
 
-## Today plan card
+## The plan on Today
 
-`PlanCard.svelte` shows the plan on Today with each step ticked off (lesson done, any lesson
-of that script passed, any card added from the course). **Adjust** reopens the questions with
-the previous answers; ✕ hides it; it disappears when every step is done. Installs from before
-onboarding (or people who skipped) see a small "Personalize" nudge until they've learned 10 kana.
+The plan's steps (`src/lib/today/plan.svelte.ts`: `planSteps`, `stepDone`) feed Today's one next
+step (`pickNext` in `src/lib/today/next.ts`, docs/UX-FLOW.md): a placement check, a level or
+everyday Japanese becomes the hero card; a topic course shows as the "Then" link under the next
+lesson. Settings → Learning → **Your plan** reopens the questions with the previous answers. People
+who skipped the questions see "Pick your daily goal" on Today's set-up card.
 
 ## Storage
 

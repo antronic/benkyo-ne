@@ -89,6 +89,8 @@
 
 	<h2 class="eyebrow section">{t('settings.learning')}</h2>
 	<ListGroup class="rise">
+		<!-- the first-run answers (goals, level, minutes a day): Today's plan card used to hold this -->
+		<ListRow title={t('settings.plan')} subtitle={t('settings.planBody')} onclick={() => (ui.showOnboarding = true)} chevron />
 		<ListRow title={t('settings.retention')} subtitle={t('settings.retentionBody')}>
 			{#snippet trailing()}<b class="value">{Math.round(progress.settings.retention * 100)}%</b>{/snippet}
 		</ListRow>

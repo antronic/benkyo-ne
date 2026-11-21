@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, SafariPrompt, ScrollMore, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, StepBar, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
+	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, SafariPrompt, ScrollMore, InkReplay, InviteCard, KanjiTile, MarkedText, NextStep, SetupCard, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, StepBar, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
 	import { avatarSvg } from '#lib/avatar/render.ts';
 	import { DEFAULTS as AV_DEFAULTS, SKIN, type Person } from '#lib/avatar/person.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
@@ -377,6 +377,29 @@
 						<PlanBadge plan="pro" name="Pro" />
 					</div>
 				</Card>
+
+				<SectionHeader title="Next step" />
+				<p class="caption">The one thing to do now, at the top of Today: an eyebrow, a title, one line and one button. A quiet "Then" link names what comes after. When today's work is done the card turns calm and has no button.</p>
+				<div class="stack" style:--gap="var(--space-3)">
+					<NextStep hue={8} eyebrow="Start here · Hiragana" title="Vowels" body="5 new kana · about 4 min" action="Start lesson" href="/design" then={{ label: 'Then: Travel words and phrases', href: '/design' }}>
+						{#snippet art()}<span class="jp" style="font-size:3.5rem;opacity:.55">あいう</span>{/snippet}
+					</NextStep>
+					<NextStep hue={265} eyebrow="Reviews due" title="12 cards" body="Timed to come up just before you’d forget them." action="Start review" href="/design" then={{ label: 'Then: K-row', href: '/design' }} />
+					<NextStep done eyebrow="Today" title="That’s today’s new kana" body="Stop here and review tomorrow. It sticks better." then={{ label: 'Or look around Learn', href: '/design' }} />
+				</div>
+
+				<SectionHeader title="Set-up card" />
+				<p class="caption">Optional set-up steps wait here instead of in front of the first lesson. Each row has one small button and is ticked off when done; ✕ hides the card.</p>
+				<SetupCard
+					title="Set up Benkyo"
+					count="1 of 3 done"
+					items={[
+						{ id: 'avatar', icon: '🙂', title: 'Make your avatar', body: 'It shows next to your name.', action: 'Make', onclick: () => {} },
+						{ id: 'install', icon: '📲', title: 'Install the app', body: 'Opens full screen and works offline.', action: 'Install', busy: true, onclick: () => {} },
+						{ id: 'plan', icon: '🎯', title: 'Pick your daily goal', done: true }
+					]}
+					ondismiss={() => {}}
+				/>
 
 				<SectionHeader title="VIP invite card" />
 				<Card padding="md">
