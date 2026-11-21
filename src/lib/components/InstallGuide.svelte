@@ -9,6 +9,7 @@
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import InstallArt from './InstallArt.svelte';
 	import { page } from '$app/state';
+	import { resumeLink } from '#lib/promo/link.ts';
 	import { Button, Card, Chip, Notice, SafariPrompt } from '#lib/ui/index.ts';
 	import { install } from '#lib/pwa/install.svelte.ts';
 	import { orderedGuides, type GuideId } from '#lib/pwa/platform.ts';
@@ -67,7 +68,7 @@
 
 	{#if install.needsSafari && !install.installed && picked === install.guide}
 		<!-- iPhone/iPad outside Safari: only Safari can install, so move there first -->
-		<SafariPrompt href={page.url.href} app={install.appName} browser={['chrome', 'edge', 'firefox'].includes(install.env.browser)} />
+		<SafariPrompt href={resumeLink(page.url.href)} app={install.appName} browser={['chrome', 'edge', 'firefox'].includes(install.env.browser)} />
 	{:else if install.note && picked === install.guide}
 		<Notice tone="warning">{t(NOTE[install.note])}</Notice>
 	{/if}

@@ -117,3 +117,24 @@ export function clearPendingInvite() {
 		// nothing to clear
 	}
 }
+
+/**
+ * The address to carry this visit somewhere else (Open in Safari, the install guide's copy link).
+ * The app takes `?ref=` off the address and `/invite/CODE` moves on to `/` before anyone taps,
+ * so the saved invite and code are put back: `/invite/INVITE[?coupon=CODE]`, or `?ref=CODE`.
+ * Safari opens it in a new tab with its own storage, where the invite page saves them again.
+ */
+export function resumeLink(href: string, invite = pendingInvite(), promo = pendingPromo()?.code ?? null): string {
+	let url: URL;
+	try {
+		url = new URL(href);
+	} catch {
+		return href;
+	}
+	if (invite) {
+		const link = `${url.origin}/invite/${encodeURIComponent(invite)}`;
+		return promo ? `${link}?coupon=${encodeURIComponent(promo)}` : link;
+	}
+	if (promo && !PARAMS.some((k) => url.searchParams.has(k))) url.searchParams.set('ref', promo);
+	return url.href;
+}

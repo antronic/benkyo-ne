@@ -41,7 +41,7 @@
 	import { fleetParent } from '#lib/admin/nav.ts';
 	import { plan } from '#lib/state/plan.svelte.ts';
 	import { PromoRequestError, redeemPromo } from '#lib/promo/client.ts';
-	import { clearPendingPromo, markPendingTold, pendingPromo, savePendingPromo, takeRef } from '#lib/promo/link.ts';
+	import { clearPendingInvite, clearPendingPromo, markPendingTold, pendingInvite, pendingPromo, savePendingPromo, takeRef } from '#lib/promo/link.ts';
 	import type { MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { attempt, bootDone, reloadOnStaleChunk, safeMode, withTimeout } from '#lib/boot.ts';
 
@@ -176,9 +176,10 @@
 			report
 		);
 		const apple = attempt('apple', takeAppleResult, report) ?? null;
+		applePending = !!apple;
 		void boot(apple);
 		attempt('account', () => ai.watch(), report);
-		if (apple) void finishApple(apple).catch((e) => report('boot_apple', e));
+		if (apple) void finishApple(apple).catch((e) => report('boot_apple', e)).finally(() => (applePending = false));
 		const onOnline = () => setTimeout(() => void processOutbox().catch(() => {}), 1500);
 		addEventListener('online', onOnline);
 		const vis = () => document.documentElement.classList.toggle('hidden', document.hidden);
@@ -201,6 +202,7 @@
 			if (!ai.signedIn) ui.showWelcome = true;
 			return;
 		}
+		clearPendingInvite(); // signed in: an invite link has done its job
 		if (r.result === 'linked') toast(t('apple.connected'), '✓');
 		else if (r.result === 'created') {
 			avatar.afterSignup = true;
@@ -224,6 +226,19 @@
 	});
 
 	let firstRun = false;
+	/** back from Sign in with Apple and still finding out how it went */
+	let applePending = $state(false);
+	/** "Not now" while invited (only offered when no account can be made here): not again until a reload */
+	let inviteLater = $state(false);
+	// An invite link (/invite/CODE) needs an account: while its invite is pending in this tab
+	// and nobody is signed in, sign-up comes back (after a reload too). Welcome has no
+	// "Not now" then; signing in or up, or an invite that has ended, clears it.
+	$effect(() => {
+		if (!progress.ready || !ai.checked || !ai.reached || applePending || inviteLater) return;
+		if (ai.signedIn) return void untrack(clearPendingInvite);
+		if (ui.showIntro || ui.showWelcome || ui.handoff || page.url.pathname.startsWith('/invite/')) return;
+		if (untrack(pendingInvite)) ui.showWelcome = true;
+	});
 	/** Kuri's first meeting is waiting for the next calm moment on Today */
 	let kuriPending = $state(false);
 	$effect(() => {
@@ -267,6 +282,7 @@
 	 */
 	async function afterWelcome(how: 'created' | 'signedIn' | 'later') { // ui-ok: the Handoff loading screen covers it; the profile read is a quick local read
 		const ask = askAfterWelcome;
+		if (how === 'later' && pendingInvite()) inviteLater = true;
 		askAfterWelcome = false;
 		if (how !== 'later') startHandoff(how === 'created' ? 'signup' : 'signin');
 		ui.showWelcome = false;

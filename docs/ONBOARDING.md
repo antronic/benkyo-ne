@@ -7,6 +7,12 @@ New installs get a few tappable questions and the plan they produce, **after** t
 - **Create account**: the questions open once the consent is agreed, then the avatar step
   (docs/AVATAR.md). The same for `/invite` links and an Apple `created` result.
 - **Not now** (signed out, first run): the questions open straight away, then Today.
+- **Invite links** (`/invite/CODE`) need an account: the VIP card has only Accept, and sign-up has
+  no **Not now** while the invite is pending in the tab (`benkyo.inviteLink`, sessionStorage). It
+  reopens after a reload until someone signs up or in, which clears it; an ended or full invite is
+  cleared at once. **Not now** stays only when no account can be made (no passkeys and no Apple, or
+  the server unreachable). Open in Safari and the install guide's link carry the invite and coupon
+  over (`resumeLink`, `src/lib/promo/link.ts`), since the app has moved on to `/` by then.
 - **Sign in** to an existing account: no questions; the Today plan card's Personalize nudge stays.
 - A device that already has answers (`meta/profile`, including Skip) is never asked again; Adjust on
   the plan card reopens them. `ui.onboardingNext` holds the questions while sign-up finishes
