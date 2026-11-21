@@ -17,9 +17,9 @@ All settings live in `progress.settings` (`kuri`, `kuriStyle`, `kuriWalk`, `kuri
 
 ## Sound
 
-With **Sound** on (the default), Kuri yips on a tap, squeaks when picked up, sighs falling asleep, hums while Ask AI thinks, goes "awawawa" with twinkling stars when shaken dizzy, chirps or "awoo"s for right and wrong answers, and says "はじめまして！" in the first meeting.
+With **Sound** on (the default), Kuri yips on a tap, squeaks when picked up, yawns and sighs through its nose falling asleep, hums while Ask AI thinks, goes "awawawa" with twinkling stars when shaken dizzy, chirps or "awoo"s for right and wrong answers, and says "はじめまして！" in the first meeting.
 
-- Everything is synthesized with Web Audio in `src/lib/companion/sound.ts` (under 2 KB gzipped). There are no audio files.
+- Everything is synthesized with Web Audio in `src/lib/companion/sound.ts` (about 3 KB gzipped). The sleep yawn uses a breathier voice (glottal pulse with jitter, aspiration and a small room) so it sounds like a real dog; the rest use the formant buzz. There are no audio files.
 - The voice is built from scratch: a buzzing tone through vowel filters, one syllable at a time. It copies no recording or real voice.
 - On iPhone and iPad (Safari 16.4+) the page's audio is marked `ambient`, so it follows the silent switch. Only there: on Mac Safari an `ambient` page played nothing at all (2026-11-21). Other browsers can't detect silent mode and play at the page volume.
 - After the page has been in the background, the next tap builds a fresh AudioContext unless the old one is still running (iPhone leaves it `interrupted`, and an interrupted context can stay silent).

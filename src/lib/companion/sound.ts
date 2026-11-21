@@ -1,6 +1,6 @@
 /**
  * Kuri's sounds. Everything is synthesized with Web Audio, so there are no
- * audio files to download (the module is under 2 KB gzipped).
+ * audio files to download (the module is about 3 KB gzipped).
  *
  *   play('yip' | 'bark' | 'tap' | 'happy' | 'wave' | 'held' | 'thinking' | 'encourage' | 'sleep' | 'intro' | 'dizzy')
  *   hello()   // Kuri's synthesized "はじめまして！" for the first meeting
@@ -150,6 +150,155 @@ function tone(c: AudioContext, t: number, freq: number | Pt[], dur: number, peak
 	o.stop(t + dur + 0.05);
 }
 
+// A breathier, more natural voice for the sleep yawn. The other sounds keep the formant buzz above.
+
+/** [frequency or curve, boost in dB, Q] for one peaking formant. */
+type Formant2 = [number | Pt[], number, number];
+
+/** A small room for one sound: dry to master plus a short, dark convolution tail. */
+function room(c: AudioContext, wet = 0.13): GainNode {
+	const input = c.createGain();
+	const n = Math.floor(c.sampleRate * 0.35);
+	const ir = c.createBuffer(1, n, c.sampleRate);
+	const d = ir.getChannelData(0);
+	const k = Math.exp((-2 * Math.PI * 2500) / c.sampleRate); // one-pole low-pass, a soft room
+	let lp = 0;
+	for (let i = 0; i < n; i++) {
+		lp = lp * k + (Math.random() * 2 - 1) * (1 - k);
+		d[i] = lp * Math.exp(-i / (c.sampleRate * 0.07)) * Math.min(1, i / (c.sampleRate * 0.004));
+	}
+	const conv = c.createConvolver();
+	conv.buffer = ir;
+	const wg = c.createGain();
+	wg.gain.value = wet;
+	input.connect(master);
+	input.connect(conv);
+	conv.connect(wg);
+	wg.connect(master);
+	return input;
+}
+
+/** Slow random wander from the noise buffer, scaled to `depth` units RMS (cents on detune, or gain). */
+function wander(c: AudioContext, t: number, dur: number, rate: number, depth: number, target: AudioParam) {
+	const s = c.createBufferSource();
+	s.buffer = noiseBuf;
+	s.loop = true;
+	const lp = c.createBiquadFilter();
+	lp.type = 'lowpass';
+	lp.frequency.value = rate;
+	const g = c.createGain();
+	// white noise of +-1 has RMS 0.577; a 2-pole low-pass keeps about rate * 1.57 Hz of 24 kHz of it
+	g.gain.value = depth / (0.577 * Math.sqrt((rate * 1.57) / (c.sampleRate / 2)));
+	s.connect(lp);
+	lp.connect(g);
+	g.connect(target);
+	s.start(t, Math.random() * 1.1);
+	s.stop(t + dur + 0.05);
+}
+
+/**
+ * A breathy small-dog voice: glottal pulse with jitter and shimmer, plus aspiration, through a
+ * cascade of peaking formants. `air` is the aspiration level against the voice; `airTail` lets the
+ * breath carry on (in seconds) after the voice has stopped.
+ */
+function voice2(
+	c: AudioContext, out: AudioNode, t: number, f0: Pt[], dur: number, formants: Formant2[], peak: number,
+	a: number, rel: number, air = 0.25, airTail = 0, vibrato = 0
+) {
+	const N = 48,
+		re = new Float32Array(N),
+		im = new Float32Array(N);
+	for (let h = 1; h < N; h++) im[h] = 1 / (h * h);
+	const o = c.createOscillator();
+	o.setPeriodicWave(c.createPeriodicWave(re, im));
+	curve(o.frequency, t, f0);
+	wander(c, t, dur, 9, 10, o.detune); // jitter, cents
+	if (vibrato) {
+		const v = c.createOscillator();
+		v.frequency.value = 5.2;
+		const vg = c.createGain();
+		vg.gain.setValueAtTime(0, t);
+		vg.gain.linearRampToValueAtTime(vibrato, t + dur);
+		v.connect(vg);
+		vg.connect(o.detune);
+		v.start(t);
+		v.stop(t + dur + 0.05);
+	}
+	const vox = c.createGain();
+	env(vox, t, a, peak, Math.max(0, dur - a - rel), rel);
+	const shimmer = c.createGain();
+	shimmer.gain.value = 1;
+	wander(c, t, dur, 18, 0.12, shimmer.gain);
+	o.connect(shimmer);
+	shimmer.connect(vox);
+	const n = c.createBufferSource();
+	n.buffer = noiseBuf;
+	n.loop = true;
+	const nh = c.createBiquadFilter();
+	nh.type = 'highpass';
+	nh.frequency.value = 600;
+	const asp = c.createGain();
+	env(asp, t, a, peak * air, Math.max(0, dur - a - rel), rel + airTail);
+	n.connect(nh);
+	nh.connect(asp);
+	// vocal tract: overall tilt, then the formants in series
+	const tilt = c.createBiquadFilter();
+	tilt.type = 'lowpass';
+	tilt.frequency.value = 3200;
+	tilt.Q.value = 0.5;
+	const hp = c.createBiquadFilter();
+	hp.type = 'highpass';
+	hp.frequency.value = 280;
+	vox.connect(tilt);
+	asp.connect(tilt);
+	tilt.connect(hp);
+	let node: AudioNode = hp;
+	for (const [f, gain, q] of formants) {
+		const pk = c.createBiquadFilter();
+		pk.type = 'peaking';
+		setFreq(pk.frequency, t, f);
+		pk.gain.value = gain;
+		pk.Q.value = q;
+		node.connect(pk);
+		node = pk;
+	}
+	node.connect(out);
+	o.start(t);
+	o.stop(t + dur + 0.05);
+	n.start(t, Math.random() * 1.1);
+	n.stop(t + dur + airTail + 0.05);
+}
+
+/** Breath through the nose or mouth: noise with a slow swell, one resonance, and a little random flutter. */
+function breath2(c: AudioContext, out: AudioNode, t: number, dur: number, freq: number | Pt[], q: number, peak: number, a: number, rel: number, flutter = 0.15) {
+	const s = c.createBufferSource();
+	s.buffer = noiseBuf;
+	s.loop = true;
+	const f = c.createBiquadFilter();
+	f.type = 'bandpass';
+	setFreq(f.frequency, t, freq);
+	f.Q.value = q;
+	const hp = c.createBiquadFilter();
+	hp.type = 'highpass';
+	hp.frequency.value = 350;
+	const lp = c.createBiquadFilter();
+	lp.type = 'lowpass';
+	lp.frequency.value = 2200;
+	const fl = c.createGain();
+	fl.gain.value = 1;
+	wander(c, t, dur, 14, flutter, fl.gain);
+	const g = c.createGain();
+	env(g, t, a, peak, Math.max(0, dur - a - rel), rel);
+	s.connect(f);
+	f.connect(hp);
+	hp.connect(lp);
+	lp.connect(fl);
+	fl.connect(g);
+	g.connect(out);
+	s.start(t, Math.random() * 1.1);
+	s.stop(t + dur + 0.05);
+}
+
 const yip = (c: AudioContext, t: number, base: number, dur = 0.13) =>
 	voiced(c, t, [[0, base * 0.85], [0.03, base * 1.45], [dur, base * 1.05]], dur, [[1100, 1], [2300, 0.45]], 0.32);
 function bark(c: AudioContext, t: number, base: number) {
@@ -209,17 +358,16 @@ const SOUNDS: Record<KuriSoundName, (c: AudioContext, t: number) => void> = {
 		tone(c, t + 0.42, 784, 0.35, 0.05);
 		tone(c, t + 0.5, 988, 0.35, 0.05);
 	},
+	// a real dog yawn: the jaw opens on a thin, breathy
+	// squeal that climbs to ~1.1 kHz, sinks as the mouth closes, the jaw shuts with a soft "mm",
+	// and a contented sigh goes out through the nose.
 	sleep: (c, t) => {
-		noise(c, t, 1.0, [[0, 1400], [1.0, 280]], 0.7, 0.12, 'lowpass');
-		const o = c.createOscillator();
-		o.type = 'sine';
-		curve(o.frequency, t, [[0, 190], [1.0, 130]]);
-		const g = c.createGain();
-		env(g, t, 0.15, 0.1, 0.5, 0.4);
-		o.connect(g);
-		g.connect(master);
-		o.start(t);
-		o.stop(t + 1.1);
+		const r = room(c);
+		voice2(c, r, t, [[0, 620], [0.35, 1150], [0.6, 1000], [0.95, 520]], 0.95,
+			[[[[0, 650], [0.4, 1050], [0.95, 600]], 14, 5], [[[0, 1550], [0.4, 1850], [0.95, 1400]], 10, 6], [2700, 4, 6], [3600, 2, 6]],
+			0.065, 0.25, 0.3, 0.35, 0.25, 15);
+		voice2(c, r, t + 0.9, [[0, 470], [0.3, 400]], 0.3, [[430, 12, 4], [1150, -8, 4], [2300, 2, 6]], 0.035, 0.05, 0.2, 0.15);
+		breath2(c, r, t + 1.05, 1.1, [[0, 1250], [1.1, 800]], 1.3, 0.32, 0.15, 0.8);
 	},
 	dizzy: (c, t) => {
 		// a woozy "awawawa" that wobbles and sinks, then little stars twinkling round the head
