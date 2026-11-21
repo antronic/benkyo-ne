@@ -455,6 +455,11 @@ in Settings which AI to use.
   falls back to the learner's own key when the feature isn't in the package, the
   allowance is used up, or the managed daily limit is hit. With `own`, the
   package is used only when they have no key for that feature.
+- **Settings on a package:** with package AI, Settings shows the package, its
+  credits and which model each feature runs on, and hides the own-key setup
+  (keys, model pickers, prices, own cap). It comes back when they choose "My own
+  key", or tap "Use my own API key"; the "Use AI from" switch shows only once
+  they have a key.
 - **Prices:** a package model's price is the one Fleet copied when it was added, else the built-in table, else $0 (a self-hosted model): calls still count and are rate-limited.
 - **Allowance (AI credits):** a package gives credits each month (`plans.ai_credits`).
   Each model costs credits at the rate set in Fleet (`model_credit_rates`: input and

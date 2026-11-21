@@ -151,6 +151,13 @@
 	$effect(() => {
 		sourceView = ai.managed?.prefer ?? 'package';
 	});
+	/**
+	 * Own-key setup (keys, models, prices, cap) is for people who bring their own AI.
+	 * On a package with AI it stays out of the way, unless they chose "My own key"
+	 * or tap "Use my own API key".
+	 */
+	let showOwn = $state(false);
+	const ownSetup = $derived(!ai.managed?.plan || ai.managed.prefer === 'own' || showOwn);
 	const day = (ms: number) => fmtDate(ms, { day: 'numeric', month: 'short', year: 'numeric' });
 	const sourceOptions = $derived<{ value: AiSource; label: string; disabled?: boolean }[]>([
 		{ value: 'package', label: t('managed.usePackage'), disabled: busy },
@@ -230,16 +237,16 @@
 					<span class="caption">{t('managed.resets', { n: m.calls, date: day(m.resetsAt) })}</span>
 				</span>
 			</ListRow>
-			<ListRow>
+			{#if ai.credentials.length}<ListRow>
 				<span class="stack source" style:--gap="var(--space-2)" aria-busy={pending === 'source'}>
 					<span class="row"><span>{t('managed.useFrom')}</span><span class="spacer"></span>{#if pending === 'source'}<Spinner size="sm" label={t('common.loading')} />{/if}</span>
 					<Segmented label={t('managed.useAria')} options={sourceOptions} bind:value={sourceView} onchange={chooseSource} />
 					<span class="caption"><b>{t('managed.inUse', { what: inUse })}</b></span>
 					<span class="caption">
-						{ai.credentials.length === 0 ? t('managed.needKey') : m.prefer === 'own' ? t('managed.ownHint') : t('managed.packageHint')}
+						{m.prefer === 'own' ? t('managed.ownHint') : t('managed.packageHint')}
 					</span>
 				</span>
-			</ListRow>
+			</ListRow>{/if}
 			{#each FEATURES as f}
 				{@const src = m.byFeature?.find((x) => x.feature === f.id)?.source}
 				{@const pm = src === 'own' ? null : m.models.find((x) => x.feature === f.id)}
@@ -254,6 +261,13 @@
 		</Notice>
 	{/if}
 
+	{#if ai.checked && !ownSetup}
+		<div class="own-link">
+			<Button variant="ghost" size="sm" onclick={() => (showOwn = true)}>{t('managed.ownKeyLink')}</Button>
+		</div>
+	{/if}
+
+	{#if ai.checked && ownSetup}
 	{#if ai.usage}
 		{@const pct = Math.min(1, ai.usage.spentUsd / Math.max(ai.usage.capUsd, 0.0001))}
 		<ListGroup>
@@ -356,6 +370,7 @@
 			</ListRow>
 		</ListGroup>
 	{/if}
+	{/if}
 {/if}
 
 <style>
@@ -372,6 +387,11 @@
 	}
 	.source {
 		width: 100%;
+	}
+	.own-link {
+		display: flex;
+		justify-content: center;
+		margin-top: var(--space-2);
 	}
 	.nowrap {
 		white-space: nowrap;
