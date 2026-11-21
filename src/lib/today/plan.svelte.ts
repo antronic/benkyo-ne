@@ -27,3 +27,15 @@ export function stepDone(x: Step): boolean {
 	if (x.kind === 'everyday') return words.list.some((c) => (c.seen?.count ?? 0) > 0);
 	return false;
 }
+
+/**
+ * Where a new learner goes right after the first run (docs/UX-FLOW.md): the plan's own first
+ * step for someone who already reads kana (a placement check, their level), otherwise the next
+ * kana lesson. The same choice as Today's next-step card, without the reviews.
+ */
+export function firstStepHref(): string {
+	const s = planSteps().find((x) => !stepDone(x));
+	if (s && (s.kind === 'placement' || s.kind === 'level' || s.kind === 'everyday')) return s.href;
+	const l = LESSONS.find((x) => !progress.completed.includes(x.id));
+	return l ? `/learn/${l.id}` : '/';
+}

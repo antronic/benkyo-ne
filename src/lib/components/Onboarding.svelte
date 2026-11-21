@@ -1,9 +1,10 @@
 <!--
-	First-run questionnaire, after the beta sign-up and consent (or "Not now"),
-	before the avatar step (docs/ONBOARDING.md). Three tappable questions (why, how much
-	you know, how much a day), then the plan they produce. Single-choice
-	questions advance on tap; Skip keeps the defaults. Reopened from the Today
-	plan card with the previous answers filled in.
+	The plan questions (docs/ONBOARDING.md). `quick` is the first run (docs/UX-FLOW.md): right
+	after the intro and before the account, just how much you know and how much a day (plus the
+	level for everyday users); the last tap saves and moves on, with no plan page. The full set
+	(why, how much you know, how much a day, then the plan they produce) opens from Settings →
+	Your plan with the previous answers filled in. Single-choice questions advance on tap; Skip
+	keeps the defaults.
 -->
 <script lang="ts">
 	import { fly, fade } from 'svelte/transition';
@@ -13,7 +14,7 @@
 	import { LANGS, lang, planFor, profile, s } from '#lib/onboarding/profile.svelte.ts';
 	import { Button, Card, IconButton, Segmented } from '#lib/ui/index.ts';
 
-	let { ondone }: { ondone: () => void } = $props();
+	let { ondone, quick = false }: { ondone: () => void; quick?: boolean } = $props();
 
 	const prev = profile.value;
 	const editing = !!prev && !prev.skipped;
@@ -21,8 +22,16 @@
 
 	/** Everyday users get one more question: Pick your level. */
 	type Page = 'goals' | 'level' | 'jlpt' | 'minutes' | 'plan';
-	const pages = $derived<Page[]>(a.level === 'daily' ? ['goals', 'level', 'jlpt', 'minutes', 'plan'] : ['goals', 'level', 'minutes', 'plan']);
-	const QUESTIONS = $derived(pages.length - 1);
+	const pages = $derived<Page[]>(
+		quick
+			? a.level === 'daily'
+				? ['level', 'jlpt', 'minutes']
+				: ['level', 'minutes']
+			: a.level === 'daily'
+				? ['goals', 'level', 'jlpt', 'minutes', 'plan']
+				: ['goals', 'level', 'minutes', 'plan']
+	);
+	const QUESTIONS = $derived(quick ? pages.length : pages.length - 1);
 	let step = $state(0);
 	const page = $derived(pages[step]);
 	let dir = $state(1);
@@ -45,7 +54,12 @@
 		if (advancing) return;
 		advancing = true;
 		// let the selection show before moving on
-		setTimeout(() => ((advancing = false), go(step + 1)), 260);
+		setTimeout(() => {
+			advancing = false;
+			// the first run's last question saves and moves on (no plan page)
+			if (step + 1 >= pages.length) void finish();
+			else go(step + 1);
+		}, 260);
 	}
 	// which action is saving the answers (a quick IndexedDB write)
 	let saving = $state<'skip' | 'finish' | null>(null);
@@ -103,7 +117,7 @@
 	<div class="top">
 		<IconButton class={step === 0 ? 'ob-back hidden' : 'ob-back'} onclick={() => go(step - 1)} label={t.back} tabindex={step === 0 ? -1 : 0}>‹</IconButton>
 		<div class="dots" aria-hidden="true">
-			{#each { length: QUESTIONS + 1 } as _, n}<span class:on={n === step} class:past={n < step}></span>{/each}
+			{#each { length: pages.length } as _, n}<span class:on={n === step} class:past={n < step}></span>{/each}
 		</div>
 		<Button variant="ghost" size="sm" class={page === 'plan' ? 'ob-skip hidden' : 'ob-skip'} busy={saving === 'skip'} disabled={saving !== null} onclick={skip}>{t.skip}</Button>
 	</div>
@@ -135,7 +149,7 @@
 					<Button variant="accent" block class="cta" onclick={() => go(1)}>{t.next}</Button>
 				{:else if page === 'level'}
 					<header>
-						<div class="eyebrow">2 / {QUESTIONS}</div>
+						<div class="eyebrow">{step + 1} / {QUESTIONS}</div>
 						<h2 class="title">{t.levelQ}</h2>
 						<p class="subhead">{t.levelHint}</p>
 					</header>
@@ -154,7 +168,7 @@
 					</div>
 				{:else if page === 'jlpt'}
 					<header>
-						<div class="eyebrow">3 / {QUESTIONS}</div>
+						<div class="eyebrow">{step + 1} / {QUESTIONS}</div>
 						<h2 class="title">{t.jlptQ}</h2>
 						<p class="subhead">{t.jlptHint}</p>
 					</header>

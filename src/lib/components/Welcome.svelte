@@ -2,14 +2,15 @@
 	Beta access, shown right after the introduction when you're signed out (the
 	first-run questions follow it, docs/ONBOARDING.md).
 	Create an account (name + Face ID / Touch ID) or sign in with an existing
-	passkey; a recovery code is shown once after a passkey sign-up. When the
+	passkey. No recovery code screen: Today's set-up card offers one later (docs/UX-FLOW.md,
+	`firstRun.recoveryPending`). `start` picks the first tab. When the
 	server has it set up, "Continue with Apple" is offered beside the passkey.
 	"Not now" keeps the app usable offline without AI, except after an invite
 	link (/invite/CODE): then an account is needed, so there is no "Not now"
 	unless this browser can't make one at all or the server can't be reached.
-	In a browser tab (not installed) a card above the account asks to install
+	In a browser tab (not installed) a quiet link under the account offers to install
 	first: the Home Screen app keeps its own storage, so starting there leaves
-	nothing behind in the tab. Its button opens the install guide (which, in
+	nothing behind in the tab. It opens the install guide (which, in
 	another app's browser on iPhone/iPad, starts with Open in Safari).
 -->
 <script lang="ts">
@@ -18,7 +19,8 @@
 	import { cubicOut } from 'svelte/easing';
 	import * as api from '#lib/ai/client.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
-	import { avatar } from '#lib/state/avatar.svelte.ts';
+	import { firstRun } from '#lib/state/firstRun.svelte.ts';
+	import { untrack } from 'svelte';
 	import { haptic } from '#lib/ios/haptics.ts';
 	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { strokesOf } from '#lib/content/strokes.ts';
@@ -28,11 +30,11 @@
 	import { install } from '#lib/pwa/install.svelte.ts';
 
 	/** created: a new account · signedIn: an existing one (sign-in or recovery) · later: "Not now" */
-	let { ondone }: { ondone: (how: 'created' | 'signedIn' | 'later') => void } = $props();
+	let { ondone, start = 'create' }: { ondone: (how: 'created' | 'signedIn' | 'later') => void; start?: 'create' | 'signin' } = $props();
 
 	const supported = typeof window !== 'undefined' && 'PublicKeyCredential' in window;
 	const strokes = strokesOf('あ')?.d ?? [];
-	let mode = $state<'create' | 'signin' | 'recover'>('create');
+	let mode = $state<'create' | 'signin' | 'recover'>(untrack(() => start));
 	let name = $state('');
 	// filled in from a sign-up link (/invite/CODE)
 	let invite = $state(pendingInvite() ?? '');
@@ -43,7 +45,6 @@
 	let code = $state('');
 	let busy = $state(false);
 	let error = $state('');
-	let recoveryCode = $state<string | null>(null);
 
 	async function run<T>(fn: () => Promise<T>): Promise<T | undefined> {
 		busy = true;
@@ -68,11 +69,10 @@
 		if (!r) return;
 		clearPendingInvite();
 		haptic('success');
-		// the questions, then the avatar step, follow the recovery code and the beta consent (docs/ONBOARDING.md)
-		avatar.afterSignup = true;
+		// straight on to the first lesson; the recovery code waits on Today's set-up card
+		if (r.recoveryCode) await firstRun.setRecoveryPending(true);
 		await ai.refresh();
-		if (r.recoveryCode) recoveryCode = r.recoveryCode;
-		else finish('created');
+		finish('created');
 	}
 	async function signIn() {
 		const r = await run(() => api.signIn());
@@ -93,18 +93,6 @@
 		await ai.refresh();
 		toast(added ? t('welcome.recovered') : t('welcome.recoveredNoKey'), '🔑', 2800);
 		finish('signedIn');
-	}
-	let copying = $state(false);
-	async function copy() {
-		copying = true;
-		try {
-			await navigator.clipboard.writeText(recoveryCode ?? '');
-			toast(t('welcome.codeCopied'), '📋');
-		} catch {
-			/* still on screen */
-		} finally {
-			copying = false;
-		}
 	}
 	function finish(how: 'created' | 'signedIn') {
 		ondone(how);
@@ -147,28 +135,7 @@
 			</p>
 		</div>
 
-		{#if askInstall && !recoveryCode}
-			<div in:fly|global={{ y: 16, duration: 500, delay: 60 }}><Card strong padding="md" class="wl-install" aria-label={t('welcome.installTitle')}>
-				<img src="/icons/icon.svg" alt="" width="40" height="40" />
-				<div class="stack" style:--gap="var(--space-px)">
-					<b>{t(install.needsSafari ? 'welcome.installSafariTitle' : 'welcome.installTitle')}</b>
-					<span class="caption">{t(install.needsSafari ? 'welcome.installSafariBody' : 'welcome.installBody')}</span>
-				</div>
-				<Button variant="accent" size="md" busy={prompting} onclick={installFirst}>{install.canPrompt ? t('install.now') : t('install.showMe')}</Button>
-			</Card></div>
-		{/if}
-
-		{#if recoveryCode}
-			<div in:fly|global={{ y: 16, duration: 450 }}><Card strong class="wl-card">
-				<b>{t('welcome.inSave')}</b>
-				<code>{recoveryCode}</code>
-				<p class="caption">{t('welcome.codeBody')}</p>
-				<div class="row">
-					<Button variant="ghost" busy={copying} onclick={copy}>{t('welcome.copy')}</Button>
-					<Button variant="accent" class="grow" onclick={() => finish('created')}>{t('welcome.saved')}</Button>
-				</div>
-			</Card></div>
-		{:else if !supported}
+		{#if !supported}
 			<Card strong class="wl-card">
 				{#if ai.appleEnabled}
 					<AppleButton />
@@ -225,7 +192,10 @@
 			</Card></div>
 		{/if}
 
-		{#if !recoveryCode && (!invited || !ai.reached || (!supported && !ai.appleEnabled))}
+		{#if askInstall}
+			<Button variant="plain" class="wl-link" busy={prompting} onclick={installFirst}>{t(install.needsSafari ? 'welcome.installSafariTitle' : 'welcome.installTitle')} ›</Button>
+		{/if}
+		{#if !invited || !ai.reached || (!supported && !ai.appleEnabled)}
 			<Button variant="plain" class="wl-later" onclick={later}>{t('welcome.later')}</Button>
 		{/if}
 	</div>
@@ -329,20 +299,6 @@
 		color: #fff;
 		background: linear-gradient(90deg, #e8432e, #8a5cf6);
 	}
-	.panel :global(.wl-install) {
-		display: grid;
-		grid-template-columns: auto minmax(0, 1fr);
-		align-items: center;
-		gap: var(--space-3);
-		text-align: left;
-	}
-	.panel :global(.wl-install img) {
-		flex: none;
-		border-radius: 10px;
-	}
-	.panel :global(.wl-install .btn) {
-		grid-column: 1 / -1;
-	}
 	.panel :global(.wl-card) {
 		display: flex;
 		flex-direction: column;
@@ -351,23 +307,6 @@
 	}
 	.panel p {
 		margin: 0;
-	}
-	.row {
-		display: flex;
-		gap: var(--space-3);
-	}
-	.row :global(.grow) {
-		flex: 1;
-	}
-	code {
-		font-family: ui-monospace, monospace;
-		font-size: 1.125rem;
-		letter-spacing: 0.05em;
-		text-align: center;
-		padding: var(--space-3);
-		border-radius: 12px;
-		background: color-mix(in srgb, var(--warn) 16%, transparent);
-		word-break: break-all;
 	}
 	.panel :global(.wl-link),
 	.panel :global(.wl-later) {

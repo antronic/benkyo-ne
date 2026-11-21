@@ -27,8 +27,6 @@ class AvatarState {
 	#stored = $state<Stored | null>(typeof localStorage === 'undefined' ? null : readStored());
 	/** the avatar sheet: where it was opened from, or null when closed */
 	setup = $state<null | 'signup' | 'prompt' | 'settings'>(null);
-	/** a new account was just made: the sign-up step opens once the welcome and consent screens are done */
-	afterSignup = $state(false);
 
 	/** the signed-in learner's parts; null: none (the initial shows) */
 	person = $derived.by((): Partial<Person> | null => {
@@ -39,7 +37,7 @@ class AvatarState {
 	});
 
 	/** show the one-time "Make your avatar" card on Today (existing accounts) */
-	prompt = $derived(ai.reached && ai.signedIn && !ai.needsConsent && ai.account?.avatarAsked === false && !this.afterSignup);
+	prompt = $derived(ai.reached && ai.signedIn && !ai.needsConsent && ai.account?.avatarAsked === false);
 
 	#keep(acct: typeof ai.account, assign = true) {
 		if (assign) ai.account = acct;
