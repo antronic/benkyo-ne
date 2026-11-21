@@ -21,7 +21,8 @@ With **Sound** on (the default), Kuri yips on a tap, squeaks when picked up, sig
 
 - Everything is synthesized with Web Audio in `src/lib/companion/sound.ts` (under 2 KB gzipped). There are no audio files.
 - The voice is built from scratch: a buzzing tone through vowel filters, one syllable at a time. It copies no recording or real voice.
-- On iPhone (Safari 16.4+) the page's audio is marked `ambient`, so it follows the silent switch. Other browsers can't detect silent mode and play at the page volume.
+- On iPhone and iPad (Safari 16.4+) the page's audio is marked `ambient`, so it follows the silent switch. Only there: on Mac Safari an `ambient` page played nothing at all (2026-11-21). Other browsers can't detect silent mode and play at the page volume.
+- After the page has been in the background, the next tap builds a fresh AudioContext unless the old one is still running (iPhone leaves it `interrupted`, and an interrupted context can stay silent).
 - Browsers lock audio until the first touch. `kuri.svelte.ts` unlocks it on the first tap while Sound is on, so nothing plays before the learner touches the app.
 - Sound defaults to on. A stored `kuriSound` only counts once `kuriSoundChosen` is set (the learner flipped the switch); older saved settings that just carried the old `false` default get the new default.
 - Use `kuriSound(name)` and `kuriHello()` from `kuri.svelte.ts`; they do nothing when Kuri or Sound is off.
