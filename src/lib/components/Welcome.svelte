@@ -194,7 +194,7 @@
 					{#if canCreate}
 						<form class="stack" style:--gap="var(--space-3)" onsubmit={(e) => (e.preventDefault(), create())}>
 							{#if needInvite}
-								<p class="caption">{t('welcome.inviteOnly')}</p>
+								{#if !invited}<p class="caption">{t('welcome.inviteOnly')}</p>{/if}
 								<TextField size="lg" placeholder={t('welcome.invite')} bind:value={invite} maxlength={20} autocomplete="off" autocapitalize="characters" aria-label={t('welcome.invite')} />
 							{/if}
 							<TextField size="lg" placeholder={t('welcome.name')} bind:value={name} maxlength={40} autocomplete="nickname" aria-label={t('welcome.name')} />
