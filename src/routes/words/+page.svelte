@@ -22,7 +22,9 @@ import CardPoliteness from '#lib/components/CardPoliteness.svelte';
 	import { NOW_TAG } from '#lib/content/courses.ts';
 	import { ensurePacks, listPacks, MIN_KANA, type Pack } from '#lib/words/packs.ts';
 	import { processOutbox } from '#lib/words/maker.ts';
-	import { askAboutHref } from '#lib/ai/threads.ts';
+	import { cardFocus } from '#lib/ai/threads.ts';
+	import AskPeek from '#lib/components/AskPeek.svelte';
+	import type { AskFocus } from '#lib/ai/contract.ts';
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
 
@@ -34,6 +36,8 @@ import CardPoliteness from '#lib/components/CardPoliteness.svelte';
 	let query = $state('');
 	let filterTag = $state<string | null>(null);
 	let open = $state<UserCard | null>(null);
+	/** the word the Ask AI peek is about (over the card), or null when closed */
+	let askAbout = $state<AskFocus | null>(null);
 	let tagInput = $state('');
 	/** Cards, your phrasebook (what comes up in your life), or every note you wrote (on cards, kana, kanji, units) */
 	let view = $state<'cards' | 'phrasebook' | 'notes'>('cards');
@@ -278,7 +282,7 @@ import CardPoliteness from '#lib/components/CardPoliteness.svelte';
 	{#if open}
 		<WordCardView card={open} />
 		<CardPoliteness id={open.id} written={open.kanji ?? open.front} />
-		<Button variant="ghost" block href={askAboutHref(open)}>💬 {tr('words.askAi')}</Button>
+		<Button variant="ghost" block onclick={() => (askAbout = cardFocus(open!))}>💬 {tr('words.askAi')}</Button>
 		{#if ai.checked && !ai.available && ai.reason}<p class="caption ask-hint">✨ {ai.reason}</p>{/if}
 		{#if open.seen?.count}
 			<section class="stack where" style:--gap="var(--space-1h)">
@@ -320,6 +324,8 @@ import CardPoliteness from '#lib/components/CardPoliteness.svelte';
 		<Button variant="ghost-danger" block onclick={removeCard}>{tr('words.deleteCard')}</Button>
 	{/if}
 </Sheet>
+
+<AskPeek focus={askAbout} back="/words" onclose={() => (askAbout = null)} />
 
 <Sheet open={!!openNote} label={tr('notes.mine')} onclose={() => (openNote = null)}>
 	{#if openNote}

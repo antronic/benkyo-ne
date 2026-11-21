@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, ScrollMore, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, StepBar, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
+	import { Avatar, BarChart, Badge, Breadcrumbs, Button, Card, Checkbox, Chip, Columns, DataTable, ErrorState, type ErrorKind, FieldRow, FileButton, IconButton, LargeTitle, ListGroup, ListRow, MenuBar, Notice, PageDots, PlanBadge, ProgressRing, InkPad, SafariPrompt, ScrollMore, InkReplay, InviteCard, KanjiTile, MarkedText, PolitenessMeter, SpeechBubble, sampleInk, type Ink, SectionHeader, Segmented, Select, Sheet, SideNav, Skeleton, Slider, Spinner, StatTile, StepBar, Stepper, Switch, SwatchPicker, TextArea, TextField, TilePicker } from '#lib/ui/index.ts';
 	import { avatarSvg } from '#lib/avatar/render.ts';
 	import { DEFAULTS as AV_DEFAULTS, SKIN, type Person } from '#lib/avatar/person.ts';
 	import NoteCard from '#lib/components/NoteCard.svelte';
@@ -43,6 +43,8 @@
 	let confirmName = $state('');
 	let picked = $state('');
 	let sheetOpen = $state(false);
+	let peekOpen = $state(false);
+	let peekText = $state('');
 	// navigation draft (src/lib/nav.ts): the phone bar's More sheet, with its own pins
 	let navMoreOpen = $state(false);
 	let navEditing = $state(false);
@@ -721,6 +723,13 @@
 				<p class="caption">Floats above the bottom of a long screen while more than about half a screen is still below, and scrolls smoothly to the end when tapped. It clears the tab bar, the safe area, the keyboard and the Ask AI composer, and hides near the bottom. The root layout shows it on every screen, so there is nothing to add per screen.</p>
 				<div class="row"><ScrollMore demo /></div>
 
+				<SectionHeader title="Open in Safari" />
+				<p class="caption">On iPhone and iPad only Safari can install Benkyo. Opened inside LINE, Instagram, Chrome or another app, the app asks once per visit to move the page to Safari, keeping the whole link. Open in Safari uses the iOS 17 Safari link; Copy link is the fallback. The install guide shows the same card.</p>
+				<div class="safari-demos">
+					<SafariPrompt href="https://benkyo.jirachai.me/invite/VIP" app="LINE" oncontinue={() => {}} />
+					<SafariPrompt href="https://benkyo.jirachai.me/" app="Chrome" browser />
+				</div>
+
 				<SectionHeader title="Field with an action" />
 				<Card padding="md">
 					<div class="stack" style:--gap="var(--space-3)">
@@ -821,7 +830,11 @@
 				<p class="caption">Also considered: fewer tabs (Kana inside Learn, Settings behind your avatar on Today; no More, but things move) and a bar that scrolls sideways (hides tabs with no sign they are there; not iOS).</p>
 
 				<SectionHeader title="Sheet" />
-				<Button variant="ghost" onclick={() => (sheetOpen = true)}>Open a sheet</Button>
+				<p class="caption">A sheet holds a short task. A peek sheet (<code>peek</code>) opens at medium height over what you were looking at, so it stays in view: drag the grabber up (or tap it) for full height, down to go back, down again to close. Its <code>footer</code> stays pinned above the keyboard. Ask AI about a word (Words card, word pack) is a peek.</p>
+				<div class="row" style:--gap="var(--space-2)">
+					<Button variant="ghost" onclick={() => (sheetOpen = true)}>Open a sheet</Button>
+					<Button variant="ghost" onclick={() => (peekOpen = true)}>Open a peek sheet</Button>
+				</div>
 
 				<SectionHeader title="My note (words, kana, kanji, units)" />
 				<p class="caption">A private note on any study item. Saves as you type; empty deletes it. In Review it shows as a "My note" button only after you answer.</p>
@@ -904,6 +917,19 @@
 		<p>Sheets hold a short task. Drag down or tap outside to close.</p>
 		<Button onclick={() => (sheetOpen = false)}>Done</Button>
 	</div>
+</Sheet>
+
+<Sheet peek open={peekOpen} label="Example peek sheet" onclose={() => (peekOpen = false)}>
+	{#snippet header()}<h2 class="title-3">💬 Ask AI</h2>{/snippet}
+	<Card padding="sm"><span class="title-3 jp">食べる</span> <span class="caption">たべる · to eat</span></Card>
+	<p class="subhead">The page behind stays in view. Drag up for more room.</p>
+	{#each ['Show me 食べる in a few everyday sentences', 'Is 食べる casual or polite?', 'Break down the kanji in 食べる'] as s}<Chip onclick={() => (peekText = s)}>{s}</Chip>{/each}
+	{#snippet footer()}
+		<FieldRow as="form" size="md" onsubmit={() => (peekText = '')}>
+			<TextArea grow autogrow rows={1} maxRows={4} bind:value={peekText} placeholder="Ask about 食べる…" aria-label="Example question" />
+			<Button type="submit" variant="accent" aria-label="Send" disabled={!peekText.trim()}>↑</Button>
+		</FieldRow>
+	{/snippet}
 </Sheet>
 
 <style>
@@ -1387,5 +1413,9 @@
 		display: grid;
 		place-items: center;
 		font-size: 20px;
+	}
+	.safari-demos {
+		display: grid;
+		gap: var(--space-3);
 	}
 </style>
