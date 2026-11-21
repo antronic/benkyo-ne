@@ -46,6 +46,8 @@
 	import { clearPendingInvite, clearPendingPromo, markPendingTold, pendingInvite, pendingPromo, savePendingPromo, takeRef } from '#lib/promo/link.ts';
 	import type { MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { attempt, bootDone, reloadOnStaleChunk, safeMode, withTimeout } from '#lib/boot.ts';
+	import { firstRun as setupLater } from '#lib/state/firstRun.svelte.ts';
+	import { firstStepHref } from '#lib/today/plan.svelte.ts';
 
 	let { children } = $props();
 
@@ -152,6 +154,7 @@
 			toast(t('boot.storageFailed'), '⚠️', 4200);
 			return; // no intros or sync without storage; they run on the next good launch
 		}
+		await setupLater.load().catch((e) => report('boot_first_run', e));
 		try {
 			if (apple) void idbPut('meta', true, 'introSeen').catch(() => {}); // you got as far as signing in
 			else if (!(await idbGet<boolean>('meta', 'introSeen'))) ui.showIntro = true;
@@ -211,7 +214,6 @@
 		clearPendingInvite(); // signed in: an invite link has done its job
 		if (r.result === 'linked') toast(t('apple.connected'), '✓');
 		else if (r.result === 'created') {
-			avatar.afterSignup = true;
 			toast(t('welcome.toBeta', { name: ai.account?.name ?? '' }).trim(), '🎉', 2800);
 			await afterWelcome('created');
 		} else {
@@ -245,26 +247,30 @@
 		if (ui.showIntro || ui.showWelcome || ui.handoff || page.url.pathname.startsWith('/invite/')) return;
 		if (untrack(pendingInvite)) ui.showWelcome = true;
 	});
+	// Learn first (docs/UX-FLOW.md): a new account's beta consent waits until its first lesson
+	// is done and it is back on a normal screen; an account that must re-consent sees it at once.
+	const consentWaits = $derived(setupLater.consentLater && (progress.completed.length === 0 || immersive));
+	const consentDue = $derived(ai.needsConsent && !consentWaits);
+	$effect(() => {
+		if (setupLater.consentLater && ai.signedIn && ai.beta && !ai.needsConsent) untrack(() => void setupLater.setConsentLater(false));
+	});
 	/** Kuri's first meeting is waiting for the next calm moment on Today */
 	let kuriPending = $state(false);
 	$effect(() => {
 		if (!kuriPending || !progress.settings.kuri || page.url.pathname !== '/') return;
-		if (ui.showIntro || ui.showOnboarding || ui.onboardingNext || ui.showWelcome || ui.handoff || ai.needsConsent || avatar.setup || avatar.afterSignup) return;
+		if (ui.showIntro || ui.showOnboarding || ui.onboardingNext || ui.showWelcome || ui.handoff || ai.needsConsent || avatar.setup) return;
 		kuriPending = false;
 		ui.showKuriIntro = true;
 	});
-	// Sign-up (docs/ONBOARDING.md): the welcome (and its recovery code) → the beta consent →
-	// the first-run questions → the avatar step (docs/AVATAR.md) → Today.
+	// First run (docs/UX-FLOW.md): the intro → two quick questions → the account → straight into
+	// the first lesson; the consent follows that lesson, and the recovery code, avatar and install
+	// wait on Today's set-up card. A sign-up from elsewhere (Settings, an invite) with no answers
+	// on this device gets the questions after its account (onboardingNext), then Today.
 	$effect(() => {
-		if (!ui.onboardingNext || ui.showIntro || ui.showWelcome || ui.showOnboarding || ai.needsConsent || avatar.setup) return;
+		if (!ui.onboardingNext || ui.showIntro || ui.showWelcome || ui.showOnboarding || consentDue || avatar.setup) return;
 		ui.onboardingNext = false;
 		firstRun = true;
 		ui.showOnboarding = true;
-	});
-	$effect(() => {
-		if (!avatar.afterSignup || avatar.setup || ui.showIntro || ui.showOnboarding || ui.onboardingNext || ui.showWelcome) return;
-		if (!ai.signedIn || ai.needsConsent) return;
-		avatar.setup = 'signup';
 	});
 	// keep the offline copy of the avatar in step with the account
 	$effect(() => {
@@ -278,24 +284,58 @@
 		if (!ai.checked) await ai.refresh();
 		if (!ai.signedIn) ui.showWelcome = true;
 	}
-	/** the intro ended with no answers on this device: the questions come after sign-up */
-	let askAfterWelcome = false;
+	/** the first run is under way ("Get started"): after the account, straight into the first lesson */
+	let lessonNext = false;
+	/** which tab the welcome sheet opens on */
+	let welcomeStart = $state<'create' | 'signin'>('create');
+	/** the first run's questions: the short set, before the account */
+	let quickQuestions = $state(false);
+	/** the intro's "Get started": the quick questions (unless this device has answers), then the account */
+	async function getStarted() { // ui-ok: a quick local read before the questions sheet opens
+		lessonNext = true;
+		if (!(await profile.load().catch(() => null))) {
+			quickQuestions = true;
+			ui.showOnboarding = true;
+		} else await afterQuestions();
+	}
+	async function afterQuestions() { // ui-ok: only when the account check has not run yet; the sheet opens right after
+		welcomeStart = 'create';
+		await offerWelcome();
+		// already signed in (the intro replayed from Settings): straight on
+		if (!ui.showWelcome) await toFirstLesson();
+	}
+	async function toFirstLesson() { // ui-ok: a navigation; the lesson screen shows its own loading
+		lessonNext = false;
+		await goto(firstStepHref());
+		// Kuri says hello on Today afterwards
+		if (!(await idbGet<boolean>('meta', 'kuriIntroSeen').catch(() => false))) kuriPending = true;
+	}
 	/**
-	 * After the welcome sheet. A new account answers the questions (unless this device already
-	 * has answers) after its consent; "Not now" answers them straight away on a first run; an
-	 * existing account signing in is not asked again. Signing in or up shows a loading screen
-	 * until the next screen is ready.
+	 * After the welcome sheet. In the first run every way out goes to the first lesson; a new
+	 * account's consent waits until that lesson is done. A sign-up from elsewhere with no answers
+	 * on this device gets the questions; an existing account signing in is not asked again.
+	 * Signing in or up shows a loading screen until the next screen is ready.
 	 */
 	async function afterWelcome(how: 'created' | 'signedIn' | 'later') { // ui-ok: the Handoff loading screen covers it; the profile read is a quick local read
-		const ask = askAfterWelcome;
 		if (how === 'later' && pendingInvite()) inviteLater = true;
-		askAfterWelcome = false;
-		if (how !== 'later') startHandoff(how === 'created' ? 'signup' : 'signin');
 		ui.showWelcome = false;
-		if (how === 'signedIn') return;
-		if (how === 'later' && !ask) return;
+		welcomeStart = 'create';
+		if (how === 'created') void setupLater.setConsentLater(true);
+		if (how === 'signedIn') {
+			lessonNext = false;
+			startHandoff('signin');
+			return;
+		}
+		if (lessonNext) {
+			if (how === 'created') startHandoff('signup', false);
+			await toFirstLesson();
+			if (how === 'created') endHandoffSoon();
+			return;
+		}
+		if (how === 'later') return;
+		startHandoff('signup');
 		if (!(await profile.load().catch(() => null))) ui.onboardingNext = true;
-		else if (ui.handoff === 'signup') endHandoffSoon();
+		else endHandoffSoon();
 	}
 
 	// The loading screen after sign-in or sign-up (Handoff.svelte): it stays at least long
@@ -304,12 +344,12 @@
 	const HANDOFF_MAX_MS = 8000;
 	let handoffAt = 0;
 	let handoffTimer: ReturnType<typeof setTimeout> | undefined;
-	function startHandoff(kind: 'signin' | 'signup') {
+	function startHandoff(kind: 'signin' | 'signup', toToday = true) {
 		ui.handoff = kind;
 		handoffAt = Date.now();
 		clearTimeout(handoffTimer);
 		handoffTimer = setTimeout(() => (ui.handoff = null), HANDOFF_MAX_MS); // never stuck
-		if (page.url.pathname !== '/') void goto('/', { replaceState: true });
+		if (toToday && page.url.pathname !== '/') void goto('/', { replaceState: true });
 		// signing in brings the account's progress: wait for it, so Today opens with it
 		if (kind === 'signin') void sync().catch(() => null).finally(endHandoffSoon);
 	}
@@ -321,7 +361,7 @@
 	// sign-up: the next screen (consent, questions or avatar step) is on screen underneath
 	$effect(() => {
 		if (ui.handoff !== 'signup') return;
-		if (ai.needsConsent || ui.showOnboarding || avatar.setup) untrack(endHandoffSoon);
+		if (consentDue || ui.showOnboarding || avatar.setup) untrack(endHandoffSoon);
 	});
 </script>
 
@@ -353,39 +393,41 @@
 {#if !immersive}
 	<TabBar />
 {/if}
-{#if progress.ready && words.ready && !ui.showIntro && !ui.showOnboarding && !ui.showWelcome && !ai.needsConsent && !avatar.setup}
+{#if progress.ready && words.ready && !ui.showIntro && !ui.showOnboarding && !ui.showWelcome && !consentDue && !avatar.setup}
 	<!-- "More below" on every long screen; the Ask AI composer sets ui.scrollClear -->
 	<ScrollMore nav={!immersive} clear={ui.scrollClear} />
 {/if}
 
 {#if ui.showIntro}
 	<Intro
-		ondone={async () => {
+		ondone={async (how) => {
 			ui.showIntro = false;
 			void idbPut('meta', true, 'introSeen');
-			// first run: sign-up first, then a few questions to set up the plan (afterWelcome)
-			askAfterWelcome = !(await profile.load().catch(() => null));
+			if (how === 'start') return void getStarted();
+			welcomeStart = 'signin';
 			await offerWelcome();
-			// already signed in (the intro replayed from Settings): straight to the questions
-			if (!ui.showWelcome && askAfterWelcome) (askAfterWelcome = false), (ui.onboardingNext = true);
 		}}
 	/>
 {/if}
 {#if ui.showOnboarding}
 	<Onboarding
+		quick={quickQuestions}
 		ondone={async () => {
 			ui.showOnboarding = false;
+			if (quickQuestions) {
+				quickQuestions = false;
+				return void afterQuestions();
+			}
 			if (!firstRun) return;
 			firstRun = false;
-			// land on Today, where the plan card offers the first step; never jump into a lesson
+			// a sign-up from elsewhere: its questions done, land on Today
 			if (page.url.pathname !== '/') void goto('/', { replaceState: true });
-			// after the questions (and the avatar step, for a new account), Kuri says hello on Today
 			if (!(await idbGet<boolean>('meta', 'kuriIntroSeen').catch(() => false))) kuriPending = true;
 		}}
 	/>
 {/if}
 {#if ui.showWelcome}
-	<Welcome ondone={afterWelcome} />
+	<Welcome start={welcomeStart} ondone={afterWelcome} />
 {/if}
 {#if ui.showKuriIntro}
 	<KuriIntro
@@ -398,11 +440,11 @@
 {#if !safeMode && progress.settings.kuri && progress.settings.kuriReact && progress.ready}
 	<KuriReaction />
 {/if}
-{#if ai.needsConsent && !ui.showIntro && !ui.showWelcome}
-	<!-- required after sign-in until the account agrees to the current beta terms -->
+{#if consentDue && !ui.showIntro && !ui.showWelcome}
+	<!-- required after sign-in until the account agrees to the current beta terms (a new account: after its first lesson) -->
 	<BetaConsent />
 {/if}
-{#if avatar.setup && !ai.needsConsent}
+{#if avatar.setup && !consentDue}
 	<AvatarSetup from={avatar.setup} />
 {/if}
 {#if ui.handoff}

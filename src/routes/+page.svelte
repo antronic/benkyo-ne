@@ -10,7 +10,10 @@
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { words } from '#lib/state/words.svelte.ts';
 	import KuriWalker from '#lib/companion/KuriWalker.svelte';
-	import { Avatar, Button, Card, NextStep, PlanBadge, SetupCard, type SetupItem } from '#lib/ui/index.ts';
+	import { Avatar, Button, Card, NextStep, PlanBadge, SetupCard, Sheet, type SetupItem } from '#lib/ui/index.ts';
+	import { firstRun } from '#lib/state/firstRun.svelte.ts';
+	import * as api from '#lib/ai/client.ts';
+	import { toast } from '#lib/ios/overlay.svelte.ts';
 	import { pickNext } from '#lib/today/next.ts';
 	import { planSteps, stepDone } from '#lib/today/plan.svelte.ts';
 	import { profile, s as obStrings } from '#lib/onboarding/profile.svelte.ts';
@@ -149,11 +152,43 @@
 			installing = false;
 		}
 	}
+	// The recovery code a passkey sign-up skipped (docs/UX-FLOW.md): a fresh one, shown once
+	let code = $state<string | null>(null);
+	let making = $state(false);
+	async function showCode() {
+		making = true;
+		try {
+			code = (await api.newRecoveryCode()).recoveryCode; // ui-ok: busy shows on the set-up row's button (SetupItem.busy)
+		} catch {
+			toast(t('setup.codeFailed'), '⚠️', 3200);
+		} finally {
+			making = false;
+		}
+	}
+	let copying = $state(false);
+	async function copyCode() {
+		copying = true;
+		try {
+			await navigator.clipboard.writeText(code ?? '');
+			toast(t('setup.codeCopied'), '📋');
+		} catch {
+			/* still on screen to write down */
+		} finally {
+			copying = false;
+		}
+	}
+	function codeSaved() {
+		code = null;
+		void firstRun.setRecoveryPending(false);
+	}
 	const setup = $derived.by((): SetupItem[] => {
 		const items: SetupItem[] = [];
 		if (profile.loaded && (!profile.value || profile.value.skipped))
 			items.push({ id: 'plan', icon: '🎯', title: t('setup.plan'), body: t('setup.planBody'), action: t('setup.planGo'), onclick: () => (ui.showOnboarding = true) });
-		if (ai.signedIn)
+		if (ai.signedIn && firstRun.recoveryPending)
+			items.push({ id: 'code', icon: '🔑', title: t('setup.code'), body: t('setup.codeBody'), action: t('setup.codeGo'), busy: making, onclick: showCode });
+		// the avatar is account data: it waits for the beta consent (after the first lesson)
+		if (ai.signedIn && !ai.needsConsent)
 			items.push({ id: 'avatar', icon: '🙂', title: t('setup.avatar'), body: t('setup.avatarBody'), done: !!avatar.person, action: t('setup.avatarGo'), onclick: () => (avatar.setup = 'prompt') });
 		if (!install.cardHidden || install.installed)
 			items.push({
@@ -278,6 +313,18 @@
 	{/if}
 </main>
 
+<Sheet open={!!code} label={t('setup.codeTitle')} onclose={() => (code = null)}>
+	<div class="stack code-sheet" style:--gap="var(--space-3)">
+		<h2 class="title-2">{t('setup.codeTitle')}</h2>
+		<code>{code}</code>
+		<p class="caption">{t('setup.codeOnce')}</p>
+		<div class="row" style:--gap="var(--space-3)">
+			<Button variant="ghost" busy={copying} onclick={copyCode}>{t('common.copy')}</Button>
+			<Button variant="accent" class="grow" onclick={codeSaved}>{t('setup.codeSaved')}</Button>
+		</div>
+	</div>
+</Sheet>
+
 {#if progress.settings.kuri}
 	<KuriWalker hidden={ui.showKuriIntro || ui.showIntro || ui.showOnboarding || ui.showWelcome} />
 {/if}
@@ -294,6 +341,23 @@
 		.dash > .now {
 			grid-column: 1 / -1;
 		}
+	}
+	.code-sheet h2,
+	.code-sheet p {
+		margin: 0;
+	}
+	.code-sheet code {
+		font-family: ui-monospace, monospace;
+		font-size: 1.125rem;
+		letter-spacing: 0.05em;
+		text-align: center;
+		padding: var(--space-3);
+		border-radius: var(--radius-md);
+		background: color-mix(in srgb, var(--warn) 16%, transparent);
+		word-break: break-all;
+	}
+	.code-sheet :global(.grow) {
+		flex: 1;
 	}
 	/* room under the last card, so Kuri (who walks along the bottom) never has to sit on text */
 	.dash {

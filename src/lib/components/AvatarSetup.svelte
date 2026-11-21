@@ -57,7 +57,6 @@
 	function close() {
 		stopCamera();
 		avatar.setup = null;
-		avatar.afterSignup = false;
 		// a new account lands on Today after this step, never in a lesson
 		if (from === 'signup') void goto('/');
 	}

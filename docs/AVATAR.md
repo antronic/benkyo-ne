@@ -5,11 +5,9 @@ It shows on Today, in Settings, on community posts and replies, and beside your 
 
 ## Flow
 
-- **Sign-up.** Registration (passkey, recovery code, consent), then the first-run questions
-  ([ONBOARDING.md](ONBOARDING.md)), then the avatar step, then Today.
-  `Welcome.svelte` (and the Apple `created` result) sets `avatar.afterSignup`; `+layout.svelte`
-  opens `AvatarSetup` once the intro, Welcome and onboarding sheets are closed (and no questions are waiting, `ui.onboardingNext`). Closing the step
-  in sign-up mode goes to `/`, never a lesson.
+- **Sign-up.** No avatar step any more (docs/UX-FLOW.md, phase 3): a new account goes straight
+  into its first lesson, and "Make your avatar" waits on Today's set-up card (after the beta
+  consent, since the avatar is account data).
 - **Existing accounts.** A one-time card on Today ("Make it" / "Not now"). It shows while
   `account.avatarAsked` is false. Saving or "Not now" sets `accounts.avatar_asked_at`, so the
   card never comes back, on any device.
