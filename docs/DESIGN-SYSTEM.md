@@ -199,24 +199,25 @@ props, the variants and states, and a Docs page. Live at https://benkyo.jirachai
 ## Navigation for many items
 
 The main navigation (`src/lib/components/TabBar.svelte`) reads one list, `NAV_ITEMS` in
-`src/lib/nav.ts`: href, label, one-line description, icon and group (Study, Your words, People, You).
-A new top-level screen gets an entry there and nothing else.
+`src/lib/nav.ts`: href, label, one-line description, icon, group, and `also` (other top-level
+screens the tab holds, so it lights up on them).
+
+Five places (docs/UX-FLOW.md, phase 4): **Today, Learn, Review, Words, Settings**. Kana lives in
+Learn (its Browse row), Ask AI and Community in Words (the two cards under its title). Five fit
+every bar, so there is no More tab. A new top-level screen either gets an entry, or goes into a tab's
+`also` with a link on that tab's screen (`INSIDE_TAB` in `check:layout`).
 
 | Where | What it shows |
 | --- | --- |
-| Phone bottom bar (< 600 px) | 4 tabs + More |
-| Bottom bar ≥ 600 px (unfolded Duo portrait, iPad portrait) | 6 tabs + More |
-| Folded Duo / iOS 27 side status column | 4 icons + More, in a column |
-| Side rail (`RAIL_QUERY`) | every screen, in groups split by a hairline, Settings last; under 600 px tall, 4 tabs + More |
-| Sidebar (`SIDEBAR_QUERY`, ≥ 1200 px) | every screen with its label, group headings, Settings at the bottom |
+| Phone bottom bar, bottom bar ≥ 600 px, folded Duo side column | the five tabs |
+| Side rail (`RAIL_QUERY`) | the five, in groups split by a hairline, Settings last |
+| Sidebar (`SIDEBAR_QUERY`, ≥ 1200 px) | the five with labels and group headings, Settings at the bottom |
 
-- The tabs are the learner's pins (`settings.navPins`, default `DEFAULT_PINS`), shown in list order;
-  if fewer are pinned than fit, the next screens in the list fill in. More holds the rest.
-- More opens `NavMore.svelte` (kit `Sheet` + `ListGroup`): each screen with its description, the
-  Review due count, and "Edit tab bar" (a `Checkbox` per screen, up to the room on that screen).
-- On a screen that lives in More, the More tab takes that screen's icon and name and is marked
-  active, so the bar always says where you are. If Review is in More, its due count shows on More.
-- `check:layout` opens More when it checks that every top-level screen is reachable.
+- The pins (`settings.navPins`, `DEFAULT_PINS`) and the More sheet (`NavMore.svelte`: each screen
+  with its description, the Review due count, "Edit tab bar") stay in the code for a list longer
+  than the bar; they show only when `NAV_ITEMS` outgrows the room (`splitBar`).
+- `check:layout` checks that every top-level screen is a tab, in More, or linked from the tab that
+  holds it.
 
 ## Motion and transitions
 

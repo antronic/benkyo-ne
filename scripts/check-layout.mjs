@@ -220,6 +220,8 @@ export function routesUnder(dir, base = 'src/routes') {
 	return out.map((r) => r.replace(/\/$/, '') || '/').sort();
 }
 /** Top-level app screens that are deliberately not in the tab bar, and why. */
+/** Top-level screens a tab holds (src/lib/nav.ts `also`): each must have a link on that tab's screen. */
+const INSIDE_TAB = { '/kana': '/learn', '/ai': '/words', '/community': '/words' };
 const OFF_TAB_BAR = { '/design': 'developer catalog', '/admin': 'Fleet, opened from Settings', '/week': 'weekly report, opened from the Your week card on Today' };
 
 /** Runs in the page: hrefs of the visible links in navs matching `sel`. */
@@ -397,8 +399,14 @@ async function main() {
 				await page.keyboard.press('Escape');
 				await page.waitForTimeout(400);
 			}
-			for (const r of routesUnder('src/routes').filter((r) => r.split('/').length === 2 && !(r in OFF_TAB_BAR))) {
+			for (const r of routesUnder('src/routes').filter((r) => r.split('/').length === 2 && !(r in OFF_TAB_BAR) && !(r in INSIDE_TAB))) {
 				if (!tabs.includes(r)) problems.push(`${r} @ ${label} ${width}px: not reachable, it is not in the tab bar or its More sheet (src/lib/nav.ts)`);
+			}
+			for (const [r, home] of Object.entries(INSIDE_TAB)) {
+				if (!tabs.includes(home)) problems.push(`${home} @ ${label} ${width}px: not in the tab bar, so ${r} inside it is not reachable`);
+				await page.goto(BASE + home, { waitUntil: 'networkidle' });
+				const links = await page.evaluate(() => [...document.querySelectorAll('main a[href]')].map((a) => new URL(a.href).pathname));
+				if (!links.includes(r)) problems.push(`${r} @ ${label} ${width}px: not reachable, ${home} has no link to it (src/lib/nav.ts \`also\`)`);
 			}
 			await ctx.close();
 

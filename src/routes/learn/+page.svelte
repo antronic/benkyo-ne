@@ -97,6 +97,19 @@
 
 	const nextKanjiId = $derived(KANJI_LESSONS.find((l) => !progress.completed.includes(l.id))?.id);
 
+	// A shorter Learn (docs/UX-FLOW.md, phase 4): under All, each long list shows a few items
+	// around where you are, and "See all" opens its own filter.
+	const CAP = 3;
+	const kanjiShown = (i: number) => filter !== 'all' || windowAt(KANJI_LESSONS.map((l) => l.id), i);
+	const capped = (i: number) => filter !== 'all' || i < CAP;
+	/** a window of CAP lessons from the last one done (the first ones when none is done yet) */
+	function windowAt(ids: string[], i: number) {
+		const next = ids.findIndex((id) => !progress.completed.includes(id));
+		const from = next < 0 ? Math.max(0, ids.length - CAP) : Math.max(0, next - 1);
+		return i >= from && i < from + CAP;
+	}
+	const kanaIds = (script: string) => LESSONS.filter((l) => l.script === script).map((l) => l.id);
+
 	/** Average predicted recall over card ids (0..1), null if unstarted. */
 	function recall(ids: string[]): number | null {
 		const cs = ids.map((id) => progress.cards[id]).filter(Boolean);
@@ -185,6 +198,7 @@
 			{#each LESSONS.filter((l) => l.script === script) as l, i}
 				{@const done = progress.completed.includes(l.id)}
 				{@const s = strength(l.id)}
+				{#if filter !== 'all' || windowAt(kanaIds(script), i)}
 				<li class="rise" style:--i={si * 8 + i + 1}>
 					<Card sheen href="/learn/{l.id}" class="lesson {l.id === nextId ? 'next' : ''} {done ? 'done' : ''}" style="--h: {l.hue}">
 						<span class="badge">{done ? '✓' : i + 1}</span>
@@ -200,8 +214,10 @@
 						{/if}
 					</Card>
 				</li>
+				{/if}
 			{/each}
 		</ol>
+		{#if filter === 'all'}{@render seeAll('fundamentals', kanaIds(script).length)}{/if}
 		</section>
 	{/each}
 	</div>
@@ -215,6 +231,7 @@
 			{#each KANJI_LESSONS as l, i}
 				{@const done = progress.completed.includes(l.id)}
 				{@const s = kanjiStrength(l.id)}
+				{#if kanjiShown(i)}
 				<li class="rise" style:--i={i + 1}>
 					<Card sheen href="/learn/kanji/{l.id}" class="lesson {l.id === nextKanjiId ? 'next' : ''} {done ? 'done' : ''}" style="--h: {l.hue}">
 						<span class="badge">{done ? '✓' : i + 1}</span>
@@ -232,8 +249,10 @@
 						{/if}
 					</Card>
 				</li>
+				{/if}
 			{/each}
 		</ol>
+		{#if filter === 'all' && KANJI_LESSONS.length > CAP}{@render seeAll('kanji', KANJI_LESSONS.length)}{/if}
 	</section>
 	{/if}
 
@@ -253,6 +272,7 @@
 				<div class="units">
 					{#each units as u, i (u.id)}
 						{@const done = progress.completed.includes(u.id)}
+						{#if capped(i)}
 						<Card sheen class="unit {done ? 'done' : ''}" href="/learn/level/{u.id}">
 							<span class="badge">{done ? '✓' : i + 1}</span>
 							<span class="stack" style:--gap="1px">
@@ -266,8 +286,10 @@
 								{/if}
 							</span>
 						</Card>
+						{/if}
 					{/each}
 				</div>
+				{#if filter === 'all' && units.length > CAP}{@render seeAll(l.id.toLowerCase() as Filter, units.length)}{/if}
 			{/if}
 		</section>
 		{/if}
@@ -281,6 +303,7 @@
 			<div class="units">
 				{#each c.units as u, ui (u.id)}
 					{@const n = addedIn(c.id, u.id)}
+					{#if capped(ui)}
 					<Card sheen class="unit {n >= u.items.length ? 'done' : ''}" href="/learn/course/{c.id}/{u.id}">
 						<span class="badge">{n >= u.items.length ? '✓' : ui + 1}</span>
 						<span class="stack" style:--gap="1px">
@@ -290,13 +313,23 @@
 						<span class="spacer"></span>
 						<span class="caption">{n}/{u.items.length}</span>
 					</Card>
+					{/if}
 				{/each}
 			</div>
+			{#if filter === 'all' && c.units.length > CAP}{@render seeAll(c.id as Filter, c.units.length)}{/if}
 		</section>
 	{/each}
+
+	{#snippet seeAll(id: Filter, n: number)}
+		<div class="see-all"><Chip onclick={() => (choose(id), scrollTo({ top: 0 }))}>{t('learn.seeAll', { n })} ›</Chip></div>
+	{/snippet}
 </main>
 
 <style>
+	.see-all {
+		display: flex;
+		margin-top: var(--space-2);
+	}
 	.browse {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
