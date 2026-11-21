@@ -206,7 +206,6 @@
 							<div class="or" aria-hidden="true"><span>{t('welcome.or')}</span></div>
 							<AppleButton disabled={busy} />
 						{/if}
-						<p class="caption">{t('welcome.thenKey')}</p>
 					{:else}
 						<p class="caption">{t('welcome.full')}</p>
 					{/if}

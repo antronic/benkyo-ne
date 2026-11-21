@@ -9,6 +9,7 @@
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { leave } from '#lib/state/leave.ts';
 	import { fly, scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { KANJI_LESSONS, kanjiLessonById, kanjiCardId, meaningChoices, type Kanji } from '#lib/content/kanji.ts';
@@ -176,7 +177,7 @@
 	async function close() {
 		if (ui.backGuard && !(await ui.backGuard())) return;
 		ui.backGuard = null;
-		goto('/learn');
+		leave('/learn');
 	}
 </script>
 
@@ -338,7 +339,7 @@
 				<Button variant="ghost" block onclick={nextFromTrace}>{t('lesson.skipTrace')}</Button>
 			{:else if phase === 'done'}
 				<div class="row" style="width:100%">
-					<Button variant="ghost" block onclick={() => goto('/')}>{t('common.done')}</Button>
+					<Button variant="ghost" block onclick={() => leave('/')}>{t('common.done')}</Button>
 					{#if nextLesson}
 						<Button variant="accent" block onclick={() => goto(`/learn/kanji/${nextLesson.id}`).then(() => (phase = 'intro'))}>{t('lesson.next')}</Button>
 					{/if}

@@ -126,7 +126,6 @@
 				<PlanBadge plan={plan.value.plan} name={plan.value.planName} />
 			{/if}
 		</div>
-		<p class="subhead rise" style="margin:var(--space-1) 0 0">{t('home.tagline')}</p>
 	</header>
 
 	{#if avatar.prompt}
@@ -159,7 +158,6 @@
 			<div class="row stats" style:--gap="var(--space-4)">
 				<div><b>{progress.streak.days}</b><span class="caption">{t('home.streak')}</span></div>
 				<div><b>{progress.learnedCount}</b><span class="caption">{t('home.learned')}</span></div>
-				<div><b>{Math.round(progress.settings.retention * 100)}%</b><span class="caption">{t('home.target')}</span></div>
 			</div>
 		</div>
 	</Card>
@@ -242,15 +240,6 @@
 			<div class="go">›</div>
 		</Card>
 	{/if}
-
-	<Card as="section" sheen padding="lg" radius="large" class="tip rise" style="--i: 4">
-		<div>
-			<div class="eyebrow">{t('home.howTitle')}</div>
-			<p class="how" style="margin:var(--space-1h) 0 0">
-				{@html t('home.howBody')}
-			</p>
-		</div>
-	</Card>
 </main>
 
 {#if progress.settings.kuri}
@@ -265,8 +254,7 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			align-items: start;
 		}
-		.dash > header,
-		.dash > :global(.tip) {
+		.dash > header {
 			grid-column: 1 / -1;
 		}
 		.dash > :global(.lesson.lesson) {
@@ -356,8 +344,5 @@
 	.hero-rmj :global(.rmj) {
 		color: rgb(255 255 255 / 0.75);
 		font-size: 0.8125rem;
-	}
-	.how {
-		color: var(--ink-2);
 	}
 </style>

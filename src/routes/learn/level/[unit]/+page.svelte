@@ -11,6 +11,7 @@
 	import { Badge, Button, Card, IconButton, Notice, SectionHeader, Skeleton } from '#lib/ui/index.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { leave } from '#lib/state/leave.ts';
 	import { page } from '$app/state';
 	import Romaji from '#lib/components/Romaji.svelte';
 	import ContentFeedback from '#lib/components/ContentFeedback.svelte';
@@ -104,7 +105,7 @@
 {:else}
 	<main class="unit-page stack" style:--h={hue} style:--gap="var(--space-4)">
 		<header class="top">
-			<IconButton label={t('common.back')} onclick={() => goto('/learn')}>
+			<IconButton label={t('common.back')} onclick={() => leave('/learn')}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
 			</IconButton>
 			<div class="stack" style:--gap="0">

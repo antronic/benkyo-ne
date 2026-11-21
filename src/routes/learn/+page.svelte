@@ -240,6 +240,8 @@
 	{#each LEVELS.filter((l) => filter === 'all' || filter === l.id.toLowerCase()) as l (l.id)}
 		{@const all = levels.units[l.id]}
 		{@const units = shownUnits(l)}
+		<!-- a level whose units are all drafts waiting for a teacher's check stays out of a learner's way -->
+		{#if !all || units.length || levels.failed[l.id]}
 		<section class="course level rise" style:--h={l.hue}>
 			<h2 class="eyebrow section">📗 JLPT {l.id}</h2>
 			<p class="caption blurb">{t('levels.blurb')}</p>
@@ -247,11 +249,6 @@
 				<Notice tone="warning">{t('levels.loadFailed', { level: l.id })}</Notice>
 			{:else if !all}
 				<Skeleton variant="row" count={3} label={t('levels.loading', { level: l.id })} />
-			{:else if !units.length}
-				<Notice title={t('levels.comingTitle', { level: l.id })}>
-					{t('levels.comingBody', { n: all.length, planned: l.planned })}
-					{#snippet action()}<Button size="sm" href="/settings">{t('levels.openSettings')}</Button>{/snippet}
-				</Notice>
 			{:else}
 				<div class="units">
 					{#each units as u, i (u.id)}
@@ -273,6 +270,7 @@
 				</div>
 			{/if}
 		</section>
+		{/if}
 	{/each}
 
 	{#each shownCourses as c, ci (c.id)}

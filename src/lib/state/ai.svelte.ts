@@ -39,25 +39,47 @@ class Ai {
 			(this.onPackage || this.ownUsable)
 	);
 
-	/** Why AI isn't available, for a friendly inline hint. */
-	reason = $derived(
+	/**
+	 * Why AI isn't available, as a code: 'noAi' means the account simply has no AI (no package,
+	 * no key of its own). That is a normal state for a learner, so screens don't nag about it.
+	 */
+	reasonKind = $derived<'' | 'offline' | 'signIn' | 'consent' | 'allowance' | 'ended' | 'noAi' | 'cap'>(
 		!this.online
-			? t('ai.reason.offline')
+			? 'offline'
 			: !this.signedIn
-				? t('ai.reason.signIn')
+				? 'signIn'
 				: this.needsConsent
-					? t('ai.reason.consent')
+					? 'consent'
 					: this.onPackage
 						? ''
 						: this.managed?.blocked === 'allowance' && !this.ownUsable
-							? t('ai.reason.allowance')
+							? 'allowance'
 							: this.managed?.ended && this.credentials.length === 0
-								? t('ai.reason.ended', { name: this.managed.ended.name })
+								? 'ended'
 								: this.credentials.length === 0
-									? t('ai.reason.noKey')
+									? 'noAi'
 									: this.usage && this.usage.spentUsd >= this.usage.capUsd
-										? t('ai.reason.cap')
+										? 'cap'
 										: ''
+	);
+
+	/** Why AI isn't available, for a friendly inline hint. */
+	reason = $derived(
+		this.reasonKind === 'offline'
+			? t('ai.reason.offline')
+			: this.reasonKind === 'signIn'
+				? t('ai.reason.signIn')
+				: this.reasonKind === 'consent'
+					? t('ai.reason.consent')
+					: this.reasonKind === 'allowance'
+						? t('ai.reason.allowance')
+						: this.reasonKind === 'ended'
+							? t('ai.reason.ended', { name: this.managed?.ended?.name ?? '' })
+							: this.reasonKind === 'noAi'
+								? t('ai.reason.noKey')
+								: this.reasonKind === 'cap'
+									? t('ai.reason.cap')
+									: ''
 	);
 
 	async refresh() {

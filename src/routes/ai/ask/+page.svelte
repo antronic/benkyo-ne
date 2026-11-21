@@ -3,6 +3,7 @@
 	import { t, fmtDate, fmtTime, type MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { leave } from '#lib/state/leave.ts';
 	import { page } from '$app/state';
 	import { slide } from 'svelte/transition';
 	import { focusStarters } from '#lib/ai/focusStarters.ts';
@@ -277,7 +278,7 @@
 <main class="chat" bind:this={chatEl}>
 	<header class="top">
 		<div class="top-row">
-			<IconButton label={t('common.back')} onclick={() => goto(backTo ?? '/ai')}>
+			<IconButton label={t('common.back')} onclick={() => (backTo ? goto(backTo) : leave('/ai'))}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
 			</IconButton>
 			{#if progress.settings.kuri}
