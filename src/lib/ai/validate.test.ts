@@ -248,6 +248,16 @@ describe('lesson & ask validation', () => {
 		expect(r.ok && r.value.answer2).toBe(null);
 		expect(r.ok && r.value.examples.length).toBe(1);
 	});
+	it('ask: keeps a word card focus, drops a reading that repeats the word, refuses a broken one', () => {
+		const turns = [{ role: 'user', text: 'How do I use it?' }];
+		const a = parseAskRequest({ turns, secondLang: null, focus: { word: ' 食べる ', reading: 'たべる', meaning: 'to eat', extra: 1 } });
+		expect(a.ok && a.value.focus).toEqual({ word: '食べる', reading: 'たべる', meaning: 'to eat' });
+		const kana = parseAskRequest({ turns, secondLang: null, focus: { word: 'ねこ', reading: 'ねこ', meaning: 'cat' } });
+		expect(kana.ok && kana.value.focus).toEqual({ word: 'ねこ', reading: null, meaning: 'cat' });
+		expect(parseAskRequest({ turns, secondLang: null }).ok && parseAskRequest({ turns, secondLang: null })).toMatchObject({ value: { focus: null } });
+		expect(parseAskRequest({ turns, secondLang: null, focus: { word: '', meaning: 'x' } }).ok).toBe(false);
+		expect(parseAskRequest({ turns, secondLang: null, focus: 'cat' }).ok).toBe(false);
+	});
 });
 
 describe('translate', () => {

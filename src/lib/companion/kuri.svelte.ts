@@ -9,7 +9,7 @@ import { progress } from '#lib/state/progress.svelte.ts';
 import { play, hello, unlock, type KuriSoundName } from './sound.ts';
 import { safeMode } from '#lib/boot.ts';
 
-export type KuriPose = 'idle' | 'happy' | 'thinking' | 'encourage' | 'sleep' | 'wave' | 'walk' | 'held';
+export type KuriPose = 'idle' | 'happy' | 'thinking' | 'encourage' | 'sleep' | 'wave' | 'walk' | 'held' | 'dizzy';
 
 export interface KuriOptions {
 	variant?: 'bandana' | 'neckerchief';

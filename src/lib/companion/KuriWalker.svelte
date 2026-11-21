@@ -2,6 +2,7 @@
 	Kuri on Today: a small draggable avatar that wanders along the bottom of the
 	screen when left alone, sits, and dozes off after half a minute.
 	Tap for a hop and a short line; drag to pick Kuri up and put it somewhere else.
+	Shake Kuri while holding it (four quick back-and-forth swings) and it gets dizzy.
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
@@ -56,14 +57,29 @@
 		if (progress.streak.days > 1) pool.push(tn('kuri.sayStreak', progress.streak.days));
 		return pool[Math.floor(Math.random() * pool.length)];
 	}
-	function speak() {
-		say = line();
+	function speak(text = line()) {
+		say = text;
 		sayUntil = performance.now() + 2400;
 	}
 
-	let drag: { id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null = null;
+	/** A shake is a few long strokes that change direction quickly (on either axis). */
+	const SHAKE_STROKE = 28,
+		SHAKE_FLIPS = 4,
+		SHAKE_MS = 1200;
+	type Axis = { dir: number; run: number };
+	let drag: { id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean; lx: number; ly: number; ax: Axis; ay: Axis; flips: number[]; dizzy: boolean } | null = null;
+	function stroke(a: Axis, d: number, now: number, flips: number[]) {
+		if (!d) return;
+		const s = Math.sign(d);
+		if (a.dir === 0 || s === a.dir) (a.run += Math.abs(d)), (a.dir = s);
+		else {
+			if (a.run >= SHAKE_STROKE) flips.push(now);
+			a.dir = s;
+			a.run = Math.abs(d);
+		}
+	}
 	function down(e: PointerEvent) {
-		drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: x, oy: y, moved: false };
+		drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: x, oy: y, moved: false, lx: e.clientX, ly: e.clientY, ax: { dir: 0, run: 0 }, ay: { dir: 0, run: 0 }, flips: [], dizzy: false };
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 		lastTouch = performance.now();
 	}
@@ -82,12 +98,36 @@
 			const b = bounds();
 			x = Math.min(Math.max(-10, drag.ox + dx), b.right + 10);
 			y = Math.min(Math.max(60, drag.oy + dy), b.bottom);
+			if (!drag.dizzy) {
+				// a busy frame merges moves into one event; read them all so a fast shake still counts
+				const now = performance.now();
+				const all = e.getCoalescedEvents?.() ?? [];
+				for (const m of all.length ? all : [e]) {
+					stroke(drag.ax, m.clientX - drag.lx, now, drag.flips);
+					stroke(drag.ay, m.clientY - drag.ly, now, drag.flips);
+					drag.lx = m.clientX;
+					drag.ly = m.clientY;
+				}
+				drag.flips = drag.flips.filter((t) => now - t < SHAKE_MS);
+				if (drag.flips.length >= SHAKE_FLIPS) {
+					drag.dizzy = true;
+					set('held', 'dizzy');
+					haptic('warning');
+					kuriSound('dizzy');
+				}
+			}
 		}
+		if (!drag.moved || drag.dizzy) (drag.lx = e.clientX), (drag.ly = e.clientY);
 	}
 	function up() {
 		if (!drag) return;
 		lastTouch = performance.now();
-		if (drag.moved) {
+		if (drag.dizzy) {
+			// set down still woozy: stars and a line, then back to normal
+			set('react', 'dizzy');
+			reactUntil = performance.now() + 2600;
+			speak(t('kuri.sayDizzy'));
+		} else if (drag.moved) {
 			set('idle');
 			nextAt = performance.now() + 4000;
 		} else {

@@ -3,11 +3,13 @@
 	import { t, fmtDate, fmtTime, type MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { fly, slide } from 'svelte/transition';
 	import * as api from '#lib/ai/client.ts';
-	import type { AskTurn } from '#lib/ai/contract.ts';
+	import type { AskFocus, AskTurn } from '#lib/ai/contract.ts';
 	import { finishAskText, parseAskText } from '#lib/ai/askStream.ts';
 	import {
+		focusFromUrl,
 		getCurrent,
 		loadThreads,
 		newId,
@@ -21,7 +23,8 @@
 	} from '#lib/ai/threads.ts';
 	import { speak } from '#lib/content/kana.ts';
 	import Romaji from '#lib/components/Romaji.svelte';
-	import { Avatar, Button, Card, Chip, FieldRow, IconButton, ListGroup, Sheet, TextArea, TextField } from '#lib/ui/index.ts';
+	import { Avatar, Button, Card, Chip, FieldRow, IconButton, ListGroup, Sheet, Skeleton, TextArea, TextField } from '#lib/ui/index.ts';
+	import { gloss } from '#lib/i18n/content.ts';
 	import { avatar } from '#lib/state/avatar.svelte.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
@@ -32,11 +35,17 @@
 	import { confirmDestructive, toast } from '#lib/ios/overlay.svelte.ts';
 
 	ui.hue = 265;
-	const STARTERS = $derived([t('ask.starter1'), t('ask.starter2'), t('ask.starter3'), t('ask.starter4')]);
-
 	let threads = $state<AskThread[]>([]);
 	let current = $state<AskThread | null>(null);
 	const msgs = $derived(current?.msgs ?? []);
+	/** the word this chat is about (opened from Words → card → Ask AI) */
+	const focus = $derived(current?.focus ?? null);
+	const STARTERS = $derived(focus ? focusStarters(focus) : [t('ask.starter1'), t('ask.starter2'), t('ask.starter3'), t('ask.starter4')]);
+	function focusStarters(f: AskFocus): string[] {
+		const word = f.word;
+		const hasKanji = /[\u4e00-\u9fff々]/.test(word);
+		return [t('ask.focusStarter1', { word }), t('ask.focusStarter2', { word }), t('ask.focusStarter3', { word }), hasKanji ? t('ask.focusStarterKanji', { word }) : t('ask.focusStarter4', { word })];
+	}
 	let input = $state('');
 	let busy = $state(false);
 	/** raw text of the reply being written, or null */
@@ -44,6 +53,10 @@
 	const liveParts = $derived(live === null ? null : parseAskText(live, true));
 	let stopper: AbortController | null = null;
 	let list: HTMLDivElement | undefined = $state();
+	/** false until the saved chats are read, so a word chat doesn't flash the general starters first */
+	let loaded = $state(false);
+	/** opened from a word card: Back returns to Words */
+	let fromWords = $state(false);
 
 	let historyOpen = $state(false);
 	let query = $state('');
@@ -71,8 +84,18 @@
 	onMount(() => {
 		void (async () => {
 			threads = await loadThreads();
-			const id = await getCurrent();
-			current = threads.find((t) => t.id === id) ?? null;
+			const about = focusFromUrl(page.url);
+			if (about) {
+				// A new chat about this word; it is saved with the first question.
+				const now = Date.now();
+				current = { id: newId(), title: about.word, createdAt: now, updatedAt: now, msgs: [], focus: about };
+				fromWords = true;
+				history.replaceState(history.state, '', '/ai/ask'); // a reload opens this chat, not another new one
+			} else {
+				const id = await getCurrent();
+				current = threads.find((t) => t.id === id) ?? null;
+			}
+			loaded = true;
 			await scrollDown(false);
 		})();
 		return () => stopper?.abort();
@@ -97,7 +120,7 @@
 	async function persist() { // ui-ok: instant local IndexedDB write
 		if (current) {
 			current.updatedAt = Date.now();
-			current.title = titleFor(current.msgs);
+			current.title = titleFor(current.msgs, current.focus);
 			if (!threads.some((t) => t.id === current!.id)) threads = [current, ...threads];
 		}
 		threads = [...threads].sort((a, b) => b.updatedAt - a.updatedAt);
@@ -120,7 +143,7 @@
 		live = '';
 		await scrollDown();
 		const turns: AskTurn[] = thread.msgs.slice(-12).map((m) => ({ role: m.role, text: m.text }));
-		const req = { turns, knownKana: [...progress.knownKana], secondLang: progress.settings.secondLang };
+		const req = { turns, knownKana: [...progress.knownKana], secondLang: progress.settings.secondLang, focus: thread.focus ?? null };
 		stopper = new AbortController();
 		let first = true;
 		try {
@@ -287,7 +310,7 @@
 <main class="chat" bind:this={chatEl}>
 	<header class="top">
 		<div class="top-row">
-			<IconButton label={t('common.back')} onclick={() => goto('/ai')}>
+			<IconButton label={t('common.back')} onclick={() => goto(fromWords ? '/words' : '/ai')}>
 				<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>
 			</IconButton>
 			{#if progress.settings.kuri}
@@ -301,16 +324,25 @@
 				<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" /><path d="M3 4v4.5h4.5" /><path d="M12 7.5V12l3 2" /></svg>
 				{#if threads.length}<span class="badge">{threads.length}</span>{/if}
 			</IconButton>
-			<IconButton label={t('ask.newChat')} onclick={newChat} disabled={!msgs.length && !busy}>
+			<IconButton label={t('ask.newChat')} onclick={newChat} disabled={!msgs.length && !busy && !focus}>
 				<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" /><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
 			</IconButton>
 		</div>
 	</header>
 
 	<div class="msgs" bind:this={list} aria-live="polite" aria-busy={busy}>
-		{#if !msgs.length}
+		{#if focus}
+			<Card padding="sm" class="ask-focus" aria-label={t('ask.focusLabel')}>
+				<span class="eyebrow">{t('ask.focusLabel')}</span>
+				<span class="focus-word title-3"><span class="jp">{focus.word}</span>{#if focus.reading}<span class="jp caption">{focus.reading}</span>{/if}</span>
+				<span class="caption">{gloss(focus.meaning)}</span>
+			</Card>
+		{/if}
+		{#if !loaded}
+			<Skeleton variant="line" count={3} label={t('common.loading')} />
+		{:else if !msgs.length}
 			<div class="empty">
-				<p class="subhead">{progress.settings.secondLang ? t('ask.introSecond') : t('ask.intro')}</p>
+				<p class="subhead">{focus ? t('ask.focusIntro') : progress.settings.secondLang ? t('ask.introSecond') : t('ask.intro')}</p>
 				{#each STARTERS as s}<Chip onclick={() => send(s)}>{s}</Chip>{/each}
 				{#if threads.length}
 					<Button variant="plain" size="sm" onclick={() => (historyOpen = true)}>🕘 {t('ask.past', { n: threads.length })}</Button>
@@ -348,7 +380,7 @@
 				maxRows={5}
 				class="composer-field"
 				bind:value={input}
-				placeholder={ai.available ? t('ask.placeholder') : ai.reason}
+				placeholder={ai.available ? (focus ? t('ask.focusPlaceholder', { word: focus.word }) : t('ask.placeholder')) : ai.reason}
 				aria-label={t('ask.question')}
 				enterkeyhint="send"
 				autocomplete="off"
@@ -456,6 +488,17 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
+	}
+	:global(.ask-focus) {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+	.focus-word {
+		display: flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: var(--space-2);
 	}
 	.empty {
 		display: flex;
