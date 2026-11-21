@@ -974,7 +974,7 @@ export const en = {
 	'managed.inUsePackage': 'your {name} package',
 	'managed.inUseOwn': 'your own API key',
 	'managed.inUseNone': 'nothing right now',
-	'managed.needKey': 'Add an API key below to switch to your own key.',
+	'managed.ownKeyLink': 'Use my own API key',
 	'managed.ownHint': 'Your own key is billed by your provider, under your own monthly cap. A feature your key can’t do still uses the package (see the list below).',
 	'managed.packageHint': 'Runs on the package’s AI. If a feature isn’t included or the credits run out, your own key is used when you have one.',
 	'managed.switched': 'AI source updated',

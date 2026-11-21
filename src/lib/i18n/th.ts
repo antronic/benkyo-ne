@@ -978,7 +978,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'managed.inUsePackage': 'แพ็กเกจ {name} ของคุณ',
 	'managed.inUseOwn': 'คีย์ API ของคุณเอง',
 	'managed.inUseNone': 'ไม่มีในตอนนี้',
-	'managed.needKey': 'เพิ่มคีย์ API ด้านล่างเพื่อเปลี่ยนไปใช้คีย์ของคุณเอง',
+	'managed.ownKeyLink': 'ใช้คีย์ API ของฉันเอง',
 	'managed.ownHint': 'คีย์ของคุณเองคิดเงินโดยผู้ให้บริการของคุณ ภายใต้วงเงินรายเดือนของคุณ ฟีเจอร์ที่คีย์ของคุณทำไม่ได้จะยังใช้แพ็กเกจ (ดูรายการด้านล่าง)',
 	'managed.packageHint': 'ใช้ AI ของแพ็กเกจ ถ้าฟีเจอร์ไหนไม่รวมอยู่หรือเครดิตหมด จะใช้คีย์ของคุณเองถ้ามี',
 	'managed.switched': 'เปลี่ยนแหล่ง AI แล้ว',
