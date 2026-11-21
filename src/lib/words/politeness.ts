@@ -1,5 +1,5 @@
 /**
- * Word politeness (draft, docs/EVERYDAY.md "Word politeness"): where a word sits
+ * Word politeness (docs/EVERYDAY.md "Word politeness"): where a word sits
  * on the casual → formal scale, and who you can say it to. Pure functions only.
  *
  * The level comes from the JMdict usage marks of the word's first sense
@@ -80,4 +80,10 @@ const FITS: Record<Politeness, Record<WriteTo, Fit>> = {
 /** Who you can say a word like this to (the same people as the Writing helper). */
 export function politeFits(p: Politeness): Record<WriteTo, Fit> {
 	return FITS[p];
+}
+
+/** The JMdict id in a card id (`word:1234`, `phrase:1234`); null for a card you made yourself. */
+export function jmdictIdOf(cardId: string): number | null {
+	const m = /^(?:word|phrase):(\d+)$/.exec(cardId);
+	return m ? Number(m[1]) : null;
 }

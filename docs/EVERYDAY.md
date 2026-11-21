@@ -115,10 +115,10 @@ Everything else in the drafts is built from existing kit components (`ListRow` w
   (`{at, to, gap}`, last 60 days); `src/lib/state/week.svelte.ts` records and loads them. No sync,
   no migration.
 
-## Draft: word politeness
+## Built: word politeness
 
 Job asked (2026-11-21) for each word card to show how polite the word is, as a step bar, and who you
-can say it to. Draft on `/design` ("Draft · Word politeness"), not in the app yet.
+can say it to. On the Words card sheet and the revealed word in a pack (`CardPoliteness.svelte`, looked up by the card's JMdict id with `getMarks` in `src/lib/dict/dict.ts`); kit pieces on `/design` ("Word politeness").
 
 - **Data:** the JMdict usage marks of the word's first sense, which ship with the on-device
   dictionary (`@johnmorrisdotca/jisho`): `form` formal, `hon` respectful, `hum` humble, `pol` polite,

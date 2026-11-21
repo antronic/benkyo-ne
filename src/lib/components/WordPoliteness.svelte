@@ -1,5 +1,5 @@
 <!--
-	A word's politeness on its card (draft, docs/EVERYDAY.md "Word politeness"):
+	A word's politeness on its card (docs/EVERYDAY.md "Word politeness"):
 	the level as a step bar, what it means, and who you can say it to.
 -->
 <script lang="ts">

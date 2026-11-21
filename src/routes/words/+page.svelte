@@ -11,6 +11,7 @@
 	import Romaji from '#lib/components/Romaji.svelte';
 	import { onMount } from 'svelte';
 import WordCardView from '#lib/components/WordCardView.svelte';
+import CardPoliteness from '#lib/components/CardPoliteness.svelte';
 	import type { SightingVia, UserCard } from '#lib/ai/contract.ts';
 	import { filterCounts, rankPhrasebook, viasOf, type PhrasebookFilter } from '#lib/words/phrasebook.ts';
 	import { words } from '#lib/state/words.svelte.ts';
@@ -276,6 +277,7 @@ import WordCardView from '#lib/components/WordCardView.svelte';
 <Sheet open={!!open} label={tr('words.card')} onclose={() => (open = null)}>
 	{#if open}
 		<WordCardView card={open} />
+		<CardPoliteness id={open.id} written={open.kanji ?? open.front} />
 		<Button variant="ghost" block href={askAboutHref(open)}>💬 {tr('words.askAi')}</Button>
 		{#if ai.checked && !ai.available && ai.reason}<p class="caption ask-hint">✨ {ai.reason}</p>{/if}
 		{#if open.seen?.count}

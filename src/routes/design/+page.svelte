@@ -407,11 +407,11 @@
 					onclose={() => (vipPopup = false)}
 				/>
 
-				<SectionHeader title="Draft · Word politeness" />
+				<SectionHeader title="Word politeness" />
 				<p class="caption">
 					On a word’s card: how polite the word is, as a step bar from casual to formal, and who you can say it to. The level comes from the
 					dictionary’s usage marks (JMdict), so it works offline and costs nothing. Words with no mark are neutral: the sentence ending sets
-					the politeness. Not in the app yet.
+					the politeness. Shown on the Words card and in word packs.
 				</p>
 				<div class="row wrap" style:--gap="var(--space-2)" role="group" aria-label="Sample word">
 					{#each POLITE_WORDS as w (w.front)}<Chip selected={politeWord === w.front} onclick={() => (politeWord = w.front)}>{w.kanji ?? w.front}</Chip>{/each}

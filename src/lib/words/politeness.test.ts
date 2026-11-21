@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { politeFits, politenessFromMarks, politeStep } from './politeness.ts';
+import { jmdictIdOf, politeFits, politenessFromMarks, politeStep } from './politeness.ts';
 
 describe('word politeness', () => {
 	it('reads the level from JMdict marks, strongest first', () => {
@@ -32,5 +32,11 @@ describe('word politeness', () => {
 		expect(politeFits('casual')).toEqual({ friend: 'yes', colleague: 'careful', boss: 'no', customer: 'no' });
 		expect(politeFits('respectful').boss).toBe('yes');
 		expect(Object.values(politeFits('any'))).toEqual(['yes', 'yes', 'yes', 'yes']);
+	});
+
+	it('finds the dictionary id in a card id', () => {
+		expect(jmdictIdOf('word:1358280')).toBe(1358280);
+		expect(jmdictIdOf('phrase:2028920')).toBe(2028920);
+		expect(jmdictIdOf('word:custom:abc')).toBeNull();
 	});
 });
