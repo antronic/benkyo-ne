@@ -36,7 +36,7 @@ With **Sound** on (the default), Kuri yips on a tap, squeaks when picked up, sig
 | One Kuri on a canvas | `src/lib/companion/Kuri.svelte` |
 | Today walker, intro, reaction, Settings section | `KuriWalker.svelte`, `KuriIntro.svelte`, `KuriReaction.svelte`, `KuriSettings.svelte` |
 
-Call `kuriReact('happy' | 'encourage')` from a study screen to make Kuri react.
+Call `kuriReact('happy' | 'encourage')` from a study screen to make Kuri react. Every answer a learner checks calls it: Learn lessons, and in Review the kana, kanji and word cards (`onWordAnswer` for `WordQuiz`).
 
 ## Performance
 

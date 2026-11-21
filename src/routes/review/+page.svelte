@@ -172,6 +172,7 @@
 
 	async function onWordAnswer(r: { correct: boolean; ms: number; hint: boolean }) {
 		haptic(r.correct ? 'success' : 'error');
+		kuriReact(r.correct ? 'happy' : 'encourage');
 		await record(r.correct, r.ms, r.ms / 1.5, r.hint);
 	}
 
