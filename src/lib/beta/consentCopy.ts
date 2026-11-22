@@ -7,9 +7,7 @@ export interface ConsentCopy {
 	CONSENT_INTRO: string;
 	COLLECTED: ConsentSection[];
 	NEVER_COLLECTED: string[];
-	HOW_USED: string[];
-	RETENTION: string[];
-	CHOICES: string[];
+	GOOD_TO_KNOW: string[];
 	CONTACT: string[];
 	AGREE_LABEL: string;
 }
