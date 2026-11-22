@@ -42,7 +42,7 @@ import { rateLimit } from '../ai/ledger.ts';
 import { closeAccountStatements } from '../ai/credentials.ts';
 import { appleEnabled, handleApple } from './apple.ts';
 import { betaStatus } from '../beta/routes.ts';
-import { checkInvite, consumeInvite, normalizeInvite, signupState } from './signup.ts';
+import { checkInvite, consumeInvite, inviteUsable, normalizeInvite, signupState } from './signup.ts';
 
 export const SESSION_COOKIE = 'bk_session';
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -269,6 +269,11 @@ async function registerOptions(req: Request, env: Env) {
 			inviteCode = normalizeInvite(body.invite);
 			if (!inviteCode) throw httpError(403, 'unauthorized', 'Sign-ups are invite-only right now. Enter your invite code.');
 			await checkInvite(env, inviteCode);
+		} else {
+			// open: an invite isn't needed, but one from a link is still counted and its promo code used
+			// (an invite that ended or is full is dropped, not refused)
+			inviteCode = normalizeInvite(body.invite);
+			if (inviteCode && !(await inviteUsable(env, inviteCode))) inviteCode = null;
 		}
 		const name = cleanName(body.name);
 		await signupThrottle(req, env);
@@ -334,6 +339,8 @@ function credentialBody<T>(body: unknown): T {
 	return body as T;
 }
 
+const couponOf = (body: unknown) => (body && typeof body === 'object' ? (body as { coupon?: unknown }).coupon : undefined);
+
 function deviceNameOf(body: unknown): string | null {
 	const n = body && typeof body === 'object' ? (body as { deviceName?: unknown }).deviceName : undefined;
 	if (typeof n !== 'string' || !n.trim()) return null;
@@ -364,6 +371,8 @@ async function registerVerify(req: Request, env: Env) {
 
 	let userId: number;
 	let recoveryCode: string | undefined;
+	/** the invite this new account used (counted in invite_codes.uses), if any */
+	let inviteCode: string | null = null;
 	if (ch.userId) {
 		// adding a passkey: the challenge must belong to the account that is signed in now
 		if (!session || session.userId !== ch.userId) return aiError(401, 'unauthorized', 'Sign in again to add a passkey');
@@ -374,11 +383,14 @@ async function registerVerify(req: Request, env: Env) {
 			if (!signup.invite || !ch.inviteCode) return aiError(403, 'unauthorized', 'New sign-ups are closed right now');
 			if (!(await consumeInvite(env, ch.inviteCode)))
 				return aiError(403, 'unauthorized', 'That invite code was used up in the meantime');
+			inviteCode = ch.inviteCode;
+		} else if (ch.inviteCode && (await consumeInvite(env, ch.inviteCode))) {
+			inviteCode = ch.inviteCode;
 		}
 		const acct = await env.DB.prepare(
 			`INSERT INTO accounts (name, webauthn_user_id, created_at, invite_code) VALUES (?1, ?2, ?3, ?4) RETURNING id`
 		)
-			.bind(ch.signupName, ch.userHandle, now, ch.inviteCode ?? null)
+			.bind(ch.signupName, ch.userHandle, now, inviteCode)
 			.first<{ id: number }>();
 		userId = acct!.id;
 		recoveryCode = generateRecoveryCode();
@@ -407,7 +419,10 @@ async function registerVerify(req: Request, env: Env) {
 	// A recovery session becomes a normal passkey session once a passkey is added.
 	if (session?.kind === 'recovery') await env.DB.prepare(`DELETE FROM sessions WHERE token_hash = ?1`).bind(session.tokenHash).run();
 	const cookie = await createSession(env, url, userId, credential.id, 'passkey');
-	return json({ ok: true, recoveryCode }, { headers: { 'set-cookie': cookie } });
+	// a new account gets its link's promo code (or its invite's) now, not after the first lesson
+	// (loaded here: worker/promo.ts imports getSession from this file)
+	const promo = recoveryCode ? await (await import('../promo.ts')).signupPromo(env, userId, inviteCode, couponOf(body), now) : null;
+	return json({ ok: true, recoveryCode, promo }, { headers: { 'set-cookie': cookie } });
 }
 
 // ----------------------------------------------------------------- login ----

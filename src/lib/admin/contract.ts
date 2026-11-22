@@ -76,6 +76,8 @@ export interface AdminInvite {
 	couponMaxUses: number | null;
 	/** every use is taken, so the invite is off: its own uses ('invite') or its promo code's ('coupon'); null: uses left */
 	usedUp: 'invite' | 'coupon' | null;
+	/** the latest accounts that signed up with it (accounts.invite_code), newest first, at most 5 */
+	usedBy: { id: number; name: string; at: number }[];
 }
 
 export interface AdminSettings {

@@ -158,6 +158,28 @@ export async function redeem(env: Env, accountId: number, raw: unknown, now = Da
 	return { code, ...(await promoStatus(env, accountId, now)) };
 }
 
+/**
+ * The promo code for a brand-new account, redeemed on the server as the account is made
+ * (worker/auth/passkey.ts registerVerify), so it can't be lost while the first lesson and the
+ * consent come first. The code from the link (`?coupon=`) wins, else the one bound to the
+ * invite it signed up with. Null when there is none or it can't be redeemed: the app keeps
+ * its saved code and says why later (src/routes/+layout.svelte usePromoLink).
+ */
+export async function signupPromo(env: Env, accountId: number, inviteCode: string | null, coupon: unknown, now = Date.now()): Promise<PromoRedeemed | null> {
+	let code = normalizePromo(coupon);
+	if (!code && inviteCode) {
+		const row = await env.DB.prepare(`SELECT coupon FROM invite_codes WHERE code = ?1`).bind(inviteCode).first<{ coupon: string | null }>();
+		code = row?.coupon ?? null;
+	}
+	if (!code) return null;
+	try {
+		return await redeem(env, accountId, code, now);
+	} catch (e) {
+		if (e instanceof HttpError) return null;
+		throw e;
+	}
+}
+
 async function signedIn(req: Request, env: Env) {
 	const s = await getSession(req, env);
 	if (!s) throw httpError(401, 'unauthorized', 'Sign in first');

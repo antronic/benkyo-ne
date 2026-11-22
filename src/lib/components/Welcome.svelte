@@ -27,6 +27,7 @@
 	import AppleButton from './AppleButton.svelte';
 	import { Button, Card, Segmented, TextField } from '#lib/ui/index.ts';
 	import { clearPendingInvite, pendingInvite } from '#lib/promo/link.ts';
+	import { promoAtSignup, signupCoupon } from '#lib/promo/signup.ts';
 	import { install } from '#lib/pwa/install.svelte.ts';
 
 	/** created: a new account · signedIn: an existing one (sign-in or recovery) · later: "Not now" */
@@ -65,9 +66,11 @@
 	async function create() {
 		const n = name.trim();
 		if (!n) return;
-		const r = await run(() => api.registerPasskey(n, needInvite ? invite.trim() : undefined));
+		// an invite from a link is sent even when sign-up is open, so the invite is counted (and its promo code used)
+		const r = await run(() => api.registerPasskey(n, needInvite || invited ? invite.trim() || undefined : undefined, signupCoupon()));
 		if (!r) return;
 		clearPendingInvite();
+		promoAtSignup(r.promo);
 		haptic('success');
 		// straight on to the first lesson; the recovery code waits on Today's set-up card
 		if (r.recoveryCode) await firstRun.setRecoveryPending(true);

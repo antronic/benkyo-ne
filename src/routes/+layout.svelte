@@ -57,10 +57,12 @@
 	});
 
 	// A promo link (?ref=CODE, src/lib/promo/link.ts): kept on this device until someone is
-	// signed in and past the welcome and consent screens, then redeemed once.
+	// signed in and past the welcome screen and any consent on screen, then redeemed once. A new
+	// account's code is redeemed by the server at sign-up (#lib/promo/signup.ts); this covers a
+	// sign-in, and a consent put off until after the first lesson doesn't hold it back.
 	let redeeming = false;
 	const promoReady = () =>
-		progress.ready && words.ready && ai.checked && !ui.showIntro && !ui.showOnboarding && !ui.onboardingNext && !ui.showWelcome && !ui.handoff && !ai.needsConsent;
+		progress.ready && words.ready && ai.checked && !ui.showIntro && !ui.showOnboarding && !ui.onboardingNext && !ui.showWelcome && !ui.handoff && !consentDue;
 	$effect(() => {
 		const ready = promoReady();
 		const signedIn = ai.signedIn && !!ai.account?.id;

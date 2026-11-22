@@ -66,12 +66,16 @@ async function settings(env: Env): Promise<AdminSettings> {
 	};
 }
 
+/** how many of an invite's latest sign-ups the list shows */
+export const USED_BY_MAX = 5;
 const INVITE_COLS = `code, label, max_uses AS maxUses, uses, expires_at AS expiresAt, created_at AS createdAt, revoked_at AS revokedAt,
 	card_note AS cardNote, card_from AS cardFrom, card_ink AS cardInk, coupon,
 	(SELECT pc.uses FROM promo_codes pc WHERE pc.code = invite_codes.coupon) AS couponUses,
 	(SELECT pc.max_uses FROM promo_codes pc WHERE pc.code = invite_codes.coupon) AS couponMaxUses,
-	CASE WHEN uses >= max_uses THEN 'invite' WHEN ${INVITE_USED_UP} THEN 'coupon' END AS usedUp`;
-async function listInvites(env: Env): Promise<AdminInvite[]> {
+	CASE WHEN uses >= max_uses THEN 'invite' WHEN ${INVITE_USED_UP} THEN 'coupon' END AS usedUp,
+	(SELECT json_group_array(json_object('id', u.id, 'name', u.name, 'at', u.created_at)) FROM
+	   (SELECT a.id, a.name, a.created_at FROM accounts a WHERE a.invite_code = invite_codes.code ORDER BY a.created_at DESC LIMIT ${USED_BY_MAX}) u) AS usedByJson`;
+export async function listInvites(env: Env): Promise<AdminInvite[]> {
 	const r = await env.DB.prepare(`SELECT ${INVITE_COLS} FROM invite_codes WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 200`).all<InviteRow>();
 	return r.results.map(toAdminInvite);
 }
@@ -89,9 +93,17 @@ async function resolveCoupon(env: Env, raw: unknown): Promise<string | null> {
 	return row.code;
 }
 
-type InviteRow = Omit<AdminInvite, 'card'> & { cardNote: string | null; cardFrom: string | null; cardInk: string | null };
-function toAdminInvite({ cardNote, cardFrom, cardInk, ...r }: InviteRow): AdminInvite {
-	r = { ...r, couponUses: r.couponUses ?? null, couponMaxUses: r.couponMaxUses ?? null, usedUp: r.usedUp ?? null };
+type InviteRow = Omit<AdminInvite, 'card' | 'usedBy'> & { cardNote: string | null; cardFrom: string | null; cardInk: string | null; usedByJson: string | null };
+function usedByOf(raw: string | null): AdminInvite['usedBy'] {
+	try {
+		const list = JSON.parse(raw ?? '[]') as AdminInvite['usedBy'];
+		return Array.isArray(list) ? list.filter((u) => u && typeof u.id === 'number') : [];
+	} catch {
+		return [];
+	}
+}
+function toAdminInvite({ cardNote, cardFrom, cardInk, usedByJson, ...rest }: InviteRow): AdminInvite {
+	const r = { ...rest, couponUses: rest.couponUses ?? null, couponMaxUses: rest.couponMaxUses ?? null, usedUp: rest.usedUp ?? null, usedBy: usedByOf(usedByJson) };
 	if (!cardNote && !cardInk) return { ...r, coupon: r.coupon ?? null, card: null };
 	let ink = null;
 	try {
