@@ -10,6 +10,14 @@ The consent text lives in `src/lib/beta/consentText.ts` and the version in
 `src/lib/beta/contract.ts` (`CONSENT_VERSION`). **Change the text and bump
 the version together**: every account is then asked to agree again.
 
+The screen is a short, layered notice (version 4, Job 2026-11-22, about 285
+words, 156 visible before a row is opened): an intro, the four "What we
+collect" rows (one-line summary, tap for the detail), one "Never collected"
+line and a "Good to know" card (purpose and storage, the 180-day deletion and
+that deleting the account keeps the data, the Settings controls, the
+operator). Facts that are true but not on the screen, such as the key scrub
+and keeping the consent record, are in this file.
+
 ## What is collected
 
 | Area | What | Where it's recorded |
@@ -57,7 +65,7 @@ withdrawable consent; access, erasure, storage limitation) expect for a beta
 like this.
 
 **Operator / controller:** Jirachai Chansivanon, jirachai.c@outlook.com
-(shown on the consent screen under "Who we are"; `OPERATOR` in
+(shown on the consent screen, last line of "Good to know"; `OPERATOR` in
 `consentText.ts`). Requests by email to see, correct or delete data are
 handled by hand alongside the self-service controls in Settings.
 
