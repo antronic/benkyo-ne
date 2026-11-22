@@ -3,9 +3,12 @@
 	reduced-motion settings, and stops drawing while scrolled off screen.
 	Re-created when the outfit or detail level changes, and when the browser drops the
 	WebGL context (Safari does after the app sat in the background).
+	Kuri never stays blank for good: when the renderer can't load or WebGL can't start
+	(too many contexts at once, a context lost again and again), it tries again a little
+	later, and a renderer file removed by a newer deploy reloads the app (staleReload).
 -->
 <script lang="ts">
-	import { safeMode } from '#lib/boot.ts';
+	import { safeMode, staleReload, isStable, STABLE_EVENT } from '#lib/boot.ts';
 	import { loadEngine, currentTheme, reducedMotion, kuriPrefs, type KuriInstance, type KuriOptions, type KuriPose } from './kuri.svelte.ts';
 
 	let {
@@ -41,18 +44,36 @@
 	 */
 	let generation = $state(0);
 	let rebuilds: number[] = [];
+	let later: ReturnType<typeof setTimeout> | undefined;
 	function rebuild() {
 		const now = Date.now();
 		rebuilds = rebuilds.filter((t) => now - t < 60_000);
-		if (rebuilds.length >= 3) return; // lost again and again (too many contexts): stay blank rather than thrash
+		// lost again and again (too many contexts): wait out the minute rather than thrash
+		if (rebuilds.length >= 3) return retry(60_000);
 		rebuilds.push(now);
 		generation++;
 	}
+	/** Try building Kuri again after `ms`, once the page is on screen. */
+	let tries = 0;
+	function retry(ms = [2_000, 8_000, 30_000][tries] ?? 60_000) {
+		tries++;
+		clearTimeout(later);
+		later = setTimeout(function go() {
+			if (document.hidden) return void document.addEventListener('visibilitychange', go, { once: true });
+			generation++;
+		}, ms);
+	}
+	$effect(() => () => clearTimeout(later));
 
 	function mount(node: HTMLCanvasElement, init: { variant: 'bandana' | 'neckerchief'; detail: 'full' | 'low' }) {
 		let dead = false;
 		let inst: KuriInstance | null = null;
-		if (safeMode) return { destroy() {} }; // the last launches crashed on start: no WebGL this visit
+		if (safeMode && !isStable()) {
+			// the last launches never finished starting: no WebGL until this visit has stayed up a while
+			const go = () => void generation++;
+			addEventListener(STABLE_EVENT, go, { once: true });
+			return { destroy: () => removeEventListener(STABLE_EVENT, go) };
+		}
 		const dark = matchMedia('(prefers-color-scheme: dark)');
 		const motion = matchMedia('(prefers-reduced-motion: reduce)');
 		const onTheme = () => inst?.setTheme(currentTheme());
@@ -76,15 +97,20 @@
 		void loadEngine()
 			.catch((e) => {
 				console.warn('[kuri] renderer could not be loaded', e);
-				return null; // Kuri just doesn't appear; the app carries on
+				// a newer deploy removed this build's renderer file: load the new build
+				if (/dynamically imported module|Importing a module script failed|Load failed/i.test(String(e?.message ?? e)) && staleReload()) return null;
+				if (!dead) retry(); // offline or a hiccup: the app carries on and Kuri tries again
+				return null;
 			})
 			.then((m) => { // ui-ok: decorative companion, Kuri simply appears once the 3D renderer loads (nothing to wait for)
 				if (!m || dead) return;
 				try {
 					inst = m.create(node, { orbit: false, ...options, variant: init.variant, detail: init.detail, theme: currentTheme(), reducedMotion: reducedMotion() });
-				} catch {
-					return; // no WebGL: Kuri just doesn't appear
+				} catch (e) {
+					console.warn('[kuri] WebGL could not start', e);
+					return void retry(); // no WebGL right now (too many contexts): try again shortly
 				}
+				tries = 0;
 				k = instance = inst;
 				dark.addEventListener('change', onTheme);
 				motion.addEventListener('change', onMotion);

@@ -28,13 +28,25 @@ on every scroll or resize:
   spot that covers less wins.
 
 The walker only wanders to a free spot it can reach in a straight line without passing over a
-control. When the page scrolls under Kuri onto a control, Kuri fades out (no taps) and comes back
-at the nearest free spot once scrolling stops; when it is put down on a control, or the page
-changes under it, it hops off. When no spot is free at all, Kuri stays out of the way until one is.
+control. Kuri never hides (Job, 2026-11-22). When the page scrolls under Kuri onto a control,
+Kuri lets taps through and hops to the nearest free spot once scrolling stops; when it is put
+down on a control, or the page changes under it, it hops off. On a busy screen Kuri gets smaller
+(104, 84, then 68px); with no free spot even then, it stays in sight where it covers least and
+lets every tap through (a "ghost"), and grows back when there is room.
 Its speech bubble goes above, below or beside Kuri, wherever it covers no control.
 
 `npm run check:render` watches Kuri on Today at phone, iPad and desktop width (hello, wandering,
 scrolling, put down on Start lesson) and fails if Kuri ever covers a control or the menu bar.
+
+## Never blank
+
+Kuri must always draw. `Kuri.svelte` tries again (after 2s, 8s, 30s, then each minute) when the
+renderer can't load or WebGL can't start, and when its context is lost more than 3 times a minute.
+A renderer file removed by a newer deploy reloads the app once (`staleReload` in `src/lib/boot.ts`).
+Safe mode (the last two launches never finished starting) holds Kuri back only until the visit has
+stayed up 12s (`STABLE_EVENT`). Going to the background counts as a finished launch, because iOS
+freezes and kills a home-screen app without a `pagehide`: before 2026-11-22, two quick looks at the
+app turned safe mode on and every Kuri was a blank box.
 
 ## Sound
 

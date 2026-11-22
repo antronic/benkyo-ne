@@ -20,7 +20,8 @@
  * Then it shakes Kuri on Today: a shake makes Kuri dizzy, a plain drag does not.
  * Last it watches Kuri on Today at phone, iPad and desktop width while it says hello, wanders,
  * the page scrolls and it is put down on a button: Kuri must never cover a control or the menu
- * bar (src/lib/companion/keepOut.ts), and the hello must be a speech bubble, not a full screen.
+ * bar (src/lib/companion/keepOut.ts) and must never be hidden, and the hello must be a speech
+ * bubble, not a full screen.
  *
  * The API is mocked with a synthetic signed-in learner (scripts/layout-fixtures.mjs).
  * Set LAYOUT_URL to check a server that is already running.
@@ -247,9 +248,11 @@ async function kuriShake(browser, problems) {
 /** Every visible control and fixed menu bar that Kuri (the .walker box) overlaps right now. */
 function kuriCovers() {
 	const k = document.querySelector('.walker');
-	if (!k) return { shown: false, covers: [] };
+	if (!k) return { shown: false, visible: false, covers: [] };
 	const ks = getComputedStyle(k);
-	const shown = ks.visibility !== 'hidden' && ks.pointerEvents !== 'none' && Number(ks.opacity) > 0.5;
+	const visible = ks.visibility !== 'hidden' && Number(ks.opacity) > 0.5;
+	// a ghost Kuri (no free spot) stays visible but lets taps through: it blocks nothing
+	const shown = visible && ks.pointerEvents !== 'none';
 	const kb = k.getBoundingClientRect();
 	const covers = [];
 	const sel = 'a[href], button, input, select, textarea, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], nav';
@@ -263,7 +266,7 @@ function kuriCovers() {
 		if (kb.left < r.right && r.left < kb.right && kb.top < r.bottom && r.top < kb.bottom)
 			covers.push((el.getAttribute('aria-label') || el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 40));
 	}
-	return { shown, covers };
+	return { shown, visible, covers };
 }
 
 /** Today: Kuri says hello in a bubble and never covers a control or the menu bar. */
@@ -280,6 +283,8 @@ async function kuriClear(browser, problems) {
 		const look = async (when) => {
 			const r = await page.evaluate(kuriCovers);
 			samples++;
+			// Kuri never hides (Job, 2026-11-22): only a short fade while the page scrolls is allowed
+			if (!r.visible && !/scrolling/.test(when)) problems.push(`${at}: ${when}, Kuri is not visible`);
 			if (!r.shown) return;
 			seen++;
 			if (r.covers.length) problems.push(`${at}: ${when}, Kuri covers ${r.covers.map((c) => `"${c}"`).join(', ')}`);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clear, cover, freeSpots, GAP, hits, nearest, pathClear, wanderTarget, type Box } from './keepOut.ts';
+import { clear, cover, freeSpots, GAP, hits, leastCovered, nearest, overlap, pathClear, wanderTarget, type Box } from './keepOut.ts';
 
 const S = 104;
 // a phone-sized screen with a tab bar along the bottom and a button in the middle
@@ -47,5 +47,14 @@ describe('keep-out zones', () => {
 				expect(pathClear({ x: 100, y: 180 }, to, S, [tabBar, button])).toBe(true);
 			}
 		}
+	});
+
+	it('with nothing free, finds where Kuri covers the least (Kuri never hides)', () => {
+		const left: Box = { x: 0, y: 0, w: 300, h: 844 };
+		const right: Box = { x: 310, y: 0, w: 80, h: 844 };
+		const p = leastCovered(area, 68, [left, right], { x: 0, y: 0 });
+		const k = { x: p.x, y: p.y, w: 68, h: 68 };
+		expect(overlap(k, left) + overlap(k, right)).toBeLessThan(68 * 68 * 0.9);
+		expect(overlap(k, left) + overlap(k, right)).toBe(68 * 58);
 	});
 });

@@ -4,10 +4,11 @@
 	Tap for a hop and a short line; drag to pick Kuri up and put it somewhere else.
 	Shake Kuri while holding it (four quick back-and-forth swings) and it gets dizzy.
 
-	Kuri never covers a button, link, field or the menu bar (keepOut.ts). It only walks to spots
-	it can reach without passing over one; when the page scrolls or changes under it, or it is
-	put down on a control, it hops to the nearest free spot. When no spot is free, Kuri steps
-	away (hidden, no taps) until one is.
+	Kuri never covers a button, link, field or the menu bar (keepOut.ts), and never hides. It only
+	walks to spots it can reach without passing over one; when the page scrolls or changes under
+	it, or it is put down on a control, it hops to the nearest free spot. When no spot is free,
+	Kuri gets a little smaller; when even the smallest Kuri has no free spot, it stays in sight
+	where it covers least but lets every tap through to what is underneath (`ghost`).
 
 	The first time, Kuri says hello in a speech bubble (`ui.kuriHello`, set by the layout).
 -->
@@ -15,7 +16,7 @@
 	import { onMount } from 'svelte';
 	import Kuri from './Kuri.svelte';
 	import { reducedMotion, kuriSound, kuriHello, type KuriPose } from './kuri.svelte.ts';
-	import { readObstacles, clear, overlap, freeSpots, nearest, wanderTarget, type Area, type Box, type Point } from './keepOut.ts';
+	import { readObstacles, clear, overlap, freeSpots, nearest, wanderTarget, leastCovered, type Area, type Box, type Point } from './keepOut.ts';
 	import { progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { haptic } from '#lib/ios/haptics.ts';
@@ -24,7 +25,9 @@
 
 	let { hidden = false }: { hidden?: boolean } = $props();
 
-	const S = 104;
+	/** Kuri's size: full, then smaller when the screen is busy */
+	const SIZES = [104, 84, 68];
+	let S = $state(SIZES[0]);
 	let x = $state(0);
 	let y = $state(0);
 	let pose = $state<KuriPose>('idle');
@@ -36,8 +39,10 @@
 	let sayTop = $state(0);
 	let tail = $state<'up' | 'down' | 'left' | 'right'>('down');
 	let tailAt = $state(0);
-	/** no free spot: Kuri is out of the way */
-	let away = $state(true);
+	/** not placed yet (the first frame) */
+	let waiting = $state(true);
+	/** no free spot even when small, or the page is scrolling under Kuri: visible, but taps go through */
+	let ghost = $state(false);
 	/** hopping to a free spot (a short glide that takes no taps) */
 	let hopping = $state(false);
 	let el: HTMLDivElement;
@@ -60,11 +65,11 @@
 	let readAt = 0;
 	let scrolledAt = -1e9;
 	let dirty = true;
-	function area(): Area {
+	function area(size = S): Area {
 		const cs = getComputedStyle(document.documentElement);
 		const top = parseFloat(cs.getPropertyValue('--safe-top')) || 0;
 		const vw = document.documentElement.clientWidth;
-		return { left: 4, top: top + 4, right: vw - S - 4, bottom: innerHeight - S - 4 };
+		return { left: 4, top: top + 4, right: vw - size - 4, bottom: innerHeight - size - 4 };
 	}
 	function read(now: number) {
 		({ hard, soft } = readObstacles([el, bubble]));
@@ -73,21 +78,34 @@
 	}
 	const here = (): Point => ({ x, y });
 
-	/** Move Kuri to the best free spot near `from`, or out of the way when there is none. */
-	function relocate(now: number, from: Point = here(), glide = true) {
-		const spot = nearest(freeSpots(area(), S, hard, soft), from);
-		if (!spot) {
-			away = true;
-			if (mode === 'walk') set('idle');
+	/**
+	 * Move Kuri to the best free spot near where it is, at the largest size that has one. With
+	 * no free spot at any size, Kuri stays in sight at the smallest size where it covers least
+	 * (keepGhost: or where it is), as a ghost that lets taps through.
+	 */
+	function relocate(now: number, glide = true, keepGhost = false) {
+		const centre = { x: x + S / 2, y: y + S / 2 };
+		for (const size of SIZES) {
+			const spot = nearest(freeSpots(area(size), size, hard, soft), { x: centre.x - size / 2, y: centre.y - size / 2 });
+			if (!spot) continue;
+			place(now, spot, size, glide && !waiting && !ghost);
+			ghost = false;
 			return;
 		}
-		const wasAway = away;
-		away = false;
+		if (mode === 'walk') set('idle');
+		if (keepGhost && !waiting) return void (ghost = true);
+		const size = SIZES[SIZES.length - 1];
+		place(now, leastCovered(area(size), size, hard, { x: centre.x - size / 2, y: centre.y - size / 2 }), size, false);
+		ghost = true;
+	}
+	function place(now: number, p: Point, size: number, glide: boolean) {
 		if (mode === 'walk' || mode === 'sleep') set('idle');
-		hopping = glide && !wasAway && !reducedMotion();
+		hopping = glide && !reducedMotion();
 		hopUntil = now + 340;
-		x = spot.x;
-		y = spot.y;
+		x = p.x;
+		y = p.y;
+		S = size;
+		waiting = false;
 		face(0);
 		nextAt = now + 3000 + Math.random() * 3000;
 	}
@@ -274,21 +292,25 @@
 
 			// keep out: never stand on a control or the menu bar
 			if (!hidden && mode !== 'held') {
-				if (away) {
-					// look for a free spot again each time the page is read, once it has stopped scrolling
-					if (fresh && !scrolling) relocate(now, here(), false);
+				if (waiting) {
+					if (fresh) relocate(now, false);
 				} else if (!clear(here(), S, hard)) {
-					// the page moved under Kuri: step aside now, come back where it settles
-					if (scrolling) away = true;
-					else relocate(now);
+					// the page moved under Kuri: let taps through now, step aside once it settles
+					if (scrolling) ghost = true;
+					else if (fresh || !ghost) relocate(now, true, true);
+				} else if (ghost && !scrolling) ghost = false;
+				else if (fresh && !scrolling && S < SIZES[0] && mode === 'idle') {
+					// room again for a bigger Kuri?
+					const spot = nearest(freeSpots(area(SIZES[0]), SIZES[0], hard, soft), { x: x + S / 2 - SIZES[0] / 2, y: y + S / 2 - SIZES[0] / 2 });
+					if (spot && Math.hypot(spot.x - x, spot.y - y) < 160) place(now, spot, SIZES[0], true);
 				}
 			}
-			if (!away && helloPending && !hidden && mode !== 'held') sayHello(now);
+			if (!waiting && helloPending && !hidden && mode !== 'held') sayHello(now);
 
 			if (sayUntil && now > sayUntil) hush();
 			if (mode === 'react' && now > reactUntil) (set('idle'), (nextAt = now + 2500));
 			if (!hidden && !still && mode === 'idle' && now - lastTouch > 30000) (set('sleep'), kuriSound('sleep'));
-			if (!hidden && !away && !still && progress.settings.kuriWalk && mode === 'idle' && now > nextAt) {
+			if (!hidden && !waiting && !ghost && !still && progress.settings.kuriWalk && mode === 'idle' && now > nextAt) {
 				const to = wanderTarget(freeSpots(area(), S, hard, soft), here(), S, hard);
 				if (to) {
 					tx = to.x;
@@ -298,7 +320,7 @@
 				} else nextAt = now + 2000;
 			}
 			if (mode === 'walk') {
-				if (still || !progress.settings.kuriWalk || away) set('idle');
+				if (still || !progress.settings.kuriWalk || ghost) set('idle');
 				else {
 					const dx = tx - x,
 						dy = ty - y,
@@ -345,17 +367,20 @@
 <div
 	class="walker"
 	class:hidden
-	class:away
+	class:waiting
+	class:ghost
 	class:hopping
 	bind:this={el}
 	style:transform="translate({x}px, {y}px)"
+	style:width="{S}px"
+	style:height="{S}px"
 	onpointerdown={down}
 	onpointermove={move}
 	onpointerup={up}
 	onpointercancel={up}
 	role="button"
-	tabindex={away || hidden ? -1 : 0}
-	aria-hidden={away || hidden || undefined}
+	tabindex={waiting || hidden ? -1 : 0}
+	aria-hidden={waiting || hidden || undefined}
 	aria-label={t('kuri.drag')}
 	onkeydown={(e) => {
 		if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -370,7 +395,7 @@
 >
 	<Kuri {pose} {facing} options={{ yaw: 0, pitch: 0.38, distance: 5.4, target: [0, 0.9, 0], fps: 30 }} />
 </div>
-<div class="say" class:on={!!say && !hidden && !away} class:hello bind:this={bubble} style:transform="translate({sayLeft}px, {sayTop}px)" aria-live="polite">
+<div class="say" class:on={!!say && !hidden && !waiting} class:hello bind:this={bubble} style:transform="translate({sayLeft}px, {sayTop}px)" aria-live="polite">
 	{#if say}
 		<SpeechBubble label={t('kuri.name')} {tail} {tailAt}>
 			{#if hello}
@@ -409,9 +434,13 @@
 	.walker.hidden {
 		visibility: hidden;
 	}
-	/* out of the way: no spot is free, or the page is scrolling under Kuri */
-	.walker.away {
+	/* the first frame, before Kuri has a spot */
+	.walker.waiting {
 		opacity: 0;
+		pointer-events: none;
+	}
+	/* no free spot, or the page is scrolling under Kuri: still in sight, but taps go through */
+	.walker.ghost {
 		pointer-events: none;
 	}
 	/* hopping off a control to a free spot: a short glide that takes no taps */
@@ -419,6 +448,8 @@
 		pointer-events: none;
 		transition:
 			transform 320ms var(--ease-out),
+			width 320ms var(--ease-out),
+			height 320ms var(--ease-out),
 			opacity var(--dur-fast) var(--ease-out);
 	}
 	.say {

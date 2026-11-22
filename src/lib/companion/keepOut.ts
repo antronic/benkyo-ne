@@ -110,6 +110,24 @@ export function wanderTarget(spots: Spot[], from: Point, size: number, hard: Box
 	return null;
 }
 
+/**
+ * When nothing is free: the spot where Kuri covers the least of the controls, nearest `from`
+ * on ties. Kuri lets taps through there (the walker's ghost state), so nothing is blocked.
+ */
+export function leastCovered(area: Area, size: number, hard: Box[], from: Point, step = 16): Point {
+	let best: Point = { x: Math.max(area.left, Math.min(from.x, area.right)), y: Math.max(area.top, Math.min(from.y, area.bottom)) };
+	let score = Infinity;
+	for (let y = area.top; y <= area.bottom; y += step)
+		for (let x = area.left; x <= area.right; x += step) {
+			const b = { x, y, w: size, h: size };
+			let v = 0;
+			for (const h of hard) v += overlap(b, h);
+			v += Math.hypot(x - from.x, y - from.y) / 1000;
+			if (v < score) (score = v), (best = { x, y });
+		}
+	return best;
+}
+
 /** Anything a tap can reach. */
 export const CONTROLS =
 	'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="slider"], [role="menuitem"], [contenteditable="true"], [tabindex]:not([tabindex="-1"])';
