@@ -28,7 +28,7 @@ One Cloudflare Worker, `benkyo-ne` (`wrangler.jsonc`), at https://benkyo.jiracha
 | Feature | Who | API routes | D1 tables | Worker code | Client code |
 | --- | --- | --- | --- | --- | --- |
 | Kana, lessons, kanji, courses | learner | `/api/content` (KV manifest) | none | `worker/index.ts` | `src/lib/content/`, `src/routes/{learn,kana}/` |
-| Review and scheduling | learner | none (local) | none | none | `src/lib/srs/fsrs.ts`, `src/routes/review/`, `src/lib/state/progress.svelte.ts` |
+| Review and scheduling (rounds of 10, PLAN §5.4) | learner | none (local) | none | none | `src/lib/srs/fsrs.ts`, `src/lib/review/rounds.ts`, `src/routes/review/`, `src/lib/state/progress.svelte.ts` |
 | Handwriting check | learner | none | none | none | `src/lib/handwriting/`, `wasm/stroke/`, `static/wasm/stroke.wasm`, `TracePad`, `RecallPad` |
 | Placement and drills, kanji you keep forgetting ([EVERYDAY.md](EVERYDAY.md)) | learner | none | none | none | `src/lib/practice/`, `src/lib/state/forgetting.svelte.ts`, `src/routes/learn/placement/`, Learn › Practice, `/review?practice=<id>` |
 | Level courses N5–N1 ([LEVELS.md](LEVELS.md)), Test out | learner | none (built into the app) | none | none | `src/lib/content/levels/` (units, `levels.test.ts` checks), `src/lib/state/levels.svelte.ts`, `src/lib/practice/testOut.ts`, `src/lib/words/levelCards.ts`, `src/routes/learn/level/[unit]/` (+ `test/`), Learn (📗 N5 section), Settings → Advanced (Show draft units, `showDraftUnits`) |
