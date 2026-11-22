@@ -32,6 +32,7 @@ import type {
 } from './contract.ts';
 import type { Person } from '../avatar/person.ts';
 import type { BetaStatus } from '../beta/contract.ts';
+import type { PromoRedeemed } from '../promo/contract.ts';
 import { telemetry } from '../beta/telemetry.svelte.ts';
 
 export class AiRequestError extends Error {
@@ -102,13 +103,18 @@ export function deviceName(): string {
  * Signed out with `name`: create an account (its first passkey); `invite` when sign-ups are invite-only.
  * Signed in: add another passkey to your account.
  */
-export async function registerPasskey(name?: string, invite?: string): Promise<{ recoveryCode?: string }> {
+/**
+ * Sign up (with a name) or add a passkey (without). A sign-up sends the invite and the promo code
+ * from a link; the server counts the invite and redeems the code (or the invite's own) as it makes
+ * the account, and answers with the package it gave (`promo`, null when none).
+ */
+export async function registerPasskey(name?: string, invite?: string, coupon?: string): Promise<{ recoveryCode?: string; promo?: PromoRedeemed | null }> {
 	const options = await call<Parameters<typeof startRegistration>[0]['optionsJSON']>('/api/auth/register/options', {
 		method: 'POST',
 		json: name ? { name, ...(invite ? { invite } : {}) } : {}
 	});
 	const response = await startRegistration({ optionsJSON: options });
-	return call('/api/auth/register/verify', { method: 'POST', json: { response, deviceName: deviceName() } });
+	return call('/api/auth/register/verify', { method: 'POST', json: { response, deviceName: deviceName(), ...(name && coupon ? { coupon } : {}) } });
 }
 
 export async function signIn(): Promise<Me> {

@@ -14,6 +14,8 @@
 	import { haptic } from '#lib/ios/haptics.ts';
 	import AppleButton from './AppleButton.svelte';
 	import PromoCode from './PromoCode.svelte';
+	import { clearPendingInvite, pendingInvite } from '#lib/promo/link.ts';
+	import { promoAtSignup, signupCoupon } from '#lib/promo/signup.ts';
 	import { SectionHeader } from '#lib/ui/index.ts';
 	import BetaConsent from '#lib/components/BetaConsent.svelte';
 	import { telemetry } from '#lib/beta/telemetry.svelte.ts';
@@ -84,8 +86,10 @@
 	async function create() {
 		const n = name.trim();
 		if (!n) return;
-		const r = await guard(() => api.registerPasskey(n, !ai.signupOpen ? invite.trim() : undefined), t('account.created'), 'create');
+		const r = await guard(() => api.registerPasskey(n, (!ai.signupOpen ? invite.trim() : pendingInvite()) || undefined, signupCoupon()), t('account.created'), 'create');
 		if (r) {
+			clearPendingInvite();
+			promoAtSignup(r.promo);
 			recoveryCode = r.recoveryCode ?? null;
 			name = '';
 			await after();

@@ -27,6 +27,10 @@ five taps:
   cleared at once. **Not now** stays only when no account can be made (no passkeys and no Apple, or
   the server unreachable). Open in Safari and the install guide's link carry the invite and coupon
   over (`resumeLink`, `src/lib/promo/link.ts`), since the app has moved on to `/` by then.
+  The sign-up sends the invite whether or not sign-up is open, so it is counted and saved on the
+  account (Fleet → Invitations shows who used it and when), and sends the saved promo code: the
+  server redeems it, or the invite's own, as it makes the account (`signupPromo`), before the first
+  lesson and the consent. A sign-in with a pending code redeems it in the root layout.
 - **Sign in** to an existing account: no questions; Today's set-up card offers "Pick your daily goal".
 - A device that already has answers (`meta/profile`, including Skip) is never asked again; Settings →
   Your plan reopens them.

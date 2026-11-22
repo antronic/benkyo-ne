@@ -97,10 +97,13 @@ export const INVITE_USED_UP = `(invite_codes.uses >= invite_codes.max_uses OR EX
 export const INVITE_VALID = `invite_codes.deleted_at IS NULL AND invite_codes.revoked_at IS NULL AND NOT ${INVITE_USED_UP} AND (invite_codes.expires_at IS NULL OR invite_codes.expires_at > ?2)`;
 const VALID = INVITE_VALID;
 
+/** The code exists and still has a use left. */
+export const inviteUsable = async (env: Env, code: string | null) =>
+	!!code && !!(await env.DB.prepare(`SELECT 1 AS ok FROM invite_codes WHERE code = ?1 AND ${VALID}`).bind(code, Date.now()).first());
+
 /** Throws 403 unless the code exists and still has a use left. */
 export async function checkInvite(env: Env, code: string | null) {
-	const ok = code && (await env.DB.prepare(`SELECT 1 AS ok FROM invite_codes WHERE code = ?1 AND ${VALID}`).bind(code, Date.now()).first());
-	if (!ok) throw httpError(403, 'unauthorized', 'That invite code isn’t valid (it may be used up or expired)');
+	if (!(await inviteUsable(env, code))) throw httpError(403, 'unauthorized', 'That invite code isn’t valid (it may be used up or expired)');
 }
 
 /** Use up one use of the code; false when it was used up in the meantime. */

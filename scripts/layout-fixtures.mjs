@@ -122,11 +122,11 @@ const feedback = {
 const INK = { aspect: 2.4, strokes: [[[0.1, 0.5, 0], [0.3, 0.3, 120], [0.5, 0.6, 240], [0.7, 0.3, 360], [0.9, 0.5, 480]]] };
 const invites = {
 	invites: [
-		{ code: 'VIP', label: 'Friends from the meetup', maxUses: 50, uses: 12, expiresAt: null, createdAt: now - 3 * D, revokedAt: null, coupon: 'WELCOME30', couponUses: 12, couponMaxUses: 100, usedUp: null, card: { note: 'Saved you a seat. Start with kana, I’ll check in on Friday.', from: 'Job', ink: INK } },
-		{ code: 'NEWYEAR27', label: null, maxUses: 100, uses: 0, expiresAt: now + 30 * D, createdAt: now - D, revokedAt: null, coupon: null, couponUses: null, couponMaxUses: null, usedUp: null, card: { note: 'Happy new year. Ten minutes a day.', from: 'Job', ink: null } },
-		{ code: 'MEETUP_26', label: 'Bangkok meetup', maxUses: 30, uses: 10, expiresAt: null, createdAt: now - 2 * D, revokedAt: null, coupon: 'MEETUP10', couponUses: 10, couponMaxUses: 10, usedUp: 'coupon', card: { note: 'Thanks for coming. A month of Plus, on me.', from: 'Job', ink: null } },
-		{ code: 'BK-7KQ2-MX9D', label: 'Example Learner', maxUses: 1, uses: 0, expiresAt: now + 14 * D, createdAt: now - D, revokedAt: null, coupon: null, couponUses: null, couponMaxUses: null, usedUp: null, card: null },
-		{ code: 'BK-OLD0-CODE', label: null, maxUses: 1, uses: 1, expiresAt: null, createdAt: now - 20 * D, revokedAt: null, coupon: null, couponUses: null, couponMaxUses: null, usedUp: 'invite', card: null }
+		{ code: 'VIP', label: 'Friends from the meetup', maxUses: 50, uses: 12, expiresAt: null, createdAt: now - 3 * D, revokedAt: null, coupon: 'WELCOME30', couponUses: 12, couponMaxUses: 100, usedUp: null, usedBy: [{ id: 2, name: 'Mika', at: now - 2 * 3600e3 }, { id: 3, name: 'Aoi', at: now - D }], card: { note: 'Saved you a seat. Start with kana, I’ll check in on Friday.', from: 'Job', ink: INK } },
+		{ code: 'NEWYEAR27', label: null, maxUses: 100, uses: 0, expiresAt: now + 30 * D, createdAt: now - D, revokedAt: null, coupon: null, couponUses: null, couponMaxUses: null, usedUp: null, usedBy: [], card: { note: 'Happy new year. Ten minutes a day.', from: 'Job', ink: null } },
+		{ code: 'MEETUP_26', label: 'Bangkok meetup', maxUses: 30, uses: 10, expiresAt: null, createdAt: now - 2 * D, revokedAt: null, coupon: 'MEETUP10', couponUses: 10, couponMaxUses: 10, usedUp: 'coupon', usedBy: [{ id: 4, name: 'Example Learner', at: now - D }], card: { note: 'Thanks for coming. A month of Plus, on me.', from: 'Job', ink: null } },
+		{ code: 'BK-7KQ2-MX9D', label: 'Example Learner', maxUses: 1, uses: 0, expiresAt: now + 14 * D, createdAt: now - D, revokedAt: null, coupon: null, couponUses: null, couponMaxUses: null, usedUp: null, usedBy: [], card: null },
+		{ code: 'BK-OLD0-CODE', label: null, maxUses: 1, uses: 1, expiresAt: null, createdAt: now - 20 * D, revokedAt: null, coupon: null, couponUses: null, couponMaxUses: null, usedUp: 'invite', usedBy: [{ id: 5, name: 'Somchai', at: now - 19 * D }], card: null }
 	]
 };
 

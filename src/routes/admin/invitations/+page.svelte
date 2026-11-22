@@ -210,10 +210,21 @@
 	}
 	const usage = (inv: AdminInvite) =>
 		`${inv.uses} of ${inv.maxUses} used · ${inv.revokedAt ? 'revoked' : inv.expiresAt && inv.expiresAt <= Date.now() ? 'expired' : inv.expiresAt ? `until ${shortDay(inv.expiresAt)}` : 'no expiry'}`;
+	const when = (t: number) => new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 	/** the promo code's redemptions against its limit, for a VIP that has one */
 	const couponUsage = (inv: AdminInvite) =>
 		inv.coupon && inv.couponUses !== null ? `${inv.coupon}: ${inv.couponUses} of ${inv.couponMaxUses ?? '∞'} redeemed` : '';
 </script>
+
+{#snippet usedBy(inv: AdminInvite)}
+	{#if inv.usedBy.length}
+		<span class="caption used-by">Used by {#each inv.usedBy as u, i (u.id)}{i ? ', ' : ''}<a href="/admin/accounts/{u.id}">{u.name}</a> ({when(u.at)}){/each}{inv.uses > inv.usedBy.length ? ` and ${inv.uses - inv.usedBy.length} more` : ''}</span>
+	{:else if inv.uses}
+		<span class="caption used-by">Used before sign-ups were linked to it, so who isn’t known.</span>
+	{:else}
+		<span class="caption used-by">Not used yet.</span>
+	{/if}
+{/snippet}
 
 <svelte:head><title>Invitations · Fleet</title></svelte:head>
 
@@ -242,6 +253,7 @@
 							</span>
 							<span class="note">“{inv.card?.note}”{inv.card?.from ? ` · ${inv.card.from}` : ''}{inv.card?.ink ? ' · ✍️ drawing' : ''}</span>
 							<span class="caption">{inv.label ? `${inv.label} · ` : ''}{usage(inv)}{couponUsage(inv) ? ` · ${couponUsage(inv)}` : ''}</span>
+							{@render usedBy(inv)}
 							{#if inv.usedUp === 'coupon' && !inv.revokedAt}<span class="caption">Off: its promo code has no redemptions left. Raise the code’s limit or pick another code to turn it back on.</span>{:else if inv.usedUp === 'invite' && !inv.revokedAt}<span class="caption">Off: every use is taken. The link now says the invite is full.</span>{/if}
 							<span class="row actions">
 								{#if live(inv)}<Button size="sm" variant="ghost" onclick={() => copy(inv.code, true)}>Copy link</Button>{/if}
@@ -275,6 +287,7 @@
 							<span class="stack" style:--gap="var(--space-px)" style:min-width="0">
 								<span class="row" style:gap="var(--space-2)"><span class="code">{inv.code}</span>{#if inv.usedUp && !inv.revokedAt}<Badge tone="warning">Used up</Badge>{/if}</span>
 								<span class="caption">{inv.label ? `${inv.label} · ` : ''}{usage(inv)}</span>
+								{@render usedBy(inv)}
 							</span>
 							<span class="spacer"></span>
 							<span class="row actions">
