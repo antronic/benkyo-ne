@@ -39,6 +39,18 @@ describe('boot', () => {
 		vi.useRealTimers();
 	});
 
+	it('going to the background counts as a good launch (iOS freezes home-screen apps without a pagehide)', async () => {
+		vi.stubGlobal('addEventListener', () => {});
+		const s = fakeStorage();
+		await load(s);
+		const b = await load(s);
+		let onVis: (() => void) | undefined;
+		vi.stubGlobal('document', { visibilityState: 'hidden', addEventListener: (_: string, fn: () => void) => (onVis = fn) });
+		b.bootDone();
+		onVis?.();
+		expect((await load(s)).safeMode).toBe(false);
+	});
+
 	it('works when storage is blocked', async () => {
 		const blocked = {
 			getItem: () => {
