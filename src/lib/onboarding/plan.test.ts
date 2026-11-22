@@ -7,7 +7,7 @@ const kinds = (a: Answers, e = env) => buildPlan(a, e).map((s) => (s.kind === 'p
 describe('onboarding plan', () => {
 	it('skipping gives a beginner plan at 10 minutes', () => {
 		expect(kinds(DEFAULTS)).toEqual(['lesson', 'daily']);
-		expect(buildPlan(DEFAULTS, env).at(-1)).toEqual({ kind: 'daily', minutes: 10, newPerDay: 10 });
+		expect(buildPlan(DEFAULTS, env).at(-1)).toEqual({ kind: 'daily', minutes: 10, newPerDay: 8 });
 	});
 
 	it('routes people who know kana to the placement check', () => {
@@ -34,7 +34,7 @@ describe('onboarding plan', () => {
 	});
 
 	it('maps daily time to new kana per day', () => {
-		expect(NEW_PER_DAY).toEqual({ 5: 5, 10: 10, 20: 15 });
+		expect(NEW_PER_DAY).toEqual({ 5: 5, 10: 8, 20: 10 });
 	});
 
 	it('sanitizes stored answers', () => {

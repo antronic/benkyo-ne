@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { t, fmtDateTime, type MessageKey } from '#lib/i18n/index.svelte.ts';
 	import { onMount } from 'svelte';
-	import { progress } from '#lib/state/progress.svelte.ts';
+	import { MAX_NEW_PER_DAY, progress } from '#lib/state/progress.svelte.ts';
 	import { ui } from '#lib/state/ui.svelte.ts';
 	import { getSyncKey, keyWasClaimed, onSync, sync, type SyncResult } from '#lib/sync.ts';
 	import { ai } from '#lib/state/ai.svelte.ts';
@@ -95,9 +95,9 @@
 			{#snippet trailing()}
 				<Stepper
 					label={t('settings.newPerDay')}
-					min={5}
-					max={40}
-					step={5}
+					min={2}
+					max={MAX_NEW_PER_DAY}
+					step={1}
 					value={progress.settings.newPerDay}
 					onchange={(v) => progress.saveSettings({ newPerDay: v })}
 				/>

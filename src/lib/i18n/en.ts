@@ -285,7 +285,7 @@ export const en = {
 	'settings.retention': 'Target retention',
 	'settings.retentionBody': 'Higher means more reviews but fewer forgotten cards.',
 	'settings.newPerDay': 'New kana per day',
-	'settings.newPerDayBody': 'Each new card adds future reviews.',
+	'settings.newPerDayBody': 'Up to 10. Each new card adds future reviews.',
 	'settings.fewer': 'Fewer',
 	'settings.more': 'More',
 	'settings.haptics': 'Haptics',

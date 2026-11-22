@@ -301,7 +301,7 @@ export const th: Partial<Record<MessageKey, string>> = {
 	'settings.retention': 'เป้าหมายการจำ',
 	'settings.retentionBody': 'ยิ่งสูง ยิ่งทบทวนบ่อย แต่ลืมการ์ดน้อยลง',
 	'settings.newPerDay': 'คานะใหม่ต่อวัน',
-	'settings.newPerDayBody': 'การ์ดใหม่ทุกใบจะเพิ่มการทบทวนในอนาคต',
+	'settings.newPerDayBody': 'สูงสุด 10 ใบ การ์ดใหม่ทุกใบจะเพิ่มการทบทวนในอนาคต',
 	'settings.fewer': 'น้อยลง',
 	'settings.more': 'มากขึ้น',
 	'settings.haptics': 'การสั่น',

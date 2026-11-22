@@ -62,7 +62,7 @@ export interface Profile extends Answers {
 export const DEFAULTS: Answers = { goals: [], level: 'new', jlpt: 'N3', minutes: 10 };
 
 /** New kana per day for each daily-time answer (lessons are ~5 kana). */
-export const NEW_PER_DAY: Record<Minutes, number> = { 5: 5, 10: 10, 20: 15 };
+export const NEW_PER_DAY: Record<Minutes, number> = { 5: 5, 10: 8, 20: 10 };
 
 /** Topic course that fits each goal best. */
 export const GOAL_COURSE: Record<Goal, Course['id']> = {
