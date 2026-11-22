@@ -326,7 +326,7 @@
 </Sheet>
 
 {#if progress.settings.kuri}
-	<KuriWalker hidden={ui.showKuriIntro || ui.showIntro || ui.showOnboarding || ui.showWelcome} />
+	<KuriWalker hidden={ui.showIntro || ui.showOnboarding || ui.showWelcome} />
 {/if}
 
 <style>

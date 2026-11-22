@@ -38,7 +38,6 @@
 	import { processOutbox } from '#lib/words/maker.ts';
 	import { takeAppleResult } from '#lib/ai/client.ts';
 	import { busyToast, clearToast, toast } from '#lib/ios/overlay.svelte.ts';
-	import KuriIntro from '#lib/companion/KuriIntro.svelte';
 	import KuriReaction from '#lib/companion/KuriReaction.svelte';
 	import { fleetParent } from '#lib/admin/nav.ts';
 	import { plan } from '#lib/state/plan.svelte.ts';
@@ -256,13 +255,14 @@
 	$effect(() => {
 		if (setupLater.consentLater && ai.signedIn && ai.beta && !ai.needsConsent) untrack(() => void setupLater.setConsentLater(false));
 	});
-	/** Kuri's first meeting is waiting for the next calm moment on Today */
+	/** Kuri's hello (a speech bubble, KuriWalker) is waiting for the next calm moment on Today */
 	let kuriPending = $state(false);
 	$effect(() => {
 		if (!kuriPending || !progress.settings.kuri || page.url.pathname !== '/') return;
 		if (ui.showIntro || ui.showOnboarding || ui.onboardingNext || ui.showWelcome || ui.handoff || ai.needsConsent || avatar.setup) return;
 		kuriPending = false;
-		ui.showKuriIntro = true;
+		ui.kuriHello = true;
+		void idbPut('meta', true, 'kuriIntroSeen');
 	});
 	// First run (docs/UX-FLOW.md): the intro → two quick questions → the account → straight into
 	// the first lesson; the consent follows that lesson, and the recovery code, avatar and install
@@ -430,14 +430,6 @@
 {/if}
 {#if ui.showWelcome}
 	<Welcome start={welcomeStart} ondone={afterWelcome} />
-{/if}
-{#if ui.showKuriIntro}
-	<KuriIntro
-		ondone={() => {
-			ui.showKuriIntro = false;
-			void idbPut('meta', true, 'kuriIntroSeen');
-		}}
-	/>
 {/if}
 {#if !safeMode && progress.settings.kuri && progress.settings.kuriReact && progress.ready}
 	<KuriReaction />

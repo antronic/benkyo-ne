@@ -16,8 +16,8 @@ export const ui = $state({
 	handoff: null as null | 'signin' | 'signup',
 	/** beta sign-up / sign-in after the introduction (passkey only) */
 	showWelcome: false,
-	/** Kuri's first meeting: once, after onboarding (and once for existing users on Today) */
-	showKuriIntro: false,
+	/** Kuri says hello in a speech bubble on Today: once, after the first lesson (and once for existing users), or replayed from Settings */
+	kuriHello: false,
 	/** the screen a full-screen step was opened from, to go back to (returnTarget in nav.ts) */
 	returnTo: null as string | null,
 	/** px of a screen's own fixed bottom bar (the Ask AI composer) that the "More below" button clears */

@@ -587,6 +587,11 @@
 						<div class="wrap"><Button size="sm" variant="accent">5 minute practice</Button></div>
 					</div>
 				</Card>
+				<!-- with `tail`: no avatar, the bubble points at Kuri walking on Today (KuriWalker) -->
+				<div class="row" style:--gap="var(--space-3)" style:flex-wrap="wrap">
+					<SpeechBubble tail="down"><b class="jp" lang="ja">はじめまして！</b> I’m Kuri. I’ll study with you.</SpeechBubble>
+					<SpeechBubble tail="left" tailAt={20}>3 reviews today!</SpeechBubble>
+				</div>
 
 				<SectionHeader title="Stat tiles" />
 				<div class="ui-stats">

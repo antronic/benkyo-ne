@@ -17,7 +17,10 @@
  * It also opens Settings (three Kuris), drops every Kuri's WebGL context the way Safari does after
  * the app sat in the background, and fails unless each Kuri gets a fresh, working context
  * (src/lib/companion/Kuri.svelte; docs/guides/lessons.md kuri-context-lost).
- * Last it shakes Kuri on Today: a shake makes Kuri dizzy, a plain drag does not.
+ * Then it shakes Kuri on Today: a shake makes Kuri dizzy, a plain drag does not.
+ * Last it watches Kuri on Today at phone, iPad and desktop width while it says hello, wanders,
+ * the page scrolls and it is put down on a button: Kuri must never cover a control or the menu
+ * bar (src/lib/companion/keepOut.ts), and the hello must be a speech bubble, not a full screen.
  *
  * The API is mocked with a synthetic signed-in learner (scripts/layout-fixtures.mjs).
  * Set LAYOUT_URL to check a server that is already running.
@@ -241,6 +244,102 @@ async function kuriShake(browser, problems) {
 	}
 }
 
+/** Every visible control and fixed menu bar that Kuri (the .walker box) overlaps right now. */
+function kuriCovers() {
+	const k = document.querySelector('.walker');
+	if (!k) return { shown: false, covers: [] };
+	const ks = getComputedStyle(k);
+	const shown = ks.visibility !== 'hidden' && ks.pointerEvents !== 'none' && Number(ks.opacity) > 0.5;
+	const kb = k.getBoundingClientRect();
+	const covers = [];
+	const sel = 'a[href], button, input, select, textarea, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], nav';
+	for (const el of document.querySelectorAll(sel)) {
+		if (el === k || k.contains(el) || el.closest('[role="dialog"], [aria-hidden="true"]')) continue;
+		const cs = getComputedStyle(el);
+		if (cs.visibility === 'hidden' || cs.pointerEvents === 'none') continue;
+		if (el.tagName === 'NAV' && cs.position !== 'fixed' && cs.position !== 'sticky') continue;
+		const r = el.getBoundingClientRect();
+		if (r.width < 1 || r.height < 1) continue;
+		if (kb.left < r.right && r.left < kb.right && kb.top < r.bottom && r.top < kb.bottom)
+			covers.push((el.getAttribute('aria-label') || el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 40));
+	}
+	return { shown, covers };
+}
+
+/** Today: Kuri says hello in a bubble and never covers a control or the menu bar. */
+async function kuriClear(browser, problems) {
+	for (const [label, width, height] of [['phone', 390, 844], ['iPad', 820, 1180], ['desktop', 1280, 800]]) {
+		const at = `Kuri keep-out @ Today ${label} ${width}px`;
+		const ctx = await browser.newContext({ viewport: { width, height }, serviceWorkers: 'block', reducedMotion: 'no-preference' });
+		await ctx.route('**/api/**', signedInRoute);
+		const page = await ctx.newPage();
+		const errors = [];
+		page.on('pageerror', (e) => errors.push(String(e.message ?? e).split('\n')[0]));
+		let samples = 0;
+		let seen = 0;
+		const look = async (when) => {
+			const r = await page.evaluate(kuriCovers);
+			samples++;
+			if (!r.shown) return;
+			seen++;
+			if (r.covers.length) problems.push(`${at}: ${when}, Kuri covers ${r.covers.map((c) => `"${c}"`).join(', ')}`);
+		};
+		try {
+			await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+			// Kuri has not said hello yet on this device
+			await page.evaluate(() => new Promise((done) => {
+				const req = indexedDB.open('benkyo');
+				req.onsuccess = () => {
+					const tx = req.result.transaction('meta', 'readwrite');
+					for (const k of ['introSeen', 'onboardingSeen']) tx.objectStore('meta').put(true, k);
+					tx.objectStore('meta').delete('kuriIntroSeen');
+					tx.oncomplete = () => done();
+					tx.onerror = () => done();
+				};
+				req.onerror = () => done();
+			}));
+			await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+			await page.locator('.walker').waitFor({ timeout: 20000 });
+			const hello = await page.locator('.say.on').textContent({ timeout: 8000 }).catch(() => '');
+			if (!/はじめまして/.test(hello ?? '')) problems.push(`${at}: Kuri's hello bubble did not show (said "${hello ?? ''}")`);
+			if (await page.locator('[role="dialog"][aria-modal="true"]').count()) problems.push(`${at}: Kuri's hello opened a full-screen dialog`);
+			// left alone: Kuri wanders
+			for (let i = 0; i < 40; i++) {
+				await look(`wandering (${i * 250} ms)`);
+				await page.waitForTimeout(250);
+			}
+			// the page scrolls under Kuri
+			for (let i = 0; i < 4; i++) {
+				await page.mouse.wheel(0, 260);
+				for (let j = 0; j < 4; j++) {
+					await look(`while scrolling (step ${i + 1})`);
+					await page.waitForTimeout(150);
+				}
+			}
+			await page.waitForTimeout(700);
+			await look('after scrolling');
+			await page.evaluate(() => scrollTo(0, 0));
+			await page.waitForTimeout(900);
+			// put down on a button: Kuri hops off it
+			const k = await page.locator('.walker').boundingBox();
+			const target = await page.getByRole('button', { name: 'Start lesson' }).first().boundingBox().catch(() => null);
+			if (k && target && (await page.evaluate(kuriCovers)).shown) {
+				await page.mouse.move(k.x + k.width / 2, k.y + k.height / 2);
+				await page.mouse.down();
+				await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 12 });
+				await page.mouse.up();
+				await page.waitForTimeout(800);
+				await look('put down on Start lesson');
+			}
+			if (!seen) problems.push(`${at}: Kuri never showed (${samples} looks), so keep-out could not be checked`);
+			for (const e of [...new Set(errors)]) problems.push(`${at}: page error: ${e}`);
+			console.log(`${at}: Kuri shown in ${seen} of ${samples} looks, hello "${(hello ?? '').trim().slice(0, 30)}…"`);
+		} finally {
+			await ctx.close();
+		}
+	}
+}
+
 async function main() {
 	let server;
 	if (!process.env.LAYOUT_URL) server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
@@ -252,6 +351,7 @@ async function main() {
 		for (const [label, width, height] of WIDTHS) await walk(browser, label, width, height, problems);
 		await kuriLost(browser, problems);
 		await kuriShake(browser, problems);
+		await kuriClear(browser, problems);
 	} finally {
 		await browser.close();
 		server?.kill();
