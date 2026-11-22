@@ -17,3 +17,11 @@
 		おはよう! 12 reviews are waiting.
 	</SpeechBubble>
 </Story>
+<Story name="Pointing at Kuri" asChild>
+	<div style:display="grid" style:gap="var(--space-4)" style:justify-items="start">
+		<SpeechBubble tail="down"><b class="jp" lang="ja">はじめまして！</b> I’m Kuri. I’ll study with you.</SpeechBubble>
+		<SpeechBubble tail="up" tailAt={24}>You’ve got this!</SpeechBubble>
+		<SpeechBubble tail="left">3 reviews today!</SpeechBubble>
+		<SpeechBubble tail="right">Whoa… everything’s spinning!</SpeechBubble>
+	</div>
+</Story>

@@ -74,7 +74,7 @@ npm run lint:ui            # spacing lint (--space-* tokens) + UI kit lint (kit 
 npm test                   # vitest: src/**/*.test.ts and worker/**/*.test.ts
 npm run build              # static SPA into build/, then the Storybook into build/storybook/
 npm run check:layout       # Playwright layout check on the build: overflow, centred column, card padding, control size, row heights, avatar setup steps
-npm run check:render       # Playwright GPU check on the build: a live avatar must not build a new WebGL/WebGPU context per change; Kuri must rebuild after a lost context and get dizzy when shaken
+npm run check:render       # Playwright GPU check on the build: a live avatar must not build a new WebGL/WebGPU context per change; Kuri must rebuild after a lost context, get dizzy when shaken, and never cover a control or the menu bar on Today
 npm run db:migrate:local   # apply D1 migrations to the local database
 npx wrangler dev --port 8787 --infer-origin-from-routes=false   # full stack locally (after build)
 npm run dev                # Vite only, UI without /api (forever process: background it)

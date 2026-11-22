@@ -8,16 +8,37 @@ Kuri (栗, after the chestnut coat) is a low-poly Shiba who studies with you.
 
 | Where | What Kuri does | Setting |
 | --- | --- | --- |
-| Today | Walks around the bottom of the screen, sits, dozes after 30s. Drag to move, tap for a hop and a line. Shake while holding (four quick back-and-forth swings) and Kuri gets dizzy: x x eyes, a wobbling head and stars circling, then a line when set down. | Walk around on Today |
+| Today | Walks around the free parts of the screen, sits, dozes after 30s. Never covers a button, link, field or the menu bar (see Keep-out below). Drag to move, tap for a hop and a line. Shake while holding (four quick back-and-forth swings) and Kuri gets dizzy: x x eyes, a wobbling head and stars circling, then a line when set down. | Walk around on Today |
 | Ask AI | Avatar in the header; thinks while a reply streams. | Show Kuri |
-| Lessons and reviews | Pops up in the corner for ~1.5s on a right (happy) or wrong (encourage) answer. | React to answers |
-| First meeting | ~4s intro once: after onboarding, or the first time an existing user opens Today. Skippable; still with reduced motion. Replay from Settings. | Show Kuri |
+| Lessons and reviews | Pops up in a free corner for ~1.5s on a right (happy) or wrong (encourage) answer; when every corner holds a control, the nearest free spot, else only the sound. | React to answers |
+| First meeting | Once, on Today after the first lesson (or the first time an existing user opens Today): Kuri waves and says はじめまして in a small speech bubble beside it, for about 9s or until a tap. Replay from Settings. | Show Kuri |
 
 All settings live in `progress.settings` (`kuri`, `kuriStyle`, `kuriWalk`, `kuriReact`, `kuriLowPoly`, `kuriSound`). The intro is marked seen in IDB `meta/kuriIntroSeen`.
 
+## Keep-out
+
+Kuri must never cover a control or the menu bar (Job, 2026-11-22). Kuri's 104px box takes taps, so
+anything under it would be blocked. `src/lib/companion/keepOut.ts` reads the page every 400 ms and
+on every scroll or resize:
+
+- **Hard boxes**: every button, link, field, switch, tab or focusable element, and fixed or sticky
+  menu bars (the tab bar, side rail, sidebar, compact title bar). Kuri keeps a 6px gap from them.
+  Elements in a dialog, hidden ones and ones that take no taps are left out.
+- **Soft boxes**: lines of text (weight 1) and cards (weight 0.25). Kuri may stand on them, but a
+  spot that covers less wins.
+
+The walker only wanders to a free spot it can reach in a straight line without passing over a
+control. When the page scrolls under Kuri onto a control, Kuri fades out (no taps) and comes back
+at the nearest free spot once scrolling stops; when it is put down on a control, or the page
+changes under it, it hops off. When no spot is free at all, Kuri stays out of the way until one is.
+Its speech bubble goes above, below or beside Kuri, wherever it covers no control.
+
+`npm run check:render` watches Kuri on Today at phone, iPad and desktop width (hello, wandering,
+scrolling, put down on Start lesson) and fails if Kuri ever covers a control or the menu bar.
+
 ## Sound
 
-With **Sound** on (the default), Kuri yips on a tap, squeaks when picked up, yawns and sighs through its nose falling asleep, hums while Ask AI thinks, goes "awawawa" with twinkling stars when shaken dizzy, chirps or "awoo"s for right and wrong answers, and says "はじめまして！" in the first meeting.
+With **Sound** on (the default), Kuri yips on a tap, squeaks when picked up, yawns and sighs through its nose falling asleep, hums while Ask AI thinks, goes "awawawa" with twinkling stars when shaken dizzy, chirps or "awoo"s for right and wrong answers, and says "はじめまして！" when it first says hello.
 
 - Everything is synthesized with Web Audio in `src/lib/companion/sound.ts` (about 3 KB gzipped). The sleep yawn uses a breathier voice (glottal pulse with jitter, aspiration and a small room) so it sounds like a real dog; the rest use the formant buzz. There are no audio files.
 - The voice is built from scratch: a buzzing tone through vowel filters, one syllable at a time. It copies no recording or real voice.
@@ -35,7 +56,8 @@ With **Sound** on (the default), Kuri yips on a tap, squeaks when picked up, yaw
 | Types, settings helpers, reaction bus, sound helpers | `src/lib/companion/kuri.svelte.ts` |
 | Synthesized sounds and voice | `src/lib/companion/sound.ts` |
 | One Kuri on a canvas | `src/lib/companion/Kuri.svelte` |
-| Today walker, intro, reaction, Settings section | `KuriWalker.svelte`, `KuriIntro.svelte`, `KuriReaction.svelte`, `KuriSettings.svelte` |
+| Today walker (and its hello), reaction, Settings section | `KuriWalker.svelte`, `KuriReaction.svelte`, `KuriSettings.svelte` |
+| Keep-out zones | `keepOut.ts` (tests in `keepOut.test.ts`) |
 
 Call `kuriReact('happy' | 'encourage')` from a study screen to make Kuri react. Every answer a learner checks calls it: Learn lessons, and in Review the kana, kanji and word cards (`onWordAnswer` for `WordQuiz`).
 

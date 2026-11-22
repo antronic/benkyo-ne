@@ -66,7 +66,7 @@ const soundOn = () => !safeMode && progress.settings.kuri && progress.settings.k
 export function kuriSound(name: KuriSoundName) {
 	if (soundOn()) play(name);
 }
-/** Kuri's "はじめまして！" for the first meeting, if Sound is on. */
+/** Kuri's "はじめまして！" for the hello on Today, if Sound is on. */
 export function kuriHello() {
 	if (soundOn()) hello();
 }
@@ -100,6 +100,3 @@ export function currentTheme(): 'light' | 'dark' {
 }
 
 export const reducedMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/** Where Kuri sits on Today (page coordinates), so the intro can land there. */
-export const walkerSpot = $state({ x: -1, y: -1, size: 104, visible: false });

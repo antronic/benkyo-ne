@@ -20,7 +20,7 @@
 
 	async function replay() {
 		await goto('/'); // ui-ok: client-side navigation, the next screen renders at once
-		ui.showKuriIntro = true;
+		ui.kuriHello = true;
 	}
 </script>
 
