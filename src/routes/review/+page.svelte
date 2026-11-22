@@ -8,7 +8,7 @@
 -->
 <script lang="ts">
 	import { kuriReact } from '#lib/companion/kuri.svelte.ts';
-	import { t } from '#lib/i18n/index.svelte.ts';
+	import { t, tn } from '#lib/i18n/index.svelte.ts';
 	import { c, gloss, scriptName, story } from '#lib/i18n/content.ts';
 	import MnemonicHint from '#lib/components/MnemonicHint.svelte';
 	import Romaji from '#lib/components/Romaji.svelte';
@@ -39,6 +39,7 @@
 	import KanjiInfo from '#lib/components/KanjiInfo.svelte';
 	import { kanjiByChar, meaningChoices, type Kanji } from '#lib/content/kanji.ts';
 	import { partColors } from '#lib/content/strokes.ts';
+	import { nextRound, ROUND_SIZE, roundsFor } from '#lib/review/rounds.ts';
 
 	ui.hue = 220;
 
@@ -89,19 +90,38 @@
 	/** The kanji drill needs this week's set, read from the log first. */
 	const waitForSet = practice?.id === 'forgetting' && !forgetting.ready;
 	let loadingSet = $state(waitForSet);
-	const initial = waitForSet ? [] : buildQueue();
-	let total = $state(initial.length);
-	let queue = $state<Entry[]>(initial);
+	// The session comes in rounds of ROUND_SIZE (#lib/review/rounds.ts): `queue` is this round,
+	// `later` the rest of the session, shown only if the learner keeps going after a break.
+	const [firstRound, afterFirst] = nextRound(waitForSet ? [] : buildQueue());
+	let queue = $state<Entry[]>(firstRound);
+	let later = $state<Entry[]>(afterFirst);
+	/** cards in this round (retries of a missed card don't add to it) */
+	let total = $state(firstRound.length);
+	let round = $state(1);
+	let rounds = $state(roundsFor(firstRound.length + afterFirst.length));
 	if (waitForSet)
 		void forgetting.load().then(() => {
-			queue = buildQueue();
+			const all = buildQueue();
+			[queue, later] = nextRound(all);
 			total = queue.length;
+			rounds = roundsFor(all.length);
 			loadingSet = false;
 			prep();
 		});
 	let done = $state(0);
 	let correctCount = $state(0);
 	let lastCorrect = true;
+	/** the round is over and more cards wait: show the break */
+	const onBreak = $derived(!queue.length && later.length > 0);
+
+	function keepGoing() {
+		[queue, later] = nextRound(later);
+		total = queue.length;
+		round++;
+		done = 0;
+		correctCount = 0;
+		prep();
+	}
 
 	let answer = $state('');
 	let result = $state<null | { correct: boolean; guess?: string }>(null);
@@ -131,6 +151,7 @@
 	/** Whether the card after this one opens with a typed answer (see next() for the order). */
 	function nextIsTyped(): boolean {
 		const [head, ...rest] = queue;
+		// the break comes before the next round, so the keyboard is not needed yet
 		const n = rest[0] ?? (lastCorrect ? undefined : head);
 		if (!n) return false;
 		if (n.id.startsWith('kana:')) return modeFor(n) === 'type';
@@ -207,7 +228,7 @@
 		readyKeyboard();
 		const [head, ...rest] = queue;
 		done++;
-		// a missed card comes back once more at the end of this session
+		// a missed card comes back once more at the end of this round
 		queue = lastCorrect ? rest : [...rest, { ...head, isNew: false }];
 		lastCorrect = true;
 		prep();
@@ -235,6 +256,9 @@
 		<div class="caption count">{Math.min(done, total)}/{total}</div>
 	</header>
 
+	{#if rounds > 1}
+		<div class="tagline caption round">{t('review.roundOf', { n: round, of: rounds })}</div>
+	{/if}
 	{#if tag}
 		<div class="tagline caption">{@html t('review.drilling', { tag: `<b>${tag.replace(/[&<>"]/g, (ch) => `&#${ch.charCodeAt(0)};`)}</b>` })}</div>
 	{:else if practice}
@@ -252,6 +276,24 @@
 				{#if firstLesson}
 					<Button variant="accent" href="/learn/{firstLesson.id}">{t('review.startFirst', { lesson: c(firstLesson.title) })}</Button>
 				{/if}
+			</div>
+		</section>
+	{:else if onBreak}
+		<!-- a short break between rounds: stopping here is fine, the rest stay due -->
+		<section class="stage" in:scale={{ start: 0.94, duration: 400 }}>
+			<div class="stack center" style:--gap="var(--space-4)">
+				<ProgressRing value={total ? correctCount / Math.max(done, 1) : 1} size={140}>
+					<div>
+						<div class="big-num">{total ? Math.round((correctCount / Math.max(done, 1)) * 100) : 100}%</div>
+						<div class="caption">{t('review.recalled')}</div>
+					</div>
+				</ProgressRing>
+				<h1 class="large-title">{t('review.roundDone', { n: round })}</h1>
+				<p class="subhead">{tn('review.roundLeft', later.length)}</p>
+				<div class="row">
+					<Button variant="ghost" onclick={() => leave(practice ? '/learn' : '/')}>{t('review.stopHere')}</Button>
+					<Button variant="accent" onclick={keepGoing}>{tn('review.keepGoing', Math.min(later.length, ROUND_SIZE))}</Button>
+				</div>
 			</div>
 		</section>
 	{:else if !entry || (!kana && !kanji && !wordCard)}

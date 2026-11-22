@@ -44,6 +44,10 @@ interface Today {
 
 export type StoredLog = ReviewLog & { synced: 0 | 1 };
 
+/** Most new cards a day (Job, 2026-11-22): more piles up reviews faster than they can be cleared. */
+export const MAX_NEW_PER_DAY = 10;
+const capNew = (n: number) => Math.max(1, Math.min(MAX_NEW_PER_DAY, Math.round(n)));
+
 const dayKey = (t = Date.now()) => new Date(t).toLocaleDateString('en-CA'); // YYYY-MM-DD local
 
 class Progress {
@@ -87,7 +91,7 @@ class Progress {
 			// Sound used to start off, and every settings save stored that default.
 			// Only keep a stored value the learner picked on the switch themselves.
 			if (!settings.kuriSoundChosen) delete (settings as Partial<Settings>).kuriSound;
-			this.settings = { ...this.settings, ...settings };
+			this.settings = { ...this.settings, ...settings, newPerDay: capNew(settings.newPerDay ?? this.settings.newPerDay) };
 		}
 		if (streak) this.streak = streak;
 		if (today && today.date === dayKey()) this.today = today;
@@ -97,6 +101,7 @@ class Progress {
 	}
 
 	async saveSettings(s: Partial<Settings>) {
+		if (s.newPerDay !== undefined) s = { ...s, newPerDay: capNew(s.newPerDay) };
 		this.settings = { ...this.settings, ...s };
 		telemetry.track('event', 'settings', { changed: s });
 		await put('meta', $state.snapshot(this.settings), 'settings');

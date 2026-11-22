@@ -241,6 +241,19 @@ grows. This is desirable difficulty applied automatically:
 
 v0.2 adds a separate `audio → kana` listening card.
 
+### 5.4 Short rounds
+
+A review session comes in rounds of 10 cards (`ROUND_SIZE`, `src/lib/review/rounds.ts`), most
+overdue first. A missed card comes back once at the end of its round. After each round a break
+screen shows the round's recall and how many cards are still due, with **Stop here** and
+**Next 10 cards**. Stopping is safe: a card that wasn't reached stays due, and FSRS uses the
+real elapsed time when it is finally reviewed. Today says "in short rounds of 10" when more
+than one round is due.
+
+New cards are capped at 10 a day (`MAX_NEW_PER_DAY`, `src/lib/state/progress.svelte.ts`;
+Settings goes 2 to 10, the first-run plan picks 5, 8 or 10). A higher stored value is lowered
+to 10 when the app loads, so reviews can't grow faster than a few rounds a day.
+
 ---
 
 ## 6. Visual & motion design: "iOS 27" direction

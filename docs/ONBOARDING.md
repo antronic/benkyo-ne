@@ -51,7 +51,7 @@ It shows for at least 450 ms (the welcome fade) and never more than 8 s (offline
 |---|---|---|---|
 | What brings you to Japanese? | Travel, Anime/manga/games, Friends & family, Food & culture, Work or school, Just for fun (pick any) | none | Topic course suggested in the plan (first pick wins) |
 | How much do you know already? | Brand new · Some kana · Read hiragana & katakana | Brand new | Lesson 1, or the placement check (hiragana, then katakana) |
-| How much time a day? | 5 · 10 · 20 minutes | 10 | `settings.newPerDay` 5 · 10 · 15 |
+| How much time a day? | 5 · 10 · 20 minutes | 10 | `settings.newPerDay` 5 · 8 · 10 (never more than 10) |
 
 - Single-choice questions advance on tap. **Skip** is on every question and keeps the
   defaults without touching Settings. Back and "Change answers" let people revise.

@@ -29,6 +29,7 @@
 	import { openLearnAt } from '#lib/onboarding/profile.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { ROUND_SIZE } from '#lib/review/rounds.ts';
 
 	const greeting = greetingFor(new Date().getHours());
 	// the weekly report card shows once the week has something in it
@@ -231,7 +232,7 @@
 	<!-- the one thing to do now -->
 	<div class="now rise" style="--i: 1">
 		{#if now.kind === 'review'}
-			<NextStep hue={265} eyebrow={t('home.reviewsDue')} title={tn('home.cards', now.n)} body={t('home.reviewsBody')} action={t('home.startReview')} href="/review" {then}>
+			<NextStep hue={265} eyebrow={t('home.reviewsDue')} title={tn('home.cards', now.n)} body={now.n > ROUND_SIZE ? t('home.reviewsRounds', { size: ROUND_SIZE }) : t('home.reviewsBody')} action={t('home.startReview')} href="/review" {then}>
 				{#snippet art()}<span class="big-count">{now.n}</span>{/snippet}
 			</NextStep>
 		{:else if now.kind === 'plan'}
