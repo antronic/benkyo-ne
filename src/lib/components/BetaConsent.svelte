@@ -19,7 +19,7 @@
 
 	let { review = false, onclose }: { review?: boolean; onclose?: () => void } = $props();
 
-	const { AGREE_LABEL, CHOICES, COLLECTED, CONSENT_INTRO, CONTACT, HOW_USED, NEVER_COLLECTED, RETENTION } = $derived(consentCopy(i18n.locale));
+	const { AGREE_LABEL, COLLECTED, CONSENT_INTRO, CONTACT, GOOD_TO_KNOW, NEVER_COLLECTED } = $derived(consentCopy(i18n.locale));
 	let agreed = $state(false);
 	/** the screen scrolls itself, so its "More below" button follows this element */
 	let sheet: HTMLElement | undefined = $state();
@@ -70,7 +70,7 @@
 		<Card as="section" strong class="consent-card" aria-label={t('consent.collected')}>
 			<h3 class="eyebrow">{t('consent.collected')}</h3>
 			{#each COLLECTED as s (s.title)}
-				<details class="row">
+				<details class="item">
 					<summary>
 						<span class="ico" aria-hidden="true">{s.icon}</span>
 						<span class="stack" style:--gap="var(--space-px)">
@@ -92,19 +92,14 @@
 			</ul>
 		</Card>
 
-		<Card as="section" strong class="consent-card" aria-label={t('consent.usedAria')}>
-			<h3 class="eyebrow">{t('consent.used')}</h3>
-			<ul>{#each HOW_USED as it}<li>{it}</li>{/each}</ul>
-			<h3 class="eyebrow">{t('consent.kept')}</h3>
-			<ul>{#each RETENTION as it}<li>{it}</li>{/each}</ul>
-			<h3 class="eyebrow">{t('consent.choices')}</h3>
-			<ul>{#each CHOICES as it}<li>{it}</li>{/each}</ul>
-			<h3 class="eyebrow">{t('consent.who')}</h3>
+		<Card as="section" strong class="consent-card" aria-label={t('consent.good')}>
+			<h3 class="eyebrow">{t('consent.good')}</h3>
 			<ul>
-				<li>{CONTACT[0]}</li>
+				{#each GOOD_TO_KNOW as it}<li>{it}</li>{/each}
 				<li>
+					{CONTACT[0]}
 					{t('consent.contactAsk')}
-					<a href="mailto:{OPERATOR.email}?subject=Benkyo%20beta%20data">{OPERATOR.email}</a>.
+					<a href="mailto:{OPERATOR.email}?subject=Benkyo%20beta%20data">{OPERATOR.email}</a>
 				</li>
 			</ul>
 			<p class="caption version">{t('consent.version', { version: CONSENT_VERSION, date: CONSENT_DATE })}</p>
@@ -184,11 +179,11 @@
 	.panel h3:first-child {
 		margin-top: 0;
 	}
-	details.row {
+	details.item {
 		border-top: 0.5px solid var(--hairline);
 		padding-top: var(--space-2);
 	}
-	details.row:first-of-type {
+	details.item:first-of-type {
 		border-top: 0;
 		padding-top: 0;
 	}

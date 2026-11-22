@@ -8,9 +8,9 @@
  */
 import { scrub } from './scrub.ts';
 
-export const CONSENT_VERSION = 3;
+export const CONSENT_VERSION = 4;
 /** Date the current version's text was written (shown on the screen). */
-export const CONSENT_DATE = '2026-11-20';
+export const CONSENT_DATE = '2026-11-22';
 /** Usage data (events and AI calls) is deleted this many days after it arrives. */
 export const RETENTION_DAYS = 180;
 
